@@ -1,0 +1,5 @@
+# 2008-02-05 sokol
+# La démarche d'optimisation :
+#	Entrées : matrice F:V_f->V=(V_net,V_rev), matrice G:V->X, X(distrib de marquage)
+#	Variables à ajuster : V_f
+#	Fonction à minimiser : ||X-X_mes||^2

@@ -1,0 +1,35 @@
+PROJECT								
+	NAME	VERSION	FORMAT	DATE	COMMENT			
+	ex2	1		10/03/08	split+fusion			
+								
+NETWORK								
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2			
+								
+// input								
+	v1	A		B				
+		#uv		#uv				
+// reversible								
+	v2	B		C	D			
+		#wx		#w	#x			
+// reversible								
+	v3	C	D	E				
+		#w	#x	#xw				
+// output								
+	v4	E		F				
+		#yz		#yz				
+FLUXES								
+	NET							
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+// Free (varied by optimization)
+// Constrained (not varied by optimization)
+// Determined (found from free fluxes)
+		v1	C	1				
+		v2	D	0.5				
+		v3	D					
+		v4	D					
+	XCH							
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	0				
+		v2	F					
+		v3	F					
+		v4	C	0				

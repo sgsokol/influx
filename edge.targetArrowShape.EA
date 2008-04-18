@@ -1,0 +1,4 @@
+edge.targetArrowShape
+a (cr) r1 = ARROW
+r1 (rc) c = DELTA
+b (cr) r1 = ARROW

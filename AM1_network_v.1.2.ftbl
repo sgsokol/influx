@@ -1,0 +1,539 @@
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT						
+	AM1_network_v1.2.ftbl	1		220108	Methylobacterium extorquens model with all central metabolism
+											
+NETWORK											
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2						
+											
+// simplified metabolism of methylobacterium extorquens
+// pathways : C1 transfert. serine cycle. PHB cycle. glyoxylate regeneration cycle. TCA cycle. pyruvate metabolism
+// pathways : gluconeogenesis. pentose phosphate pathway. entnerDoudoroff pathway
+// exit biomass: precursor (Van Dien 2002)
+// experimental Data : MS data (Van Dien 2003)
+// internal pool of CO2 comes from external CO2 56% and internal CO2 44% (CO2upt free) (Van Dien 2003)
+// labeled substrate: 13C methanol labeled 70% (Van Dien 2003)
+					
+//Uptake substrates							
+	meoh_upt	methanol_ext		meoh			//methanol entry
+		#A		#A			
+							
+	co2_upt	co2_ext		co2			//CO2 entry
+		#A		#A			
+							
+//	suc_upt	suc_ext		suc			//succinate entry
+//		#ABCD		#ABCD			
+//							
+//	ac_upt	ac_ext		accoa			//succinate entry
+//		#AB		#AB		
+
+// C1 assimilation pathway							
+	METDH	meoh		fald		//R001	
+		#A		#A			
+
+	MHMTPO	fald		co2_out		//R002	//methylenetetrahydrometanopterine oxidation + formate dehydrogenase
+		#A		#A			
+
+	FAS	fald		mlh4f		//R003	//methylenetetrahydrofolate oxidation
+		#A		#A			
+
+// serine cycle							
+	SHMT	gly	mlh4f	Lser		//R004	
+		#AB	#a	#ABa			
+
+	HPR	Lser		D2pg		//R005	
+		#ABC		#ABC			
+
+	ENO	D2pg		pep		//R006	
+		#ABC		#ABC		
+
+	PEPCL	co2_in	pep	oaa		//R007
+		#A	#abc	#abcA		
+
+	PEPCLr	oaa		co2_out	pep	//R007-reversible
+		#ABCD		#D	#ABC	
+
+	MDH	oaa		smalate		//R008
+		#ABCD		#ABCD		
+
+	MCOAL	smalate		accoa	glyox	//R009
+		#ABCD		#DC	#AB	
+
+	SGA	glyox		gly		//R010
+		#AB		#AB		
+
+//PHB cycle							
+	ACOAAT	accoa	accoa	aaccoa		//R011	
+		#AB	#ab	#ABab			
+
+//glyoxylate regeneration cycle							
+	MSUCS	aaccoa	co2_out	msuccoa		//R012	//methylsuccinylCoA synthesis
+		#ABCD	#a	#ACBaD			
+
+//mesaconylCoA pathway							
+	MMCOAL	msuccoa		glyox	ppcoa	//R013	
+		#ABCDE		#DC	#ABE		
+
+// isobutyrylCoA pathway							
+	MSCDC_1	msuccoa		co2_out	hisobutcoa	//R014	
+		#ABCDE		#D	#ABCE		
+
+	MSCDC_2	msuccoa		co2_out	hisobutcoa	//R015
+		#ABCDE		#D	#ABEC	
+
+	PPCOAC2	hisobutcoa		co2_out	ppcoa	//R0016
+		#ABCD		#A	#CBD	
+
+//glyoxylate regeneration cycle rest						
+	PPCOAC1	ppcoa	co2_in	scccoa		//R017
+		#ABC	#a	#aCBA		
+
+	PPCOAC1r	scccoa		ppcoa	co2_out	//R017-r
+		#ABCD		#DCB	#A	
+
+//TCA cycle						
+	CS_1	accoa	oaa	cit		//R018
+		#AB	#abcd	#dcbBAa		
+
+	CS_2	accoa	oaa	cit		//R019
+		#AB	#abcd	#ABbcda		
+
+	ICDH	cit		co2_out	akg	//R020
+		#ABCDEF		#F	#ABCDE	
+
+	AKGDH	akg		co2_out	scccoa	//R021
+		#ABCDE		#A	#BCDE	
+
+	SCH	scccoa	scccoa	suc	suc	//R-022
+		#ABCD	#abcd	#ABCD	#dcba	
+
+	SDH	suc	suc	smalate	smalate	//R023
+		#ABCD	#abcd	#ABCD	#dcba	
+
+//pyruvate metabolism						
+	ME	smalate		co2_out	pyr	//R024
+		#ABCD		#D	#ABC	
+
+	MEr	co2_in	pyr	smalate		//R024-r 
+		#A	#abc	#abcA		
+
+	PYRDH	pyr		co2_out	accoa	//R025
+		#ABC		#A	#BC	
+
+	PYRDHr	co2_in	accoa	pyr		//R025-r
+		#A	#ab	#Aab		
+
+	OAADC	oaa		co2_out	pyr	//R026
+		#ABCD		#D	#ABC	
+
+	OAADCr	co2_in	pyr	oaa		//R026-r
+		#A	#abc	#abcA		
+
+	PK	pep		pyr		//R027
+		#ABC		#ABC		
+
+//gluconeogenesis						
+	PGM	D2pg		glych3p		//R028
+		#ABC		#ABC		
+
+	FBA	glych3p	glych3p	h6p		//R029 pool of g6p + f6p : need indentification process. H6p= hexose6P
+		#ABC	#abc	#CBAabc		
+
+//pentose phosphate pathway						
+	G6PDH	h6p		co2_out	p5p	//R030
+		#ABCDEF		#A	#BCDEF	
+
+	X5PPK	glych3p	h6p	p5p	ery4p	//R031 (R071+R072)
+		#ABC	#abcdef	#abABC	#cdef	
+
+	TA	h6p	ery4p	glych3p	sedh7p	//R032
+		#ABCDEF	#abcd	#DEF	#ABCabcd	
+
+	TK	glych3p	sedh7p	p5p	p5p	//R033
+		#ABC	#abcdefg	#abABC	#cdefg	
+
+	PGLCDH	h6p		pyr	glych3p	//R034
+		#ABCDEF		#ABC	#DEF	
+
+// biomass exit flux  simplified reactions with key amino acids considered						
+	bf_mlh4f	mlh4f		BMmlh4f		// mlh4f + 10fh4f
+		#A		#A
+
+	bf_gly	gly		BMgly
+		#AB		#AB
+
+	bf_Lser	Lser		BMLser
+		#ABC		#ABC
+
+	//bf_scccoa	scccoa		BMscccoa
+	//	#ABCD		#ABCD
+	//			
+	//bf_suc	BMsuc		suc
+	//	#ABCD		#ABCD
+
+	bf_pep	pep		BMpep
+		#ABC		#ABC
+
+	bf_oaa	oaa		BMoaa		
+		#ABCD		#ABCD		
+
+	bf_accoa	accoa		BMaccoa		
+		#AB		#AB		
+
+	bf_pyr	pyr		BMpyr		
+		#ABC		#ABC		
+
+	bf_akg	akg		BMakg		
+		#ABCDE		#ABCDE		
+
+	bf_TP	glych3p		BMTP		//TP : dhap + glych3p
+		#ABC		#ABC		
+
+	bf_h6p	h6p		BMg6p		
+		#ABCDEF		#ABCDEF		
+
+	bf_rib5p	p5p		BMrib5p		
+		#ABCDE		#ABCDE		
+
+	bf_ery4p	ery4p		BMery4p		
+		#ABCD		#ABCD		
+
+	bf_PHB	aaccoa		BMPHB		//PHB synthesis
+		#ABCD		#ABCD		
+
+//	bs_Val	BMpyr	BMpyr	val
+//		#ABC	#abc	#ABbcC
+//				
+//	bs_Ile	BMoaa	BMpyr	ile
+//		#ABCD	#abc	#ABbCDc
+//				
+//	bs_Met	BMoaa	BMmlh4f	met
+//		#ABCD	#a	#ABCDa
+//				
+//	bs_AKV	BMpyr	BMpyr	akv
+//		#ABC	#abc	#ABbcC
+//				
+//	bs_Leu	akv	BMaccoa	leu
+//		#ABCDE	#ab	#abBCDE
+
+// Exit Flux and co2						
+	exit_co2	co2		co2_exit		//CO2 exit
+		#A		#A		
+
+	out_co2	co2_out		co2		//CO2_out merge	
+		#A		#A			
+
+	in_co2	co2		co2_in		//CO2_in merge	
+		#A		#A			
+
+FLUXES							
+	NET						
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+
+// entry flux							
+		meoh_upt	C	1			
+		co2_upt	F	1			
+//		suc_upt	C	0			
+//		ac_upt	C	0			
+
+// C1 assimilation pathway						
+		METDH	D			//R001
+		MHMTPO	C	0.5670		//R002
+		FAS	D			//R003
+
+// serine cycle						
+		SHMT	D			//R004
+		HPR	D			//R005
+		ENO	F	0.3554		//R006
+		PEPCL	F	0.3172		//R007
+		PEPCLr	F	0		//R007-r reversible PEPCL
+		MDH	F	0.2729		//R008
+		MCOAL	D			//R009
+		SGA	D			//R010
+
+//PHB cycle						
+		ACOAAT	F	0.1889		//R011
+
+//glyoxylate regeneration cycle						
+		MSUCS	D			//R012
+
+//mesaconylCoA pathway						
+		MMCOAL	F	0.1889	//R013
+
+// isobutyrylCoA pathway						
+		MSCDC_1	D			//R014
+		MSCDC_2	D			//R015
+		PPCOAC2	D			//R016
+
+//glyoxylate regeneration cycle rest						
+		PPCOAC1	D			//R017
+		PPCOAC1r	D			//R017-r
+
+//TCA cycle						
+		CS_1	D			//R018
+		CS_2	D			//R019
+		ICDH	D			//R020
+		AKGDH	D			//R021
+		SCH	D			//R022
+		SDH	D			//R023
+
+//pyruvate metabolism						
+		ME	F	0.0008		//R024
+		MEr	D			//R024-r
+		PYRDH	F	0.0004		//R025
+		PYRDHr	D			//R025-r
+		OAADC	F	0		//R026
+		OAADCr	D			//R026r
+		PK	D			//R027
+
+//gluconeogenesis						
+		PGM	D			//R028
+		FBA	D			//R029 pool of g6p + f6p : need indentification process. H6p= hexose6P
+
+//pentose phosphate pathway						
+		G6PDH	D			//R030
+		X5PPK	D			//R031 (R071+R072)
+		TA	D			//R032
+		TK	D			//R033
+		PGLCDH	C	0		//R034
+
+// biomass exit flux  simplified reactions with key amino acids considered						
+		bf_mlh4f	C	0.0093
+		bf_gly	C	0.0096
+		bf_Lser	C	0.0052
+		//bf_scccoa	C	0.0049
+		//bf_suc	C	0.0049
+		bf_pep	C	0.0079
+		bf_oaa	C	0.0265
+		bf_accoa	C	0.0382
+		bf_pyr	C	0.0299
+		bf_akg	C	0.0122
+		bf_TP	C	0.0014
+		bf_h6p	C	0.0127
+		bf_rib5p	C	0.0074
+		bf_ery4p	C	0.0036
+		bf_PHB	C	0.0332
+	//	bs_Val	F
+	//	bs_Ile	F
+	//	bs_Met	F
+	//	bs_AKV	F
+	//	bs_Leu	F
+
+// Exit Flux				
+		exit_co2	D	
+		out_co2	D				
+		in_co2	D				
+
+	XCH						
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+
+// entry flux							
+		meoh_upt	D				
+		co2_upt	D				
+//		suc_upt	D				
+//		ac_upt	D				
+
+// C1 assimilation pathway							
+		METDH	C	0	//R001		
+		MHMTPO	C	0	//R002	//unreversibility sure	
+		FAS	C	0	//R003		
+
+// serine cycle						
+		SHMT	C	0	//R004	
+		HPR	C	0	//R005	
+		ENO	C	0	//R006	
+		PEPCL	C	0	//R007 XCH = 0 irreversible (PEPCL/PEPCL-r)	
+		PEPCLr	C	0	//R007-r XCH = 0 irreversible (PEPCL/PEPCL-r)	
+		MDH	C	0	//R008	
+		MCOAL	C	0	//R009	//reversibility sure
+		SGA	C	0	//R010	
+
+//PHB cycle						
+		ACOAAT	C	0	//R011	
+
+//glyoxylate regeneration cycle						
+		MSUCS	C	0	//R012 reversibility sure but irreversible in the model	
+
+//mesaconylCoA pathway					
+		MMCOAL	C	0	//R013 reversibility sure but irreversible in the model
+
+// isobutyrylCoA pathway					
+		MSCDC_1	C	0	//R014 XCH = 0 irreversible in the model
+		MSCDC_2	D		//R015 XCH = 0 irreversible in the model
+		PPCOAC2	C	0	//R016 XCH = 0 irreversible in the model
+
+//glyoxylate regeneration cycle rest					
+		PPCOAC1	C	0	//R017 reversibility sure but XCH = 0 (PPCOAC1/PPCOAC1e)
+		PPCOAC1r	C	0	//R017 reversibility sure but XCH = 0 (PPCOAC1/PPCOAC1r)
+
+//TCA cycle					
+		CS_1	C	0	//R018 XCH = 0 ireversible in the model
+		CS_2	D		//R019 XCH = 0 ireversible in the model
+		ICDH	C	0	//R020 XCH = 0 ireversible in the model	
+		AKGDH	C	0	//R021 XCH = 0 ireversible in the model	
+		SCH	C	0.0746	//R022 reversibility sure	
+		SDH	C	0.0746	//R023 reversibility sure	
+
+//pyruvate metabolism						
+		ME	C	0	//R024 reversibility sure but XCH = 0 (ME/MEr)	
+		MEr	C	0	//R024r reversibility sure but XCH = 0 (ME/MEr)	
+		PYRDH	C	0	//R025 reversibility sure but XCH = 0 (PYRDH/PYRDHr)	
+		PYRDHr	C	0	//R025r reversibility sure but XCH = 0 (PYRDH/PYRDHr)	
+		OAADC	C	0	//R026 XCH = 0 (OAADC/OAADCr)	
+		OAADCr	C	0	//R026r XCH = 0 (OAADC/OAADCr)	
+		PK	C	0	//R027	//reversibility sure
+
+//gluconeogenesis						
+		PGM	C	0	//R028 reversibility sure	
+		FBA	C	0	//R029 pool of g6p + f6p : need indentification process. H6p= hexose6P	
+
+//pentose phosphate pathway						
+		G6PDH	C	0	//R030 XCH = 0	
+		X5PPK	C	0	//R031 (R071+R072)	//reversibility sure
+		TA	C	0	//R032	//reversibility sure
+		TK	C	0	//R033	//reversibility sure
+		PGLCDH	C	0	//R034	
+
+// biomass exit flux  simplified reactions with key amino acids considered						
+		bf_mlh4f	D			
+		bf_gly	D			
+		bf_Lser	D			
+		//bf_scccoa	D			
+		//bf_suc	D			
+		bf_pep	D			
+		bf_oaa	D		
+		bf_accoa	D		
+		bf_pyr	D		
+		bf_akg	D		
+		bf_TP	D		
+		bf_h6p	D		
+		bf_rib5p	D		
+		bf_ery4p	D		
+		bf_PHB	D		
+	//	bs_Val	F
+	//	bs_Ile	F
+	//	bs_Met	F
+	//	bs_AKV	F
+	//	bs_Leu	F
+
+// exit flux					
+		exit_co2	D	// ireversible XCH = 0
+		out_co2	C	0	// ireversible XCH = 0
+		in_co2	C	0	// ireversible XCH = 0
+
+EQUALITIES					
+	NET			
+		VALUE	FORMULA	
+
+		0	MSCDC_1-MSCDC_2	
+		0	CS_1-CS_2	
+		0	1.27*out_co2-co2_upt	// percentage of co2 from methanol incorporated
+			
+	XCH			
+		VALUE	FORMULA	
+
+		0	MSCDC_1-MSCDC_2	
+		0	CS_1-CS_2	
+
+INEQUALITIES				
+	NET			
+		VALUE	COMP	FORMULA
+// Inequalities for Input and Output Fluxes are generated automatically							
+
+// Example							
+//		0	<=	fum_a			
+//		0	<=	zwf			
+//		0	<=	ed			
+
+	XCH						
+		VALUE	COMP	FORMULA			
+// Inequalities for Input and Output Fluxes are generated automatically							
+
+
+FLUX_MEASUREMENTS											
+	FLUX_NAME	VALUE	DEVIATION	//		Val	Dev
+											
+// Example
+//	emp6	0.25	0.02
+
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+
+// 13CLabeled methanol + unlabeled CO2
+	methanol_ext	#0	0.30	//see labeling quality
+		#1	0.70
+	co2_ext	#0	0.989	
+		#1	0.011
+
+// Unlabeled methanol + 13labeled CO2
+//	methanol_ext	#0	0	//see labeling quality
+//		#1	1
+//	co2_ext	#0	0.989	
+//		#1	0.011
+
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+
+
+
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+
+//	glucose
+//
+//	Rib5P	4	0.065		0.044	0.891		0.005
+//	Rib5P	1	0.13		0.87			0.005
+//
+
+
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+
+	gly	2	0	0.3908	0.005	//85
+			1	0.6091	0.005	
+						
+	gly	1,2	0	0.2276	0.005	//186
+			1	0.5060	0.005	
+			2	0.2663	0.005	
+						
+	pyr	2,3	0	0.1194	0.005	//99
+			1	0.4429	0.005	
+			2	0.4376	0.005	
+						
+	pyr	1,2,3	0	0.0777	0.005	//158
+			1	0.3096	0.005	
+			2	0.4289	0.005	
+			3	0.1838	0.005	
+						
+	akg	2,3,4,5	0	0.0348	0.005	//157
+			1	0.179	0.005	
+			2	0.3624	0.005	
+			3	0.3223	0.005	
+			4	0.1013	0.005	
+						
+	 akg 	1,2,3,4,5	0	0.0215	0.005	//258
+			1	0.1221	0.005	
+			2	0.2793	0.005	
+			3	0.3283	0.005	
+			4	0.1953	0.005	
+			5	0.0534	0.005	
+						
+	oaa	2,3,4	0	0.0847	0.005	//143
+			1	0.3426	0.005	
+			2	0.4182	0.005	
+			3	0.1545	0.005	
+						
+	oaa	1,2,3	0	0.0812	0.005	//199
+			1	0.3166	0.005	
+			2	0.4220	0.005	
+			3	0.1802	0.005	
+						
+	oaa	1,2,3,4	0	0.0373	0.005	//244
+			1	0.2381	0.005	
+			2	0.3834	0.005	
+			3	0.2850	0.005	
+			4	0.0563	0.005	
+
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	MATLAB_FOR_FLUX_EQ_CONSTR_MATR	1
+

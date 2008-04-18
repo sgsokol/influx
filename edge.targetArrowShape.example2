@@ -1,0 +1,9 @@
+edge.targetArrowShape
+A (v1) B = ARROW
+B (v) v2 = ARROW
+v2 (v) C = ARROW
+v2 (v) D = ARROW
+C (v) v3 = ARROW
+D (v) v3 = ARROW
+v3 (v) E = ARROW
+E (v4) F = ARROW
