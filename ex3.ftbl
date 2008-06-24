@@ -1,0 +1,69 @@
+PROJECT								
+	NAME	VERSION	FORMAT	DATE	COMMENT			
+	ex3	1		24/04/08	2 to 2 reaction			
+								
+NETWORK								
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2			
+								
+// input								
+	v1	A		B				
+		#uvw		#uvw				
+// reversible								
+	v2	B		C	D			
+		#wxy		#w	#xy			
+// not reversible								
+	v3	C	D	E	F			
+		#w	#xy	#xw	#y			
+// output								
+	v4	E	F	G			
+		#yz	#a	#yza			
+FLUXES								
+	NET							
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+// Free (varied by optimization)
+// Constrained (not varied by optimization)
+// Determined (found from free fluxes)
+		v1	C	1				
+		v2	D	0.5				
+		v3	D					
+		v4	D					
+	XCH							
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	0				
+		v2	F	0				
+		v3	C	0				
+		v4	C	0				
+FLUX_MEASUREMENTS											
+	FLUX_NAME	VALUE	DEVIATION	//		Val	Dev				
+											
+	v1	1.	0.05								
+LABEL_INPUT											
+	META_NAME	ISOTOPOMER	VALUE								
+											
+	A	#00	0.489		// Natural marked isos !!						
+		#10	0.5		// 50 percent labeled at first position							
+		#01	0.011		// Naturally marked isos!!!						
+INEQUALITIES											
+	NET										
+		VALUE	COMP	FORMULA							
+	XCH										
+		VALUE	COMP	FORMULA							
+		0.85	>=	v2							
+LABEL_MEASUREMENTS											
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS						
+	B	1	0.1979869	0.002	#1xx+#1x1						
+		2	0.01530284	0.002	#x1x						
+PEAK_MEASUREMENTS											
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+	C	1	0.66		0.01			0.005			
+		2	1.26	0.03960991	0.01183004	0.0007686513		0.005			
+											
+MASS_SPECTROMETRY											
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION						
+	B	1,2,3	0	12601	68.005						
+			1	2301	16.505						
+			2	96	5.48						
+			3	1	5.005						
+		2,3	0	13001	70.005						
+			1	1996	14.98						
+			2	2	5.01						

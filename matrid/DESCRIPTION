@@ -1,0 +1,9 @@
+Package: matrid
+Type: Package
+Title: tridiagonal matrix solver by QR decomposition
+Version: 1.0
+Date: 2008-05-26
+Author: Serguei Sokol
+Maintainer: <serguei.sokol@insa-toulouse.fr>
+Description: qr() and qr.solve() are defined on matrid class which we define in this package. Matrices are stored in diagonal form.
+License: GPL3

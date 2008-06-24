@@ -1,0 +1,22 @@
+      PROGRAM testtrid
+      INTEGER N
+      PARAMETER (N=3)
+      DOUBLE PRECISION   l(N)
+      DOUBLE PRECISION   d(N)
+      DOUBLE PRECISION   u(N)
+      DOUBLE PRECISION   dd(N)
+      DOUBLE PRECISION   uu(N)
+      DATA l/0., 1., 2./, d/3*2./, u/3*2./
+
+      write(*,*) "before",l
+      write(*,*) d
+      write(*,*) u
+      call tridqr(N,l,d,u,dd,uu)
+      write(*,*) "after",l
+      write(*,*) d
+      write(*,*) u
+      write(*,*) dd
+      write(*,*) uu
+
+      STOP
+      END

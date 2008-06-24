@@ -1,0 +1,10 @@
+all: test
+src.o: src.f
+	$(F77) $(F77OPTS) -c src.f
+# implicite rules ($< = dep; $@ = target; $* = %)
+% : %.f
+
+%.o : %.f Makefile
+	$(F77) $(F77OPTS) -c $<
+% : %.o  Makefile
+	$(F77) $(LDFLAGS) -o $@ $@.o tridiag_qr.o
