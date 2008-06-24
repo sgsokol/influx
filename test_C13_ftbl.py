@@ -10,7 +10,8 @@ from tools_ssg import *;
 #from C13_ftbl import *;
 import C13_ftbl;
 
-fname='PPP.ftbl';
+fname='ex3.ftbl';
+#fname='PPP.ftbl';
 #fname='example2.ftbl';
 
 #pdb.set_trace();
@@ -22,11 +23,18 @@ fin.close();
 
 aff("ftbl['PROJECT']", ftbl['PROJECT']);
 aff("ftbl['NETWORK']", ftbl['NETWORK']);
-aff("ftbl['FLUXES']", ftbl['FLUXES']);
+#sec='INEQUALITIES';
+sec='MASS_SPECTROMETRY'
+aff("ftbl['"+sec+"']", ftbl[sec]);
 
 pdb.set_trace();
 #reload(C13_ftbl);
 netan=C13_ftbl.ftbl_netan(ftbl);
+#e="flux_inequal";
+#e="label_meas";
+#e="peak_meas";
+e="mass_meas";
+aff("netan["+e+"]", netan[e]);
 aff("netan", netan);
 
 # print stoichometric matrix
@@ -38,12 +46,12 @@ for fl in sorted(netan['sto_r_m'].keys()):
     coefs=netan['sto_r_m'][fl];
     f.write("%s" % fl);
     for m in metabs:
-       f.write("\t%s" % coefs.get(m,0));
+        f.write("\t%s" % coefs.get(m,0));
     f.write("\n");
 
 f.close();
 
-# print fwd-rev matrix
+# print fwd-rev flux matrix
 fwd_rev=[fl+".fwd" for fl in netan['reac']];
 fwd_rev+=[fl+".rev" for fl in set(netan['reac'])-set(netan['notrev'])];
 fwd_rev.sort();
