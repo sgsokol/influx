@@ -1,22 +1,24 @@
 #!/usr/bin/env python
-# Transform .ftbl file to a symbolic matrix A and its right part b
+# Transform .ftbl file to a R code calculating matrix A and right hand part b
 # in A*x=b. Resulting file can be used in source() operator
-# in R langage (but repeteive calls could take advantage of parse()-eval()
-# couple). After its execution it will define
-# Al, Ac, Au spA, and b are lists indexed by cumomer weight. Each list element
-# will correspond to a system of given weght. l,c, u idicate lower, central
+# (but repeteive calls could take advantage of parse()-eval() couple).
+# After its execution it will define
+# Al, Ac, Au spA, and b which are lists indexed by cumomer weight.
+# Each list element
+# will correspond to a system of given weight. l,c, u idicate lower, central
 # and upper diagonals in tridiagonal matrix. spA is a sparse part of the
 # the complete matrix A without three main diagonals stored in Al, Ac, Au.
 # All lists can to be initialized in R calling environement. If not,
 # we initialize them in an if block so that
-# in repetitive calls we dont have to manipulate large chunks of memory.
-# Flux vector fl can already be known in R environement and indexed by
+# in repetitive calls for minimization, we dont have to manage
+# large chunks of memory.
+# Flux vector fl is to be known in R environement and indexed by
 # the same metabolite names as in .ftbl file.
-# Cumomers cm is a list of vectors cm[weight][cumomer] where cumomer is
-# a string like metab:123, here metab is metabolite name and 123 is
-# cumomer decimal index
+# Variable cumo is a list of vectors cumo[weight][cumomer] where cumomer is
+# a string like "metab:123", here metab is metabolite name and 123 is
+# cumomer decimal index, its binary represantation marks labeled carbons
 
-# usage: ./ftbl2symAb.py < organism.ftbl > organism_sAb.R
+# usage: ./ftbl2symAb.py < organism.ftbl > organism_sym.R
 
 # 2008-04-17 sokol
 
@@ -45,22 +47,25 @@ nw=%d; # maximal cumomer weight
 
 # Initialize the lists if necessary (Ac is used as indicator for all other lists)
 if (! "Ac" %%in%% ls()) {
-   require(Matrix);
-   Al=Ac=Au=spA=b=cumos=ncumo=list();
+#   require(Matrix);
+   Al=Ac=Au=spA=b=cumos=ncumo=nxl=nxu=list();
    nx=0;  # length of cumomer vector x (each weight will add a chunk)
+   # x is global for all iw thus we can calculate b in simple way
    x=vector("numeric",0);
 }
 
-# assign variables weight by weight;
+# assign A and b weight by weight;
 """ % netan['Cmax']);
 #pdb.set_trace();
 for w in xrange(1,netan['Cmax']+1):
-##    cumos=netan['cumo_sys']['A'][w-1].keys(); # weight 1 equations have all metabolites
+##    cumos=netan['cumo_sys']['A'][w-1].keys(); # weight 1 equations have all metabolites#
+    ##aff("A "+str(w), netan['cumo_sys']['A'][w-1]);#
+    ##aff("b "+str(w), netan['cumo_sys']['b'][w-1]);#
     # order cumos along pathways
-    # starts are cumomers having input cumomers in rhs
-    starts=[cumo for cumo,fluxes in netan['cumo_sys']['b'][w-1].iteritems() \
-        if any((cur_cumo.split(':')[0] in netan['input']) \
-        for cur_cumo in valval(fluxes.values()))];
+    # starts are input cumomers
+    starts=[cumo for cumo in netan['cumo_sys']['A'][w-1] \
+        if cumo.split(':')[0] in netan['input']];
+    ##aff("st "+str(w), starts);
     # complete starts by all others cumomers
     starts+=[c for c in netan['cumo_sys']['A'][w-1] if not c in starts];
     cumo_paths=C13_ftbl.cumo_path(starts, netan['cumo_sys']['A'][w-1], set());
@@ -68,7 +73,9 @@ for w in xrange(1,netan['Cmax']+1):
     cumos=[cumo for cumo in valval(cumo_paths)];
     ncumo=len(cumos);
     #d=[c for c in netan['cumo_sys']['A'][w-1] if not c in cumos]
-    if ncumo != len(netan['cumo_sys']['A'][w-1]):
+    A=netan['cumo_sys']['A'][w-1];
+    b=netan['cumo_sys']['b'][w-1];
+    if ncumo != len(A):
         raise "wrongCumomerNumber";
     #metab_paths=netan['metab_paths']; # ordered by pathways
     f.write("""
@@ -76,54 +83,78 @@ iw=%d;
 if (length(Ac) < iw) {
    # initialiaze cumomer names
    cumos[[iw]]=c("%s");
-   ncumo[[iw]]=length(cumos);
+   ncumo[[iw]]=length(cumos[[iw]]);
    # init cumomer dependent vectors
    Al[[iw]]=Ac[[iw]]=Au[[iw]]=b[[iw]]=vector("numeric", ncumo[[iw]]);
-   x=c(x,vector("numeric", ncumo[[iw]]);
-   names(Al[[iw]])=names(Ac[[iw]])=names(Au[[iw]])=names(b[[iw]])=cumos[[iw]];
-   names(x[(nx+1):(nx+ncumo[[iw]])]=cumos[[iw]];
+   x=c(x,vector("numeric", ncumo[[iw]]));
+   nxl[iw]=nx+1;
+   nxu[iw]=nx+ncumo[[iw]];
+   nx=nx+ncumo[[iw]];
    # ... and sparse part of the matrix
-   spA[[iw]]=Matrix(0., ncumo[[iw]], ncumo[[iw]]);
-   dimnames(spA[[iw]])=list(cumos[[iw]],cumos[[iw]]);
+#   spA[[iw]]=Matrix(0., ncumo[[iw]], ncumo[[iw]]);
+   spA[[iw]]=matrix(0., ncumo[[iw]], ncumo[[iw]]);
+##debug
+#print(paste("init iw=", iw));
+#print(cumos);
+#print(Ac);
+#print(spA);
+#print(b);
 }""" % (w, '","'.join(cumos)));
     
     f.write("""
 # central diagonal
 Ac[[iw]]=c(%s);
 # lower diagonal (first element is a garbage)
-Al[[iw]]=c(%s);
+Al[[iw]]=-c(%s);
 # upper diagonal (last element is a garbage)
-Au[[iw]]=c(%s);""" % (
-    ','.join(fl_join(netan['cumo_sys']['A'][w-1][cumo][cumo]) for cumo in cumos),
-    ','.join(netan['cumo_sys']['A'][w-1][cumos[i]].get(cumos[i-1],"0.") for i in xrange(ncumo)),
-    ','.join(netan['cumo_sys']['A'][w-1][cumos[i]].get(cumos[(i+1)%ncumo],"0.") for i in xrange(ncumo)),
+Au[[iw]]=-c(%s);
+
+# sparse part (if any)
+""" % (
+    join(',', (join('+',A[cumo][cumo], 'fl["', '"]') if cumo.split(':')[0] not in netan['input'] else '1.'
+        for cumo in cumos)),
+    join(',', (join('+',A[cumos[i]].get(cumos[i-1],[]),'fl["', '"]', '0.')
+        for i in xrange(ncumo))),
+    join(',', (join('+',A[cumos[i]].get(cumos[(i+1)%ncumo],[]),'fl["', '"]','0.')
+        for i in xrange(ncumo))),
     ));
     # sparse part
     for icol in xrange(ncumo):
         for irow in xrange(ncumo):
-            if (irow > icol+1 or irow < icol-1):
+            if (irow >= icol-1 and irow <= icol+1):
+                # skip tridiagonal terms which are already stored elsewhere
                 continue;
-            term=netan['cumo_sys']['A'][w-1][cumos[irow]].get(cumos[icol],'');
+            term=join('+', A[cumos[irow]].get(cumos[icol],[]), 'fl["', '"]');
             if (not term):
                 continue;
-            f.write("spA[[iw]][%d,%d]=%s;\n" % (irow,icol,term));
+            f.write("spA[[iw]][%d,%d]=-(%s);\n" % (irow+1,icol+1,term));
     
     f.write("""
 # right hand side term b
-b=c(%s);
+b[[iw]]=c(%s);
+names(Al[[iw]])=names(Ac[[iw]])=names(Au[[iw]])=names(b[[iw]])=cumos[[iw]];
+dimnames(spA[[iw]])=list(cumos[[iw]],cumos[[iw]]);
+names(x)[nxl[[iw]]:nxu[[iw]]]=cumos[[iw]];
+## debug
+#print(iw);
+#print("Ac");
+#print(Ac);
+#print("b");
+#print(b);
 
 # solve the system A[[iw]]*x[<iw part>]=b[[iw]];
-# x has to be global for all iw if we want to calculate b in simple way
+x[nxl[[iw]]:nxu[[iw]]]=trisparse_solv(Al[[iw]],Ac[[iw]],Au[[iw]],spA[[iw]],b[[iw]]);
+#print("x");
+#print(x);
 """ % (
-    ','.join(
-    '+'.join(
-    (flux+'*('+'*'.join('x["'+cumo_c+'"]'
-    for cumo_c in cumo_contibs)+')') if len(cumo_contibs) else '0.'
-    for flux,cumo_contibs in \
-    netan['cumo_sys']['b'][w-1].get(cumo,{'':[]}).iteritems()
+    join(',', (
+    join('+', (('fl["'+flux+'"]*'
+    if cumo.split(':')[0] not in netan['input'] else '') +
+    (join('*', lst, 'x["', '"]')
+    if cumo.split(':')[0] not in netan['input'] else lst[0])
+    for (flux,lst) in b.get(cumo,{}).iteritems()
+    ), a='0.') for cumo in cumos
     )
-    for cumo in cumos
-    )
-    ));
+    )));
 
 #f.close(); # no need to close stdout
