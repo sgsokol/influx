@@ -28,9 +28,15 @@
 # 2008-04-21 sokol: ftbl_netan(): added input cumomers to matrix
 # 2008-04-21 sokol: ftbl_netan(): added input cumomers to netan (cumo_input)
 # 2008-04-21 sokol: iso2cumo(): calculate cumo fraction from isotopomer ones
+# 2008-06-12 sokol: ftbl_netan(): added inequality analysis
+# 2008-06-12 sokol: ftbl_netan(): added label measures analysis
+# 2008-06-23 sokol: ftbl_netan(): added peak measures analysis
+# 2008-06-23 sokol: ftbl_netan(): added mass measures analysis
 
 
 from tools_ssg import *;
+
+import re;
 def ftbl_parse(f):
     """reads .ftbl file. The only input parameter f is a stream pointer
     with read permission. It's user care to open and close it outside of
@@ -157,6 +163,10 @@ def ftbl_netan(ftbl):
     # - measured fluxes (flux_measured)
     # - input isotopomers (iso_input)
     # - input cumomers (cumo_input)
+    # - flux inequalities (flux_ineqal)
+    # - label measures, H1 (label_meas)
+    # - peak measures, C13 (peak_meas)
+    # - mass measures (mass_meas)
 
     # init named sets
     netan={
@@ -182,6 +192,10 @@ def ftbl_netan(ftbl):
         'flux_measured':{},
         'iso_input':{},
         'cumo_input':{},
+        'flux_inequal':{'net':[], 'xch':[]},
+        'label_meas':{},
+        'peak_meas':{},
+        'mass_meas':{},
     };
     res="";     # auxiliary shot cut to current result;
 
@@ -397,11 +411,122 @@ def ftbl_netan(ftbl):
             netan['iso_input'][metab]={};
         netan['iso_input'][metab][iiso]=float(row['VALUE']);
     
-    # translate iso to cumo
+    # translate input iso to input cumo
     for metab in netan['iso_input']:
        for icumo in xrange(1,1<<(netan['Clen'][metab])):
            cumo=metab+':'+str(icumo);
            netan['cumo_input'][cumo]=iso2cumo(netan['Clen'][metab], icumo, netan['iso_input'][metab]);
+    
+    # flux inequalities
+    # list of tuples (value,comp,dict) where dict is flux:coef
+    # and comp is of "<", "<=", ...
+    # net fluxes
+    for row in ftbl.get('INEQUALITIES',{}).get('NET',[]):
+        #print row;##
+        netan['flux_inequal']['net'].append(
+                row['VALUE'],
+                row['COMP'],
+                formula2dict(row['FORMULA']));
+    # xch fluxes
+    for row in ftbl.get('INEQUALITIES',{}).get('XCH',[]):
+        #print row;##
+        netan['flux_inequal']['xch'].append((
+                row['VALUE'],
+                row['COMP'],
+                formula2dict(row['FORMULA'])));
+    
+    # label measurements
+    # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}}
+    metab='';
+    for row in ftbl.get('LABEL_MEASUREMENTS',[]):
+        #print row;##
+        # test the cumomer pattern validity
+        if (not re.match(r'#[01x]+(\+#[01x]+)*', row['CUM_CONSTRAINTS'])):
+            raise "Not valid cumomer's pattern in '"+row['CUM_CONSTRAINTS']+"'";
+        metab=row['META_NAME'] or metab;
+        if not metab in netan['metabs']:
+            raise "Unknown metabolite name '"+metab+"' in LABEL_MEASUREMENTS";
+        mlen=netan['Clen'][metab];
+        group=row['CUM_GROUP'] or group;
+        if not metab in netan['label_meas']:
+            netan['label_meas'][metab]={};
+        if not group in netan['label_meas'][metab]:
+            netan['label_meas'][metab][group]=[];
+        netan['label_meas'][metab][group].append({
+                'val':row['VALUE'],
+                'dev':row['DEVIATION'],
+                'bcumos':row['CUM_CONSTRAINTS'].split('+')
+        });
+        # test the icumomer lengths
+        if not all(len(ic)==mlen+1 for ic in 
+                netan['label_meas'][metab][group][-1]['bcumos']):
+            raise "Wrong cumomer length for "+metab+" in "+row['CUM_CONSTRAINTS']
+    
+    # peak measurements
+    # [metab][c_no][peak_type in (S,D-,D+,(DD|T))]={val:x, dev:y}
+    metab='';
+    for row in ftbl.get('PEAK_MEASUREMENTS',[]):
+        #print row;##
+        # test the pattern validity
+        if (row.get('VALUE_DD','') and row.get('VALUE_T','')):
+            raise "Not valid value combination. Only one of DD and T has to be in row "+str(row);
+        metab=row['META_NAME'] or metab;
+        if not metab in netan['metabs']:
+            raise "Unknown metabolite name '"+metab+"' in PEAK_MEASUREMENTS";
+        for suff in ('S', 'D-', 'D+', 'DD', 'T'):
+            # get val and dev for this type of peak
+            val=row.get('VALUE_'+suff,'');
+            if (not val):
+                continue;
+            dev=row.get('DEVIATION_'+suff,'') or row.get('DEVIATION_S');
+            # test validity
+            if not dev:
+                raise 'Deviation is not determined for VALUE_'+suff+' in row '+str(row);
+            c_no=int(row['PEAK_NO']);
+            netan['peak_meas'].setdefault(c_no,{});
+            netan['peak_meas'][c_no][suff]={'val': float(val), 'dev': float(dev)};
+    
+    # mass measurements
+    # dict:[metab][frag_mask][weight]={val:x, dev:y}
+    metab='';
+    for row in ftbl.get('MASS_SPECTROMETRY',[]):
+        #print row;##
+        metab=row['META_NAME'] or metab;
+        # test the validity
+        if not metab in netan['metabs']:
+            raise "Unknown metabolite name '"+metab+"' in MASS_SPECTROMETRY";
+        frag=row['FRAGMENT'] or frag;
+        if row['FRAGMENT']:
+            # recalculate fragment mask
+            mask=0;
+            for item in frag.split(','):
+                try:
+                    i=int(item);
+                    # add this simple item to the mask
+                    mask|=1<<(i-1);
+                except ValueError:
+                    # try the interval
+                    try:
+                        (start,end)=item.split('~');
+                        print "start,end=%s,%s" % (start,end);##
+                        try:
+                            for i in xrange(int(start)-1,int(end)):
+                                if i >= netan['C_len'][metab]:
+                                    raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan['C_len'][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
+                                mask|=1<<i;
+                        except:
+                            raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
+                    except:
+                        raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
+        weight=int(row['WEIGHT']);
+        if sumbit32(mask) < weight:
+            raise "Weight "+str(weight)+" is higher than fragment length "+frag+" in MASS_SPECTROMETRY\nrow="+str(row);
+        netan['mass_meas'].setdefault(metab, {});
+        netan['mass_meas'][metab].setdefault(mask, {});
+        netan['mass_meas'][metab][mask][weight]={
+                'val':float(row['VALUE']),
+                'dev':float(row['DEVIATION']),
+        }
     
     # discard empty entries
     for e in netan:
@@ -479,7 +604,7 @@ def ftbl_netan(ftbl):
                         # matrix: diagonal term for input cumomer
                         res['A'][w-1][cumo]={cumo:['1']};
                         # rhs: input cumomer
-                        res['b'][w-1]={cumo:{'1':[str(netan['cumo_input'].get(cumo,0))]}};
+                        res['b'][w-1][cumo]={'1':[str(netan['cumo_input'].get(cumo,0))]};
                     else:
                         # make A,b for input cumo only once
                         continue;
@@ -527,6 +652,8 @@ def ftbl_netan(ftbl):
 #                        res['b'][w-1][cumo][flux].append(in_cumo);
 #                    else:
 #                        # put it in matrix
+                    if cumo not in res['A'][w-1]:
+                        res['A'][w-1][cumo]={cumo:[]};
                     if in_cumo not in res['A'][w-1][cumo]:
                         res['A'][w-1][cumo][in_cumo]=[];
                     # matrix: off-diagonal linear term
@@ -546,6 +673,8 @@ def ftbl_netan(ftbl):
                     in_cumo2=in_metab2+':'+str(in_icumo2);
                     in_w1=sumbit32(in_icumo1);
                     in_w2=w-in_w1;
+                    if cumo not in res['A'][w-1]:
+                        res['A'][w-1][cumo]={cumo:[]};
                     if in_w1==0:
                         # add 2nd cumo
                         if in_cumo2 not in res['A'][w-1][cumo]:
@@ -560,9 +689,13 @@ def ftbl_netan(ftbl):
                         res['A'][w-1][cumo][in_cumo1].append(flux);
                     else:
                         # add product to rhs
+                        if cumo not in res['b'][w-1]:
+                            res['b'][w-1][cumo]={};
                         if flux not in res['b'][w-1][cumo]:
                             res['b'][w-1][cumo][flux]=[];
                         res['b'][w-1][cumo][flux].extend((in_cumo1,in_cumo2));
+                        ##print "2 cumo fusion in rhs. w,cumo,flux,c1,c2=",join(',',(w,cumo,flux,in_cumo1,in_cumo2));#
+                        ##aff("flux lst", res['b'][w-1][cumo][flux]);#
             else:
                 raise "Wrong item number in netan['carbotrance']['%s']['%s']" % (reac,in_lr);
     return netan;
@@ -689,3 +822,32 @@ def iso2cumo(Clen, icumo, iso_dic):
         ##print 'iiso=', strbit32(iiso);#
         res+=iso_dic.get(iiso,0.);
     return res;
+def formula2dict(f):
+    '''parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
+    positive number and f_i is a string starting by non-digit and not white
+    character (# is allowed). Output is a dict f_i:[+-]a_i'''
+    pterm=re.compile(r'\W*([+-])\W*'); # returns list of match1,sep,match2,...
+    pflux=re.compile(r'\W*(?P<coef>\d+\.?\d*|^)?\W*\*?\W*(?P<var>[a-zA-Z_][\w\.-]*)\W*');
+    res={};
+    sign='+';
+    l=(i for i in pterm.split(str(f)));
+    for term in l:
+        try:
+            next_sign=l.next();
+        except StopIteration:
+            next_sign='';
+            pass;
+        if (len(term) == 0):
+            continue;
+        m=pflux.match(term);
+        if (m):
+            coef=m.group('coef');
+            coef='1.' if coef==None or not len(coef) else str(float(coef));
+            var=m.group('var');
+            sign='-' if sign=='-' else '+';
+            res[var]=sign+coef;
+            sign=next_sign;
+        else:
+            raise "Not parsed term '"+term+"'";
+    return res;
+
