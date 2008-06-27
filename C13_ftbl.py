@@ -452,9 +452,22 @@ def ftbl_netan(ftbl):
             netan['label_meas'][metab]={};
         if not group in netan['label_meas'][metab]:
             netan['label_meas'][metab][group]=[];
+        # prepare cumos list
+        # if bcumos is not empty use it
+        # else use group name as carbon number (starting from # character)
+        if row.get('CUM_CONSTRAINTS',''):
+            bcumos=row['CUM_CONSTRAINTS'].split('+');
+        else:
+            try:
+                i=int(group);
+                bcumos='#'+'x'*netan['Clen'][metab];
+                bcumos[i-1]='1';
+                bcumos=[bcumos];
+            except:
+                raise "Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row="+str(row);
         netan['label_meas'][metab][group].append({
-                'val':row['VALUE'],
-                'dev':row['DEVIATION'],
+                'val':float(row['VALUE']),
+                'dev':float(row['DEVIATION']),
                 'bcumos':row['CUM_CONSTRAINTS'].split('+')
         });
         # test the icumomer lengths
@@ -508,18 +521,18 @@ def ftbl_netan(ftbl):
                     # try the interval
                     try:
                         (start,end)=item.split('~');
-                        print "start,end=%s,%s" % (start,end);##
+                        #print "start,end=%s,%s" % (start,end);##
                         try:
                             for i in xrange(int(start)-1,int(end)):
-                                if i >= netan['C_len'][metab]:
-                                    raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan['C_len'][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
+                                if i >= netan['Clen'][metab]:
+                                    raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan['Clen'][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
                                 mask|=1<<i;
                         except:
                             raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
                     except:
                         raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
         weight=int(row['WEIGHT']);
-        if sumbit32(mask) < weight:
+        if sumbit(mask) < weight:
             raise "Weight "+str(weight)+" is higher than fragment length "+frag+" in MASS_SPECTROMETRY\nrow="+str(row);
         netan['mass_meas'].setdefault(metab, {});
         netan['mass_meas'][metab].setdefault(mask, {});
@@ -599,7 +612,7 @@ def ftbl_netan(ftbl):
                 # run through all cumomers for this input metabolite
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
-                    w=sumbit32(icumo);
+                    w=sumbit(icumo);
                     if cumo not in res['A'][w-1]:
                         # matrix: diagonal term for input cumomer
                         res['A'][w-1][cumo]={cumo:['1']};
@@ -618,7 +631,7 @@ def ftbl_netan(ftbl):
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
-                    w=sumbit32(icumo);
+                    w=sumbit(icumo);
                     if cumo not in res['A'][w-1]:
                         res['A'][w-1][cumo]={cumo:[]};
                     # main diagonal term ('out' part)
@@ -637,7 +650,7 @@ def ftbl_netan(ftbl):
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
-                    w=sumbit32(icumo);
+                    w=sumbit(icumo);
                     # get in_cumo and in_cstr
                     (in_metab, in_cstr)=lrdict[in_lr][0];
                     in_icumo=src_ind(in_cstr, cstr, icumo);
@@ -663,7 +676,7 @@ def ftbl_netan(ftbl):
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
-                    w=sumbit32(icumo);
+                    w=sumbit(icumo);
                     # get in_cumo1,2 and in_cstr1,2
                     (in_metab1, in_cstr1, in_metab2, in_cstr2)=\
                         lrdict[in_lr][0]+lrdict[in_lr][1];
@@ -671,7 +684,7 @@ def ftbl_netan(ftbl):
                     in_icumo2=src_ind(in_cstr2, cstr, icumo);
                     in_cumo1=in_metab1+':'+str(in_icumo1);
                     in_cumo2=in_metab2+':'+str(in_icumo2);
-                    in_w1=sumbit32(in_icumo1);
+                    in_w1=sumbit(in_icumo1);
                     in_w2=w-in_w1;
                     if cumo not in res['A'][w-1]:
                         res['A'][w-1][cumo]={cumo:[]};
@@ -769,7 +782,7 @@ def src_ind(substrate, product, iprod):
     product=product[::-1];
     for nb in xrange(len(product)):
         if (movbit & iprod):
-            # algo: if the current bit is set in product serach for its origin
+            # algo: if the current bit is set in product search for its origin
             # and set the corresponding bit in substrate
             try:
                 isubstr|=1<<substrate.find(product[nb]);
@@ -800,7 +813,7 @@ def iso2cumo(Clen, icumo, iso_dic):
     ##print 'Clen,icumo=', Clen, strbit32(icumo);#
     # sum up all isotopomers where icumo bits are 0
     # how many zeros ?
-    nbz=Clen-sumbit32(icumo);
+    nbz=Clen-sumbit(icumo);
     # prepare array indicating positions of zero bits in icumo
     posz=list();
     movb=1;
@@ -814,6 +827,7 @@ def iso2cumo(Clen, icumo, iso_dic):
     for ipatz in xrange(1<<nbz):
         # restore full isotopomer index
         iiso=icumo;
+        # put 1-bits in zero pattern to corresponding bits in isotopomer index
         movb=1;
         for ib in xrange(nbz):
             if movb&ipatz:
@@ -850,4 +864,112 @@ def formula2dict(f):
         else:
             raise "Not parsed term '"+term+"'";
     return res;
-
+def label_meas2matrix_vec_dev(netan):
+    '''use netan['label_meas'] to construct a corresponding measure matrix matx_lab
+    such that scale_diag*matx_lab*cumos_vector corresponds to label_measures_vector.
+    matx_lab is defined as
+    list of dict{'scale':scale_name, 'coefs':dict{icumo:coef}}
+    where coef is a contribution of cumo in linear combination for given measure.
+    scale_name is of the form "metab;group".
+    vec is a list of measures (values in .ftbl)
+    dev is a list of deviations.
+    Elements in matx_lab, vec and dev are ordered in the same way.
+    The returned result is a tuple (matx_lab,vec,dev)
+    '''
+    # lab[metab][group]=list of {val:x, dev:y, bcumos:list of #bcumo}
+    # bcumo is like #1xx01 (0,1 and x are permitted)
+    # their sum have to be transformed in cumomer linear combination
+    mat=[];
+    vec=[];
+    dev=[];
+    for (metab,groups) in netan.get('label_meas', {}).iteritems():
+        for (group,rows) in groups.iteritems():
+            for row in rows:
+                vec.append(row['val']);
+                dev.append(row['dev']);
+                mat.append({'scale': metab+';'+group, 'coefs':{}});
+                res=mat[-1]['coefs'];
+                for cumostr in row['bcumos']:
+                    decomp=bcumo_decomp(cumostr);
+                    for icumo in decomp['+']:
+                        res.setdefault(icumo,0);
+                        res[icumo]+=1;
+                    for icumo in decomp['-']:
+                        res.setdefault(icumo,0);
+                        res[icumo]-=1;
+    return (mat,vec,dev) if mat else ();
+def mass_meas2matrix_vec_dev(netan):
+    '''use netan['mass_meas'] to construct a corresponding measure matrix matx_mass
+    such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.
+    matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()
+    Elements in matx_mass, vec and dev are ordered in the same way.
+    scale name is the same 'mass' for all mass_measures(?)
+    The returned result is a tuple (matx_mass,vec,dev)
+    '''
+    # mass[metab][frag_mask][weight]={val:x, dev:y}
+    # weight has to be transformed in cumomer linear combination
+    mat=[];
+    vec=[];
+    dev=[];
+    for (metab,frag_masks) in netan.get('mass_meas',{}).iteritems():
+        print "mass matx calc for ", metab;
+        n=netan['Clen'][metab];
+        str0='0'*n;
+        strx='x'*n;
+        for (fmask,weights) in frag_masks.iteritems():
+            onepos=[b_no for (b_no,b) in iternumbit(fmask) if b];
+            fmask0x=setcharbit(strx,'0',fmask);
+            nmask=sumbit(fmask);
+            aff('weights for met,fmask '+', '.join((metab,strbit(fmask))), weights);##
+            for (weight,row) in weights.iteritems():
+                vec.append(row['val']);
+                dev.append(row['dev']);
+                mat.append({'scale': 'mass(?)', 'coefs':{}});
+                res=mat[-1]['coefs'];
+                # for a given weight construct bcumo sum: #x10x+#x01x+...
+                bcumos=('#'+setcharbit(fmask0x,'1',expandbit(iw,onepos))
+                        for iw in xrange(1<<nmask) if sumbit(iw)==weight);
+#                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+                for cumostr in bcumos:
+                    print cumostr;##
+                    decomp=bcumo_decomp(cumostr);
+                    for icumo in decomp['+']:
+                        res.setdefault(icumo,0);
+                        res[icumo]+=1;
+                    for icumo in decomp['-']:
+                        res.setdefault(icumo,0);
+                        res[icumo]-=1;
+    return (mat,vec,dev) if mat else ();
+def bcumo_decomp(bcumo):
+    '''bcumo is a string of the form #[01x]+. It has to be decomposed
+    in the linear combination of cumomers #[1x]+. The coefficients
+    of this linear combination are 1 or -1. So it can be represented as
+    sum(cumos_positive)-sum(cumos_negative). The result of this function
+    is a dictionary {'+': list of icumos, '-': list of icumos}. icumo is
+    an integer who's binary form indicates 1's positions in a cumomer.'''
+    
+    # take zero positions
+    zpos=[ i for i in xrange(len(bcumo)-1) if bcumo[-i-1]=='0' ];
+    
+    # basic 1's cumomer mask
+    icumo_base=0;
+    for i in xrange(len(bcumo)-1):
+        if bcumo[-i-1]=='1':
+            icumo_base|=1<<i;
+    
+    # run through all 2^n zero masks separating positive and negative
+    # cumomers
+    res={'+': [], '-': []};
+    nz=len(zpos);
+    for zmask in xrange(1<<nz):
+        # odd or even bit number?
+        sign='-' if sumbit(zmask)%2 else '+';
+        
+        # get full cumomer mask
+        icumo=icumo_base;
+        for ipz in xrange(nz):
+            if zmask&(1<<ipz):
+                icumo|=1<<zpos[ipz];
+        # put in result dict
+        res[sign].append(icumo);
+    return res;
