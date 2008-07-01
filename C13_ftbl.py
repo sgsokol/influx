@@ -32,6 +32,8 @@
 # 2008-06-12 sokol: ftbl_netan(): added label measures analysis
 # 2008-06-23 sokol: ftbl_netan(): added peak measures analysis
 # 2008-06-23 sokol: ftbl_netan(): added mass measures analysis
+# 2008-06-26 sokol: ftbl_netan(): added matrices for label (H1) and mass
+# 2008-06-27 sokol: ftbl_netan(): added matrix for peaks (C13)
 
 
 from tools_ssg import *;
@@ -874,7 +876,7 @@ def label_meas2matrix_vec_dev(netan):
     vec is a list of measures (values in .ftbl)
     dev is a list of deviations.
     Elements in matx_lab, vec and dev are ordered in the same way.
-    The returned result is a tuple (matx_lab,vec,dev)
+    The returned result is a dict (mat,vec,dev)
     '''
     # lab[metab][group]=list of {val:x, dev:y, bcumos:list of #bcumo}
     # bcumo is like #1xx01 (0,1 and x are permitted)
@@ -897,14 +899,14 @@ def label_meas2matrix_vec_dev(netan):
                     for icumo in decomp['-']:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
-    return (mat,vec,dev) if mat else ();
+    return {'mat': mat, 'vec': vec, 'dev': dev};
 def mass_meas2matrix_vec_dev(netan):
     '''use netan['mass_meas'] to construct a corresponding measure matrix matx_mass
     such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.
     matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()
     Elements in matx_mass, vec and dev are ordered in the same way.
     scale name is the same 'mass' for all mass_measures(?)
-    The returned result is a tuple (matx_mass,vec,dev)
+    The returned result is a dict (mat,vec,dev)
     '''
     # mass[metab][frag_mask][weight]={val:x, dev:y}
     # weight has to be transformed in cumomer linear combination
@@ -939,7 +941,69 @@ def mass_meas2matrix_vec_dev(netan):
                     for icumo in decomp['-']:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
-    return (mat,vec,dev) if mat else ();
+    return {'mat': mat, 'vec': vec, 'dev': dev};
+
+def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD': 7}):
+    '''use netan['peak_meas'] to construct a corresponding measure
+    matrix matx_peak
+    such that scale_diag*matx_peak*cumos_vector corresponds to
+    peak_measures_vector.
+    matx_peak is defined as matx_lab in label_meas2matrix_vec_dev()
+    Elements in matx_peak, vec and dev are ordered in the same way.
+    scale name is the same 'peak' for all peak_measures(?)
+    The returned result is a dict (mat,vec,dev)
+    '''
+    # peak[metab][c_no][peak_type]={val:x, dev:y}
+    # c_no+peak_type have to be transformed in cumomer linear combination
+    # c_no is 1-based and left (just after # sign) started.
+    mat=[];
+    vec=[];
+    dev=[];
+    for (metab,c_nos) in netan.get('peak_meas',{}).iteritems():
+        print "peak matx calc for ", metab;
+        n=netan['Clen'][metab];
+        strx='#'+'x'*n;
+        for (c_no,peaks) in c_nos.iteritems():
+            pmask0x=setcharbit(strx,'0',1<<(n-c_no));
+            if c_no > 1:
+                # add left neighbour
+                pmask0x=setcharbit(strx,'0',1<<(n-c_no+1));
+            if c_no < n:
+                # add right neighbour
+                pmask0x=setcharbit(strx,'0',1<<(n-c_no-1));
+            aff('peaks for met,c_no, pmask0x '+', '.join((metab,str(c_no),pmask0x)), peaks);##
+            for (peak,row) in peaks.iteritems():
+                vec.append(row['val']);
+                dev.append(row['dev']);
+                mat.append({'scale': 'peak(?)', 'coefs':{}});
+                res=mat[-1]['coefs'];
+                # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
+                # shift the 3-bit mask to the right carbon position
+                if c_no < n:
+                    pmask=dmask[peak]<<(n-c_no-1);
+                else:
+                    pmask=dmask[peak]>>1;
+                bcumos=[setcharbit(pmask0x,'1',pmask)];
+                if peak=='D-' and 'D+' in peaks:
+                    # D+===D- => add D+ to the list of measured bcumomers
+                    # shift the 3-bit mask to the right carbon position
+                    if c_no < n:
+                        pmask=dmask['D+']<<(n-c_no-1);
+                    else:
+                        pmask=dmask['D+']>>1;
+                    bcumos.append(setcharbit(pmask0x,'1',pmask));
+#                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+                for cumostr in bcumos:
+                    print cumostr;##
+                    decomp=bcumo_decomp(cumostr);
+                    for icumo in decomp['+']:
+                        res.setdefault(icumo,0);
+                        res[icumo]+=1;
+                    for icumo in decomp['-']:
+                        res.setdefault(icumo,0);
+                        res[icumo]-=1;
+    return {'mat': mat, 'vec': vec, 'dev': dev};
+
 def bcumo_decomp(bcumo):
     '''bcumo is a string of the form #[01x]+. It has to be decomposed
     in the linear combination of cumomers #[1x]+. The coefficients
