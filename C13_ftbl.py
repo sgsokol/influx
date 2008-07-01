@@ -488,6 +488,8 @@ def ftbl_netan(ftbl):
         metab=row['META_NAME'] or metab;
         if not metab in netan['metabs']:
             raise "Unknown metabolite name '"+metab+"' in PEAK_MEASUREMENTS";
+        clen=netan['Clen'][metab];
+        netan['peak_meas'].setdefault(metab,{});
         for suff in ('S', 'D-', 'D+', 'DD', 'T'):
             # get val and dev for this type of peak
             val=row.get('VALUE_'+suff,'');
@@ -496,10 +498,18 @@ def ftbl_netan(ftbl):
             dev=row.get('DEVIATION_'+suff,'') or row.get('DEVIATION_S');
             # test validity
             if not dev:
-                raise 'Deviation is not determined for VALUE_'+suff+' in row '+str(row);
+                raise 'Deviation is not determined for VALUE_'+suff+' in row \n'+str(row);
             c_no=int(row['PEAK_NO']);
-            netan['peak_meas'].setdefault(c_no,{});
-            netan['peak_meas'][c_no][suff]={'val': float(val), 'dev': float(dev)};
+            if c_no > clen:
+                raise 'Carbon number '+str(c_no)+' is gretaer than carbon length '+str(clen)+' for metabolite "'+metab+'" in row \n'+str(row);
+            if suff == 'D-' and c_no == 1:
+                raise 'Peak D- cannot be set for metabolite '+metab+', c_no=1 in row \n'+str(row);
+            if suff == 'D+' and c_no == clen:
+                raise 'Peak D+ cannot be set for metabolite '+metab+', c_no='+str(c_no)+' in row \n'+str(row);
+            if (suff == 'DD' or suff == 'T') and (c_no == 1 or c_no == clen or clen < 3):
+                raise 'Peak DD (or T) cannot be set for metabolite '+metab+', c_no='+str(c_no)+', len='+str(clen)+' in row \n'+str(row);
+            netan['peak_meas'][metab].setdefault(c_no,{});
+            netan['peak_meas'][metab][c_no][suff]={'val': float(val), 'dev': float(dev)};
     
     # mass measurements
     # dict:[metab][frag_mask][weight]={val:x, dev:y}
@@ -922,7 +932,7 @@ def mass_meas2matrix_vec_dev(netan):
             onepos=[b_no for (b_no,b) in iternumbit(fmask) if b];
             fmask0x=setcharbit(strx,'0',fmask);
             nmask=sumbit(fmask);
-            aff('weights for met,fmask '+', '.join((metab,strbit(fmask))), weights);##
+#            aff('weights for met,fmask '+', '.join((metab,strbit(fmask))), weights);##
             for (weight,row) in weights.iteritems():
                 vec.append(row['val']);
                 dev.append(row['dev']);
@@ -933,7 +943,7 @@ def mass_meas2matrix_vec_dev(netan):
                         for iw in xrange(1<<nmask) if sumbit(iw)==weight);
 #                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                 for cumostr in bcumos:
-                    print cumostr;##
+#                    print cumostr;##
                     decomp=bcumo_decomp(cumostr);
                     for icumo in decomp['+']:
                         res.setdefault(icumo,0);
@@ -948,9 +958,13 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
     matrix matx_peak
     such that scale_diag*matx_peak*cumos_vector corresponds to
     peak_measures_vector.
+    dmask is a dictionary with 3 carbon lapbeling pattern mask for
+    various peak types. The middle bit corresponds to the targeted carbon,
+    lower bit corresponds to the next neighbour (D+) and higher bit
+    corresponds to previous carbon (D-).
     matx_peak is defined as matx_lab in label_meas2matrix_vec_dev()
     Elements in matx_peak, vec and dev are ordered in the same way.
-    scale name is the same 'peak' for all peak_measures(?)
+    scale name is the same ('peak') for all peak_measures(?)
     The returned result is a dict (mat,vec,dev)
     '''
     # peak[metab][c_no][peak_type]={val:x, dev:y}
@@ -964,14 +978,15 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
         n=netan['Clen'][metab];
         strx='#'+'x'*n;
         for (c_no,peaks) in c_nos.iteritems():
+            # pmask0x put 0 on three targeted carbons and leave x elsewhere
             pmask0x=setcharbit(strx,'0',1<<(n-c_no));
             if c_no > 1:
                 # add left neighbour
-                pmask0x=setcharbit(strx,'0',1<<(n-c_no+1));
+                pmask0x=setcharbit(pmask0x,'0',1<<(n-c_no+1));
             if c_no < n:
                 # add right neighbour
-                pmask0x=setcharbit(strx,'0',1<<(n-c_no-1));
-            aff('peaks for met,c_no, pmask0x '+', '.join((metab,str(c_no),pmask0x)), peaks);##
+                pmask0x=setcharbit(pmask0x,'0',1<<(n-c_no-1));
+#            aff('peaks for met,c_no,pmask0x='+', '.join((metab,str(c_no),pmask0x)), peaks);##
             for (peak,row) in peaks.iteritems():
                 vec.append(row['val']);
                 dev.append(row['dev']);
@@ -984,9 +999,9 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
                 else:
                     pmask=dmask[peak]>>1;
                 bcumos=[setcharbit(pmask0x,'1',pmask)];
-                if peak=='D-' and 'D+' in peaks:
+                if peak=='D-' and 'T' in peaks:
                     # D+===D- => add D+ to the list of measured bcumomers
-                    # shift the 3-bit mask to the right carbon position
+                    # set the 3-bit mask to the right carbon position
                     if c_no < n:
                         pmask=dmask['D+']<<(n-c_no-1);
                     else:
@@ -994,7 +1009,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
                     bcumos.append(setcharbit(pmask0x,'1',pmask));
 #                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                 for cumostr in bcumos:
-                    print cumostr;##
+#                    print cumostr;##
                     decomp=bcumo_decomp(cumostr);
                     for icumo in decomp['+']:
                         res.setdefault(icumo,0);
@@ -1002,6 +1017,8 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
                     for icumo in decomp['-']:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
+#                print "metab,c_no,peak="+','.join((metab,str(c_no),str(peak)));##
+#                print "res=",str(res);##
     return {'mat': mat, 'vec': vec, 'dev': dev};
 
 def bcumo_decomp(bcumo):
@@ -1030,10 +1047,8 @@ def bcumo_decomp(bcumo):
         sign='-' if sumbit(zmask)%2 else '+';
         
         # get full cumomer mask
-        icumo=icumo_base;
-        for ipz in xrange(nz):
-            if zmask&(1<<ipz):
-                icumo|=1<<zpos[ipz];
+        icumo=icumo_base|expandbit(zmask,zpos);
         # put in result dict
         res[sign].append(icumo);
+#    print bcumo+'=' + '+'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['+'])+('-' if res['-'] else '') +'-'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['-']);##
     return res;
