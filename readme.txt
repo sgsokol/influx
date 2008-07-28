@@ -1,3 +1,41 @@
+# 2008-07-28 sokol
+# added scale constraints to ui, ci
+# passed to Nelder-Mead min method
+./ftbl2optR.py PPP_s
+# test generated R code
+R --no-save < PPP_s_opt.R > PPP_s_opt.log
+
+cd /home/sokol/insa/sysbio/soft/13CFlux/Example/essai
+../../FBINS.20010920/CumoNet PPP.ftbl
+# see matrix 
+ncl PPP.ftbl.fdb 
+
+# simple network with two branches 0.25 and 0.75
+./ftbl2optR.py ex4
+# test generated R code
+R --no-save < ex4_opt.R > ex4_opt.log
+
+# test with C13_flux
+~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  ex4.ftbl \
+   > ex4_c13.txt
+# 2008-07-27 sokol
+# added inequalities constraints ui, ci
+./ftbl2optR.py ex3
+# test generated R code
+R --save < ex3_opt.R > ex3_opt.log
+
+# 2008-07-24 sokol
+# rewriten Afl, bfl in net-xch terms
+# added vfluxes to netan
+./ftbl2optR.py ex3
+
+# 2008-07-18 sokol
+# test ftbl2optR.py
+./ftbl2optR.py ex3
+
+# 2008-07-11 sokol
+# start ftbl2optR.py script writing R code for optimization problem
+
 # 2008-06-12 sokol
 # add flux inequality analysis in C13_ftbl.py
 # add label measures analysis in C13_ftbl.py
