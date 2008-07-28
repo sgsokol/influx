@@ -34,7 +34,16 @@
 # 2008-06-23 sokol: ftbl_netan(): added mass measures analysis
 # 2008-06-26 sokol: ftbl_netan(): added matrices for label (H1) and mass
 # 2008-06-27 sokol: ftbl_netan(): added matrix for peaks (C13)
-
+# 2008-07-18 sokol: ftbl_netan(): added cumomers ordered lists (one by weight)
+# 2008-07-22 sokol: ftbl_netan(): added net and xch equalities
+# 2008-07-23 sokol: ftbl_netan(): added Afl, bfl
+# 2008-07-23 sokol: ftbl_netan(): added fluxes ordered lists (net and xch)
+# 2008-07-24 sokol: ftbl_netan(): added free fluxes ordered lists
+# 2008-07-24 sokol: ftbl_netan(): added constrained fluxes ordered lists
+# 2008-07-24 sokol: ftbl_netan(): added measured fluxes ordered lists
+# 2008-07-24 sokol: ftbl_netan(): added compleet fluxes ordered lists
+# 2008-07-28 sokol: ftbl_netan(): added Afl row names (vrowAfl)
+# 2008-07-28 sokol: ftbl_netan(): added in-out xch fluxes to constrained flux list
 
 from tools_ssg import *;
 
@@ -48,24 +57,24 @@ def ftbl_parse(f):
     import re;
     ftbl={};    # main dictionary to be returned;
     
-##    print f;
+    #print f;##
     reblank=re.compile("^[\t ]*$");
     recomm=re.compile("^[\t ]*//.*$");
     reading="data";
     for l in f:
-##        print "raw l="+l;
+        #print "raw l="+l;##
         # strip out \r
         l=l.replace("\r", "");
-##        print "-ctrl-r l="+l;
+        #print "-ctrl-r l="+l;##
         # strip out double quots
         if l[0] == '"': l=l[1:];    # very begining
-##        print "-fq l="+l;
+        #print "-fq l="+l;##
         if l[-1] == '"': l=l[:-1];    # very end
-##        print "-lq l="+l;
+        #print "-lq l="+l;##
         l=l.replace("\t\"", "\t");    # at the field begining
-##        print "-ffq l="+l;
+        #print "-ffq l="+l;##
         l=l.replace("\"\t", "\t");    # at the end
-##        print "-lfq l="+l;
+        #print "-lfq l="+l;##
         # skip comments and emty rows;
         if recomm.match(l) or reblank.match(l): continue;
         
@@ -75,7 +84,7 @@ def ftbl_parse(f):
         # split in fields;
         flds=l.split("\t");
         
-##        print "proceeding:"+l;
+        #print "proceeding:"+l;##
         if reading=="data" and len(flds)==1:
             # new section starts here;
             sec_name=flds[0];
@@ -84,7 +93,7 @@ def ftbl_parse(f):
             ftbl[sec_name]=[];
             # prepare storage for carbon transitions
             if sec_name=="NETWORK":
-##               print "TRANS prepared"
+               #print "TRANS prepared";##
                ftbl["TRANS"]={};
             try: del stock;
             except NameError: pass;
@@ -111,16 +120,16 @@ def ftbl_parse(f):
             # read column names;
             col_names=l[skiptab:].split("\t");
             reading="data";
-##            print "col_names=", col_names;
+            #print "col_names=", col_names;##
             continue;
         if reading=="data":
             data=l[skiptab:].split("\t");
             dic={};
             if sec_name == "NETWORK" and len(data[0])==0:
                 # we are at carbon transition line here (e.g. #ABC -> #AB +#C)
-##                print "data_count="+str(data_count), \
-##                    "\ndata="+str([l for l in enumerate(data)]), \
-##                    "\nstock="+str(stock);
+                #print "data_count="+str(data_count), \
+                #    "\ndata="+str([l for l in enumerate(data)]), \
+                #    "\nstock="+str(stock);##
                 fl_name=str(stock[data_count-1][col_names[0]]);
                 for i in range(len(col_names)):
                     try:
@@ -136,10 +145,10 @@ def ftbl_parse(f):
                     pass;
             stock.append(dic);
             data_count+=1;
-##            print "sec, subsec=", sec_name, subsec_name, data_count, dic;
-##        print "len(flds)=", len(flds), flds, l, data;
-##        print "keys", ftbl.keys(), (ftbl[sec_name].keys() \
-##                if type(ftbl[sec_name])==type({}) else "");
+            #print "sec, subsec=", sec_name, subsec_name, data_count, dic;##
+        #print "len(flds)=", len(flds), flds, l, data;##
+        #print "keys", ftbl.keys(), (ftbl[sec_name].keys() \
+        #        if type(ftbl[sec_name])==type({}) else "");##
     return ftbl;
 
 def ftbl_netan(ftbl):
@@ -166,9 +175,16 @@ def ftbl_netan(ftbl):
     # - input isotopomers (iso_input)
     # - input cumomers (cumo_input)
     # - flux inequalities (flux_ineqal)
+    # - flux equalities (flux_eqal)
     # - label measures, H1 (label_meas)
     # - peak measures, C13 (peak_meas)
     # - mass measures (mass_meas)
+    # - cumomer ordered lists (vcumo)
+    # - unknown fluxes ordered lists (vflux)
+    # - linear problem on fluxes (Afl, bfl)
+    # - free fluxes ordered lists (vflux_free)
+    # - fw-rv fluxes ordered lists (vflux_fwrv)
+    # - row names ordered lists for Afl (vrowAfl)
 
     # init named sets
     netan={
@@ -195,18 +211,29 @@ def ftbl_netan(ftbl):
         'iso_input':{},
         'cumo_input':{},
         'flux_inequal':{'net':[], 'xch':[]},
+        'flux_equal':{'net':[], 'xch':[]},
         'label_meas':{},
         'peak_meas':{},
         'mass_meas':{},
+        'vcumo':[],
+        'Afl':[],
+        'bfl':[],
+        'vflux':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
+        'vflux_free':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
+        'vflux_constr':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
+        'vflux_meas':{'net':[], 'net2i':{}},
+        'vflux_compl':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
+        'vflux_fwrv':{'fw':[], 'rv':[], 'fw2i':{}, 'rv2i':{}},
+        'vrowAfl':[],
     };
-    res="";     # auxiliary shot cut to current result;
+    res="";     # auxiliary short-cut to current result;
 
     # analyse networks
     netw=ftbl.get('NETWORK');
     row_to_del=[];
     for row in netw:
         reac=row['FLUX_NAME'];
-##        print "reac="+reac
+        #print "reac="+reac;#
         e1=row.get('EDUCT_1');
         if not e1: raise 'EDUCT_1 must be defined in flux '+reac;
         e2=row.get('EDUCT_2');
@@ -280,7 +307,7 @@ def ftbl_netan(ftbl):
         netan['subs'].update(es);
         netan['prods'].update(ps);
         netan['metabs'].update(ms);
-##        aff('ms for '+reac, ms);#
+        #aff('ms for '+reac, ms);##
 
         # create chemical formula
         netan['formula'][reac]={'left':es, 'right':ps, 'all':ms};
@@ -292,7 +319,7 @@ def ftbl_netan(ftbl):
                 (e2,trans.get('EDUCT_2'),'left'),
                 (p1,trans.get('PRODUCT_1'),'right'),
                 (p2,trans.get('PRODUCT_2'),'right')]:
-##                print "m="+str(m), "; carb="+str(carb);
+                #print "m="+str(m), "; carb="+str(carb);##
             if not m or not carb:
                 continue;
 
@@ -318,20 +345,20 @@ def ftbl_netan(ftbl):
             netan['sto_r_m'][reac]['left'].append(e2);
         if (p2):
             netan['sto_r_m'][reac]['right'].append(p2);
-##        print "col keys", col.keys();
+##        #print "col keys", col.keys();##
         
         for s in netan['sto_r_m'][reac]['left']:
-##           print "sto_m_r s="+str(s);
+           #print "sto_m_r s="+str(s);##
             if not s in netan['sto_m_r']:
                 netan['sto_m_r'][s]={'left':[], 'right':[]};
             netan['sto_m_r'][s]['left'].append(reac);
         for s in netan['sto_r_m'][reac]['right']:
-##           print "sto_m_r s="+str(s);
+           #print "sto_m_r s="+str(s);
             if not s in netan['sto_m_r']:
                 netan['sto_m_r'][s]={'left':[], 'right':[]};
             netan['sto_m_r'][s]['right'].append(reac);
         # end netan['sto_m_r']
-##        aff('sto_m_r'+str(reac), netan['sto_m_r']);
+        #aff('sto_m_r'+str(reac), netan['sto_m_r']);##
     # cleanup splited and fused reactions
     for row in row_to_del:
         netw.remove(row);
@@ -341,9 +368,9 @@ def ftbl_netan(ftbl):
     netan['output'].update(netan['prods']-netan['subs']);
 
     # analyse reaction reversibility
-    # and free fluxes
+    # and free fluxes(dictionary flux->init value for simulation or minimization)
     # and constrained fluxes (dictionary flux->value)
-    netan['flux_free']={'net':set(), 'xch':set()};
+    netan['flux_free']={'net':{}, 'xch':{}};
     netan['flux_constr']={'net':{}, 'xch':{}};
     flx=ftbl.get('FLUXES');
     if flx:
@@ -351,16 +378,15 @@ def ftbl_netan(ftbl):
         net=flx.get('NET');
 ##        aff("net", net);
     else:
-        sys.stdout=sys.stderr;
-        print sys.argv[0]+': netan[FLUXES][XCH] is not defined';
+        sys.stderr.write(sys.argv[0]+': netan[FLUXES][XCH] is not defined');
         return None;
     for reac in netan['reac']:
         # reac can be .s (splitted) or .f (fused)
         # separate the name and sf_state
         tmp=reac.split('.');
-        if (len(tmp) == 2):
+        if len(tmp) == 2:
             (oldreac, sf_state) = tmp;
-        elif (len(tmp) == 1):
+        elif len(tmp) == 1:
             # reac does not change
             oldreac=reac;
             sf_state='';
@@ -374,10 +400,10 @@ def ftbl_netan(ftbl):
             cond=cond[0];
         if ncond:
             ncond=ncond[0];
-        if (not cond and  not ncond):
+        if (not cond and not ncond):
             continue;
-##        aff("cond", cond);
-##        aff("ncond", ncond);
+        #aff("cond", cond);##
+        #aff("ncond", ncond);##
         # not reversibles are those reaction having xch flux=0 or
         # input/output fluxes
         if (cond and cond['FCD'] == 'C' and cond['VALUE(F/C)'] == '0') or \
@@ -385,26 +411,29 @@ def ftbl_netan(ftbl):
                 (netan['formula'][reac]['right'] & netan['output']):
             # input/output reactions cannot be .s or .f
             netan['notrev'].add(reac);
-        elif (cond and cond['FCD'] == 'F'):
+        if (cond and cond['FCD'] == 'F'):
             # free xch
-            netan['flux_free']['xch'].add(reac);
-        elif (cond and cond['FCD'] == 'C'):
+            netan['flux_free']['xch'][reac]=float(cond['VALUE(F/C)']);
+        elif (cond and (cond['FCD'] == 'C' or reac in netan["notrev"])):
             # constrained xch
-            netan['flux_constr']['xch'][reac]=float(cond['VALUE(F/C)']);
+            netan['flux_constr']['xch'][reac]=float(cond['VALUE(F/C)'])\
+                    if cond['FCD'] == 'C' else 0.;
         if (ncond and ncond['FCD'] == 'F'):
             # free net
-            netan['flux_free']['net'].add(reac);
+            netan['flux_free']['net'][reac]=float(ncond['VALUE(F/C)']);
         elif (ncond and ncond['FCD'] == 'C'):
             # constr net
-            netan['flux_constr']['net'][reac]=float(cond['VALUE(F/C)']);
+            netan['flux_constr']['net'][reac]=float(ncond['VALUE(F/C)']);
 ##        aff("free net", netan['flux_free']['net']);
+##        aff("free xch", netan['flux_free']['xch']);
+##        aff("constr net", netan['flux_free']['net']);
 ##        aff("free xch", netan['flux_free']['xch']);
 
     # measured fluxes
     for row in ftbl.get('FLUX_MEASUREMENTS',[]):
         netan['flux_measured'][row['FLUX_NAME']]={\
-                'value': row['VALUE'], \
-                'deviation': row['DEVIATION']};
+                'val': float(row['VALUE']), \
+                'dev': float(row['DEVIATION'])};
     # input isotopomers
     for row in ftbl.get('LABEL_INPUT',[]):
         metab=row['META_NAME'] or metab;
@@ -417,7 +446,7 @@ def ftbl_netan(ftbl):
     for metab in netan['iso_input']:
        for icumo in xrange(1,1<<(netan['Clen'][metab])):
            cumo=metab+':'+str(icumo);
-           netan['cumo_input'][cumo]=iso2cumo(netan['Clen'][metab], icumo, netan['iso_input'][metab]);
+           netan['cumo_input'][cumo]=iso2cumo(metab, netan['Clen'][metab], icumo, netan['iso_input'][metab]);
     
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
@@ -425,16 +454,31 @@ def ftbl_netan(ftbl):
     # net fluxes
     for row in ftbl.get('INEQUALITIES',{}).get('NET',[]):
         #print row;##
-        netan['flux_inequal']['net'].append(
+        netan['flux_inequal']['net'].append((
                 row['VALUE'],
                 row['COMP'],
-                formula2dict(row['FORMULA']));
+                formula2dict(row['FORMULA'])));
     # xch fluxes
     for row in ftbl.get('INEQUALITIES',{}).get('XCH',[]):
         #print row;##
         netan['flux_inequal']['xch'].append((
                 row['VALUE'],
                 row['COMP'],
+                formula2dict(row['FORMULA'])));
+
+    # flux equalities
+    # list of tuples (value,dict) where dict is flux:coef
+    # net fluxes
+    for row in ftbl.get('EQUALITIES',{}).get('NET',[]):
+        #print row;##
+        netan['flux_equal']['net'].append((
+                row['VALUE'],
+                formula2dict(row['FORMULA'])));
+    # xch fluxes
+    for row in ftbl.get('EQUALITIES',{}).get('XCH',[]):
+        #print row;##
+        netan['flux_equal']['xch'].append((
+                row['VALUE'],
                 formula2dict(row['FORMULA'])));
     
     # label measurements
@@ -567,7 +611,7 @@ def ftbl_netan(ftbl):
     # res[metab]['out']=list(flux.fwd|flux.rev)
     for metab,lr in netan['sto_m_r'].iteritems():
         # lr is dico with 'left' and 'right' entries
-##        print "fwd metab="+str(metab);
+        #print "fwd metab="+str(metab);##
         if not metab in res:
             res[metab]={'in':[], 'out':[]};
         for reac in lr['left']:
@@ -619,7 +663,7 @@ def ftbl_netan(ftbl):
                 continue;
             Clen=netan['Clen'][metab];
             # input metabolite has fixed value so put just 1 on diagonal
-            # and the corresponding value (read in .ftbl) in rhs.
+            # and the corresponding sum value (read in .ftbl) in rhs.
             if metab in netan['input']:
                 # run through all cumomers for this input metabolite
                 for icumo in xrange(1,1<<Clen):
@@ -629,7 +673,7 @@ def ftbl_netan(ftbl):
                         # matrix: diagonal term for input cumomer
                         res['A'][w-1][cumo]={cumo:['1']};
                         # rhs: input cumomer
-                        res['b'][w-1][cumo]={'1':[str(netan['cumo_input'].get(cumo,0))]};
+                        res['b'][w-1][cumo]={'1':[netan['cumo_input'].get(cumo,0.)]};
                     else:
                         # make A,b for input cumo only once
                         continue;
@@ -723,6 +767,217 @@ def ftbl_netan(ftbl):
                         ##aff("flux lst", res['b'][w-1][cumo][flux]);#
             else:
                 raise "Wrong item number in netan['carbotrance']['%s']['%s']" % (reac,in_lr);
+
+    # ordered cumomer lists
+    for w in xrange(1,netan['Cmax']+1):
+        # weight 1 equations have all metabolites
+        ##aff("A "+str(w), netan['cumo_sys']['A'][w-1]);#
+        ##aff("b "+str(w), netan['cumo_sys']['b'][w-1]);#
+        # order cumos along pathways
+        # starts are input cumomers
+        starts=[cumo for cumo in netan['cumo_sys']['A'][w-1] \
+            if cumo.split(':')[0] in netan['input']];
+        ##aff("st "+str(w), starts);
+        # complete starts by all others cumomers
+        starts+=[c for c in netan['cumo_sys']['A'][w-1] if not c in starts];
+        cumo_paths=cumo_path(starts, netan['cumo_sys']['A'][w-1], set());
+        # order
+        netan['vcumo'].append([cumo for cumo in valval(cumo_paths)]);
+
+    # ordered unknown flux lists
+    # get all reactions which are not constrained neither free
+    netan['vflux']['net'].extend(reac for reac in netan['reac']
+        if reac not in netan['flux_constr']['net'] and
+        reac not in netan['flux_free']['net']);
+    netan['vflux']['xch'].extend(reac for reac in netan['reac']
+        if reac not in netan['flux_constr']['xch'] and
+        reac not in netan['flux_free']['xch']);
+
+    # order
+    netan['vflux']['net'].sort();
+    netan['vflux']['xch'].sort();
+    
+    # easy index finder
+    netan['vflux']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux']['net']))
+    netan['vflux']['xch2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux']['xch']))
+
+
+    # ordered free flux lists
+    netan['vflux_free']['net']=netan['flux_free']['net'].keys();
+    netan['vflux_free']['xch']=netan['flux_free']['xch'].keys();
+
+    # order
+    netan['vflux_free']['net'].sort();
+    netan['vflux_free']['xch'].sort();
+    
+    # easy index finder
+    netan['vflux_free']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_free']['net']))
+    netan['vflux_free']['xch2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_free']['xch']))
+
+
+    # ordered constrained flux lists
+    netan['vflux_constr']['net']=netan['flux_constr']['net'].keys();
+    netan['vflux_constr']['xch']=netan['flux_constr']['xch'].keys();
+
+    # order
+    netan['vflux_constr']['net'].sort();
+    netan['vflux_constr']['xch'].sort();
+    
+    # easy index finder
+    netan['vflux_constr']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_constr']['net']))
+    netan['vflux_constr']['xch2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_constr']['xch']))
+
+
+    # ordered measured flux lists
+    netan['vflux_meas']['net']=netan['flux_measured'].keys();
+
+    # order
+    netan['vflux_meas']['net'].sort();
+    
+    # easy index finder
+    netan['vflux_meas']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_meas']['net']))
+
+
+    # ordered complete flux lists
+    netan['vflux_compl']={
+        'net': 
+        netan['vflux']['net']+
+        netan['vflux_free']['net']+
+        netan['vflux_constr']['net'],
+        'xch':
+        netan['vflux']['xch']+
+        netan['vflux_free']['xch']+
+        netan['vflux_constr']['xch'],
+    };
+    # easy index finding
+    # net
+    netan['vflux_compl']['net2i']=dict(
+        (fl,i) for (i,fl) in enumerate(netan['vflux']['net'])
+    );
+    netan['vflux_compl']['net2i'].update(dict(
+        (fl,i+len(netan['vflux']['net']))
+        for (i,fl) in enumerate(netan['vflux_free']['net'])
+    ));
+    netan['vflux_compl']['net2i'].update(dict(
+        (fl,i+len(netan['vflux']['net'])+len(netan['vflux_free']['net']))
+        for (i,fl) in enumerate(netan['vflux_constr']['net'])
+    ));
+    # xch
+    netan['vflux_compl']['xch2i']=dict(
+        (fl,i) for (i,fl) in enumerate(netan['vflux']['xch'])
+    );
+    netan['vflux_compl']['xch2i'].update(dict(
+        (fl,i+len(netan['vflux']['xch']))
+        for (i,fl) in enumerate(netan['vflux_free']['xch'])
+    ));
+    netan['vflux_compl']['xch2i'].update(dict(
+        (fl,i+len(netan['vflux']['xch'])+len(netan['vflux_free']['xch']))
+        for (i,fl) in enumerate(netan['vflux_constr']['xch'])
+    ));
+
+
+    # ordered fwd-rev flux lists
+    # fw and rv parts are identical so they match each other
+    netan['vflux_fwrv']['fw']=\
+        netan['vflux']['net']+\
+        netan['vflux_free']['net']+\
+        netan['vflux_constr']['net'];
+    
+    # order
+    netan['vflux_fwrv']['fw'].sort();
+    
+    # easy index finder
+    netan['vflux_fwrv']['fw2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_fwrv']['fw']))
+    
+    # duplicate
+    netan['vflux_fwrv']['rv']=netan['vflux_fwrv']['fw'];
+    netan['vflux_fwrv']['rv2i']=netan['vflux_fwrv']['fw2i'];
+
+
+    # linear problem on fluxes Afl*(fl_net;fl_xch)=bfl
+    # matrix Afl is composed of the following parts :
+    # - stocheometic equations (only .net fluxes are involved);
+    # - flux equalities
+    # constrained to non zero value fluxes are replaced by their values in rhs
+    # Afl is a list of lists (two dim array). Primary list is a matrix row
+    # columns are values in the secondary list and contains matrix coefficients
+    # bfl is a list of linear expressions. Each expression is a dict
+    # where keys are variable names like "flx.net" and values are
+    # numeric coefficients
+    
+    # stocheometric part
+    res=netan['Afl'];
+    for (metab,lr) in netan['sto_m_r'].iteritems():
+        if (metab in netan['input'] or metab in netan['output']):
+            continue;
+        # calculate coefs (repeated fluxes)
+        # 'left' part consumes metab
+        coefs=list2count(lr['left'], -1);
+        # 'right' part produces metab
+        # NB: it is assumed that metab cannot appear
+        # both in left and right hand side of reaction
+        coefs.update(list2count(lr['right']));
+        qry=[coefs.get(fl,0) for fl in netan['vflux']['net']];
+        qry.extend([0]*len(netan['vflux']['xch']));
+        if qry==[0]*len(qry):
+            # degenerated equation, skip it
+            #netan['flux_equal']['net'].append((0., coefs));
+            #raise "Stocheometric equation is zero for metab "+metab+"\n"+str(lr)+"\n"+str(coefs);
+            continue;
+        # check if this line was already entered before
+        for row in res:
+            if row==qry:
+                break;
+        else:
+            # identique row is not found, add it
+            res.append(qry);
+            netan["vrowAfl"].append(metab);
+            # prepare right hand side
+            netan['bfl'].append({});
+            dtmp=netan['bfl'][-1];
+            for fl in coefs:
+                if fl in netan['flux_free']['net']:
+                    dtmp[fl+'.net']=dtmp.get(fl+'.net',0)-coefs[fl];
+                if fl in netan['flux_constr']['net']:
+                    val=netan['flux_constr']['net'][fl];
+                    if val:
+                        dtmp[val]=dtmp.get(val,0)-coefs[fl];
+
+    # flux equality part
+    res=netan['Afl'];
+    for nx in ('net', 'xch'):
+        for eq in netan['flux_equal'][nx]:
+            qry=[];
+            qry.extend(eq[1].get(fl,0) for fl in netan['vflux'][nx]);
+            if nx=='net':
+                # add xch zeros
+                qry.extend([0]*len(netan['vflux']['xch']));
+            else:
+                # prepend zeros for net fluxes
+                qry[0:0]=[0]*len(netan['vflux']['net']);
+            # check qry
+            if qry==[0]*len(qry):
+                # degenerated equality
+                raise "Equality is zero in "+nx+" section: "+str(eq)+"\n";
+                continue;
+            # check if this line was already entered before
+            for row in res:
+                if row==qry:
+                    raise "An equality in section "+nx+" is redondant. eq:"+str(eq);
+            res.append(qry);
+            netan["vrowAfl"].append("eq "+nx+": "+str(eq[1]));
+            netan['bfl'].append({"":eq[0]})
+            dtmp=netan['bfl'][-1];
+            # pass free fluxes to rhs
+            for fl in netan['flux_free'][nx]:
+                if fl in eq[1]:
+                    dtmp[fl+'.'+nx]=dtmp.get(fl+'.'+nx,0)-eq[1][fl];
+            # pass constrained fluxes to rhs
+            for fl in netan['flux_constr'][nx]:
+                if fl in eq[1]:
+                    val=netan['flux_constr'][nx][fl];
+                    if val:
+                        dtmp[val]=dtmp.get(val,0)-eq[1][fl];
     return netan;
 
 def enum_path(starts, netw, outs, visited=set()):
@@ -804,7 +1059,7 @@ def src_ind(substrate, product, iprod):
     return isubstr;
 def cumo_iw(w,nlen):
     '''iterator for a given cumomer wight w in the carbon length nlen'''
-#    print ("cumo_iw: w=%d,nlen=%d\n" % (w,nlen))
+    #print ("cumo_iw: w=%d,nlen=%d\n" % (w,nlen));##
     if w < 0 or w > nlen:
        raise "CumoWeightOutOfRange";
     if nlen < 0:
@@ -820,34 +1075,10 @@ def cumo_iw(w,nlen):
             for subi in cumo_iw(w-1,w+i-1):
                 yield movbit+subi;
             movbit<<=1;
-def iso2cumo(Clen, icumo, iso_dic):
+def iso2cumo(metab, Clen, icumo, iso_dic):
     '''calculate cumomer fraction from isotopomer ones'''
-    ##print 'Clen,icumo=', Clen, strbit32(icumo);#
-    # sum up all isotopomers where icumo bits are 0
-    # how many zeros ?
-    nbz=Clen-sumbit(icumo);
-    # prepare array indicating positions of zero bits in icumo
-    posz=list();
-    movb=1;
-    for i in xrange(Clen):
-        if not movb&icumo:
-            posz.append(i);
-        movb<<=1;
-    ##aff("posz", posz);#
-    # run through all zeros patterns and sum up isotopomer fractions
-    res=0.;
-    for ipatz in xrange(1<<nbz):
-        # restore full isotopomer index
-        iiso=icumo;
-        # put 1-bits in zero pattern to corresponding bits in isotopomer index
-        movb=1;
-        for ib in xrange(nbz):
-            if movb&ipatz:
-                iiso+=1<<posz[ib];
-            movb<<=1;
-        ##print 'iiso=', strbit32(iiso);#
-        res+=iso_dic.get(iiso,0.);
-    return res;
+    return sum(iso_dic.get(metab+':'+str(iiso),0.)
+        for iiso in icumo2iiso(icumo, Clen));
 def formula2dict(f):
     '''parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
@@ -882,7 +1113,8 @@ def label_meas2matrix_vec_dev(netan):
     matx_lab is defined as
     list of dict{'scale':scale_name, 'coefs':dict{icumo:coef}}
     where coef is a contribution of cumo in linear combination for given measure.
-    scale_name is of the form "metab;group".
+    scale_name is of the form "metab;". Group number is not differentiating between
+    measures of the same metabolite.
     vec is a list of measures (values in .ftbl)
     dev is a list of deviations.
     Elements in matx_lab, vec and dev are ordered in the same way.
@@ -899,7 +1131,7 @@ def label_meas2matrix_vec_dev(netan):
             for row in rows:
                 vec.append(row['val']);
                 dev.append(row['dev']);
-                mat.append({'scale': metab+';'+group, 'coefs':{}});
+                mat.append({'scale': metab+';', 'coefs':{}});
                 res=mat[-1]['coefs'];
                 for cumostr in row['bcumos']:
                     decomp=bcumo_decomp(cumostr);
@@ -915,7 +1147,7 @@ def mass_meas2matrix_vec_dev(netan):
     such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.
     matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()
     Elements in matx_mass, vec and dev are ordered in the same way.
-    scale name is the same 'mass' for all mass_measures(?)
+    scale name is defined as "metab;fragment_mask"
     The returned result is a dict (mat,vec,dev)
     '''
     # mass[metab][frag_mask][weight]={val:x, dev:y}
@@ -924,7 +1156,7 @@ def mass_meas2matrix_vec_dev(netan):
     vec=[];
     dev=[];
     for (metab,frag_masks) in netan.get('mass_meas',{}).iteritems():
-        print "mass matx calc for ", metab;
+        #print "mass matx calc for ", metab;##
         n=netan['Clen'][metab];
         str0='0'*n;
         strx='x'*n;
@@ -936,14 +1168,14 @@ def mass_meas2matrix_vec_dev(netan):
             for (weight,row) in weights.iteritems():
                 vec.append(row['val']);
                 dev.append(row['dev']);
-                mat.append({'scale': 'mass(?)', 'coefs':{}});
+                mat.append({'scale': metab+';'+strbit(fmask), 'coefs':{}});
                 res=mat[-1]['coefs'];
                 # for a given weight construct bcumo sum: #x10x+#x01x+...
                 bcumos=('#'+setcharbit(fmask0x,'1',expandbit(iw,onepos))
                         for iw in xrange(1<<nmask) if sumbit(iw)==weight);
 #                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                 for cumostr in bcumos:
-#                    print cumostr;##
+                    #print cumostr;##
                     decomp=bcumo_decomp(cumostr);
                     for icumo in decomp['+']:
                         res.setdefault(icumo,0);
@@ -964,7 +1196,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
     corresponds to previous carbon (D-).
     matx_peak is defined as matx_lab in label_meas2matrix_vec_dev()
     Elements in matx_peak, vec and dev are ordered in the same way.
-    scale name is the same ('peak') for all peak_measures(?)
+    scale name is defined as "metab;c_no"
     The returned result is a dict (mat,vec,dev)
     '''
     # peak[metab][c_no][peak_type]={val:x, dev:y}
@@ -974,7 +1206,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
     vec=[];
     dev=[];
     for (metab,c_nos) in netan.get('peak_meas',{}).iteritems():
-        print "peak matx calc for ", metab;
+        #print "peak matx calc for ", metab;##
         n=netan['Clen'][metab];
         strx='#'+'x'*n;
         for (c_no,peaks) in c_nos.iteritems():
@@ -990,7 +1222,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
             for (peak,row) in peaks.iteritems():
                 vec.append(row['val']);
                 dev.append(row['dev']);
-                mat.append({'scale': 'peak(?)', 'coefs':{}});
+                mat.append({'scale': metab+';'+str(c_no), 'coefs':{}});
                 res=mat[-1]['coefs'];
                 # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
                 # shift the 3-bit mask to the right carbon position
@@ -1009,7 +1241,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
                     bcumos.append(setcharbit(pmask0x,'1',pmask));
 #                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                 for cumostr in bcumos:
-#                    print cumostr;##
+                    #print cumostr;##
                     decomp=bcumo_decomp(cumostr);
                     for icumo in decomp['+']:
                         res.setdefault(icumo,0);
@@ -1017,8 +1249,8 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
                     for icumo in decomp['-']:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
-#                print "metab,c_no,peak="+','.join((metab,str(c_no),str(peak)));##
-#                print "res=",str(res);##
+                #print "metab,c_no,peak="+','.join((metab,str(c_no),str(peak)));##
+                #print "res=",str(res);##
     return {'mat': mat, 'vec': vec, 'dev': dev};
 
 def bcumo_decomp(bcumo):
@@ -1050,5 +1282,5 @@ def bcumo_decomp(bcumo):
         icumo=icumo_base|expandbit(zmask,zpos);
         # put in result dict
         res[sign].append(icumo);
-#    print bcumo+'=' + '+'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['+'])+('-' if res['-'] else '') +'-'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['-']);##
+    #print bcumo+'=' + '+'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['+'])+('-' if res['-'] else '') +'-'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['-']);##
     return res;
