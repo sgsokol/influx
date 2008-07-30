@@ -44,6 +44,7 @@
 # 2008-07-24 sokol: ftbl_netan(): added compleet fluxes ordered lists
 # 2008-07-28 sokol: ftbl_netan(): added Afl row names (vrowAfl)
 # 2008-07-28 sokol: ftbl_netan(): added in-out xch fluxes to constrained flux list
+# 2008-07-30 sokol: ftbl_netan(): added in-out fluxes (flux_in, flux_out)
 
 from tools_ssg import *;
 
@@ -185,6 +186,7 @@ def ftbl_netan(ftbl):
     # - free fluxes ordered lists (vflux_free)
     # - fw-rv fluxes ordered lists (vflux_fwrv)
     # - row names ordered lists for Afl (vrowAfl)
+    # - in-out fluxes (flux_in, flux_out)
 
     # init named sets
     netan={
@@ -225,6 +227,8 @@ def ftbl_netan(ftbl):
         'vflux_compl':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
         'vflux_fwrv':{'fw':[], 'rv':[], 'fw2i':{}, 'rv2i':{}},
         'vrowAfl':[],
+        'flux_in':set(),
+        'flux_out':set(),
     };
     res="";     # auxiliary short-cut to current result;
 
@@ -250,59 +254,7 @@ def ftbl_netan(ftbl):
             ps.add(p2);
         ms=es|ps;
         
-        if len(es)+len(ps)==4:
-            # need of fictious metabolite AB (A+B=C+D => A+B=AB; AB=C+D)
-            # add two reactions: fusion (f) and split (s)
-            reac_f=reac+'.f';
-            reac_s=reac+'.s';
-            ab='.'.join(es);
-            row_to_del.append(row);
-            
-            # add two new reactions in network and in flux conditions
-            # and skip current reaction
-            
-            # fusion part
-            ii=len(netw);
-            netw.append({});
-            netw[ii]['FLUX_NAME']=reac_f;
-            netw[ii]['EDUCT_1']=e1;
-            netw[ii]['EDUCT_2']=e2;
-            netw[ii]['PRODUCT_1']=ab;
-            # carbon transitions
-            trans=ftbl['TRANS'][reac];
-            ftbl['TRANS'][reac_f]={};
-            ftbl['TRANS'][reac_f]['EDUCT_1']=trans['EDUCT_1'];
-            ftbl['TRANS'][reac_f]['EDUCT_2']=trans['EDUCT_2'];
-            ftbl['TRANS'][reac_f]['PRODUCT_1']=trans['EDUCT_1']+\
-                trans['EDUCT_2'][1:];
-            # flux constraints
-            if 'FLUXES' in ftbl:
-                if 'XCH' in ftbl['FLUXES'] and reac in ftbl['FLUXES']['XCH']:
-                    ftbl['FLUXES']['XCH'][reac_f]=dict(ftbl['FLUXES']['XCH'][reac]);
-                    ftbl['FLUXES']['XCH'][reac_s]=dict(ftbl['FLUXES']['XCH'][reac]);
-                    del(ftbl['FLUXES']['XCH'][reac]);
-                if 'NET' in ftbl['FLUXES'] and reac in ftbl['FLUXES']['NET']:
-                    ftbl['FLUXES']['NET'][reac_f]=dict(ftbl['FLUXES']['NET'][reac]);
-                    ftbl['FLUXES']['NET'][reac_s]=dict(ftbl['FLUXES']['NET'][reac]);
-                    del(ftbl['FLUXES']['NET'][reac]);
-            # split part
-            ii=len(netw);
-            netw.append({});
-            netw[ii]['FLUX_NAME']=reac_s;
-            netw[ii]['EDUCT_1']=ab;
-            netw[ii]['PRODUCT_1']=p1;
-            netw[ii]['PRODUCT_2']=p2;
-            # carbon transitions
-            trans=ftbl['TRANS'][reac];
-            ftbl['TRANS'][reac_s]={};
-            ftbl['TRANS'][reac_s]['EDUCT_1']=trans['PRODUCT_1']+\
-                trans['PRODUCT_2'][1:];
-            ftbl['TRANS'][reac_s]['PRODUCT_1']=trans['PRODUCT_1'];
-            ftbl['TRANS'][reac_s]['PRODUCT_2']=trans['PRODUCT_2'];
-            del(ftbl['TRANS'][reac]);
-            continue;
-
-        # normal reaction A+B=C or C=A+B
+        # all reactions A+B=C or C=A+B or A+B=C+D
         netan['reac'].add(reac);
         netan['subs'].update(es);
         netan['prods'].update(ps);
@@ -359,13 +311,14 @@ def ftbl_netan(ftbl):
             netan['sto_m_r'][s]['right'].append(reac);
         # end netan['sto_m_r']
         #aff('sto_m_r'+str(reac), netan['sto_m_r']);##
-    # cleanup splited and fused reactions
-    for row in row_to_del:
-        netw.remove(row);
 
-    # find input and output
+    # find input and output metabolites
     netan['input'].update(netan['subs']-netan['prods']);
     netan['output'].update(netan['prods']-netan['subs']);
+    
+    # input and output flux names
+    netan['flux_in']=set(valval(netan['sto_m_r'][m]['left'] for m in netan['input']));
+    netan['flux_out']=set(valval(netan['sto_m_r'][m]['right'] for m in netan['output']));
 
     # analyse reaction reversibility
     # and free fluxes(dictionary flux->init value for simulation or minimization)
@@ -381,21 +334,10 @@ def ftbl_netan(ftbl):
         sys.stderr.write(sys.argv[0]+': netan[FLUXES][XCH] is not defined');
         return None;
     for reac in netan['reac']:
-        # reac can be .s (splitted) or .f (fused)
-        # separate the name and sf_state
-        tmp=reac.split('.');
-        if len(tmp) == 2:
-            (oldreac, sf_state) = tmp;
-        elif len(tmp) == 1:
-            # reac does not change
-            oldreac=reac;
-            sf_state='';
-        else:
-            raise 'Badly formatted reaction name <'+reac+'>';
         # get xch condition for this reac
-        cond=[row for row in xch if row['NAME']==oldreac];
+        cond=[row for row in xch if row['NAME']==reac];
         # get net condition for this reac
-        ncond=([row for row in net if row['NAME']==oldreac]) if net else [];
+        ncond=([row for row in net if row['NAME']==reac]) if net else [];
         if cond:
             cond=cond[0];
         if ncond:
@@ -638,7 +580,7 @@ def ftbl_netan(ftbl):
             res[metab].update(parts['right']);
     # order cumomers by weight. For a given weight, cumomers are sorted by
     # metabolites order.
-    netan['Cmax']=netan['Clen'][max(netan['Clen'])];
+    netan['Cmax']=max(netan['Clen'].values());
     Cmax=netan['Cmax'];
     
     # cumomers systems A*x=b, one by weight
@@ -675,7 +617,7 @@ def ftbl_netan(ftbl):
                         # rhs: input cumomer
                         res['b'][w-1][cumo]={'1':[netan['cumo_input'].get(cumo,0.)]};
                     else:
-                        # make A,b for input cumo only once
+                        # make appear A,b for input cumo only once
                         continue;
                 # go to next metabolite
                 continue;
@@ -688,6 +630,7 @@ def ftbl_netan(ftbl):
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
                     w=sumbit(icumo);
+                    #print "w,i,clen,metab=", w, icumo,Clen,metab;##
                     if cumo not in res['A'][w-1]:
                         res['A'][w-1][cumo]={cumo:[]};
                     # main diagonal term ('out' part)
@@ -701,73 +644,32 @@ def ftbl_netan(ftbl):
             if (fwd_rev=='.rev' and reac in netan['notrev']):
                 continue;
             # add this in-flux;
-            if len(lrdict[in_lr])==1:
-                # 1/2: there is only one in_metab
+            for (in_metab, in_cstr) in lrdict[in_lr]:
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
                     w=sumbit(icumo);
-                    # get in_cumo and in_cstr
-                    (in_metab, in_cstr)=lrdict[in_lr][0];
+                    # get in_cumo
                     in_icumo=src_ind(in_cstr, cstr, icumo);
                     in_cumo=in_metab+':'+str(in_icumo);
-#                    if in_metab in netan['input']:
-#                        # put it in rhs
-#                        if cumo not in res['b'][w-1]:
-#                            res['b'][w-1][cumo]={};
-#                        if flux not in res['b'][w-1][cumo]:
-#                            res['b'][w-1][cumo][flux]=[];
-#                        # rhs: input uptake
-#                        res['b'][w-1][cumo][flux].append(in_cumo);
-#                    else:
-#                        # put it in matrix
+                    in_w=sumbit(in_icumo);
                     if cumo not in res['A'][w-1]:
                         res['A'][w-1][cumo]={cumo:[]};
-                    if in_cumo not in res['A'][w-1][cumo]:
-                        res['A'][w-1][cumo][in_cumo]=[];
-                    # matrix: off-diagonal linear term
-                    res['A'][w-1][cumo][in_cumo].append(flux);
-            elif len(lrdict[in_lr])==2:
-                # 2/2: there are two metabolites in in_metabs
-                # run through all cumomers of metab
-                for icumo in xrange(1,1<<Clen):
-                    cumo=metab+':'+str(icumo);
-                    w=sumbit(icumo);
-                    # get in_cumo1,2 and in_cstr1,2
-                    (in_metab1, in_cstr1, in_metab2, in_cstr2)=\
-                        lrdict[in_lr][0]+lrdict[in_lr][1];
-                    in_icumo1=src_ind(in_cstr1, cstr, icumo);
-                    in_icumo2=src_ind(in_cstr2, cstr, icumo);
-                    in_cumo1=in_metab1+':'+str(in_icumo1);
-                    in_cumo2=in_metab2+':'+str(in_icumo2);
-                    in_w1=sumbit(in_icumo1);
-                    in_w2=w-in_w1;
-                    if cumo not in res['A'][w-1]:
-                        res['A'][w-1][cumo]={cumo:[]};
-                    if in_w1==0:
-                        # add 2nd cumo
-                        if in_cumo2 not in res['A'][w-1][cumo]:
-                            res['A'][w-1][cumo][in_cumo2]=[];
+                    if in_w==w:
+                        if in_cumo not in res['A'][w-1][cumo]:
+                            res['A'][w-1][cumo][in_cumo]=[];
                         # matrix: linearized off-diagonal term
-                        res['A'][w-1][cumo][in_cumo2].append(flux);
-                    elif in_w2==0:
-                        # add 1st cumo
-                        if in_cumo1 not in res['A'][w-1][cumo]:
-                            res['A'][w-1][cumo][in_cumo1]=[];
-                        # matrix: linearized off-diagonal term
-                        res['A'][w-1][cumo][in_cumo1].append(flux);
-                    else:
-                        # add product to rhs
+                        res['A'][w-1][cumo][in_cumo].append(flux);
+                    elif in_w>0:
+                        # put it in rhs list
                         if cumo not in res['b'][w-1]:
                             res['b'][w-1][cumo]={};
                         if flux not in res['b'][w-1][cumo]:
                             res['b'][w-1][cumo][flux]=[];
-                        res['b'][w-1][cumo][flux].extend((in_cumo1,in_cumo2));
-                        ##print "2 cumo fusion in rhs. w,cumo,flux,c1,c2=",join(',',(w,cumo,flux,in_cumo1,in_cumo2));#
-                        ##aff("flux lst", res['b'][w-1][cumo][flux]);#
-            else:
-                raise "Wrong item number in netan['carbotrance']['%s']['%s']" % (reac,in_lr);
-
+                        res['b'][w-1][cumo][flux].append(in_cumo);
+                    # if in_w==0 in_cumo=1 by definition
+                    # in_w cannot be > w because of src_ind();
+    
     # ordered cumomer lists
     for w in xrange(1,netan['Cmax']+1):
         # weight 1 equations have all metabolites
