@@ -183,6 +183,28 @@ fwrv2i=dict((fl+".fwd",(i+1))
 # .rev part
 fwrv2i.update((fl+".rev",(i+1+len(netan["vflux_fwrv"]["rv"])))
     for (i,fl) in enumerate(netan["vflux_fwrv"]["rv"]));
+# make tuple for complete flux vector d,f,c
+# (name,"d|f|c","net|xch")
+tflcnx=zip(
+        netan["vflux"]["net"]+
+        netan["vflux_free"]["net"]+
+        netan["vflux_constr"]["net"]+
+        netan["vflux"]["xch"]+
+        netan["vflux_free"]["xch"]+
+        netan["vflux_constr"]["xch"],
+        ["d"]*len(netan["vflux"]["net"])+
+        ["f"]*len(netan["vflux_free"]["net"])+
+        ["c"]*len(netan["vflux_constr"]["net"])+
+        ["d"]*len(netan["vflux"]["xch"])+
+        ["f"]*len(netan["vflux_free"]["xch"])+
+        ["c"]*len(netan["vflux_constr"]["xch"]),
+        ["net"]*len(netan["vflux"]["net"])+
+        ["net"]*len(netan["vflux_free"]["net"])+
+        ["net"]*len(netan["vflux_constr"]["net"])+
+        ["xch"]*len(netan["vflux"]["xch"])+
+        ["xch"]*len(netan["vflux_free"]["xch"])+
+        ["xch"]*len(netan["vflux_constr"]["xch"]),
+        )
 
 # prepare cumo2i
 # translate cumoname like A:7 to its index in R:x vector of cumomers
@@ -237,6 +259,15 @@ f.write("""
 f.write("""
 # weights count
 no_w=%(no_w)d;
+
+# cumo names
+nm_cumo=c(%(nm_cumo)s);
+
+# fwd-rev flux names
+nm_fwrv=c(%(nm_fwrv)s);
+
+# fwd-rev flux names
+nm_flcnx=c(%(nm_flcnx)s);
 
 # initialize the linear system Afl*flnx=bfl (0-weight cumomers)
 # unknown net flux names
@@ -306,6 +337,9 @@ no_f=list(no_fln=no_fln, no_flx=no_flx, no_fl=no_fl,
 
 """ % {
 "no_w": netan["Cmax"],
+"nm_cumo": join(", ", valval(netan['vcumo']), '"', '"'),
+"nm_fwrv": join(", ", netan['vflux_fwrv']["fw"]*2, '"', '"'),
+"nm_flcnx": join(", ", (join(".", t) for t in tflcnx), '"', '"'),
 "nm_fln": join(", ", netan['vflux']['net'], '"', '"'),
 "nm_flx": join(", ", netan['vflux']['xch'], '"', '"'),
 "Afl": join(", ", [coef for coef in valval(netan['Afl'])]),
@@ -353,28 +387,7 @@ mf=matrix(0.,0,no_ff);
 md=matrix(0.,0,no_fl);
 bc=numeric(0);
 """);
-# make tuple for complete flux vector d,f,c
-# (name,"d|f|c","net|xch")
-tflcnx=zip(
-        netan["vflux"]["net"]+
-        netan["vflux_free"]["net"]+
-        netan["vflux_constr"]["net"]+
-        netan["vflux"]["xch"]+
-        netan["vflux_free"]["xch"]+
-        netan["vflux_constr"]["xch"],
-        ["d"]*len(netan["vflux"]["net"])+
-        ["f"]*len(netan["vflux_free"]["net"])+
-        ["c"]*len(netan["vflux_constr"]["net"])+
-        ["d"]*len(netan["vflux"]["xch"])+
-        ["f"]*len(netan["vflux_free"]["xch"])+
-        ["c"]*len(netan["vflux_constr"]["xch"]),
-        ["net"]*len(netan["vflux"]["net"])+
-        ["net"]*len(netan["vflux_free"]["net"])+
-        ["net"]*len(netan["vflux_constr"]["net"])+
-        ["xch"]*len(netan["vflux"]["xch"])+
-        ["xch"]*len(netan["vflux_free"]["xch"])+
-        ["xch"]*len(netan["vflux_constr"]["xch"]),
-        )
+
 for tf in tflcnx:
     f.write("""
 mf=rbind(mf,c(%(mf)s));
@@ -408,7 +421,8 @@ mi=rbind(mi,c(%(mi)s));
 li=c(li,%(li)g);
 """%{
 "mi": join(", ", (("" if ineq[1]=="<=" or ineq[1]=="=<" else "-")+
-    (ineq[2][fl] if inx==nx and fl in ineq[2] else "0.") for (fl,t,nx) in tflcnx)),
+    (ineq[2][fl] if inx==nx and fl in ineq[2] else "0.")
+    for (fl,t,nx) in tflcnx)),
 "li": float(("" if ineq[1]=="<=" or ineq[1]=="=<" else "-")+str(ineq[0])),
 });
 f.write("""
@@ -465,12 +479,12 @@ for meas in o_meas:
         continue;
     f.write("""
 # %(meas)s
-# set initial scales to 1/sum(vec_meas)
+# set initial scales to sum(vec_meas)
 param=c(param,%(invvec)s);
 nm_par=c(nm_par,c(%(sc_names)s));
 """ % {
     "meas": meas,
-    "invvec": join(", ", (1./scale[meas][sc] for sc in o_sc[meas])),
+    "invvec": join(", ", (scale[meas][sc] for sc in o_sc[meas])),
     "sc_names": join(", ", o_sc[meas], '"'+meas+';', '"'),
     });
 
@@ -513,7 +527,7 @@ ci=li-mi%*%(bc+(md%*%invAfl%*%bp));
 
 # complete ui by scales >=0
 ui=rbind(ui, cbind(matrix(0, no_param-no_ff, no_ff), diag(1, no_param-no_ff)));
-ci=c(li,rep(0., no_param-no_ff));
+ci=c(ci,rep(0., no_param-no_ff));
 """);
 
 # get the full dict of non zero cumomers involved in measures
@@ -601,9 +615,41 @@ f.write("""
 #   nfree,Afl,imeas,measmat,measvec,measinvvar,ir2isc,
 #   method = "L-BFGS-B",
 #)
-res=constrOptim(param, cumo_cost, grad=NULL, ui, ci, mu = 1e-04, control=list(trace=1),
+res=constrOptim(param, cumo_cost, grad=NULL, ui, ci, mu = 1e-04, control=list(trace=0),
    method="Nelder-Mead", outer.iterations=100, outer.eps=1e-05,
    no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+
+# formated output
+cat("outer iteration number:\\n");
+print(res$outer.iterations);
+
+cat("calculation counts:\\n");
+print(res$counts);
+
+cat("achieved minimum:\\n");
+print(res$value);
+
+cat("free parameters:\\n");
+param=res$par;
+names(param)=nm_par;
+print(param);
+
+cat("cumomer vector:\\n");
+v=param2fl_x(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
+x=v$x;
+names(x)=nm_cumo;
+print(x);
+cat("cumomer vector ordered by name:\\n");
+o=order(nm_cumo);
+print(x[o]);
+
+cat("fwd flux vector:\\n");
+f=v$fwrv;
+n=length(f);
+names(f)=nm_fwrv;
+print(f[1:(n/2)]);
+cat("rev flux vector:\\n");
+print(f[((n/2)+1):n]);
 """);
 
 f.close();
