@@ -446,7 +446,7 @@ def ftbl_netan(ftbl):
     for metab in netan['iso_input']:
        for icumo in xrange(1,1<<(netan['Clen'][metab])):
            cumo=metab+':'+str(icumo);
-           netan['cumo_input'][cumo]=iso2cumo(metab, netan['Clen'][metab], icumo, netan['iso_input'][metab]);
+           netan['cumo_input'][cumo]=iso2cumo(netan['Clen'][metab], icumo, netan['iso_input'][metab]);
     
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
@@ -1075,9 +1075,9 @@ def cumo_iw(w,nlen):
             for subi in cumo_iw(w-1,w+i-1):
                 yield movbit+subi;
             movbit<<=1;
-def iso2cumo(metab, Clen, icumo, iso_dic):
+def iso2cumo(Clen, icumo, iso_dic):
     '''calculate cumomer fraction from isotopomer ones'''
-    return sum(iso_dic.get(metab+':'+str(iiso),0.)
+    return sum(iso_dic.get(iiso,0.)
         for iiso in icumo2iiso(icumo, Clen));
 def formula2dict(f):
     '''parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
