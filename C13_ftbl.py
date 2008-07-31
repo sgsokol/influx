@@ -348,10 +348,9 @@ def ftbl_netan(ftbl):
         #aff("ncond", ncond);##
         # not reversibles are those reaction having xch flux=0 or
         # input/output fluxes
-        if (cond and cond['FCD'] == 'C' and cond['VALUE(F/C)'] == '0') or \
+        if (cond and cond['FCD'] == 'C' and float(cond['VALUE(F/C)']) == 0.) or \
                 (netan['formula'][reac]['left'] & netan['input']) or \
                 (netan['formula'][reac]['right'] & netan['output']):
-            # input/output reactions cannot be .s or .f
             netan['notrev'].add(reac);
         if (cond and cond['FCD'] == 'F'):
             # free xch
@@ -598,8 +597,9 @@ def ftbl_netan(ftbl):
     for (reac,lrdict) in netan['carbotrans'].iteritems():
         # run through metabs
         ## aff('lrdict', lrdict);#
-        for (lr,metab,cstr) in ((lr,metab,cstr)
-                for (lr,lst) in lrdict.iteritems() for (metab,cstr) in lst):
+        for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
+                for (lr,lst) in lrdict.iteritems()
+                for (imetab,(metab,cstr)) in enumerate(lst)):
             # skip if output metab
             if metab in netan['output']:
                 continue;
@@ -615,7 +615,7 @@ def ftbl_netan(ftbl):
                         # matrix: diagonal term for input cumomer
                         res['A'][w-1][cumo]={cumo:['1']};
                         # rhs: input cumomer
-                        res['b'][w-1][cumo]={'1':[netan['cumo_input'].get(cumo,0.)]};
+                        res['b'][w-1][cumo]={'1':[[netan['cumo_input'].get(cumo,0.)]]};
                     else:
                         # make appear A,b for input cumo only once
                         continue;
@@ -644,7 +644,7 @@ def ftbl_netan(ftbl):
             if (fwd_rev=='.rev' and reac in netan['notrev']):
                 continue;
             # add this in-flux;
-            for (in_metab, in_cstr) in lrdict[in_lr]:
+            for (in_i,(in_metab, in_cstr)) in enumerate(lrdict[in_lr]):
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
                     cumo=metab+':'+str(icumo);
@@ -661,12 +661,16 @@ def ftbl_netan(ftbl):
                         # matrix: linearized off-diagonal term
                         res['A'][w-1][cumo][in_cumo].append(flux);
                     elif in_w>0:
-                        # put it in rhs list
+                        # put it in rhs list[iterm]
                         if cumo not in res['b'][w-1]:
                             res['b'][w-1][cumo]={};
                         if flux not in res['b'][w-1][cumo]:
                             res['b'][w-1][cumo][flux]=[];
-                        res['b'][w-1][cumo][flux].append(in_cumo);
+                            for i in xrange(len(lrdict[lr])):
+                                res['b'][w-1][cumo][flux].append([]);
+                        #print "metab,imetab,cumo,in_cumo,flux=%s"%join(",", (metab,imetab,cumo,in_cumo,flux));##
+                        res['b'][w-1][cumo][flux][imetab].append(in_cumo);
+                        #print "b="+str(res['b'][w-1][cumo][flux]);##
                     # if in_w==0 in_cumo=1 by definition
                     # in_w cannot be > w because of src_ind();
     
@@ -1015,7 +1019,7 @@ def label_meas2matrix_vec_dev(netan):
     matx_lab is defined as
     list of dict{'scale':scale_name, 'coefs':dict{icumo:coef}}
     where coef is a contribution of cumo in linear combination for given measure.
-    scale_name is of the form "metab;". Group number is not differentiating between
+    scale_name is of the form "metab;group". Group number is not differentiating between
     measures of the same metabolite.
     vec is a list of measures (values in .ftbl)
     dev is a list of deviations.
@@ -1033,7 +1037,7 @@ def label_meas2matrix_vec_dev(netan):
             for row in rows:
                 vec.append(row['val']);
                 dev.append(row['dev']);
-                mat.append({'scale': metab+';', 'coefs':{}});
+                mat.append({'scale': metab+';'+group, 'coefs':{}});
                 res=mat[-1]['coefs'];
                 for cumostr in row['bcumos']:
                     decomp=bcumo_decomp(cumostr);

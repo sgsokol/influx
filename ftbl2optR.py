@@ -33,13 +33,17 @@ def usage():
     sys.stderr.write("usage: "+me+" organism");
 
 #<--
-if len(sys.argv) != 2:
+if len(sys.argv) < 2:
     usage();
     exit(1);
 # set some python constants
 org=sys.argv[1];
+DEBUG=True if len(sys.argv) > 2 and sys.argv[2] else False;
 #-->
 #org="ex3";
+#DEBUG=True;
+if DEBUG:
+    import pdb;
 
 
 # function definitions
@@ -129,13 +133,19 @@ def netan2bcumo_R(netan, f, fwrv2i, cumo2i):
     "iw": w,
     "b": (
         join(', ', (
-        join('+', (('fl['+str(fwrv2i[flux])+']*'
-        if cumo.split(':')[0] not in netan['input'] else '') +
+        join('+', (
+        ('fl['+str(fwrv2i[flux])+']*('
+            if cumo.split(':')[0] not in netan['input'] else '') +
+        join("+", [
         join('*', trd(lst, cumo2i, 'x[', ']'))
-        for (flux,lst) in netan["cumo_sys"]["b"][w-1].get(cumo,{}).iteritems()
-        ), a='0.') for cumo in cumos
+        for lst in llst
+        ])+(')' if cumo.split(':')[0] not in netan['input'] else '')
+        for (flux,llst) in netan["cumo_sys"]["b"][w-1].get(cumo,{}).iteritems()
+        ), a='0.')
+        for cumo in cumos
         )
-        ))
+        )
+        )
     });
 
 
@@ -150,6 +160,8 @@ f_ftbl.close();
 
 # analyse network
 # reload(C13_ftbl);
+if DEBUG:
+    pdb.set_trace();
 netan=C13_ftbl.ftbl_netan(ftbl);
 
 # header
@@ -227,7 +239,14 @@ flcnx2fwrv=function(flcnx) {
    xch=xch/(1-xch);
    # fw=xch-min(-net,0)
    # rv=xch-min(net,0)
-   return(c(xch-pmin(-net,0),xch-pmin(net,0)));
+   fwrv=c(xch-pmin(-net,0),xch-pmin(net,0));
+   if (DEBUG) {
+      n=length(fwrv);
+      nms=paste(nm_fwrv,c(rep("fwd", n/2),rep("rev", n/2)),sep="_");
+      library(MASS);
+      write.matrix(cbind(1:n,nms,fwrv), file="dbg_fwrv.txt", sep="\\t");
+   }
+   return(fwrv);
 }
 """ % {
     "inet2ifwrv": join(", ", (1+
@@ -266,8 +285,9 @@ nm_cumo=c(%(nm_cumo)s);
 # fwd-rev flux names
 nm_fwrv=c(%(nm_fwrv)s);
 
-# fwd-rev flux names
+# net-xch flux names
 nm_flcnx=c(%(nm_flcnx)s);
+
 
 # initialize the linear system Afl*flnx=bfl (0-weight cumomers)
 # unknown net flux names
@@ -334,6 +354,29 @@ no_f=list(no_fln=no_fln, no_flx=no_flx, no_fl=no_fl,
    no_ffn=no_ffn, no_ffx=no_ffx, no_ff=no_ff,
    no_fcn=no_fcn, no_fcx=no_fcx, no_fc=no_fc,
    no_flcnx=no_flcnx);
+
+# output flux repartition
+cat("Dependent fluxes:\\n");
+if (no_fln) {
+   print(paste(nm_fln,"net",sep="_"));
+}
+if (no_flx) {
+   print(paste(nm_flx,"xch",sep="_"));
+}
+cat("Free fluxes:\\n");
+if (no_ffn) {
+   print(paste(nm_ffn,"net",sep="_"));
+}
+if (no_ffx) {
+   print(paste(nm_ffx,"xch",sep="_"));
+}
+cat("Constrained fluxes:\\n");
+if (no_fcn) {
+   print(paste(nm_fcn,"net",sep="_"));
+}
+if (no_fcx) {
+   print(paste(nm_fcx,"xch",sep="_"));
+}
 
 """ % {
 "no_w": netan["Cmax"],
@@ -442,11 +485,26 @@ li=c(li,-1.);
 "mi1": join(", ", (
     ("-1." if fli==fl and nx=="xch" else "0.") for (fl,t,nx) in tflcnx)),
 });
+f.write("""
+# add standard limits on net >= 0 for not reversible reactions
+""");
+for (fli,t,nxi) in tflcnx:
+    if nxi=="xch" or fli not in netan["notrev"]:
+        continue;
+    f.write("""
+mi=rbind(mi,c(%(mi)s));
+li=c(li,0.);
+"""%{
+"mi": join(", ", (
+    ("1." if fli==fl and nx=="net" else "0.") for (fl,t,nx) in tflcnx)),
+});
+
 f.write("no_ineq=NROW(li);\n");
 
 # get scaling factors and their indexes, measure matrices, and measured cumomer value vector
 measures={"label": {}, "mass": {}, "peak": {}};
 scale=dict(measures); # for unique scale names
+nrow=dict(measures); # for counting scale names
 o_sc=dict(measures); # for unique scale names
 o_meas=measures.keys(); # ordered measure types
 o_meas.sort();
@@ -458,16 +516,26 @@ for meas in o_meas:
     measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas);
     
     # get unique scaling factors
+    # and count rows in each group
     # row["scale"] is "metab;group"
     for (i,row) in enumerate(measures[meas]["mat"]):
         scale[meas][row["scale"]]=scale[meas].get(row["scale"],0.)+measures[meas]["vec"][i];
+        nrow[meas][row["scale"]]=nrow[meas].get(row["scale"],0.)+1;
+    # remove groups having only one measure in them
+    for (k,n) in list(nrow[meas].iteritems()):
+        if n<2:
+            del(scale[meas][k]);
     # order scaling factor
     o_sc[meas]=scale[meas].keys();
     o_sc[meas].sort();
     # map a measure rows (card:n) on corresponding scaling factor (card:1)
-    ir2isc[meas]=[0]*len(measures[meas]["mat"]);
+    # if a row has not scale factor it is scaled with factor 1
+    # vector having scaling parameters is formed like
+    # c(1,param);
+    ir2isc[meas]=[-1]*len(measures[meas]["mat"]);
     for (i,row) in enumerate(measures[meas]["mat"]):
-        ir2isc[meas][i]=o_sc[meas].index(row["scale"]);
+        if row["scale"] in scale[meas]:
+            ir2isc[meas][i]=o_sc[meas].index(row["scale"]);
     
     # measured value vector is in measures[meas]["vec"]
     # measured dev vector is in measures[meas]["dev"]
@@ -491,7 +559,7 @@ nm_par=c(nm_par,c(%(sc_names)s));
 f.write("""
 no_param=length(param);
 # indices mapping from scaling to measure matrix row
-# par[ir2isc] replicates scale parameters
+# c(1,par)[ir2isc] replicates scale parameters
 # for corresponding rows of measure matrix
 ir2isc=numeric(0);
 """);
@@ -503,13 +571,14 @@ ir2isc=c(ir2isc,c(%(ir2isc)s));
 """ % {
     "nsc_meas": len(scale[meas]), "meas": meas,
     "sc_names": join(", ", o_sc[meas], '"', '"'),
-    "ir2isc": join(", ", (str(ir2isc[meas][ir]+base_isc)
+    "ir2isc": join(", ", ((str(ir2isc[meas][ir]+base_isc) if ir2isc[meas][ir]>0 else -1)
         for ir in xrange(len(ir2isc[meas]))))});
     base_isc=base_isc+len(scale[meas]);
 
 f.write("""
-# shift indices by no_ff
-ir2isc=ir2isc+no_ff;
+# shift indices by no_ff+1
+ir2isc[ir2isc>0]=ir2isc[ir2isc>0]+no_ff+1;
+ir2isc[ir2isc<=0]=1;
 """);
 
 f.write("""
@@ -649,6 +718,14 @@ n=length(f);
 names(f)=nm_fwrv;
 print(f[1:(n/2)]);
 cat("rev flux vector:\\n");
+print(f[((n/2)+1):n]);
+
+cat("net flux vector:\\n");
+f=v$flcnx;
+n=length(f);
+names(f)=nm_flcnx;
+print(f[1:(n/2)]);
+cat("xch flux vector:\\n");
 print(f[((n/2)+1):n]);
 """);
 
