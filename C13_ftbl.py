@@ -502,6 +502,7 @@ def ftbl_netan(ftbl):
     for row in ftbl.get('MASS_SPECTROMETRY',[]):
         #print row;##
         metab=row['META_NAME'] or metab;
+        clen=netan['Clen'][metab];
         # test the validity
         if not metab in netan['metabs']:
             raise "Unknown metabolite name '"+metab+"' in MASS_SPECTROMETRY";
@@ -513,17 +514,17 @@ def ftbl_netan(ftbl):
                 try:
                     i=int(item);
                     # add this simple item to the mask
-                    mask|=1<<(i-1);
+                    mask|=1<<(clen-i);
                 except ValueError:
                     # try the interval
                     try:
                         (start,end)=item.split('~');
                         #print "start,end=%s,%s" % (start,end);##
                         try:
-                            for i in xrange(int(start)-1,int(end)):
-                                if i >= netan['Clen'][metab]:
+                            for i in xrange(int(start),int(end)+1):
+                                if i > clen:
                                     raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan['Clen'][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
-                                mask|=1<<i;
+                                mask|=1<<(clen-i);
                         except:
                             raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
                     except:
