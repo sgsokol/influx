@@ -1,3 +1,127 @@
+# 2008-08-22 sokol
+# gradient based optimization
+
+# 2008-08-21 sokol
+# debugging residuals
+# ir2isc had an error.
+./ftbl2optR.py PPP_exact DEBUG
+# set initial scale value to sum(v*m)/sum(m*m)
+
+# c13flux on exact ex5
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25 ex5.ftbl\
+   > ex5_c13.txt; date
+# ok
+
+# fragment mask in mass section counted carbons in wrong sens
+date; ./ftbl2optR.py PPP_exact && R --no-save --slave < PPP_exact_opt.R > PPP_exact_opt.log; date
+starting cost value:
+[1] 0.2328660
+# in c13_flux: 0.232869
+# OK => good initial cost value
+
+# try not exact initial approximation
+date; ./ftbl2optR.py PPP_s && R --no-save --slave < PPP_s_opt.R > PPP_s_opt.log; date
+# convergence is slow
+
+# 2008-08-20 sokol
+# recup ppp_exact.ftbl
+# first converge from example ppp.ftbl
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  PPP_s.ftbl\
+   > PPP_s_c13.txt; date
+# search for last "inserted in 0"
+# go up to
+Residuum:	0.232634	with following values
+upt__NET:	1.02
+emp1__NET:	0.509827
+ppp2__XCH:	0.807418
+ppp3__XCH:	0.772251
+ppp4__XCH:	0.798751
+ppp5__XCH:	0.206189
+ppp6__XCH:	0.202575
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  PPP_s.ftbl\
+   > PPP_s_c13.txt; date
+Residuum:	0.232871	with following values
+upt__NET:	1.02
+emp1__NET:	0.509824
+ppp2__XCH:	0.80725
+ppp3__XCH:	0.718871
+ppp4__XCH:	0.798779
+ppp5__XCH:	0.212754
+ppp6__XCH:	0.202523
+
+# insert this flux values in .ftbl
+# see if fluxes move
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  PPP_exact.ftbl \
+   > PPP_exact.txt; date
+mer aoû 20 14:30:12 CEST 2008
+mer aoû 20 14:31:14 CEST 2008
+# no inserted in 0
+
+# restart C13 flux => another solution (stochastic algorithm)
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  PPP_exact.ftbl \
+   > PPP_exact.txt; date
+mer aoû 20 14:44:35 CEST 2008
+mer aoû 20 14:49:14 CEST 2008
+# no inserted in 0 => this is solution (no better approximation)
+
+# now our script
+date; ./ftbl2optR.py PPP_exact && R --no-save --slave < PPP_exact_opt.R > PPP_exact_opt.log; date
+
+
+#
+# 2008-08-18 sokol
+# added initial approx for flux & cumos output
+date; ./ftbl2optR.py ex5 && R --no-save --slave < ex5_opt.R > ex5_opt.log; date
+
+# 2008-07-31 sokol
+cd ftbl
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25 PPP_s.ftbl\
+   > PPP_s_res.txt; date
+date; ./ftbl2optR.py PPP_s && R --no-save --slave < PPP_s_opt.R > PPP_s_opt.log
+cd ..
+date; ./ftbl2optR.py ex4 && R --no-save --slave < ex4_opt.R > ex4_opt.log; date
+date; ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25 ex4.ftbl\
+   > ex4_res.txt; date; date
+date; ./ftbl2optR.py ex5 && R --no-save --slave < ex5_opt.R > ex5_opt.log; date
+
+# 2008-07-30 sokol
+# trying PPP_s.ftbl
+~/insa/sysbio/soft/13CFlux/FBINS.20010920/Ftbl2Flx PPP_s.ftbl
+# no error messages
+
+~/insa/sysbio/soft/13CFlux/FBINS.20010920/CumoNet PPP_s.ftbl
+
+# PPP_s diverges
+# rewritten cumo_sys without A.B vitual metabolites => still diverges
+# added debug out in R code => output flux is reversed (net < 0, xch=0 => fwd=0,rev>0)
+# added standart ineqality net >= 0 when xch constrained to zero
+
+# 2008-07-29 sokol
+# some tests with C13Flux in dedicated dir
+mkdir ftbl
+cd ftbl
+cp ../ex4.ftbl .
+~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  ex4.ftbl\
+   > ex4_c13.txt
+# no solution found even with the exact initial approximation
+# exact solution is found when initial approx is slightly different
+# no unique solution without inequality v2.net >= 0
+
+# converges to negative flux v2.net=-0.5
+# is a true solution
+# add a constraint v2.net >= 0
+./ftbl2optR.py ex4 && R --no-save --slave < ex4_opt.R
+
+# starting from v2.net=1 => divergence
+fwd flux vector:
+      v1       v2       v3       v4
+     1.0 206577.5      0.0      1.0
+rev flux vector:
+      v1       v2       v3       v4
+     0.0      0.0 206576.5      0.0
+# v3.net<0 => add constraint v3.net >= 0
+# => converge (after correcting a bug in constraints)
+
 # 2008-07-28 sokol
 # added scale constraints to ui, ci
 # passed to Nelder-Mead min method
@@ -14,10 +138,13 @@ ncl PPP.ftbl.fdb
 ./ftbl2optR.py ex4
 # test generated R code
 R --no-save < ex4_opt.R > ex4_opt.log
+# convergence point depends on starting point => non unique solution
+# scaling free params are may be too much
 
 # test with C13_flux
 ~/insa/sysbio/soft/13CFlux/FBINS.20010920/CooolEvoAlpha -nc 5 -vr 0.25  ex4.ftbl \
    > ex4_c13.txt
+
 # 2008-07-27 sokol
 # added inequalities constraints ui, ci
 ./ftbl2optR.py ex3
