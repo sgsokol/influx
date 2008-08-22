@@ -41,6 +41,7 @@ org=sys.argv[1];
 DEBUG=True if len(sys.argv) > 2 and sys.argv[2] else False;
 #-->
 #org="ex3";
+#org="PPP_exact";
 #DEBUG=True;
 if DEBUG:
     import pdb;
@@ -136,7 +137,7 @@ def netan2bcumo_R(netan, f, fwrv2i, cumo2i):
         join('+', (
         ('fl['+str(fwrv2i[flux])+']*('
             if cumo.split(':')[0] not in netan['input'] else '') +
-        join("+", [
+        joint("+", [
         join('*', trd(lst, cumo2i, 'x[', ']'))
         for lst in llst
         ])+(')' if cumo.split(':')[0] not in netan['input'] else '')
@@ -162,6 +163,7 @@ f_ftbl.close();
 # reload(C13_ftbl);
 if DEBUG:
     pdb.set_trace();
+
 netan=C13_ftbl.ftbl_netan(ftbl);
 
 # header
@@ -300,6 +302,10 @@ nm_fl=c(nm_fln, nm_flx);
 no_fl=no_fln+no_flx;
 # flux matrix
 Afl=t(matrix(c(%(Afl)s), no_fl, no_fl));
+if (DEBUG) {
+   library(MASS);
+   write.matrix(Afl, file="dbg_Afl.txt", sep="\t");
+}
 
 qrAfl=qr(Afl);
 
@@ -504,13 +510,16 @@ f.write("no_ineq=NROW(li);\n");
 # get scaling factors and their indexes, measure matrices, and measured cumomer value vector
 measures={"label": {}, "mass": {}, "peak": {}};
 scale=dict(measures); # for unique scale names
-nrow=dict(measures); # for counting scale names
+nrow={"label": {}, "mass": {}, "peak": {}}; # for counting scale names
 o_sc=dict(measures); # for unique scale names
 o_meas=measures.keys(); # ordered measure types
 o_meas.sort();
 
+if DEBUG:
+    pdb.set_trace();
+
 ir2isc={"label": [], "mass": [], "peak": []}; # for mapping measure rows indexes on scale index
-# we want to use it like isc[meas]=ir2isc[meas][ir]
+# we want to use it python like isc[meas]=ir2isc[meas][ir]
 for meas in o_meas:
     # measures[meas]=list[{scale: , coefs: }]
     measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas);
@@ -519,7 +528,7 @@ for meas in o_meas:
     # and count rows in each group
     # row["scale"] is "metab;group"
     for (i,row) in enumerate(measures[meas]["mat"]):
-        scale[meas][row["scale"]]=scale[meas].get(row["scale"],0.)+measures[meas]["vec"][i];
+        scale[meas][row["scale"]]=0.;
         nrow[meas][row["scale"]]=nrow[meas].get(row["scale"],0.)+1;
     # remove groups having only one measure in them
     for (k,n) in list(nrow[meas].iteritems()):
@@ -540,6 +549,9 @@ for meas in o_meas:
     # measured value vector is in measures[meas]["vec"]
     # measured dev vector is in measures[meas]["dev"]
 
+if DEBUG:
+    pdb.set_trace();
+
 # create R equivalent structures with indices for scaling
 f.write("\n# make place for scaling factors\n");
 for meas in o_meas:
@@ -547,12 +559,12 @@ for meas in o_meas:
         continue;
     f.write("""
 # %(meas)s
-# set initial scales to sum(vec_meas)
-param=c(param,%(invvec)s);
+# initial values for scales are set later
+param=c(param,%(sc)s);
 nm_par=c(nm_par,c(%(sc_names)s));
 """ % {
     "meas": meas,
-    "invvec": join(", ", (scale[meas][sc] for sc in o_sc[meas])),
+    "sc": join(", ", (scale[meas][sc] for sc in o_sc[meas])),
     "sc_names": join(", ", o_sc[meas], '"'+meas+';', '"'),
     });
 
@@ -569,9 +581,10 @@ for meas in o_meas:
 # %(meas)s
 ir2isc=c(ir2isc,c(%(ir2isc)s));
 """ % {
-    "nsc_meas": len(scale[meas]), "meas": meas,
+    "nsc_meas": len(scale[meas]),
+    "meas": meas,
     "sc_names": join(", ", o_sc[meas], '"', '"'),
-    "ir2isc": join(", ", ((str(ir2isc[meas][ir]+base_isc) if ir2isc[meas][ir]>0 else -1)
+    "ir2isc": join(", ", ((str(ir2isc[meas][ir]+base_isc) if ir2isc[meas][ir]>=0 else -1)
         for ir in xrange(len(ir2isc[meas]))))});
     base_isc=base_isc+len(scale[meas]);
 
@@ -616,9 +629,9 @@ f.write("""
 # make measure matrix
 # matrix is "densified" such that
 # measmat*(x[imeas];1)=vec of simulated not-yet-scaled measures
-# where imeas is the index of involved in measures cumomers
+# where imeas is the R-index of involved in measures cumomers
 # all but 0. Coefficients of 0-cumomers, by defenition equal to 1,
-# they are all regrouped in the last matrix column.
+# are all regrouped in the last matrix column.
 measmat=matrix(0., 0, %(ncol)d);
 measvec=numeric(0);
 measinvvar=numeric(0);
@@ -672,24 +685,86 @@ ifmn=c(%(ifmn)s);
     for fl in netan["vflux_meas"]["net"])),
 "invfmnvar": join(", ", (1./(netan["flux_measured"][fl]["dev"]**2)
     for fl in netan["vflux_meas"]["net"])),
-"ifmn": join(", ", (netan["vflux_compl"]["net2i"][fl]
+"ifmn": join(", ", (1+netan["vflux_compl"]["net2i"][fl]
     for fl in netan["vflux_meas"]["net"])),
 });
 
+f.write("""
+# set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+# for corresponding measures
+v=param2fl_x(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
+simvec=(measmat%*%c(v$x[imeas],1.));
+if (no_ff < length(param)) {
+   ms=measvec*simvec*measinvvar;
+   ss=simvec*simvec*measinvvar;
+   for (i in (no_ff+1):length(param)) {
+      im=(ir2isc==(i+1));
+      param[i]=sum(ms[im])/sum(ss[im]);
+   }
+}
+""");
 
 # main part: call optimization
 f.write("""
+# get initial flux and cumomer distribution
+cat("initial approximation\n");
+cat("free parameters:\\n");
+names(param)=nm_par;
+print(param);
+
+cat("starting cumomer vector:\\n");
+x=v$x;
+names(x)=nm_cumo;
+print(x);
+
+cat("starting cumomer residuals:\\n");
+rres=cumo_resid(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
+print(rres$res);
+
+cat("cumomer measure vector:\\n");
+print(measvec);
+cat("simulated unscaled vector:\\n");
+print(simvec);
+cat("simulated scaled vector:\\n");
+simvec=c(1.,param)[ir2isc]*simvec;
+dimnames(simvec)=list(c("1",nm_par)[ir2isc],"");
+print(simvec);
+
+cat("flux residual vector:\\n");
+print(rres$flcnx[ifmn]-fmn);
+cat("starting cost value:\\n");
+cost=cumo_cost(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+print(cost);
+
+cat("\nflux system:\\n");
+print(Afl);
+print(p2bfl%*%param[1:no_f$no_ff]+bp);
+
+
+cat("mass vector:\\n");
+print_mass(x);
+
+cat("fwd flux vector:\\n");
+f=v$fwrv;
+n=length(f);
+names(f)=nm_fwrv;
+print(f[1:(n/2)]);
+cat("rev flux vector:\\n");
+print(f[((n/2)+1):n]);
+
 # optimize all this
 #res=optim(param, cumo_cost,
 #   nfree,Afl,imeas,measmat,measvec,measinvvar,ir2isc,
 #   method = "L-BFGS-B",
 #)
-res=constrOptim(param, cumo_cost, grad=NULL, ui, ci, mu = 1e-04, control=list(trace=0),
+res=constrOptim(param, cumo_cost, grad=NULL, ui, ci, mu = 1e-04, control=list(trace=1),
    method="Nelder-Mead", outer.iterations=100, outer.eps=1e-05,
    no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+param=res$par;
+names(param)=nm_par;
 
 # formated output
-cat("outer iteration number:\\n");
+cat("\nouter iteration number:\\n");
 print(res$outer.iterations);
 
 cat("calculation counts:\\n");
@@ -698,8 +773,15 @@ print(res$counts);
 cat("achieved minimum:\\n");
 print(res$value);
 
+cat("cumomer residual vector (before scaling):\\n");
+rres=cumo_resid(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
+print(rres$res);
+cat("cumomer measure vector:\\n");
+print(measvec);
+cat("flux residual vector:\\n");
+print(rres$flcnx[ifmn]-fmn);
+
 cat("free parameters:\\n");
-param=res$par;
 names(param)=nm_par;
 print(param);
 
