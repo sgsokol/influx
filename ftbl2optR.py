@@ -226,6 +226,16 @@ cumos=list(valval(netan["vcumo"]));
 cumo2i=dict((c,i+1) for (i,c) in enumerate(cumos));
 
 f.write("""
+# get runtime arguments
+opts=commandArgs();
+# profile or not profile?
+prof=(length(which(opts=="--prof")) > 0);
+
+# R profiling
+if (prof) {
+   Rprof("%(org)s.Rprof");
+}
+
 # get some tools
 source("opt_cumo_tools.R");
 require(matrid, lib.loc="/home/sokol/R/lib");
@@ -261,6 +271,7 @@ flcnx2fwrv=function(flcnx) {
     else no_flx+netan["vflux_free"]["xch2i"][fl] if fl in netan["vflux_free"]["xch2i"]
     else no_flx+no_ffx+netan["vflux_constr"]["xch2i"][fl])
     for fl in netan["vflux_fwrv"]["fw"])),
+    "org": org,
 });
 
 f.write("""
@@ -694,6 +705,10 @@ f.write("""
 # for corresponding measures
 v=param2fl_x(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
 simvec=(measmat%*%c(v$x[imeas],1.));
+if (DEBUG) {
+   cat("initial simvec:\\n");
+   print(simvec);
+}
 if (no_ff < length(param)) {
    ms=measvec*simvec*measinvvar;
    ss=simvec*simvec*measinvvar;
@@ -757,9 +772,11 @@ print(f[((n/2)+1):n]);
 #   nfree,Afl,imeas,measmat,measvec,measinvvar,ir2isc,
 #   method = "L-BFGS-B",
 #)
-res=constrOptim(param, cumo_cost, grad=NULL, ui, ci, mu = 1e-04, control=list(trace=1),
-   method="Nelder-Mead", outer.iterations=100, outer.eps=1e-05,
-   no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+res=constrOptim(param, cumo_cost, grad=cumo_grad,
+   ui, ci, mu = 1e-04, control=list(trace=1, maxit=100),
+   method="BFGS", outer.iterations=10, outer.eps=1e-05,
+   no_f, no_w, invAfl, p2bfl, bp, fc,
+   imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
 param=res$par;
 names(param)=nm_par;
 
@@ -809,6 +826,9 @@ names(f)=nm_flcnx;
 print(f[1:(n/2)]);
 cat("xch flux vector:\\n");
 print(f[((n/2)+1):n]);
+if (prof) {
+   Rprof(NULL);
+}
 """);
 
 f.close();
