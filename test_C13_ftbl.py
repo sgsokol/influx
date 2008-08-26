@@ -10,8 +10,8 @@ from tools_ssg import *;
 #from C13_ftbl import *;
 import C13_ftbl;
 
-fname='ex3.ftbl';
-#fname='PPP.ftbl';
+#fname='ex5.ftbl';
+fname='PPP_exact.ftbl';
 #fname='example2.ftbl';
 
 #pdb.set_trace();
@@ -21,19 +21,24 @@ fin=open(fname, "r");
 ftbl=C13_ftbl.ftbl_parse(fin);
 fin.close();
 
-aff("ftbl['PROJECT']", ftbl['PROJECT']);
-aff("ftbl['NETWORK']", ftbl['NETWORK']);
+#aff("ftbl['PROJECT']", ftbl['PROJECT']);
+#aff("ftbl['NETWORK']", ftbl['NETWORK']);
 #sec='INEQUALITIES';
-sec='MASS_SPECTROMETRY'
+#sec='MASS_SPECTROMETRY'
+sec='PEAK_MEASUREMENTS'
 aff("ftbl['"+sec+"']", ftbl[sec]);
 
-pdb.set_trace();
+#pdb.set_trace();
 #reload(C13_ftbl);
 netan=C13_ftbl.ftbl_netan(ftbl);
 #e="flux_inequal";
 #e="label_meas";
 #e="peak_meas";
-e="mass_meas";
+e="Afl";
+#aff("matx_meas_label", C13_ftbl.label_meas2matrix_vec_dev(netan));
+#e="mass_meas";
+#aff("matx_meas_mass", C13_ftbl.mass_meas2matrix_vec_dev(netan));
+#aff("matx_meas_peak", C13_ftbl.peak_meas2matrix_vec_dev(netan));
 aff("netan["+e+"]", netan[e]);
 aff("netan", netan);
 
