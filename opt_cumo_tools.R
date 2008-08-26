@@ -1,6 +1,9 @@
-DEBUG=1;
+DEBUG=0;
 library(bitops);
-trisparse_solv=function(Al, Ac, Au, spA, b, method="dense") {
+if (DEBUG) {
+   library(MASS);
+}
+trisparse_solv=function(Al, Ac, Au, spA, b, w, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+spA and b is dense
    # temporary solution by qr()
    n=length(Ac);
@@ -21,9 +24,8 @@ trisparse_solv=function(Al, Ac, Au, spA, b, method="dense") {
 #print(A);
 #print(b);
       if (DEBUG) {
-         library(MASS);
-         write.matrix(A,file="dbg_Acumo.txt",sep="\t");
-         write.matrix(Ac,file="dbg_Ac_cumo.txt",sep="\t");
+         write.matrix(A,file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
+#         write.matrix(Ac,file=paste("dbg_Ac_d_cumo_",w,".txt", sep=""),sep="\t");
       }
       x=solve(A,b);
       return(x);
@@ -63,18 +65,36 @@ trisparse_solv=function(Al, Ac, Au, spA, b, method="dense") {
                m=m+1;
             }
          }
-         s=as.matrix(spA[,e]);
+         s=matrix(spA[,e], n, m);
       } else {
          # spA is treated as a dense matrix
+if (DEBUG) {
+#   write.matrix(as.matrix(atri),file=paste("dbg_Acumo_sp_",w,".txt", sep=""),sep="\t");
+#   write.matrix(Ac,file=paste("dbg_Ac_sp_cumo_",w,".txt", sep=""),sep="\t");
+   write.matrix(spA, file=paste("dbg_spA_", w, ".txt", sep=""), sep="\t");
+   cat("dim atri:\n");
+   print(dim(atri));
+   cat("dim spA:\n");
+   print(dim(spA));
+}
          for (j in 1:n) {
-            if (any(spA[,j])) {
+            if (any(as.logical(spA[,j]))) {
                e=c(e,j);
                m=m+1;
             }
          }
-         s=as.matrix(spA[,e]);
+         s=matrix(spA[,e], n, m);
       }
       A=new("matridm", atri, s, e);
+if (DEBUG) {
+   cat(paste("dim A at weight ", w, ":\n", sep=""));
+   print(dim(A));
+   write.matrix(cbind(A=as.matrix(A),b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t");
+#   print(A);
+   if (m) {
+      write.matrix(s, file=paste("dbg_s_", w, ".txt", sep=""), sep="\t");
+   }
+}
       x=qr.solve(A,b);
       return(x);
    } else {
@@ -134,7 +154,11 @@ cumo_cost=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, mea
    flcnx=resl$flcnx;
    # flux residuals
    resfl=flcnx[ifmn]-fmn;
-   return(sum(res*res*measinvvar)+sum(resfl*resfl*invfmnvar));
+   fn=sum(res*res*measinvvar)+sum(resfl*resfl*invfmnvar);
+   if (DEBUG) {
+      write.matrix(fn, file="dbg_cost.txt", sep="\t");
+   }
+   return(fn);
 }
 cumo_grad=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
    # calculate gradient of cost function for cumomer minimization probleme
@@ -172,7 +196,6 @@ param2fl_x=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, me
    flcnx=dfc2flcnx(no_f, flnx, param, fc);
    fwrv=flcnx2fwrv(flcnx);
    if (DEBUG) {
-      library(MASS);
       write.matrix(p2bfl%*%param[1:no_f$no_ff]+bp, file="dbg_bfl.txt", sep="\t");
       n=length(fwrv);
       nms=paste(nm_fwrv,c(rep("fwd", n/2),rep("rev", n/2)),sep="_");
@@ -188,11 +211,11 @@ param2fl_x=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, me
       A=fwrv2Acumo(fwrv, iw);
       b=fwrv_x2bcumo(fwrv, x, iw);
       # solve the system A*x=b;
-      x=c(x,trisparse_solv(A$Al, A$Ac, A$Au, A$spA, b));
-      if (DEBUG && iw==1) {
-         library(MASS);
-         write.matrix(cbind(A$Al, A$Ac, A$Au, A$spA), file="dbg_cumoA.txt", sep="\t");
-      }
+      xw=trisparse_solv(A$Al, A$Ac, A$Au, A$spA, b, iw);
+      x=c(x,xw);
+if (DEBUG) {
+   write.matrix(cbind(Al=A$Al, Ac=A$Ac, Au=A$Au, spA=A$spA, b=b, x=xw), file=paste("dbg_cumoA_",iw,".txt", sep=""), sep="\t");
+}
    }
 #print(x);
    return(list(x=x, flcnx=flcnx, fwrv=fwrv));
