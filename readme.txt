@@ -1,5 +1,63 @@
+# 2008-08-26 sokol
+# profiling
+# lin method: dense
+date; ./ftbl2optR.py PPP_s && R --no-save --silent --args --prof < PPP_s_opt.R > PPP_s_opt.log; date;
+mar aoû 26 10:57:55 CEST 2008
+mar aoû 26 11:00:03 CEST 2008
+R CMD Rprof PPP_s.Rprof > PPP_s_prof.txt
+# ~65% of time is for vector and matrix constructions
+
+# 2008-08-25 sokol
+# time reduction
+# outer-inner iterations = 10, 100
+
+# DEBUG=0
+date; ./ftbl2optR.py PPP_s && R --no-save --slave < PPP_s_opt.R > PPP_s_opt.log; date
+lun aoû 25 09:56:44 CEST 2008
+lun aoû 25 09:58:49 CEST 2008
+# time reduction: 1h+ -> 2min
+
+# grad=NULL (R internal differentiation)
+Erreur dans dR(theta, theta.old, ...) :
+  impossible de trouver la fonction "grad"
+Calls: constrOptim -> optim -> <Anonymous> -> gr -> dR
+Exécution arrêtée
+
+# method: BFGS -> "L-BFGS-B"
+date; ./ftbl2optR.py PPP_s && R --no-save --slave < PPP_s_opt.R > PPP_s_opt.log; date
+Erreur dans optim(theta.old, fun, gradient, control = control, method = method,  :
+  L-BFGS-B nécessite des valeurs finies de 'fn'
+Calls: constrOptim -> optim
+Exécution arrêtée
+# DEBUG=1 didn't reveal where fn is infinite
+
+# method: BFGS, trace=1 -> 0, DEBUG=0
+date; ./ftbl2optR.py PPP_s && R --no-save --slave < PPP_s_opt.R > PPP_s_opt.log; date
+lun aoû 25 10:16:43 CEST 2008
+lun aoû 25 10:18:46 CEST 2008
+# no time reduction due to trace=0
+
+# tridiagsolve: dense -> smw
+lun aoû 25 19:04:45 CEST 2008
+lun aoû 25 19:15:22 CEST 2008
+
 # 2008-08-22 sokol
 # gradient based optimization
+# added gradient function to opt_cumo_tols.R
+# optim method is BFGS
+date; ./ftbl2optR.py PPP_s && R --no-save --slave < PPP_s_opt.R > PPP_s_opt.log; date
+ven aoû 22 10:35:51 CEST 2008
+ven aoû 22 12:11:04 CEST 2008
+
+# outer iterations 100->10
+ven aoû 22 14:10:26 CEST 2008
+ven aoû 22 15:04:40 CEST 2008
+
+# inner iterations 100->50
+ven aoû 22 16:37:20 CEST 2008
+Exécution arrêtée
+ven aoû 22 18:18:38 CEST 2008
+# still not converged
 
 # 2008-08-21 sokol
 # debugging residuals
