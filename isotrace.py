@@ -53,42 +53,67 @@ def front(netan, paths, visited, isos):
     there is any eligible"""
     eligeable=True;
     #print "paths=", paths;
+    maxpath=1000;##
     while eligeable:
-        cand=[];
+        eligeable=False;
+        res=[];
+        if len(paths) > maxpath:
+            break;
         for (ip,p) in enumerate(paths):
             # get last item of this path
             #print "ip=", ip, "p=", p;##
-            (reacfr, metab, isostr, coiso)=p[-1];
-            if metab in netan["output"] or (reacfr, metab, isostr, coiso) in visited:
+            (reacfr, metab, isostr)=p[-1];
+            lset=isos.get(metab,set());
+            lset.add(isostr);
+            isos[metab]=lset;
+            #print "front: m=", metab;##
+            if metab in netan["output"]:
                 continue;
-            # add this item to candidates to extend
-            cand.append((ip, metab, isostr, cos));
-        cand.sort(reverse=True);
-        eligeable=cand;
-        for (ip, metab, isostr, coiso) in cand:
-            # get labeled neighbours
-            # update labeled set for this metab
-            lset=isos.get(metab,set()).union((isostr,));
-            #print "metab=", metab, "lset=", lset;##
-            isos.update([(metab,lset)]);
+            # run through all concerned reactionq and
+            # all co-isotops to form candidate couples
+            # (m,iso,s, cm,ciso,cs)
             v=set();
             for (fr,src,prd) in (("fwd","left","right"),("rev","right","left")):
                 for reac in netan["sto_m_r"][metab][src]:
-                    if src=="right" and reac in netan["notrev"]:
+                    if (src=="right") and (reac in netan["notrev"]):
+                        # skip reverse of not reversible reaction
                         continue;
                     srcs=netan["carbotrans"][reac][src];
                     prods=netan["carbotrans"][reac][prd];
-                    isocontext="c:"+";".join(set() if len(srcs)==1 else
-                        isos.get(srcs[1][0],set()) if srcs[0][0]==metab else
-                        isos.get(srcs[0][0],set()));
-                    visited.add((reac+"."+fr, metab, isostr, isocontext));
-                    v.update((reac+"."+fr,m,istr,isocontext)
-                        for (m,istr) in C13_ftbl.allprods(srcs,
-                        prods, isos, metab, isostr));
-            #print "m=", metab, "v=", v;##
-            # multiply current pass by neighbour number and append each neighbour
+                    reacfr=reac+"."+fr;
+                    #print "reacfr=", reacfr;##
+                    mpos=[i for (i,(m,s)) in enumerate(srcs) if m==metab];
+                    for inm in mpos:
+                        (m,s)=srcs[inm];
+                        (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2];
+                        #for ciso in isos.get(cm,set(("0"*len(cs) or "",))):
+                        for ciso in isos.get(cm,set(("",))):
+                            # skip if already visited
+                            if (reacfr, metab, isostr, cm, ciso) in visited:
+                                continue;
+                            eligeable=True;
+                            # add coisotop to catalog
+                            if cm and ciso:
+                                clset=isos.get(cm,set());
+                                clset.add(ciso);
+                                isos[cm]=clset;
+                            # register this visit
+                            visited.append((reacfr, metab, isostr, cm, ciso));
+                            # get products
+                            v.update((reacfr,m,istr)
+                                for (m,istr) in C13_ftbl.prod(metab,
+                                isostr, s, cm, ciso, cs, prods));
+            #print "m=", metab, "v=\n", join("\n", v);##
             if not v:
                 continue;
+            # stock this results to demultiply
+            # concerned paths
+            res.append((ip, v));
+        # deletion will start from the end so the following (lower) ips are
+        # not concerned
+        res.sort()
+        res.reverse();
+        for (ip,v) in res:
             cp=list(paths[ip]);
             del(paths[ip]);
             #print "ip=", ip, "cp=", cp;
@@ -98,12 +123,6 @@ def front(netan, paths, visited, isos):
                 paths.insert(ip,tmp);
                 #print "item=", item;##
                 #print "paths=", paths;##
-    # update visited and isos by last items
-    for p in paths:
-        visited.add(p[-1]);
-        (r,metab,isostr,isocontext)=p[-1];
-        isos.update([(metab,isos.get(metab,set()).union((isostr,)))]);
-
 
 # check argument number
 if len(sys.argv) != 2:
@@ -136,13 +155,13 @@ len(isostr) == netan["Clen"][metab] or usage("Isotop "+isotop+" has wrong carbon
     "\nExpecting "+str(netan["Clen"][metab])+", got "+str(len(isostr)));
 
 # run through network to follow labeled carbons
-# add visited isotopomers in nested list path
+# add visited isotopomers in path list
 #paths=trace(netan, metab, isostr);
 #print(paths);
 
 # frontal exploration
-paths=[[("", metab, isostr, ":")]];
-visited=set();
+paths=[[("", metab, isostr)]];
+visited=list();
 isos=dict();
 front(netan, paths, visited, isos);
 # print one path by row
@@ -150,9 +169,9 @@ maxl=max(len(p) for p in paths);
 #print "maxl=", maxl;##
 for p in paths:
     print ("\t"*(maxl-len(p)))+join("\t", p);
-lv=list(visited);
-lv.sort();
 print "\nAll products:"
 [sys.stdout.write(str(item)+"\n\t"+
     "\n\t".join(v for v in sorted(val))+"\n")
-    for (item,val) in isos.iteritems()];
+    for (item,val) in sorted(isos.iteritems())];
+print "\nVisited nodes:"
+sys.stdout.write(join("\n", visited));
