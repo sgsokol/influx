@@ -7,6 +7,14 @@
 # and its isotopomer #0010 must mutch carbon number defined in .ftbl
 # Output of the script is a tab separateb list of isotopomer pathes taken by labeled
 # carbon(s) till network output, one row by path
+# NB: integer isotop index has first bit at left (like a string)
+
+# Copyright 2008, INRA/INSA UMR792, MetaSys
+
+# 2008-09-02 initial version, 1C tracer
+# 2008-09-03 all products tracer
+# 2008-09-05 isotop by int (not str)
+# 2008-09-05 minimal step by isotopomer
 
 import sys;
 
@@ -53,18 +61,21 @@ def front(netan, paths, visited, isos):
     there is any eligible"""
     eligeable=True;
     #print "paths=", paths;
-    maxpath=1000;##
+    #maxpath=500000;##
+    step=0;
     while eligeable:
         eligeable=False;
         res=[];
-        if len(paths) > maxpath:
-            break;
+        #if len(paths) > maxpath:
+        #    break;
+        step+=1;
         for (ip,p) in enumerate(paths):
             # get last item of this path
             #print "ip=", ip, "p=", p;##
-            (reacfr, metab, isostr)=p[-1];
-            lset=isos.get(metab,set());
-            lset.add(isostr);
+            (reacfr, metab, iso)=p[-1];
+            lset=isos.get(metab,[0]*2**netan["Clen"][metab]);
+            if not lset[iso]:
+                lset[iso]=step;
             isos[metab]=lset;
             #print "front: m=", metab;##
             if metab in netan["output"]:
@@ -87,22 +98,24 @@ def front(netan, paths, visited, isos):
                         (m,s)=srcs[inm];
                         (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2];
                         #for ciso in isos.get(cm,set(("0"*len(cs) or "",))):
-                        for ciso in isos.get(cm,set(("",))):
+                        cisos=[i for (i,stp) in enumerate(isos.get(cm,[])) if stp] or [-1];
+                        for ciso in cisos:
                             # skip if already visited
-                            if (reacfr, metab, isostr, cm, ciso) in visited:
+                            if (reacfr, metab, iso, cm, ciso) in visited:
                                 continue;
                             eligeable=True;
                             # add coisotop to catalog
-                            if cm and ciso:
-                                clset=isos.get(cm,set());
-                                clset.add(ciso);
-                                isos[cm]=clset;
+                            #if cm and ciso > -1:
+                            #    clset=isos.get(cm,);
+                            #    clset.add(ciso);
+                            #    isos[cm]=clset;
                             # register this visit
-                            visited.append((reacfr, metab, isostr, cm, ciso));
+                            #visited.append((reacfr, metab, iso, cm, ciso));
+                            visited.add((reacfr, metab, iso, cm, ciso));
                             # get products
-                            v.update((reacfr,m,istr)
-                                for (m,istr) in C13_ftbl.prod(metab,
-                                isostr, s, cm, ciso, cs, prods));
+                            v.update((reacfr,m,ist)
+                                for (m,ist) in C13_ftbl.prod(metab,
+                                iso, s, cm, ciso, cs, prods));
             #print "m=", metab, "v=\n", join("\n", v);##
             if not v:
                 continue;
@@ -153,15 +166,18 @@ metab in netan["metabs"] or [usage("Metabolite "+metab+\
 # check if its length matchs ftbl
 len(isostr) == netan["Clen"][metab] or usage("Isotop "+isotop+" has wrong carbon length"+
     "\nExpecting "+str(netan["Clen"][metab])+", got "+str(len(isostr)));
+# convert 01 string to int
+iso=sum(1<<i for (i,c) in enumerate(isostr[::-1]) if c=="1");
 
 # run through network to follow labeled carbons
-# add visited isotopomers in path list
+# add visited isotopomers+context in visited and reac+isotop to path list
 #paths=trace(netan, metab, isostr);
 #print(paths);
 
 # frontal exploration
-paths=[[("", metab, isostr)]];
-visited=list();
+paths=[[("", metab, iso)]];
+#visited=list();
+visited=set();
 isos=dict();
 front(netan, paths, visited, isos);
 # print one path by row
@@ -169,9 +185,13 @@ maxl=max(len(p) for p in paths);
 #print "maxl=", maxl;##
 for p in paths:
     print ("\t"*(maxl-len(p)))+join("\t", p);
-print "\nAll products:"
-[sys.stdout.write(str(item)+"\n\t"+
-    "\n\t".join(v for v in sorted(val))+"\n")
-    for (item,val) in sorted(isos.iteritems())];
-print "\nVisited nodes:"
-sys.stdout.write(join("\n", visited));
+print """\nAll products:\n
+Metabolite
+\tiso\tisostr\tstep
+""";
+[sys.stdout.write(str(metab)+"\n\t"+
+    "\n\t".join([str(i)+"\t"+strbit(i,netan["Clen"][metab])+"\t"+str(stp)
+    for (i,stp) in enumerate(iset) if stp])+"\n")
+    for (metab,iset) in sorted(isos.iteritems())];
+#print "\nVisited nodes:"
+#sys.stdout.write(join("\n", visited));
