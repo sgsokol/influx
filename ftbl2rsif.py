@@ -2,8 +2,8 @@
 # read a .ftbl file from stdin and translate it to .sif file for Cytoscape
 # on stdout. Two substrates or two products reactions are represented as
 # diamond nodes. Node attributes are written in node.<attribute>.fnetw file
-# usage: ftbl2sif.py < fnetw.ftbl > fnetw.sif
-# or: ftbl2sif.py fnetw.ftbl (in this case node.<attribute>.fnetw are silently
+# usage: ./ftbl2rsif.py < fnetw.ftbl > fnetw.sif
+# or: ./ftbl2rsif.py fnetw.ftbl (in this case node.<attribute>.fnetw are silently
 # rewritten)
 # 
 # 2008-01-23 sokol
