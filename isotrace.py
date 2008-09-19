@@ -7,7 +7,6 @@
 # and its isotopomer #0010 must mutch carbon number defined in .ftbl
 # Output of the script is a tab separateb list of isotopomer pathes taken by labeled
 # carbon(s) till network output, one row by path
-# NB: integer isotop index has first bit at left (like a string)
 
 # Copyright 2008, INRA/INSA UMR792, MetaSys
 
@@ -15,7 +14,9 @@
 # 2008-09-03 all products tracer
 # 2008-09-05 isotop by int (not str)
 # 2008-09-05 minimal step by isotopomer
+# 2008-09-08 fragment tracking
 
+import pdb;
 import sys;
 
 def usage(mes=""):
@@ -69,6 +70,7 @@ def front(netan, paths, visited, isos):
         #if len(paths) > maxpath:
         #    break;
         step+=1;
+        cand=[];
         for (ip,p) in enumerate(paths):
             # get last item of this path
             #print "ip=", ip, "p=", p;##
@@ -80,6 +82,8 @@ def front(netan, paths, visited, isos):
             #print "front: m=", metab;##
             if metab in netan["output"]:
                 continue;
+            cand.append((ip, reacfr, metab, iso));
+        for (ip, reacfr, metab, iso) in cand:
             # run through all concerned reactionq and
             # all co-isotops to form candidate couples
             # (m,iso,s, cm,ciso,cs)
@@ -137,28 +141,110 @@ def front(netan, paths, visited, isos):
                 #print "item=", item;##
                 #print "paths=", paths;##
 
-# check argument number
-if len(sys.argv) != 2:
-    usage();
-    exit(1);
+def front_frag(netan, paths, visited, frags):
+    """Track frontal propagation of labeled fragments
+    Get last fragment pattern from every path and add its neighbours if
+    there is any eligible"""
+    eligeable=True;
+    #print "paths=", paths;
+    #maxpath=500000;##
+    step=0;
+    while eligeable:
+        eligeable=False;
+        res=[];
+        #if len(paths) > maxpath:
+        #    break;
+        step+=1;
+        # search for candidates and put fresh meat into frags dict
+        cand=[];
+        for (ip,p) in enumerate(paths):
+            # get last item of this path
+            #print "ip=", ip, "p=", p;##
+            (reacfr, metab, frag)=p[-1];
+            lset=frags.get(metab,{});
+            if frag not in lset:
+                lset[frag]=step;
+            frags[metab]=lset;
+            #print "front: m=", metab;##
+            if metab in netan["output"]:
+                continue;
+            cand.append((ip, reacfr, metab, frag));
+        for (ip,reacfr, metab, frag) in cand:
+            # run through all concerned reactions and
+            # all co-fragments to form candidate couples
+            # (m,frag,s, cm,cfrag,cs)
+            v=set();
+            for (fr,src,prd) in (("fwd","left","right"),("rev","right","left")):
+                for reac in netan["sto_m_r"][metab][src]:
+                    if (src=="right") and (reac in netan["notrev"]):
+                        # skip reverse of not reversible reaction
+                        continue;
+                    srcs=netan["carbotrans"][reac][src];
+                    prods=netan["carbotrans"][reac][prd];
+                    reacfr=reac+"."+fr;
+                    #print "reacfr=", reacfr;##
+                    mpos=[i for (i,(m,s)) in enumerate(srcs) if m==metab];
+                    for inm in mpos:
+                        (m,s)=srcs[inm];
+                        (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2];
+                        cfrags=[frg for (frg,stp) in frags.get(cm,{}).iteritems()] or [""];
+                        for cfrag in cfrags:
+                            # skip if already visited
+                            if (reacfr, metab, frag, cm, cfrag) in visited:
+                                continue;
+                            eligeable=True;
+                            visited.add((reacfr, metab, frag, cm, cfrag));
+                            # get products
+                            v.update((reacfr,m,frg)
+                                for (m,frg) in C13_ftbl.frag_prod(metab,
+                                frag, s, cm, cfrag, cs, prods));
+            #print "m=", metab, "v=\n", join("\n", v);##
+            if not v:
+                continue;
+            # stock this results to demultiply
+            # concerned paths
+            res.append((ip, v));
+        # deletion will start from the end so the following (lower) ips are
+        # not concerned
+        res.sort()
+        res.reverse();
+        for (ip,v) in res:
+            cp=list(paths[ip]);
+            del(paths[ip]);
+            #print "ip=", ip, "cp=", cp;
+            for item in v:
+                tmp=list(cp);
+                tmp.append(item);
+                paths.insert(ip,tmp);
+                #print "item=", item;##
+                #print "paths=", paths;##
+
 
 sys.path.append('/home/sokol/dev/python');
 from tools_ssg import *;
 #from C13_ftbl import *;
 import C13_ftbl;
 
-#fname='ex5.ftbl';
-#fin=open(fname, "r");
-#ftbl=C13_ftbl.ftbl_parse(fin);
-ftbl=C13_ftbl.ftbl_parse(sys.stdin);
-#fin.close();
+#print "n=", __name__;
+if sys.argv[0] != "":
+    # not interactive session
+    ftbl=C13_ftbl.ftbl_parse(sys.stdin);
+    # check argument number
+    if len(sys.argv) != 2:
+        usage();
+        exit(1);
+    # check if metab is network
+    isotop=sys.argv[1];
+else:
+   fname='ex5.ftbl';
+   fin=open(fname, "r");
+   ftbl=C13_ftbl.ftbl_parse(fin);
+   fin.close();
+   isotop="A#01";
 
 # analyze network
 netan=C13_ftbl.ftbl_netan(ftbl);
 
-# check if metab is network
-isotop=sys.argv[1];
-#isotop="A#01";
 (metab,isostr)=isotop.split("#");
 metab in netan["metabs"] or [usage("Metabolite "+metab+\
     " is not in the network "+str(netan["metabs"])), exit(1)];
@@ -167,7 +253,11 @@ metab in netan["metabs"] or [usage("Metabolite "+metab+\
 len(isostr) == netan["Clen"][metab] or usage("Isotop "+isotop+" has wrong carbon length"+
     "\nExpecting "+str(netan["Clen"][metab])+", got "+str(len(isostr)));
 # convert 01 string to int
-iso=sum(1<<i for (i,c) in enumerate(isostr[::-1]) if c=="1");
+#iso=sum(1<<i for (i,c) in enumerate(isostr[::-1]) if c=="1");
+# convert "011" in "0bc" fragments
+frag="".join((letters[i] if c=="1" else "0") for (i,c) in enumerate(isostr));
+
+#print "isotop=", isotop, "m=", metab, "f=", frag;
 
 # run through network to follow labeled carbons
 # add visited isotopomers+context in visited and reac+isotop to path list
@@ -175,23 +265,30 @@ iso=sum(1<<i for (i,c) in enumerate(isostr[::-1]) if c=="1");
 #print(paths);
 
 # frontal exploration
-paths=[[("", metab, iso)]];
+#pdb.set_trace();
+#paths=[[("", metab, iso)]];
+paths=[[("", metab, frag)]];
 #visited=list();
 visited=set();
 isos=dict();
-front(netan, paths, visited, isos);
+frags=dict();
+#front(netan, paths, visited, isos);
+front_frag(netan, paths, visited, frags);
 # print one path by row
 maxl=max(len(p) for p in paths);
 #print "maxl=", maxl;##
+
 for p in paths:
     print ("\t"*(maxl-len(p)))+join("\t", p);
+
+#print frags;##
 print """\nAll products:\n
 Metabolite
-\tiso\tisostr\tstep
+\tfragm\tstep
 """;
 [sys.stdout.write(str(metab)+"\n\t"+
-    "\n\t".join([str(i)+"\t"+strbit(i,netan["Clen"][metab])+"\t"+str(stp)
-    for (i,stp) in enumerate(iset) if stp])+"\n")
-    for (metab,iset) in sorted(isos.iteritems())];
+    "\n\t".join([frag+"\t"+str(stp)
+    for (frag,stp) in sorted(fset.iteritems())])+"\n")
+    for (metab,fset) in sorted(frags.iteritems())];
 #print "\nVisited nodes:"
 #sys.stdout.write(join("\n", visited));
