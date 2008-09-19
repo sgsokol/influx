@@ -1,3 +1,161 @@
+# 2008-09-09 sokol
+# full fragments
+date; ./isotrace.py GLC#111111 < PPP.ftbl > glc_full.txt; date
+mar sep  9 11:24:19 CEST 2008
+mar sep  9 12:00:17 CEST 2008
+# 355558 paths
+
+
+# 2008-09-08 sokol
+# fragment trace
+./isotrace.py A#11 < ex5.ftbl > tmp.txt
+./isotrace.py GLC#000001 < PPP.ftbl > glc6.txt
+date; ./isotrace.py GLC#000111 < PPP.ftbl > glc6.txt; date
+lun sep  8 17:33:04 CEST 2008
+lun sep  8 17:33:04 CEST 2008
+date; ./isotrace.py GLC#001111 < PPP.ftbl > glc6.txt; date
+lun sep  8 17:33:26 CEST 2008
+lun sep  8 17:33:35 CEST 2008
+# 10k+ paths
+
+date; ./isotrace.py GLC#010111 < PPP.ftbl > glc6.txt; date
+lun sep  8 17:36:38 CEST 2008
+lun sep  8 17:36:47 CEST 2008
+# 10k+ paths
+
+date; ./isotrace.py GLC#100111 < PPP.ftbl > glc6.txt; date
+lun sep  8 17:37:52 CEST 2008
+lun sep  8 17:38:00 CEST 2008
+# 9659 paths
+
+date; ./isotrace.py GLC#100000 < PPP.ftbl > glc1.txt; date
+lun sep  8 17:41:43 CEST 2008
+lun sep  8 17:41:49 CEST 2008
+# 7647 paths
+
+date; ./isotrace.py GLC#110000 < PPP.ftbl > glc1.txt; date
+
+# 2008-09-05 sokol
+# python profiling
+date; python -m cProfile -o prof.txt ./isotrace.py GLC#100000 < PPP.ftbl > glc1.txt; date; ./profiler_stats.py prof.txt > pstats.txt
+# 10k paths in 12 s
+
+# empX reversible
+date; ./isotrace.py GLC#100000 < PPP_s.ftbl > glc1.txt; date;
+
+# 2008-09-04 sokol
+# comparer Cumonet and isotrace.py
+~/insa/sysbio/soft/13CFlux_2005/FBINS.20050329/CumoNet PPP_glc1.ftbl\
+   > PPP_glc1.txt;
+# plenty of Ery4P
+
+# 2008-09-03 sokol
+# modeling label propagation
+./isotrace.py A#01 < ex5.ftbl > tmp.txt
+./isotrace.py GLC#000001 < PPP.ftbl > glc6.txt
+date; ./isotrace.py GLC#100000 < PPP.ftbl > glc1.txt; date
+
+# 2008-09-01 sokol
+# perf test on am1 (rémi) metabolic network
+mkdir am1
+cd am1
+cp ~/insa/sysbio/data/remi-2008-01/Network_AM1_SerGlyox_v3.1.ftbl am1.ftbl
+
+date; ~/insa/sysbio/soft/13CFlux_2005/FBINS.20050329/CooolEvoAlpha -nc 5 -vr 0.25 am1.ftbl\
+   > am1.txt; date
+preparing matrizes A,b : s:0 mus:2
+dimStage of stage 0: 17
+dimStage of stage 1: 54
+dimStage of stage 2: 77
+dimStage of stage 3: 63
+dimStage of stage 4: 30
+dimStage of stage 5: 8
+dimStage of stage 6: 1
+solving all stages (using prepared ones): s:0 mus:2388
+Residuum:	0.321923	with following values
+meoh_upt__NET:	3.51091
+co2_upt__NET:	4.34556
+bf_D2pg__NET:	1.05458
+bf_smalate__NET:	0.834649
+bf_accoa__NET:	0.399167
+MCOAL__XCH:	0.99
+SDH__XCH:	0.00343696
+cumGroup	value	error	deviation	weight_in_SqS	CumConstraint
+gly		0.322	-0.00628276	0.034	0.0341463	$00
+gly		0.019	0.0117945	0.031	0.144755	$10
+gly		0.605	0.000606201	0.014	0.0018749	$01
+gly		0.054	-0.0112709	0.03	0.141147	$11
+fluxMeas	value	error	deviation	weight_in_SqS
+Group Scales:	Value:
+gly:Groupe1	0.994847
+inserted in 0 with value 0.321923
+
+# ftbl2opt
+date; ../ftbl2optR.py am1 &&
+   R CMD SHLIB am1_opt.f &&
+   R --no-save --silent --args --prof < am1_opt.R > am1_opt.log &&
+   R CMD Rprof am1.Rprof > am1_prof.txt; date;
+Erreur dans drop(.Call("La_dgesv", a, as.matrix(b), tol, PACKAGE = "base")) :
+  sous-programme Lapack dgesv : le système est exactement singulier
+Calls: constrOptim ... trisparse_solv -> solve -> solve.default -> drop -> .Call
+
+# bfgs->nelder-mead
+achieved minimum:
+[1] 0.3808918
+> print(param);
+          bf_D2pg          bf_accoa        bf_smalate           co2_upt 
+        1.2538893         0.1188700         0.6695074         4.0113320 
+         meoh_upt             MCOAL               SDH label;gly;Groupe1 
+        3.3414046         0.9552031         0.1451210         1.0104724 
+# solution is clearly different from 13c_flux
+# our minimum is worse
+
+# nelder-mead -> simulated annealing
+
+
+# 2008-08-29 sokol
+# debugged dense2trid()
+> print(cost);
+[1] 728.1227
+# OK
+
+# now, see time of "smw" method
+> res=constrOptim(param, cumo_cost, grad=cumo_grad,
++    ui, ci, mu = 1e-04, control=list(trace=1, maxit=100),
++    method="BFGS", outer.iterations=10, outer.eps=1e-05,
++    no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc,
++    imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+initial  value 702.981670 
+iter  10 value 114.188376
+iter  20 value 35.981999
+iter  30 value 35.852185
+iter  40 value 35.375709
+
+# while "dense" convergence is different
+> res=constrOptim(param, cumo_cost, grad=cumo_grad,
++    ui, ci, mu = 1e-04, control=list(trace=1, maxit=100),
++    method="BFGS", outer.iterations=10, outer.eps=1e-05,
++    no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc,
++    imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+initial  value 702.981670 
+iter  10 value 114.204253
+iter  20 value 35.979473
+iter  30 value 35.549511
+iter  40 value 34.220132
+iter  50 value -1.048248
+# pb seems to be error accumulation
+# => trid qr is not sufficiently stable
+# bad.
+
+# 2008-08-28 sokol
+# lin method: dense -> smw
+> print(cost);
+[1] 439.2654
+# bad. It is different from 728.1227 (dense)
+
+# 2008-08-27 sokol
+# initialize for matrid passes by fortran
+
 # 2008-08-26 sokol
 # profiling
 # lin method: dense
@@ -5,7 +163,36 @@ date; ./ftbl2optR.py PPP_s && R --no-save --silent --args --prof < PPP_s_opt.R >
 mar aoû 26 10:57:55 CEST 2008
 mar aoû 26 11:00:03 CEST 2008
 R CMD Rprof PPP_s.Rprof > PPP_s_prof.txt
-# ~65% of time is for vector and matrix constructions
+   %       self        %       total
+ self     seconds    total    seconds    name
+ 38.71     40.58     62.90     65.94     "trisparse_solv"
+ 15.07     15.80     21.04     22.06     "fwrv2Acumo"
+  9.23      9.68     11.88     12.46     "fwrv_x2bcumo"
+
+# ~65% of time is spent in vector and matrix constructions
+# bad
+
+# fortran subroutine fwrv2Acumo() to generate the cumomer matrix
+date; ./ftbl2optR.py PPP_s &&
+   R CMD SHLIB PPP_s_opt.f &&
+   R --no-save --silent --args --prof < PPP_s_opt.R > PPP_s_opt.log &&
+   R CMD Rprof PPP_s.Rprof > PPP_s_prof.txt; date;
+mar aoû 26 14:02:05 CEST 2008
+mar aoû 26 14:03:17 CEST 2008
+   %       self        %       total
+ 26.40     15.12     34.36     19.68     "fwrv_x2bcumo"
+ 18.37     10.52     18.40     10.54     ".Call"
+ 10.06      5.76     10.37      5.94     "matrix"
+  5.97      3.42      5.97      3.42     "*"
+# fortran subroutine fwrv2Abcumo() to generate the cumomer matrix AND b
+mar aoû 26 18:57:00 CEST 2008
+mar aoû 26 18:57:53 CEST 2008
+   %       self        %       total
+ self     seconds    total    seconds    name
+ 28.82     11.40     28.87     11.42     ".Call"
+ 14.16      5.60     14.31      5.66     "matrix"
+  9.20      3.64     49.49     19.58     "solve.default"
+
 
 # 2008-08-25 sokol
 # time reduction
