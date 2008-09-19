@@ -45,6 +45,8 @@
 # 2008-07-28 sokol: ftbl_netan(): added Afl row names (vrowAfl)
 # 2008-07-28 sokol: ftbl_netan(): added in-out xch fluxes to constrained flux list
 # 2008-07-30 sokol: ftbl_netan(): added in-out fluxes (flux_in, flux_out)
+# 2008-09-01 sokol: labprods(): get labeled product by a given metabolite in a given reaction
+# 2008-09-03 sokol: allprods(): get all labeled product by a given metabolite with others labeled isotops in a given reaction
 
 from tools_ssg import *;
 
@@ -964,8 +966,118 @@ def src_ind(substrate, product, iprod):
                 pass;
         movbit<<=1;
     return isubstr;
+def labprods(prods, metab, isostr, strs):
+    """return a set of tuples (vmetab,visostr) which receive at least
+    one labeled carbon from (metab, isostr)"""
+    # run through product part of reaction to get
+    # metabs containing labeled letter from isostr
+    #print "p=", prods, "m=", metab, "i=", isostr, "s=", strs;##
+    res=set();
+    # get labeled letters
+    lets="".join(s[i] for (i,carb) in enumerate(isostr) if carb=="1" for s in strs);
+    #print "ls=", lets;##
+    # find labeled letters in reaction products and set
+    # them to "1", while others to "0"
+    for (vm,vs) in prods:
+        rs="";
+        for r in vs:
+            rs=rs+("1" if r in lets else "0");
+            #print "r=",r, "rs=",rs;
+        if rs.find("1") > -1:
+            res.add((vm,rs));
+            #print "append=", vm, rs;##
+    #print "res=", res;##
+    return res;
+def allprods(srcs, prods, isos, metab, isostr):
+    """return a set of tuples (cmetab, cisostr, vmetab, visostr)
+    where cmetab and cisostr describe a contex metabolite
+    which combined with metab+isostr produced vmetab+visostr.
+    if metab is alone on its reaction part cmetab and cisostr are set to
+    an empty string "".
+    The set covers all combination of
+    metab+isostr and its co-substrates which
+    produce isotopes having at least one labeled carbon from
+    metab+isostr.
+    Co-substrate isotops are
+    in a dictionary isos[cmetab]=list(cisotopes). It is assumed that no
+    more than two metabolites can exist in both part of reaction"""
+    # run through all combinations of srcs isotopes
+    # to get all products
+    # |isostr|*|iso2|[+|iso1|*|isostr| if metab is in both position]
+    # If there is only one src than m2=""
+    #print "allprods: metab=", metab, "isostr=", isostr;
+    #print "s=", srcs, "p=", prods, "i=", isos;##
+    # find metabolite position(s) in the reaction
+    mpos=[i for (i,(m,s)) in enumerate(srcs) if m==metab];
+    
+    # all source isotop couples (im,ic)
+    icouples=[];
+    if metab==m1:
+        icouples=[(isostr,is2) for is2 in isos.get(m2,set(("",)))];
+    if metab==m2:
+        icouples.extend((is1,isostr) for is1 in isos.get(m1,set(("",))));
+    #print "icpls=", list(icouples);##
+    #sys.exit(1);##
+    # labeled source letters
+    #print "s1=", s1, "s2=", s2;
+    lets=["".join(l for (i,l) in enumerate(s1) if is1[i]=="1")+
+        "".join(l for (i,l) in enumerate(s2) if is2[i]=="1")
+        for (is1,is2) in icouples];
+    #print "lets=", lets;##
+    # form all products
+    res=set();
+    for inm in mpos:
+        (m,s)=srcs[inm];
+        mlab="".join(l for (i,l) in enumerate(s) if isostr[i]=="1");
+        # co-substrate (if any)
+        (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2];
+        # run through isotops of co-substrate
+        for coiso in isos.get(cm,set(("",))):
+            lab=mlab+"".join(l for (i,l) in enumerate(cs) if coiso[i]=="1");
+            # form product isotops
+            for (pm,ps) in prods:
+                ip="".join(("1" if l in lab else "0") for l in ps);
+                if set(ps)&set(mlab):
+                    # get only products labeled by metab+isostr
+                    res.add((cm,coiso, pm, ip));
+    #print "res=", res;
+    return res;
+def prod(metab, iso, s, cmetab, ciso, cs, prods):
+    "get isotops from labeled substrates"
+    #print "prod: m=", metab, "s=", s, "i=", iso, "cm=", cmetab, "cs=", cs, "ci=", ciso;
+    res=set();
+    if cs and ciso == -1:
+        return res;
+    lab="";
+    n=len(s)-1;
+    for (i,b) in iternumbit(iso):
+        lab=lab+(s[n-i] if b else "");
+    n=len(cs)-1;
+    for (i,b) in iternumbit(ciso):
+        lab=lab+(cs[n-i] if b else "");
+    for (pm,ps) in prods:
+        ip=sum((1<<i if l in lab else 0) for (i,l) in enumerate(ps[::-1]));
+        res.add((pm, ip));
+    #print "res=", res;
+    return res;
+def frag_prod(metab, frag, s, cmetab, cfrag, cs, prods):
+    "get fragments from labeled substrates"
+    #print "frag_prod: m=", metab, "s=", s, "f=", frag, "cm=", cmetab, "cs=", cs, "cf=", cfrag;
+    res=set();
+    if cs and not cfrag:
+        # no fragment for this metabolite is yet produced
+        return res;
+    lab="";
+    lab=("".join(s[i] for (i,c) in enumerate(frag) if c!="0")+
+        "".join(cs[i] for (i,c) in enumerate(cfrag) if c!="0"));
+    flab=frag.replace("0", "")+cfrag.replace("0", "");
+    for (pm,ps) in prods:
+        fp="".join((flab[lab.index(l)] if l in lab else "0") for (i,l) in enumerate(ps));
+        res.add((pm, fp));
+    #print "res=", res;
+    return res;
 def cumo_iw(w,nlen):
-    '''iterator for a given cumomer wight w in the carbon length nlen'''
+    '''iterator for a given cumomer weight w in the carbon length nlen'''
     #print ("cumo_iw: w=%d,nlen=%d\n" % (w,nlen));##
     if w < 0 or w > nlen:
        raise "CumoWeightOutOfRange";
