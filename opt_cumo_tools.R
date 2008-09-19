@@ -3,29 +3,14 @@ library(bitops);
 if (DEBUG) {
    library(MASS);
 }
-trisparse_solv=function(Al, Ac, Au, spA, b, w, method="dense") {
-   # solve A*x=b where A=tridiag(Al,Ac,Au)+spA and b is dense
-   # temporary solution by qr()
-   n=length(Ac);
+trisparse_solv=function(A, b, w, method="dense") {
+   # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
-      # fulfill a matrix
-      A=matrix(0., n , n);
-      for (i in 1:n) {
-         if (i > 1) {
-            A[i,i-1]=Al[i];
-         }
-         A[i,i]=Ac[i];
-         if (i < n) {
-            A[i,i+1]=Au[i];
-         }
-      }
-      A=A+as.matrix(spA);
 #cat("trisparse: A,b\n");
 #print(A);
 #print(b);
       if (DEBUG) {
          write.matrix(A,file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
-#         write.matrix(Ac,file=paste("dbg_Ac_d_cumo_",w,".txt", sep=""),sep="\t");
       }
       x=solve(A,b);
       return(x);
@@ -33,18 +18,8 @@ trisparse_solv=function(Al, Ac, Au, spA, b, w, method="dense") {
       # sparse
       # fulfill a matrix
       require(Matrix);
-      A=Matrix(0., n , n);
-      for (i in 1:n) {
-         if (i > 1) {
-            A[i,i-1]=Al[i];
-         }
-         A[i,i]=Ac[i];
-         if (i < n) {
-            A[i,i+1]=Au[i];
-         }
-      }
-      A=A+spA;
-      x=solve(A,b);
+      As=Matrix(A);
+      x=solve(As,b);
 #q=qr(A);
 #print("qr");
 #print(q@V);
@@ -54,54 +29,18 @@ trisparse_solv=function(Al, Ac, Au, spA, b, w, method="dense") {
    } else if (method=="smw") {
       # Sherman-Morrison-Woodbury for low rank matrix modification
       require(matrid, lib.loc="/home/sokol/R/lib");
-      atri=new("matrid", Al, Ac, Au);
-      # extract non zero columns from spA
-      e=integer(0);
-      m=0;
-      if (class(spA)=="Matrix") {
-         for (j in 1:n) {
-            if (spA@p[j+1] > spA@p[j]) {
-               e=c(e,j);
-               m=m+1;
-            }
-         }
-         s=matrix(spA[,e], n, m);
-      } else {
-         # spA is treated as a dense matrix
-if (DEBUG) {
-#   write.matrix(as.matrix(atri),file=paste("dbg_Acumo_sp_",w,".txt", sep=""),sep="\t");
-#   write.matrix(Ac,file=paste("dbg_Ac_sp_cumo_",w,".txt", sep=""),sep="\t");
-   write.matrix(spA, file=paste("dbg_spA_", w, ".txt", sep=""), sep="\t");
-   cat("dim atri:\n");
-   print(dim(atri));
-   cat("dim spA:\n");
-   print(dim(spA));
-}
-         for (j in 1:n) {
-            if (any(as.logical(spA[,j]))) {
-               e=c(e,j);
-               m=m+1;
-            }
-         }
-         s=matrix(spA[,e], n, m);
-      }
-      A=new("matridm", atri, s, e);
+      atrim=new("matridm", A);
 if (DEBUG) {
    cat(paste("dim A at weight ", w, ":\n", sep=""));
    print(dim(A));
-   write.matrix(cbind(A=as.matrix(A),b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t");
+   write.matrix(cbind(A,b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t");
 #   print(A);
-   if (m) {
-      write.matrix(s, file=paste("dbg_s_", w, ".txt", sep=""), sep="\t");
-   }
 }
-      x=qr.solve(A,b);
+      x=qr.solve(atrim,b);
       return(x);
    } else {
       stop(paste("Unknown method '", method, "'", sep=""));
    }
-#print("A");
-#print(A);
 }
 
 dfc2flcnx=function(no_f, flnx, param, fc) {
@@ -128,28 +67,28 @@ dfc2flcnx=function(no_f, flnx, param, fc) {
    }
    return(f);
 }
-cumo_resid=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc) {
+cumo_resid=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc) {
 #cat("resid: \n")
 #print(no_f);
 #print(no_w);
 #print(param);
 #print(p2bfl);
    # find x for all weights
-   lres=param2fl_x(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc)
+   lres=param2fl_x(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc)
 #print(imeas);
    # find simulated scaled measure vector scale*(measmat*x)
    simvec=c(1.,param)[ir2isc]*(measmat%*%c(lres$x[imeas],1.));
    # diff between simulated and measured
    return(list(res=(simvec-measvec), flcnx=lres$flcnx));
 }
-cumo_cost=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
+cumo_cost=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
 #cat("cost: ");
 #cat("list no_f\n")
 #print(no_f);
 #print(no_w);
 #cat("param\n");
 #print(param);
-    resl=cumo_resid(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
+    resl=cumo_resid(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
    res=resl$res;
    flcnx=resl$flcnx;
    # flux residuals
@@ -160,14 +99,14 @@ cumo_cost=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, mea
    }
    return(fn);
 }
-cumo_grad=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
+cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: forward finite differences f(x+h)-f(x)/h
-   # x+h is taken as (1+10**-7)*x
+   # x+h is taken as (1+fact)*x
    fact=1.e-7;
    grad=param; # make place for gradient
    # f(x)
-   f=cumo_cost(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+   f=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
    for (i in 1:length(param)) {
       x=param[i];
       h=x*fact;
@@ -176,14 +115,14 @@ cumo_grad=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, mea
          # we are too close to zero here
          param[i]=fact;
       }
-      fh=cumo_cost(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+      fh=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
       # restore modified param
       param[i]=x;
       grad[i]=(fh-f)/h;
    }
    return(grad);
 }
-param2fl_x=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc) {
+param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc) {
    # claculate all fluxes from free fluxes
 #cat("resid: \n")
 #print(no_f);
@@ -208,13 +147,30 @@ param2fl_x=function(param, no_f, no_w, invAfl, p2bfl, bp, fc, imeas, measmat, me
    # and find x for every weight
    x=numeric(0);
    for (iw in 1:no_w) {
-      A=fwrv2Acumo(fwrv, iw);
-      b=fwrv_x2bcumo(fwrv, x, iw);
+      nx=length(x);
+      ncumow=no_cumos[iw];
+      A=matrix(0.,ncumow,ncumow);
+      b=double(ncumow);
+      #fwrv2Abcumo(fl, nf, x, nx, iw, n, A, b)
+      res<-.Fortran("fwrv2Abcumo",
+         fl=as.double(fwrv),
+         nf=length(fwrv),
+         x=as.double(x),
+         nx=as.integer(nx),
+         iw=as.integer(iw),
+         n=as.integer(ncumow),
+         A=as.matrix(A),
+         b=as.double(b),
+         NAOK=TRUE,
+         DUP=FALSE);
       # solve the system A*x=b;
-      xw=trisparse_solv(A$Al, A$Ac, A$Au, A$spA, b, iw);
+if (DEBUG) {
+   write.matrix(cbind(A, b=b), file=paste("dbg_cumoAb_",iw,".txt", sep=""), sep="\t");
+}
+      xw=trisparse_solv(A, b, iw, method="dense");
       x=c(x,xw);
 if (DEBUG) {
-   write.matrix(cbind(Al=A$Al, Ac=A$Ac, Au=A$Au, spA=A$spA, b=b, x=xw), file=paste("dbg_cumoA_",iw,".txt", sep=""), sep="\t");
+   write.matrix(xw, file=paste("dbg_cumox_",iw,".txt", sep=""), sep="\t");
 }
    }
 #print(x);
