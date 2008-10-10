@@ -47,6 +47,7 @@
 # 2008-07-30 sokol: ftbl_netan(): added in-out fluxes (flux_in, flux_out)
 # 2008-09-01 sokol: labprods(): get labeled product by a given metabolite in a given reaction
 # 2008-09-03 sokol: allprods(): get all labeled product by a given metabolite with others labeled isotops in a given reaction
+# 2008-09-23 sokol: added mat2graph()
 
 from tools_ssg import *;
 
@@ -276,7 +277,9 @@ def ftbl_netan(ftbl):
                 #print "m="+str(m), "; carb="+str(carb);##
             if not m or not carb:
                 continue;
-
+            if carb[0] != "#":
+                raise ("In carbon string for metabolite "+m+" a starting '#' is missing."+
+                    "\nreaction="+str(row)+"\ncarbons ="+str(trans));
             # carbon transitions
             netan['carbotrans'][reac][lr].append((m,carb[1:])); # strip '#' character
 
@@ -808,7 +811,7 @@ def ftbl_netan(ftbl):
     # - stocheometic equations (only .net fluxes are involved);
     # - flux equalities
     # constrained to non zero value fluxes are replaced by their values in rhs
-    # Afl is a list of lists (two dim array). Primary list is a matrix row
+    # Afl is a list of lists (two dim array). Primary list is a matrix row,
     # columns are values in the secondary list and contains matrix coefficients
     # bfl is a list of linear expressions. Each expression is a dict
     # where keys are variable names like "flx.net" and values are
@@ -1303,3 +1306,141 @@ def bcumo_decomp(bcumo):
         res[sign].append(icumo);
     #print bcumo+'=' + '+'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['+'])+('-' if res['-'] else '') +'-'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['-']);##
     return res;
+def mat2graph(A, fp):
+    """write digraph file on file pointer fp representing
+    links in matrix A given as bi-level dictionnary. A key of
+    first level (row index) is influenced by keys of second level
+    (column indicies)."""
+    fp.write("digraph A {\n");
+    for i in A:
+        labi=i.replace(":", "_");
+        for j in A[i]:
+            if i==j:
+                continue;
+            labj=j.replace(":", "_");
+            fp.write("   \""+labj+"\" -> \""+labi+"\"\n");
+    fp.write("}\n");
+def dom_cmp(A, i, j):
+    """Compares influances of i-th and j-th lements of A.
+    Returns 0 if i and j are mutually influenced, 1 if i in A[j]
+    (i influences j) , -1 if otherwise"""
+    return (0 if i in A[j] and j in A[i] else 1 if i in A[j] else -1 if j in A[i] else 0);
+def mat2pbm(A, v, fp):
+    """Write an image map of on-zero entries of matrix A to file pointer fp.
+    Matrix A is a dictionnary, v is a list ordering keys of A."""
+    fp.write("P1\n%d %d\n"% (len(A), len(A)));
+    for i in v:
+        p=0;
+        for j in v:
+            fp.write("1 " if j in A[i] else "0 ");
+            p+=2;
+            if p >= 69:
+                fp.write("\n");
+                p=0;
+        fp.write("\n");
+        p=0;
+def aglom_loop1(A):
+    """Agglomerate nodes of A if they are mutually influence each other
+    i.e.they are in a loop of length 1.
+    Return a new dictionary of influence where entries are those of A aglomerated
+    and glued "by" tab symbol"""
+    # i->loop_name(=min of all nodes in this loop)
+    na=dict(A);
+    loop=dict();
+    # transposed na
+    ta=dict();
+    for i in na:
+        for j in na[i]:
+            ta[j]=ta.get(j,{});
+            ta[j][i]=na[i][j];
+    found=True;
+    while aglom(na,ta,loop):
+        pass;
+    return({"na": na, "loop":loop});
+def aglom(na,ta,loop):
+    found=False;
+    for i in na:
+        for j in na[i]:
+            if j==i:
+                continue;
+            if i in na[j]:
+                # agglomerate i and j in na
+                # which means keep lowest netween i and j
+                # lo=min(i,j)
+                # hi=max(i,j)
+                # and imports influences of hi to lo
+                found=True;
+                lo=min(i,j);
+                hi=max(i,j);
+                del(na[hi][hi]);
+                del(ta[hi][hi]);
+                print "aglom: "+i+"+"+j+"->"+lo;##
+                print "elim row "+hi+str(na[hi].keys());##
+                print "influenced rows "+str(ta[hi].keys());##
+                # update na rows influenced by hi
+                for ii in ta[hi].keys():
+                    print "\nold row "+ii+str(na[ii].keys());##
+                    na[ii].update(na[hi]);
+                    del(na[ii][hi]);
+                    for jj in na[ii]:
+                        ta[jj][ii]=na[ii][jj];
+                    print "new row "+ii+str(na[ii].keys());##
+                # remove na[hi], ta[hi] and ta's corresponding to na[hi]
+                for ii in na[hi]:
+                    del(ta[ii][hi]);
+                del(na[hi]);
+                del(ta[hi]);
+                # update loop dictionary
+                loop[lo]=loop.get(lo,set((lo,)));
+                loop[lo].update(loop.get(hi, set((hi,))));
+                if hi in loop:
+                    del(loop[hi]);
+                print "loop:"+str(loop);
+                return(found);
+def lowtri(A):
+    """Try low triangular ordering of matrix A entries"""
+    unsrt=A.keys();
+    srt=list();
+    # first get inputs (no influences on them)
+    srt=[k for k in unsrt if len(A[k])==1];
+    for k in srt:
+        unsrt.remove(k);
+    # now move to lower number keys that influence others
+    while unsrt:
+        for k in list(unsrt):
+            srt.extend(set(A[k].keys()).difference(set(srt)));
+            for i in A[k].keys():
+                try:
+                    unsrt.remove(i);
+                except:
+                    pass;
+    return srt;
+def topo_order(A, tA):
+    """Try to sort keys of A in topological order. tA is just a transpose of A"""
+    unsrt=set(A.keys());
+    srtin=list();
+    srtout=list();
+    
+    while unsrt:
+        # shave inputs and outputs
+        inps=set(k for k in unsrt if len(set(A[k]).difference(srtin))==1);
+        srtin.extend(inps);
+        unsrt.difference_update(inps);
+        outs=set(k for k in unsrt if len(set(tA[k]).difference(unsrt))==1);
+        if outs:
+            srtout.insert(0, outs);
+            unsrt.difference_update(outs);
+        if not inps and not outs:
+            # this is not a dag
+            srtin.extend(unsrt);
+            print "not a dag";
+            break;
+    return(srtin+srtout);
+def transpose(A):
+    """Transpose a matrix defined as a dict."""
+    tA=dict();
+    for i in A:
+        for j in A[i]:
+            tA[j]=tA.get(j,{});
+            tA[j][i]=A[i][j];
+    return(tA);
