@@ -48,6 +48,7 @@
 # 2008-09-01 sokol: labprods(): get labeled product by a given metabolite in a given reaction
 # 2008-09-03 sokol: allprods(): get all labeled product by a given metabolite with others labeled isotops in a given reaction
 # 2008-09-23 sokol: added mat2graph()
+# 2008-10-10 sokol: added rcumo_sys()
 
 from tools_ssg import *;
 
@@ -606,26 +607,13 @@ def ftbl_netan(ftbl):
         for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
                 for (lr,lst) in lrdict.iteritems()
                 for (imetab,(metab,cstr)) in enumerate(lst)):
-            # skip if output metab
-            if metab in netan['output']:
-                continue;
+            # if output metab then influx is set to 1
+            # so its cumomer distribution is directly
+            # defined by cumodistr of inputs
             Clen=netan['Clen'][metab];
-            # input metabolite has fixed value so put just 1 on diagonal
-            # and the corresponding sum value (read in .ftbl) in rhs.
-            if metab in netan['input']:
-                # run through all cumomers for this input metabolite
-                for icumo in xrange(1,1<<Clen):
-                    cumo=metab+':'+str(icumo);
-                    w=sumbit(icumo);
-                    if cumo not in res['A'][w-1]:
-                        # matrix: diagonal term for input cumomer
-                        res['A'][w-1][cumo]={cumo:['1']};
-                        # rhs: input cumomer
-                        res['b'][w-1][cumo]={'1':[[netan['cumo_input'].get(cumo,0.)]]};
-                    else:
-                        # make appear A,b for input cumo only once
-                        continue;
-                # go to next metabolite
+            # input metabolite has fixed value so put it in rhs
+            # when it is an influx for some internal cumomer
+            if metab in netan['input'] or metab in netan['output']:
                 continue;
             # 'out' part of this metab
             fwd_rev=('.fwd' if lr=='left' else '.rev');
@@ -662,10 +650,20 @@ def ftbl_netan(ftbl):
                     if cumo not in res['A'][w-1]:
                         res['A'][w-1][cumo]={cumo:[]};
                     if in_w==w:
-                        if in_cumo not in res['A'][w-1][cumo]:
-                            res['A'][w-1][cumo][in_cumo]=[];
-                        # matrix: linearized off-diagonal term
-                        res['A'][w-1][cumo][in_cumo].append(flux);
+                        if in_metab in netan["input"]:
+                            # put it in rhs
+                            if cumo not in res['b'][w-1]:
+                                res['b'][w-1][cumo]={};
+                            if flux not in res['b'][w-1][cumo]:
+                                res['b'][w-1][cumo][flux]=[];
+                                for i in xrange(len(lrdict[lr])):
+                                    res['b'][w-1][cumo][flux].append([]);
+                                res['b'][w-1][cumo][flux][imetab].append(netan["cumo_input"][in_cumo]);
+                        else:
+                            if in_cumo not in res['A'][w-1][cumo]:
+                                res['A'][w-1][cumo][in_cumo]=[];
+                            # matrix: linearized off-diagonal term
+                            res['A'][w-1][cumo][in_cumo].append(flux);
                     elif in_w>0:
                         # put it in rhs list[iterm]
                         if cumo not in res['b'][w-1]:
@@ -675,9 +673,11 @@ def ftbl_netan(ftbl):
                             for i in xrange(len(lrdict[lr])):
                                 res['b'][w-1][cumo][flux].append([]);
                         #print "metab,imetab,cumo,in_cumo,flux=%s"%join(",", (metab,imetab,cumo,in_cumo,flux));##
-                        res['b'][w-1][cumo][flux][imetab].append(in_cumo);
+                        res['b'][w-1][cumo][flux][imetab].append(
+                            in_cumo if in_metab not in netan["input"] else
+                            netan["cumo_input"][in_cumo]);
                         #print "b="+str(res['b'][w-1][cumo][flux]);##
-                    # if in_w==0 in_cumo=1 by definition
+                    # if in_w==0 then in_cumo=1 by definition
                     # in_w cannot be > w because of src_ind();
     
     # ordered cumomer lists
@@ -1444,3 +1444,117 @@ def transpose(A):
             tA[j]=tA.get(j,{});
             tA[j][i]=A[i][j];
     return(tA);
+def rcumo_sys(netan, measures):
+    """Calculate reduced cumomers systems A*x=b
+    we start with observed cumomers of max weight
+    and we include only needed influxes"""
+    # get cumomers involved in measures
+    meas_cumos=set();
+    for meas in measures:
+        for row in measures[meas]["mat"]:
+            metab=row["scale"].split(";")[0];
+            meas_cumos.update(metab+":"+str(icumo) for icumo in row["coefs"].keys() if icumo != 0);
+    # make list of observed weights
+    weights=set(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos);
+    maxw=max(weights);
+    weights=range(1,maxw+1);
+    weights.reverse();
+
+    # cumomers to visit are stored in lists by weights
+    to_visit=dict((w,[]) for w in weights);
+    used_fluxes=set();
+    A=[{} for i in xrange(maxw)]; # store matrices by weight
+    b=[{} for i in xrange(maxw)]; # store rhs by weight
+    used=set();
+
+    # initialize to_visit, we'll stop when it's empty
+    for cumo in meas_cumos:
+        (m,w)=cumo.split(":");
+        w=sumbit(int(w));
+        to_visit[w].append(cumo);
+
+    # run through the network starting with heaviest cumomers
+    for w in weights:
+        cumo_i=0;
+        while cumo_i < len(to_visit[w]):
+            for cumo in to_visit[w]:
+                cumo_i+=1;
+                if cumo in used:
+                    continue;
+                # add this cumo used
+                used.add(cumo);
+                (metab, icumo)=cumo.split(":");
+                icumo=int(icumo);
+                # get the influents to cumo of all weights: equal and lower
+                # equals go to A and lowers go to b
+                infl=cumo_infl(netan, cumo);
+                for (incumo,fl,imetab) in infl:
+                    if incumo==cumo:
+                        # no equation as no transformation
+                        continue;
+                    (inmetab, inw)=incumo.split(":");
+                    inicumo=int(inw)
+                    inw=sumbit(inicumo);
+                    # input metabolites are to rhs, others are to visit
+                    if inmetab not in netan["input"] and inw != 0 and incumo not in to_visit[inw]:
+                        to_visit[inw].append(incumo);
+                    if metab in netan["output"]:
+                        # no equation for output metabs
+                        continue;
+                    # main part: write equations
+                    if inw==w and inmetab not in netan["input"]:
+                        # equal weight => A
+                        A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]});
+                        A[w-1][cumo][incumo]=A[w-1][cumo].get(incumo,[]);
+                        A[w-1][cumo][incumo].append(fl);
+                        #aff("A "+str(w)+cumo, A[w-1][cumo]);##
+                    elif inw > 0:
+                        # lower weight => b
+                        b[w-1][cumo]=b[w-1].get(cumo, {});
+                        b[w-1][cumo][fl]=b[w-1][cumo].get(fl,{});
+                        b[w-1][cumo][fl][imetab]=b[w-1][cumo][fl].get(imetab,[]);
+                        b[w-1][cumo][fl][imetab].append(incumo);
+                # gather all influx in diagonal term
+                #aff("A "+str(w)+" "+cumo, A[w-1][cumo]);##
+                #aff("b "+str(w)+" "+cumo, b[w-1].get(cumo));##
+                for incumo in A[w-1][cumo]:
+                    if incumo == cumo:
+                        continue;
+                    A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]});
+                    #print("adding A:", incumo, "->", cumo, A[w-1][cumo][incumo]);##
+                    A[w-1][cumo][cumo]+=A[w-1][cumo][incumo];
+                if cumo in b[w-1]:
+                    A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]});
+                    #print("adding b:", cumo, b[w-1][cumo].keys());##
+                    A[w-1][cumo][cumo]+=b[w-1][cumo].keys();
+    #aff("to_v", to_visit);##
+    return {"A": A, "b": b};
+
+def cumo_infl(netan, cumo):
+    """return the list of tuples (in_cumo,fl, imetab): input cumomer and flux
+    generating cumo (given in the form 'metab:icumo') and metab index(imetab)
+    in the reaction"""
+    (metab, icumo)=cumo.split(":");
+    icumo=int(icumo);
+    res=[];
+    # run through input forward fluxes of this metab
+    for reac in set(netan["sto_m_r"][metab]["right"]):
+        # get all cstr for given metab
+        for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan['carbotrans'][reac]["right"])
+            if m==metab):
+            # get all input cumomer in this reaction for this cstr
+            for (in_metab,in_str) in netan['carbotrans'][reac]["left"]:
+                in_icumo=src_ind(in_str, cstr, icumo);
+                in_cumo=in_metab+':'+str(in_icumo);
+                res.append((in_cumo, reac+".fwd", imetab));
+    # run through input reverse fluxes of this metab
+    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
+        # get all cstr for given metab
+        for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan['carbotrans'][reac]["left"])
+            if m==metab):
+            # get all input cumomer in this reaction for this cstr
+            for (in_metab,in_str) in netan['carbotrans'][reac]["right"]:
+                in_icumo=src_ind(in_str, cstr, icumo);
+                in_cumo=in_metab+':'+str(in_icumo);
+                res.append((in_cumo, reac+".rev", imetab));
+    return res;

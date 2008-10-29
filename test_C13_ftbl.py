@@ -6,13 +6,15 @@ import sys;
 #from itertools import *;
 
 sys.path.append('/home/sokol/dev/python');
+sys.path.append('/home/sokol/insa/sysbio/dev/ftbl2sys');
 from tools_ssg import *;
 #from C13_ftbl import *;
 import C13_ftbl;
 
 #fname='ex5.ftbl';
-fname='PPP_exact.ftbl';
+#fname='PPP_exact.ftbl';
 #fname='example2.ftbl';
+fname='antoniewicz-2006/simple.ftbl';
 
 #pdb.set_trace();
 
@@ -31,6 +33,14 @@ aff("ftbl['"+sec+"']", ftbl[sec]);
 #pdb.set_trace();
 #reload(C13_ftbl);
 netan=C13_ftbl.ftbl_netan(ftbl);
+d=C13_ftbl.aglom_loop1(netan["cumo_sys"]["A"][0]);
+aff("loop", d["loop"]);
+k=C13_ftbl.lowtri(d["na"]);
+fp=open("na.pbm", "w");
+C13_ftbl.mat2pbm(d["na"], k, fp);
+fp.close();
+exit(0);
+
 #e="flux_inequal";
 #e="label_meas";
 #e="peak_meas";

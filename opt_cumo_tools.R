@@ -1,8 +1,7 @@
 DEBUG=0;
 library(bitops);
-if (DEBUG) {
-   library(MASS);
-}
+library(MASS); # for generalized inverse
+
 trisparse_solv=function(A, b, w, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
@@ -12,7 +11,15 @@ trisparse_solv=function(A, b, w, method="dense") {
       if (DEBUG) {
          write.matrix(A,file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
       }
-      x=solve(A,b);
+      x=try(solve(A,b));
+      if (inherits(x, "try-error")) {
+         # matrix seems to be singular
+         # switch to Moore-Penrose inverse
+         if (control$trace) {
+            cat("switch to generalized inverse\n");
+         }
+         x=ginv(A)%*%b;
+      }
       return(x);
    } else if (method=="sparse") {
       # sparse

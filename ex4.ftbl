@@ -1,10 +1,8 @@
 PROJECT								
 	NAME	VERSION	FORMAT	DATE	COMMENT			
-	ex4	1		28/07/08	2 branches (jcp)
-								
+	ex4	1		28/07/08	2 branches (jcp all measures)								
 NETWORK								
-	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
-								
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2								
 // input							
 	v1	A_ext		A				
 		#uv		#uv				
@@ -23,25 +21,23 @@ FLUXES
 // Free (varied by optimization)
 // Constrained (not varied by optimization)
 // Determined (found from free fluxes)
-		v1	C	1				
-		v2	F	0.25				
+		v1	C	1.				
+		v2	F	0.9				
 		v3	D					
 		v4	D					
 	XCH							
 		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
 		v1	D					
-		v2	C	0.				
+		v2	F	0.01				
 		v3	C	0.				
 		v4	D					
 EQUALITIES										
 	NET										
-		VALUE	FORMULA								
-											
+		VALUE	FORMULA																			
 	XCH										
 		VALUE	FORMULA								
 FLUX_MEASUREMENTS									
-	FLUX_NAME	VALUE	DEVIATION	//		Val	Dev		
-											
+	FLUX_NAME	VALUE	DEVIATION	//		Val	Dev													
 //	v1	1.	0.05								
 LABEL_INPUT										
 	META_NAME	ISOTOPOMER	VALUE						
@@ -51,26 +47,28 @@ LABEL_INPUT
 INEQUALITIES										
 	NET										
 		VALUE	COMP	FORMULA							
+		0	<=	v2							
+		0	<=	v3							
 	XCH										
 		VALUE	COMP	FORMULA							
 //		0.85	>=	v2							
 LABEL_MEASUREMENTS									
 	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS		
-	B	1	0.625	0.002	#1x						
+	B	1	0.625	0.002	#1x	//*1					
 		2	0.875	0.002	#x1						
+//	B	1	0.6875	0.002	#1x	// *1.1					
+//		2	0.9625	0.002	#x1						
+//		3	0.	0.002	#00						
+//			0.2	0.002	#11						
 PEAK_MEASUREMENTS									
 	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
-//	B	1	0.66		0.01			0.005			
-//		2	1.26	0.03960991	0.01183004	0.0007686513		0.005		
+	B	1	0.2		0.8			0.005			
+		2	0.42857	.57143				0.005		
 											
 MASS_SPECTROMETRY											
 	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION						
-//	B	1,2,3	0	12601	68.005						
-//			1	2301	16.505						
-//			2	96	5.48						
-//			3	1	5.005						
-//		2,3	0	13001	70.005						
-//			1	1996	14.98						
-//			2	2	5.01						
+	B	1,2	0	0	10						
+			1	1000	10						
+			2	1000	10						
 OPTIONS											
 	OPT_NAME	OPT_VALUE									

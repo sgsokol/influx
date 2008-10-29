@@ -1,3 +1,13 @@
+# 2008-09-23 sokol
+# tracing graphs of cumomer influences
+# in C13_flux.py added mat2graph()
+# in pyhton fp=open("a.dig", "w"); C13_ftbl.mat2graph(a, fp); fp.close()
+circo -Tpng -o a.png a.dig
+# produce empty a.png
+
+dot -Tpng -o a.png a.dig
+display a.png &
+
 # 2008-09-09 sokol
 # full fragments
 date; ./isotrace.py GLC#111111 < PPP.ftbl > glc_full.txt; date

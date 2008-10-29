@@ -63,10 +63,45 @@ setMethod("initialize",
          .Object@Dim=c(n,n);
       }
       .Object;
-   })
+   }
+)
+setMethod("initialize",
+          "matrid",
+   function(.Object,
+         A=numeric(0)
+         ) {
+      if (nargs() > 0) {
+         if (mode(A) != "numeric")
+            stop("specified A is not of numeric mode")
+         if (! is.matrix(A))
+            stop("specified A is not a matrix")
+         if (NROW(A) != NCOL(A))
+            stop("specified A is not a square matrix")
+         n=NROW(A);
+         .Object@l <- double(n);
+         .Object@d <- double(n);
+         .Object@u <- double(n);
+         .Object@dd <- double(n);
+         .Object@uu <- double(n);
+         .Object@qrd <- FALSE
+         .Object@Dim=c(n,n);
+         res<-.Fortran("dense2trid",
+            n=n,
+            A=A,
+            l=.Object@l,
+            d=.Object@d,
+            u=.Object@u,
+            NAOK=TRUE,
+            DUP=FALSE,
+            PACKAGE="matrid"
+         );
+      }
+      .Object;
+   }
+)
    
 # Class matridm extends tridiagonal matrices (a) to almost tridiagonal ones (A).
-# m dense columns stored in s are added to the matrix: A=a+s*E^t.
+# m dense columns, stored in s, are added to the matrix: A=a+s*E^t.
 # Here E^t is an operator defined by an integer vector e which
 # contains numbers of m dense columns in the whole matrix. For example,
 # e[i]=j means i-th column in s takes j-th column (both 1-based) in A
@@ -91,28 +126,29 @@ setMethod("initialize",
          e=numeric(0)) {
       if (nargs() > 1) {
          if (mode(s) != "numeric")
-            stop("specified s is not of numeric mode")
+            stop("specified s is not of numeric mode");
          if (mode(e) != "numeric")
-            stop("specified s is not of numeric mode")
+            stop("specified s is not of numeric mode");
          if (NROW(s) != a@Dim[1])
-            stop("specified a and s have different row number")
+            stop(paste("nrow(a)=",a@Dim[1], " and nrow(s)=", NROW(s),
+               " are different", sep=""));
          if (NCOL(s) != length(e))
-            stop("specified s and e have different column number")
-         .Object@l <- a@l
-         .Object@d <- a@d
-         .Object@u <- a@u
-         .Object@dd <- a@dd
-         .Object@uu <- a@uu
-         .Object@qrd <- a@qrd
-         .Object@Dim <- a@Dim
+            stop("specified s and e have different column number");
+         .Object@l <- a@l;
+         .Object@d <- a@d;
+         .Object@u <- a@u;
+         .Object@dd <- a@dd;
+         .Object@uu <- a@uu;
+         .Object@qrd <- a@qrd;
+         .Object@Dim <- a@Dim;
          n<-.Object@Dim[1];
-         .Object@s<-as.matrix(s,n);
+         .Object@s<-matrix(s,n);
          .Object@e<-as.integer(e);
          .Object@m<-NCOL(.Object@s);
          m<-.Object@m;
          .Object@amm<-matrix(0,m,m);
          if (a@qrd && m) {
-            # compleat QR decomposition of low rank part
+            # complete QR decomposition of low rank part
             # solve m systems with s as rhs
             res<-.Fortran("tridqrsolv",
                N=n,
@@ -126,13 +162,61 @@ setMethod("initialize",
                NAOK=TRUE,
                DUP=FALSE,
                PACKAGE="matrid");
-#show(as.matrix(s,n,m));
+#show(matrix(s,n,m));
             # qr decomposition of dense m by m auxiliary matrix
             .Object@amm=qr(diag(1.,.Object@m)+.Object@s[.Object@e,]);
          }
       }
       .Object;
-   })
+   }
+)
+setMethod("initialize",
+          "matridm",
+   function(.Object,
+         A=matrix(0)
+         ) {
+      if (nargs() > 0) {
+         if (mode(A) != "numeric")
+            stop("specified A is not of numeric mode")
+         if (! is.matrix(A))
+            stop("specified A is not a matrix")
+         if (NROW(A) != NCOL(A))
+            stop("specified A is not a square matrix")
+         n=NROW(A);
+         .Object@l <- double(n);
+         .Object@d <- double(n);
+         .Object@u <- double(n);
+         .Object@dd <- double(n);
+         .Object@uu <- double(n);
+         .Object@qrd <- FALSE
+         .Object@Dim=c(n,n);
+         res<-.Fortran("dense2trid",
+            n=n,
+            A=A,
+            l=.Object@l,
+            d=.Object@d,
+            u=.Object@u,
+            NAOK=TRUE,
+            DUP=FALSE,
+            PACKAGE="matrid"
+         );
+         # prepare sparse complement of tridiagonal s,e
+         e=c();
+         m=0;
+         for (j in 1:n) {
+            if (any(as.logical(A[,j]))) {
+               e=c(e,j);
+               m=m+1;
+            }
+         }
+         .Object@s<-matrix(A[,e], n, m);
+         .Object@m<-NCOL(.Object@s);
+         .Object@e<-as.integer(e);
+         .Object@amm<-matrix(0,m,m);
+      }
+      .Object;
+   }
+)
 
 setMethod("qr",
           "matrid",
@@ -147,6 +231,9 @@ function(x,...) {
    if (length(x@u) == 0) stop ("x@u is of length 0");
    if (length(x@l) != length(x@d) || length(x@d) != length(x@u))
          stop("specified l, d, u are of different lengths");
+   if (class(x) == "matridm") {
+      if (NCOL(x@s) != x@m) stop (parse("ncol(x@s)=", NCOL(x@s), " is different from x@m=", x@m, sep=""));
+   }
    n=x@Dim[1];
    # fortran call
    res<-.Fortran("tridqr",
@@ -169,8 +256,8 @@ function(x,...) {
          u=x@u,
          dd=x@dd,
          uu=x@uu,
-         s=x@s,
-         M=x@m,
+         b=x@s,
+         M=as.integer(x@m),
          NAOK=TRUE,
          DUP=FALSE,
          PACKAGE="matrid");
@@ -179,8 +266,10 @@ function(x,...) {
 #show(x);
       x@amm=qr(diag(1.,x@m)+x@s[x@e,]);
    }
-#cat("DEBUG\n");
-#show(x);
+if (DEBUG) {
+   cat("qr of matridm:\n");
+   show(x);
+}
    return(x);
 })
 setMethod("qr.solve",
@@ -202,13 +291,20 @@ function(a,b,tol=1e-07) {
    n=length(a@d);
    if (n != NROW(b)) stop ("NROW(b) is diffent from length(a@d)");
    if (is.matrix(b)) {
-      m=NCOL(b);
+      mb=NCOL(b);
    } else {
-      m=1;
+      mb=1;
    }
+   mb=as.integer(mb);
+   if (mb == 0) stop ("b has 0 columns");
    cb=class(b);
    # make local copy of b
-   b=as.double(b);
+   b=matrix(b,n,mb);
+if (DEBUG) {
+   cat(paste("rhs tridiag b(", n, ",", mb,"):\n", sep=""))
+   show(b);
+   #show(a);
+}
    # fortran call
 #tridqrsolv(N,l,d,u,dd,uu,b,M)
    res<-.Fortran("tridqrsolv",
@@ -219,13 +315,15 @@ function(a,b,tol=1e-07) {
          dd=a@dd,
          uu=a@uu,
          b=b,
-         M=m,
+         M=mb,
          NAOK=TRUE,
          DUP=FALSE,
          PACKAGE="matrid");
-#cat("DEBUG\n")
-#show(b);
-#show(a);
+if (DEBUG) {
+   cat("solved tridiag b:\n")
+   show(b);
+   #show(a);
+}
    if (class(a)=="matridm") {
       # solving slightly modified system a*x=(at+s*E^t)x=b
       # by Sherman-Morrison-Woodbury formula.
@@ -239,14 +337,17 @@ function(a,b,tol=1e-07) {
       # For repeated system solving with various rhs,
       # call a=qr(a) before tridm.solve() repeated calls.
       #print("here matridm");
-      bm=as.matrix(b,n)[a@e,];
+      bm=matrix(b,n)[a@e,];
       bm=qr.solve(a@amm,bm);
-#show(bm);
-      #diag(1.,a@m)+v[e,],b[e]);
+if (DEBUG) {
+   cat("solved complement bm:\n");
+   show(bm);
+}
+      #update the solution by by solve(diag(1.,a@m)+v[e,],b[e]);
       b=b-a@s%*%bm;
    }
    if (cb=="matrix") {
-      return(as.matrix(b,n,m));
+      return(matrix(b,n,mb));
    } else {
       return(b);
    }
@@ -303,12 +404,32 @@ function(x) {
    # retrun dim slot (vector c(n,n) where n is the dimension of the matrix)
    x@Dim[2];
 })
+setMethod("as.matrix",
+          "matrid",
+function(x) {
+   # return dense matrix
+   if (x@qrd) stop ("Cannot convert to dense matrix a tridiagonal QR decomposed matrix");
+   n=x@Dim[1];
+   a=matrix(0., n, n);
+   for (i in 1:n) {
+      a[i,i]=x@d[i];
+      if (i > 1) a[i,i-1]=x@l[i];
+      if (i < n) a[i,i+1]=x@u[i];
+   }
+   if (class(x)=="matridm" && x@m) {
+      for (ji in 1:(x@m)) {
+         j=x@e[ji];
+         a[,j]=a[,j]+x@s[,ji];
+      }
+   }
+   return(a);
+})
 
 multmm<-function(a,b) {
    # multiply (almost) tridiagonal matrix a by a dense matrix b
    if (a@qrd) stop ("Cannot multiply QR decomposed matrix");
    n=a@Dim[1];
-   b=as.matrix(b, n);
+   b=matrix(b, n);
    m=NCOL(b);
    res=matrix(0,n,m);
    i=1:(n-1);
@@ -316,7 +437,7 @@ multmm<-function(a,b) {
       res[,j]=a@d*b[,j]+c(0,a@l[i+1]*b[i,j])+c(a@u[i]*b[i+1,j],0);
    }
    if (class(a)=="matridm" && a@m) {
-      res=res+a@s%*%b[e,];
+      res=res+a@s%*%b[a@e,];
    }
    res;
 }

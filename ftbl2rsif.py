@@ -61,16 +61,18 @@ if len(sys.argv) == 2:
     fnc=open("node.fillColor."+base, "w");
     fes=open("edge.sourceArrowShape."+base, "w");
     fet=open("edge.targetArrowShape."+base, "w");
+    fel=open("edge.label."+base, "w");
     # write headers for attributes
     fns.write("node.shape\n");
     fnc.write("node.fillColor\n");
     fes.write("edge.sourceArrowShape\n");
     fet.write("edge.targetArrowShape\n");
+    fel.write("edge.label\n");
 elif len(sys.argv) == 1:
     # standart input and output are used
     fin=sys.stdin;
     fout=sys.stdout;
-    fns=fnc=fes=fet=0;
+    fns=fnc=fes=fet=fel=0;
     
 # Parse .ftbl file
 ##print 'parse'
@@ -124,6 +126,8 @@ for flux in ftbl['NETWORK']:
         if len(edges)>1:
             fns.write("%s = %s\n" % (reac, ns['r']));
             fnc.write("%s = %s\n" % (reac, nc['r']));
+        else:
+            fel.write(edges[0]+" = "+reac+"\n");
         for e in edges:
             fet.write(e+" = "+et[revers]+"\n");
             fes.write(e+" = "+es[revers]+"\n");
