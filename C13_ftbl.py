@@ -655,10 +655,10 @@ def ftbl_netan(ftbl):
                             if cumo not in res['b'][w-1]:
                                 res['b'][w-1][cumo]={};
                             if flux not in res['b'][w-1][cumo]:
-                                res['b'][w-1][cumo][flux]=[];
-                                for i in xrange(len(lrdict[lr])):
-                                    res['b'][w-1][cumo][flux].append([]);
-                                res['b'][w-1][cumo][flux][imetab].append(netan["cumo_input"][in_cumo]);
+                                res['b'][w-1][cumo][flux]={};
+                            if imetab not in res['b'][w-1][cumo][flux]:
+                                res['b'][w-1][cumo][flux][imetab]=[];
+                            res['b'][w-1][cumo][flux][imetab].append(netan["cumo_input"][in_cumo]);
                         else:
                             if in_cumo not in res['A'][w-1][cumo]:
                                 res['A'][w-1][cumo][in_cumo]=[];
@@ -669,9 +669,9 @@ def ftbl_netan(ftbl):
                         if cumo not in res['b'][w-1]:
                             res['b'][w-1][cumo]={};
                         if flux not in res['b'][w-1][cumo]:
-                            res['b'][w-1][cumo][flux]=[];
-                            for i in xrange(len(lrdict[lr])):
-                                res['b'][w-1][cumo][flux].append([]);
+                            res['b'][w-1][cumo][flux]={};
+                            if imetab not in res['b'][w-1][cumo][flux]:
+                                res['b'][w-1][cumo][flux][imetab]=[];
                         #print "metab,imetab,cumo,in_cumo,flux=%s"%join(",", (metab,imetab,cumo,in_cumo,flux));##
                         res['b'][w-1][cumo][flux][imetab].append(
                             in_cumo if in_metab not in netan["input"] else
@@ -1484,7 +1484,11 @@ def rcumo_sys(netan, measures):
                 # add this cumo used
                 used.add(cumo);
                 (metab, icumo)=cumo.split(":");
+                if metab in netan["output"]:
+                    # no equation for output metabs
+                    continue;
                 icumo=int(icumo);
+                A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]});
                 # get the influents to cumo of all weights: equal and lower
                 # equals go to A and lowers go to b
                 infl=cumo_infl(netan, cumo);
@@ -1493,18 +1497,20 @@ def rcumo_sys(netan, measures):
                         # no equation as no transformation
                         continue;
                     (inmetab, inw)=incumo.split(":");
-                    inicumo=int(inw)
+                    inicumo=int(inw);
                     inw=sumbit(inicumo);
                     # input metabolites are to rhs, others are to visit
                     if inmetab not in netan["input"] and inw != 0 and incumo not in to_visit[inw]:
                         to_visit[inw].append(incumo);
-                    if metab in netan["output"]:
-                        # no equation for output metabs
-                        continue;
                     # main part: write equations
-                    if inw==w and inmetab not in netan["input"]:
+                    if inw==w :
                         # equal weight => A
-                        A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]});
+                        if inmetab in netan["input"]:
+                            b[w-1][cumo]=b[w-1].get(cumo, {});
+                            b[w-1][cumo][fl]=b[w-1][cumo].get(fl,{});
+                            b[w-1][cumo][fl][imetab]=b[w-1][cumo][fl].get(imetab,[]);
+                            b[w-1][cumo][fl][imetab].append(netan["cumo_input"][incumo]);
+                            continue;
                         A[w-1][cumo][incumo]=A[w-1][cumo].get(incumo,[]);
                         A[w-1][cumo][incumo].append(fl);
                         #aff("A "+str(w)+cumo, A[w-1][cumo]);##
