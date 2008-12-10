@@ -74,28 +74,28 @@ dfc2flcnx=function(no_f, flnx, param, fc) {
    }
    return(f);
 }
-cumo_resid=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc) {
+cumo_resid=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
 #cat("resid: \n")
 #print(no_f);
 #print(no_w);
 #print(param);
 #print(p2bfl);
    # find x for all weights
-   lres=param2fl_x(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc)
+   lres=param2fl_x(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun)
 #print(imeas);
    # find simulated scaled measure vector scale*(measmat*x)
    simvec=c(1.,param)[ir2isc]*(measmat%*%c(lres$x[imeas],1.));
    # diff between simulated and measured
    return(list(res=(simvec-measvec), flcnx=lres$flcnx));
 }
-cumo_cost=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
+cumo_cost=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
 #cat("cost: ");
 #cat("list no_f\n")
 #print(no_f);
 #print(no_w);
 #cat("param\n");
 #print(param);
-    resl=cumo_resid(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc);
+    resl=cumo_resid(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun);
    res=resl$res;
    flcnx=resl$flcnx;
    # flux residuals
@@ -106,14 +106,14 @@ cumo_cost=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, me
    }
    return(fn);
 }
-cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn) {
+cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: forward finite differences f(x+h)-f(x)/h
    # x+h is taken as (1+fact)*x
    fact=1.e-7;
    grad=param; # make place for gradient
    # f(x)
-   f=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+   f=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun);
    for (i in 1:length(param)) {
       x=param[i];
       h=x*fact;
@@ -122,14 +122,14 @@ cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, me
          # we are too close to zero here
          param[i]=fact;
       }
-      fh=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
+      fh=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun);
       # restore modified param
       param[i]=x;
       grad[i]=(fh-f)/h;
    }
    return(grad);
 }
-param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc) {
+param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
    # claculate all fluxes from free fluxes
 #cat("resid: \n")
 #print(no_f);
@@ -159,7 +159,7 @@ param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, m
       A=matrix(0.,ncumow,ncumow);
       b=double(ncumow);
       #fwrv2Abcumo(fl, nf, x, nx, iw, n, A, b)
-      res<-.Fortran("fwrv2Abcumo",
+      res<-.Fortran(fortfun,
          fl=as.double(fwrv),
          nf=length(fwrv),
          x=as.double(x),
@@ -227,7 +227,7 @@ print_mass=function(x) {
    # separate cumos by name and order by weight
    n=length(x);
    nm_x=names(x);
-   tbl=matrix(0,0,3);
+   tbl=matrix(0,0,3); # metab,icumo,value_cumo
    metabs=list();
    if (length(nm_x)!=n) {
       return();
