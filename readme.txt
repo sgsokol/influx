@@ -1,3 +1,40 @@
+# 2008-12-10 sokol
+# output in ftbl2optR is set to a .kvh file
+# both reduced and full cumomer systems are generated
+# for cumomer balance
+
+# 2008-12-04 sokol
+# ftbl2strid.py est limité uniquement à la proposition
+# de flux libres
+# Structural analysis (choix de metabs pour resoudre les flux)
+# doit etre fait à partir d'une approximation initiale
+# de la distribution des cumomers et donc sera mieux fait en R.
+
+# 2008-12-01 sokol
+# symbolic equations
+./ftbl2cumoAb.py < PPP_s.ftbl > PPP_s_symeq.txt
+
+# 2008-11-26 sokol
+# reduced system gives similar solution
+# to the complete one upto 3-4th digits after decimal point.
+# sensitivity matrix can have very different values for
+# badly determined fluxes.
+
+cp PPP.log PPP.log.reduc-2008-11-26
+
+# start structural identification analysis
+# ftbl2strid.py
+
+# 2008-11-25 sokol
+# prepared ftbl compiler for reduced cumomer list
+# reduction is done by pruning comumer not connected
+# to observable ones.
+./opt.sh PPP BFGS
+# seemed to work OK
+cp PPP.log PPP.log.complete-2008-11-25
+
+
+
 # 2008-09-23 sokol
 # tracing graphs of cumomer influences
 # in C13_flux.py added mat2graph()
