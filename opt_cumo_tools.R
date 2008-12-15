@@ -15,7 +15,7 @@ trisparse_solv=function(A, b, w, method="dense") {
       if (inherits(x, "try-error")) {
          # matrix seems to be singular
          # switch to Moore-Penrose inverse
-         if (control$trace) {
+         if (exists("control") && control$trace) {
             cat("switch to generalized inverse\n");
          }
          x=ginv(A)%*%b;
