@@ -109,6 +109,24 @@ if meshpar.get("ff",{}).get("mesh_parameters")=="start\tend\tn":
 
     # write initialization part of R code
     ftbl2code.netan2Rinit(netan, org, f, ff);
+    f.write("""
+# set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+# for corresponding measures
+vr=param2fl_x(param, no_f, no_rw, no_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
+simvec=(measmat%*%c(vr$x[irmeas],1.));
+if (DEBUG) {
+   cat("initial simvec:\\n");
+   print(simvec);
+}
+if (no_ff < length(param)) {
+   ms=measvec*simvec*measinvvar;
+   ss=simvec*simvec*measinvvar;
+   for (i in (no_ff+1):length(param)) {
+      im=(ir2isc==(i+1));
+      param[i]=sum(ms[im])/sum(ss[im]);
+   }
+}
+""");
     f.write("""# open connection to store results
 cnct=file("%(n_kvh)s", "w");
 descr=c(date="%(date)s", generator="%(generator)s");
@@ -173,6 +191,10 @@ costs=c();
         f.write("""
 # store the cost results
 obj2kvh(costs, "cost", cnct);
+i=which.min(costs);
+mincosts=costs[i];
+names(mincosts)=i;
+obj2kvh(mincosts, "mincost", cnct);
 """
 );
 else:
