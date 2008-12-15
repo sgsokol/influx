@@ -10,6 +10,7 @@
 import sys;
 import os;
 import time;
+import getopt;
 
 sys.path.append('/home/sokol/dev/python');
 sys.path.append('/home/sokol/insa/sysbio/dev/ftbl2sys');
@@ -18,17 +19,51 @@ from tools_ssg import *;
 import C13_ftbl;
 
 # take arguments
-
 #<--skip in interactive session
+# get arguments
 me=sys.argv[0];
 def usage():
-    sys.stderr.write("usage: "+me+" mesh.kvh");
+    sys.stderr.write("usage: "+me+
+        """ [-h|--help|--cost] param_file.kvh
+-h, --help print this message and exits
+--cost request to calculate cost function value at feasible points
+Base name of mesh parameter file ('param_file' in this example)
+is used to create or silently overwrite the following files:
+param_file.R
+param_file.f
+param_file.o
+param_file.so
+param_file.log
+param_file.err
+param_file_res.kvh
+The last file get the results in kvh format:
+ - feasibles free flux sets with their values and
+  -if requested cost values at feasible points;
+""");
 if len(sys.argv) < 2:
     usage();
     exit(1);
-# set some python constants
-ffmesh=sys.argv[1];
+try:
+    opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "cost", "DEBUG"]);
+except getopt.GetoptError, err:
+    print str(err);
+    usage();
+    sys.exit(1);
+cost=False;
+DEBUG=False;
+for o,a in opts:
+    if o in ("-h", "--help"):
+        usage();
+        sys.exit();
+    elif o=="--cost":
+        cost=True;
+    elif o=="--DEBUG":
+        DEBUG=True;
+    else:
+        assert False, "unhandled option";
+ffmesh=args[0];
 #-->
+# set some python constants
 #ffmesh="ffmesh_simple.kvh"
 
 # read mesh parameters from a kvh file
@@ -78,7 +113,9 @@ if meshpar.get("ff",{}).get("mesh_parameters")=="start\tend\tn":
 cnct=file("%(n_kvh)s", "w");
 descr=c(date="%(date)s", generator="%(generator)s");
 obj2kvh(descr, "feasible free fluxes", cnct);
+cat("ff\n", file=cnct);
 feas_tot=0;
+costs=c();
 """%{
         "n_kvh": n_kvh,
         "date": time.strftime("%d-%m-%Y"),
@@ -116,7 +153,14 @@ feas_tot=0;
     f.write(indent*"   "+"if (all(ui%*%param-ci>=0)) {\n");
     f.write((indent+1)*"   "+"# this free flux vector is feasible => save it\n");
     f.write((indent+1)*"   "+"feas_tot=feas_tot+1;\n");
-    f.write((indent+1)*"   "+'obj2kvh(param[1:no_ff], paste("ff_", feas_tot, sep=""), cnct);\n');
+    f.write((indent+1)*"   "+'obj2kvh(param[1:no_ff], feas_tot, cnct, 1);\n');
+    if cost:
+        f.write((indent+1)*"   "+
+            'cost=try(cumo_cost(param, no_f, no_rw, no_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo"));\n');
+        f.write((indent+1)*"   "+"""if (inherits(cost, "try-error")) {\n""");
+        f.write((indent+2)*"   "+"cost=NA;\n");
+        f.write((indent+1)*"   "+"}\n");
+        f.write((indent+1)*"   "+"costs=c(costs,cost);\n");
     f.write(indent*"   "+"}\n");
     # close loops
     for (fl,par) in meshpar["ff"]["net"]:
@@ -125,6 +169,12 @@ feas_tot=0;
     for (fl,par) in meshpar["ff"]["xch"]:
         indent-=1;
         f.write(indent*"   "+"}\n");
+    if cost:
+        f.write("""
+# store the cost results
+obj2kvh(costs, "cost", cnct);
+"""
+);
 else:
     raise NameError("Unknown mesh_parameters value '%s'"%meshpar.get("ff").get("mesh_parameters"));
     exit(1);
