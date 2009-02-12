@@ -10,6 +10,7 @@
 
 #import pdb;
 import sys;
+import os;
 sys.path.append('/home/sokol/dev/python');
 import re;
 from tools_ssg import *;
@@ -49,19 +50,21 @@ es={
 if len(sys.argv) == 2:
     # input file is an argument
     base=re.sub(".ftbl$", "", sys.argv[1]);
+    fdir=os.path.dirname(sys.argv[1]) or ".";
+    base=os.path.basename(base);
 ##    print base;
     if base==sys.argv[1]:
         sys.stderr.write(sys.argv[0]+": The only argument must be a .ftbl file name, got \
-'"+sys.argv[1]+"'");
+'"+sys.argv[1]+"'\n");
         raise "FileTypeError";
 ##    print 'open files'
     fin=open(sys.argv[1], "r");
-    fout=open(base+".sif", "w");
-    fns=open("node.shape."+base, "w");
-    fnc=open("node.fillColor."+base, "w");
-    fes=open("edge.sourceArrowShape."+base, "w");
-    fet=open("edge.targetArrowShape."+base, "w");
-    fel=open("edge.label."+base, "w");
+    fout=open(os.path.sep.join((fdir, base+".sif")), "w");
+    fns=open(os.path.sep.join((fdir, "node.shape."+base)), "w");
+    fnc=open(os.path.sep.join((fdir, "node.fillColor."+base)), "w");
+    fes=open(os.path.sep.join((fdir, "edge.sourceArrowShape."+base)), "w");
+    fet=open(os.path.sep.join((fdir, "edge.targetArrowShape."+base)), "w");
+    fel=open(os.path.sep.join((fdir, "edge.label."+base)), "w");
     # write headers for attributes
     fns.write("node.shape\n");
     fnc.write("node.fillColor\n");
