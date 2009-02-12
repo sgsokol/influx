@@ -4,7 +4,7 @@
 # from a given isotopomer
 # usage: isotrace.py METAB#0010 < file.ftbl
 # metabolite METAB must be present in .ftbl file given on stdinput
-# and its isotopomer #0010 must mutch carbon number defined in .ftbl
+# and its isotopomer #0010 must match carbon number defined in .ftbl
 # Output of the script is a tab separateb list of isotopomer pathes taken by labeled
 # carbon(s) till network output, one row by path
 
@@ -15,6 +15,7 @@
 # 2008-09-05 isotop by int (not str)
 # 2008-09-05 minimal step by isotopomer
 # 2008-09-08 fragment tracking
+# 2009-02-12 non labeled co-sources are used in last resort
 
 import pdb;
 import sys;
@@ -149,6 +150,7 @@ def front_frag(netan, paths, visited, frags):
     #print "paths=", paths;
     #maxpath=500000;##
     step=0;
+    #pdb.set_trace();##
     while eligeable:
         eligeable=False;
         res=[];
@@ -188,6 +190,9 @@ def front_frag(netan, paths, visited, frags):
                         (m,s)=srcs[inm];
                         (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2];
                         cfrags=[frg for (frg,stp) in frags.get(cm,{}).iteritems()] or [""];
+                        # use unlabeled cfrags in last resort
+                        if (not cfrags[0]) and cm and cs:
+                            cfrags=["z"*len(cs)];
                         for cfrag in cfrags:
                             # skip if already visited
                             if (reacfr, metab, frag, cm, cfrag) in visited:
@@ -236,11 +241,11 @@ if sys.argv[0] != "":
     # check if metab is network
     isotop=sys.argv[1];
 else:
-   fname='ex5.ftbl';
+   fname='essai.ftbl';
    fin=open(fname, "r");
    ftbl=C13_ftbl.ftbl_parse(fin);
    fin.close();
-   isotop="A#01";
+   isotop="PEP#111";
 
 # analyze network
 netan=C13_ftbl.ftbl_netan(ftbl);
