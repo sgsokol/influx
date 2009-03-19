@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # read a .ftbl file from stdin and translate it to .sif file for Cytoscape
 # on stdout. Two substrates or two products reactions are represented as
 # diamond nodes. Node attributes are written in node.<attribute>.fnetw file
@@ -11,7 +11,7 @@
 #import pdb;
 import sys;
 import os;
-sys.path.append('/home/sokol/dev/python');
+#sys.path.append('/home/sokol/dev/python');
 import re;
 from tools_ssg import *;
 
