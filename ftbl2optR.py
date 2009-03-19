@@ -19,7 +19,8 @@
 # The generated R code will use organism_sym.R file (A*x=b for cumomers,
 # cf. ftbl2symA.py)
 # The system Afl*flnx=bfl is created from ftbl file.
-# 2008-07-11 sokol
+# 2008-07-11 sokol: initial version
+# 2009-03-18 sokol: interface homogenization for influx_sim package
 
 # Important python variables:
 # Collections:
@@ -90,20 +91,25 @@ import os;
 import time;
 import copy;
 
-sys.path.append("/home/sokol/dev/python");
+#sys.path.append("/home/sokol/dev/python");
 from tools_ssg import *;
 import C13_ftbl;
 
-me=sys.argv[0];
+me=os.path.basename(sys.argv[0]);
 def usage():
-    sys.stderr.write("usage: "+me+" organism");
+    sys.stderr.write("usage: "+me+" network_name[.ftbl]");
 
 #<--skip in interactive session
 if len(sys.argv) < 2:
     usage();
-    exit(1);
+    sys.exit(1);
+
 # set some python constants
 org=sys.argv[1];
+# cut .ftbl if any
+if org[-5:]==".ftbl":
+    org=org[-5:];
+
 DEBUG=True if len(sys.argv) > 2 and sys.argv[2] else False;
 #-->
 #DEBUG=True;
@@ -120,8 +126,8 @@ n_ftbl=org+".ftbl";
 n_opt=org+".R";
 n_fort=org+".f";
 f_ftbl=open(n_ftbl, "r");
-os.system("chmod u+w '%s'"%n_ftbl);
-os.system("chmod u+w '%s'"%n_fort);
+os.system("chmod u+w '%s' 2>/dev/null"%n_ftbl);
+os.system("chmod u+w '%s' 2>/dev/null"%n_fort);
 f=open(n_opt, "w");
 ff=open(n_fort, "w");
 
@@ -225,7 +231,7 @@ obj2kvh(p2bfl%*%param[1:no_f$no_ff]+bp, "flux system (bfl)", fkvh, ident=1);
 f=vr$fwrv;
 n=length(f);
 names(f)=nm_fwrv;
-obj2kvh(f, "fwd flux vector", fkvh, ident=1);
+obj2kvh(f, "fwd-rev flux vector", fkvh, ident=1);
 
 # optimize all this
 names(param)=nm_par;
