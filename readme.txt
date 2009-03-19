@@ -1,5 +1,30 @@
+# 2009-01-23 sokol
+# todo for assembling flux systems:
+# - whole flux vector names fwd+rev * dep,free,constr
+# - expand stochiom part
+# - expand each K matrix
+# - add equations on measured fluxes (scaled by SD)
+# - add equation on constrained fluxes
+# - claculate the rank of the whole matrix
+
+# 2009-01-08 sokol
+# todo for structural identifiability:
+# - back from tau varibles to flux equatios
+# - assembling flux systems from meseared metabs in one system
+# - full rank of the whole system (stocheom + from measures)
+
+# 2009-01-07 sokol
+# structural identifiability van Winden-like
+./ff2strid.py PPP
+
+# 2008-12-12 sokol
+# coded ffmesh.py producing ffmesh_$org.R from $org.ftbl
+# for free flux mesh to explore in systematique way feasible
+# starting points.
+
 # 2008-12-10 sokol
 # output in ftbl2optR is set to a .kvh file
+
 # both reduced and full cumomer systems are generated
 # for cumomer balance
 
@@ -30,7 +55,7 @@ cp PPP.log PPP.log.reduc-2008-11-26
 # reduction is done by pruning comumer not connected
 # to observable ones.
 ./opt.sh PPP BFGS
-# seemed to work OK
+# seemed to work OK:
 cp PPP.log PPP.log.complete-2008-11-25
 
 
