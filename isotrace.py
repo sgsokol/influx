@@ -189,10 +189,10 @@ def front_frag(netan, paths, visited, frags):
                     for inm in mpos:
                         (m,s)=srcs[inm];
                         (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2];
-                        cfrags=[frg for (frg,stp) in frags.get(cm,{}).iteritems()] or [""];
                         # use unlabeled cfrags in last resort
-                        if (not cfrags[0]) and cm and cs:
-                            cfrags=["z"*len(cs)];
+                        cfrags=[frg for (frg,stp) in frags.get(cm,{}).iteritems()] or [""];
+                        if cm and cs and cm not in netan["input"]:
+                            cfrags+=["z"*len(cs)];
                         for cfrag in cfrags:
                             # skip if already visited
                             if (reacfr, metab, frag, cm, cfrag) in visited:
