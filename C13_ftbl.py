@@ -49,16 +49,18 @@
 # 2008-09-03 sokol: allprods(): get all labeled product by a given metabolite with others labeled isotops in a given reaction
 # 2008-09-23 sokol: added mat2graph()
 # 2008-10-10 sokol: added rcumo_sys()
+# 2009-02-02 sokol: added iin_metab to output of cumo_infl()
 
 from tools_ssg import *;
 
 import re;
+import copy;
 def ftbl_parse(f):
     """reads .ftbl file. The only input parameter f is a stream pointer
     with read permission. It's user care to open and close it outside of
     this module. This function parses the input and returns a dictionnary
     with items corresponding to sections in .ftbl. One section is added.
-    'TRANS' correponds to carbon transitions.""";
+    "TRANS" correponds to carbon transitions.""";
     import re;
     ftbl={};    # main dictionary to be returned;
     
@@ -84,7 +86,7 @@ def ftbl_parse(f):
         if recomm.match(l) or reblank.match(l): continue;
         
         # skip the comments at the end of the row;
-        l=re.sub(r'^(.+)//.*$',r'\1',l).rstrip();
+        l=re.sub(r"^(.+)//.*$",r"\1",l).rstrip();
         
         # split in fields;
         flds=l.split("\t");
@@ -194,60 +196,60 @@ def ftbl_netan(ftbl):
 
     # init named sets
     netan={
-        'input':set(),
-        'output':set(),
-        'subs':set(),
-        'prods':set(),
-        'metabs':set(),
-        'reac':set(),
-        'notrev':set(),
-        'sto_r_m':{},
-        'sto_m_r':{},
-        'flux_m_r':{},
-        'cumo_balance_pattern':{},
-        'Clen':{},
-        'formula':{},
-        'metab_netw':{},
-        'cumo_sys':{},
-        'carbotrans':{},
-        'Cmax':{},
-        'flux_free':{},
-        'flux_constr':{},
-        'flux_measured':{},
-        'iso_input':{},
-        'cumo_input':{},
-        'flux_inequal':{'net':[], 'xch':[]},
-        'flux_equal':{'net':[], 'xch':[]},
-        'label_meas':{},
-        'peak_meas':{},
-        'mass_meas':{},
-        'vcumo':[],
-        'Afl':[],
-        'bfl':[],
-        'vflux':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
-        'vflux_free':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
-        'vflux_constr':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
-        'vflux_meas':{'net':[], 'net2i':{}},
-        'vflux_compl':{'net':[], 'xch':[], 'net2i':{}, 'xch2i':{}},
-        'vflux_fwrv':{'fw':[], 'rv':[], 'fw2i':{}, 'rv2i':{}},
-        'vrowAfl':[],
-        'flux_in':set(),
-        'flux_out':set(),
+        "input":set(),
+        "output":set(),
+        "subs":set(),
+        "prods":set(),
+        "metabs":set(),
+        "reac":set(),
+        "notrev":set(),
+        "sto_r_m":{},
+        "sto_m_r":{},
+        "flux_m_r":{},
+        "cumo_balance_pattern":{},
+        "Clen":{},
+        "formula":{},
+        "metab_netw":{},
+        "cumo_sys":{},
+        "carbotrans":{},
+        "Cmax":{},
+        "flux_free":{},
+        "flux_constr":{},
+        "flux_measured":{},
+        "iso_input":{},
+        "cumo_input":{},
+        "flux_inequal":{"net":[], "xch":[]},
+        "flux_equal":{"net":[], "xch":[]},
+        "label_meas":{},
+        "peak_meas":{},
+        "mass_meas":{},
+        "vcumo":[],
+        "Afl":[],
+        "bfl":[],
+        "vflux":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+        "vflux_free":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+        "vflux_constr":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+        "vflux_meas":{"net":[], "net2i":{}},
+        "vflux_compl":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+        "vflux_fwrv":{"fw":[], "rv":[], "fw2i":{}, "rv2i":{}},
+        "vrowAfl":[],
+        "flux_in":set(),
+        "flux_out":set(),
     };
     res="";     # auxiliary short-cut to current result;
 
     # analyse networks
-    netw=ftbl.get('NETWORK');
+    netw=ftbl.get("NETWORK");
     row_to_del=[];
     for row in netw:
-        reac=row['FLUX_NAME'];
+        reac=row["FLUX_NAME"];
         #print "reac="+reac;#
-        e1=row.get('EDUCT_1');
-        if not e1: raise 'EDUCT_1 must be defined in flux '+reac;
-        e2=row.get('EDUCT_2');
-        p1=row.get('PRODUCT_1');
-        if not p1: raise 'PRODUCT_1 must be defined in flux '+reac;
-        p2=row.get('PRODUCT_2');
+        e1=row.get("EDUCT_1");
+        if not e1: raise "EDUCT_1 must be defined in flux "+reac;
+        e2=row.get("EDUCT_2");
+        p1=row.get("PRODUCT_1");
+        if not p1: raise "PRODUCT_1 must be defined in flux "+reac;
+        p2=row.get("PRODUCT_2");
         
         # local substrate (es), product (ps) and metabolites (ms) sets
         es=set((e1,));
@@ -259,38 +261,38 @@ def ftbl_netan(ftbl):
         ms=es|ps;
         
         # all reactions A+B=C or C=A+B or A+B=C+D
-        netan['reac'].add(reac);
-        netan['subs'].update(es);
-        netan['prods'].update(ps);
-        netan['metabs'].update(ms);
-        #aff('ms for '+reac, ms);##
+        netan["reac"].add(reac);
+        netan["subs"].update(es);
+        netan["prods"].update(ps);
+        netan["metabs"].update(ms);
+        #aff("ms for "+reac, ms);##
 
         # create chemical formula
-        netan['formula'][reac]={'left':es, 'right':ps, 'all':ms};
+        netan["formula"][reac]={"left":es, "right":ps, "all":ms};
 
         # Carbon length and transitions
-        trans=ftbl['TRANS'][reac];
-        netan['carbotrans'][reac]={'left':[], 'right':[]};
-        for (m,carb,lr) in [(e1,trans.get('EDUCT_1'),'left'),
-                (e2,trans.get('EDUCT_2'),'left'),
-                (p1,trans.get('PRODUCT_1'),'right'),
-                (p2,trans.get('PRODUCT_2'),'right')]:
+        trans=ftbl["TRANS"][reac];
+        netan["carbotrans"][reac]={"left":[], "right":[]};
+        for (m,carb,lr) in [(e1,trans.get("EDUCT_1"),"left"),
+                (e2,trans.get("EDUCT_2"),"left"),
+                (p1,trans.get("PRODUCT_1"),"right"),
+                (p2,trans.get("PRODUCT_2"),"right")]:
                 #print "m="+str(m), "; carb="+str(carb);##
             if not m or not carb:
                 continue;
             if carb[0] != "#":
-                raise ("In carbon string for metabolite "+m+" a starting '#' is missing."+
+                raise ("In carbon string for metabolite "+m+" a starting "#" is missing."+
                     "\nreaction="+str(row)+"\ncarbons ="+str(trans));
             # carbon transitions
-            netan['carbotrans'][reac][lr].append((m,carb[1:])); # strip '#' character
+            netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
 
             # carbon length
-            if netan['Clen'].get(m, 0) and \
-                    netan['Clen'][m] != len(carb)-1:
-                raise 'Metabolite '+m+' has length '+\
-                        str(netan['Clen'][m])+' but in reaction '+reac+\
-                        ' it has legth '+str(len(carb)-1);
-            netan['Clen'][m]=len(carb)-1; # don't count '#' character
+            if netan["Clen"].get(m, 0) and \
+                    netan["Clen"][m] != len(carb)-1:
+                raise "Metabolite "+m+" has length "+\
+                        str(netan["Clen"][m])+" but in reaction "+reac+\
+                        " it has legth "+str(len(carb)-1);
+            netan["Clen"][m]=len(carb)-1; # don't count '#' character
 
         # stocheometric matrix in dictionnary form
         # sto_r_m[reac]['left'|'right']=list(metab) and
@@ -298,52 +300,52 @@ def ftbl_netan(ftbl):
         # substrates are in 'left' list
         # and products are in the 'right' one.
 
-        netan['sto_r_m'][reac]={'left':[e1], 'right':[p1]};
+        netan["sto_r_m"][reac]={"left":[e1], "right":[p1]};
         if (e2):
-            netan['sto_r_m'][reac]['left'].append(e2);
+            netan["sto_r_m"][reac]["left"].append(e2);
         if (p2):
-            netan['sto_r_m'][reac]['right'].append(p2);
+            netan["sto_r_m"][reac]["right"].append(p2);
 ##        #print "col keys", col.keys();##
         
-        for s in netan['sto_r_m'][reac]['left']:
+        for s in netan["sto_r_m"][reac]["left"]:
            #print "sto_m_r s="+str(s);##
-            if not s in netan['sto_m_r']:
-                netan['sto_m_r'][s]={'left':[], 'right':[]};
-            netan['sto_m_r'][s]['left'].append(reac);
-        for s in netan['sto_r_m'][reac]['right']:
+            if not s in netan["sto_m_r"]:
+                netan["sto_m_r"][s]={"left":[], "right":[]};
+            netan["sto_m_r"][s]["left"].append(reac);
+        for s in netan["sto_r_m"][reac]["right"]:
            #print "sto_m_r s="+str(s);
-            if not s in netan['sto_m_r']:
-                netan['sto_m_r'][s]={'left':[], 'right':[]};
-            netan['sto_m_r'][s]['right'].append(reac);
-        # end netan['sto_m_r']
-        #aff('sto_m_r'+str(reac), netan['sto_m_r']);##
+            if not s in netan["sto_m_r"]:
+                netan["sto_m_r"][s]={"left":[], "right":[]};
+            netan["sto_m_r"][s]["right"].append(reac);
+        # end netan["sto_m_r"]
+        #aff("sto_m_r"+str(reac), netan["sto_m_r"]);##
 
     # find input and output metabolites
-    netan['input'].update(netan['subs']-netan['prods']);
-    netan['output'].update(netan['prods']-netan['subs']);
+    netan["input"].update(netan["subs"]-netan["prods"]);
+    netan["output"].update(netan["prods"]-netan["subs"]);
     
     # input and output flux names
-    netan['flux_in']=set(valval(netan['sto_m_r'][m]['left'] for m in netan['input']));
-    netan['flux_out']=set(valval(netan['sto_m_r'][m]['right'] for m in netan['output']));
+    netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]));
+    netan["flux_out"]=set(valval(netan["sto_m_r"][m]["right"] for m in netan["output"]));
 
     # analyse reaction reversibility
     # and free fluxes(dictionary flux->init value for simulation or minimization)
     # and constrained fluxes (dictionary flux->value)
-    netan['flux_free']={'net':{}, 'xch':{}};
-    netan['flux_constr']={'net':{}, 'xch':{}};
-    flx=ftbl.get('FLUXES');
+    netan["flux_free"]={"net":{}, "xch":{}};
+    netan["flux_constr"]={"net":{}, "xch":{}};
+    flx=ftbl.get("FLUXES");
     if flx:
-        xch=flx.get('XCH');
-        net=flx.get('NET');
+        xch=flx.get("XCH");
+        net=flx.get("NET");
 ##        aff("net", net);
     else:
-        sys.stderr.write(sys.argv[0]+': netan[FLUXES][XCH] is not defined');
+        sys.stderr.write(sys.argv[0]+": netan[FLUXES][XCH] is not defined");
         return None;
-    for reac in netan['reac']:
+    for reac in netan["reac"]:
         # get xch condition for this reac
-        cond=[row for row in xch if row['NAME']==reac];
+        cond=[row for row in xch if row["NAME"]==reac];
         # get net condition for this reac
-        ncond=([row for row in net if row['NAME']==reac]) if net else [];
+        ncond=([row for row in net if row["NAME"]==reac]) if net else [];
         if cond:
             cond=cond[0];
         if ncond:
@@ -354,169 +356,173 @@ def ftbl_netan(ftbl):
         #aff("ncond", ncond);##
         # not reversibles are those reaction having xch flux=0 or
         # input/output fluxes
-        if (cond and cond['FCD'] == 'C' and float(cond['VALUE(F/C)']) == 0.) or \
-                (netan['formula'][reac]['left'] & netan['input']) or \
-                (netan['formula'][reac]['right'] & netan['output']):
-            netan['notrev'].add(reac);
-        if (cond and cond['FCD'] == 'F'):
+        if (cond and cond["FCD"] == "C" and float(cond["VALUE(F/C)"]) == 0.) or \
+                (netan["formula"][reac]["left"] & netan["input"]) or \
+                (netan["formula"][reac]["right"] & netan["output"]):
+            netan["notrev"].add(reac);
+        if (cond and cond["FCD"] == "F"):
             # free xch
-            netan['flux_free']['xch'][reac]=float(cond['VALUE(F/C)']);
-        elif (cond and (cond['FCD'] == 'C' or reac in netan["notrev"])):
+            netan["flux_free"]["xch"][reac]=float(cond["VALUE(F/C)"]);
+        elif (cond and (cond["FCD"] == "C" or reac in netan["notrev"])):
             # constrained xch
-            netan['flux_constr']['xch'][reac]=float(cond['VALUE(F/C)'])\
-                    if cond['FCD'] == 'C' else 0.;
-        if (ncond and ncond['FCD'] == 'F'):
+            netan["flux_constr"]["xch"][reac]=float(cond["VALUE(F/C)"])\
+                    if cond["FCD"] == "C" else 0.;
+        if (ncond and ncond["FCD"] == "F"):
             # free net
-            netan['flux_free']['net'][reac]=float(ncond['VALUE(F/C)']);
-        elif (ncond and ncond['FCD'] == 'C'):
+            netan["flux_free"]["net"][reac]=float(ncond["VALUE(F/C)"]);
+        elif (ncond and ncond["FCD"] == "C"):
             # constr net
-            netan['flux_constr']['net'][reac]=float(ncond['VALUE(F/C)']);
-##        aff("free net", netan['flux_free']['net']);
-##        aff("free xch", netan['flux_free']['xch']);
-##        aff("constr net", netan['flux_free']['net']);
-##        aff("free xch", netan['flux_free']['xch']);
+            netan["flux_constr"]["net"][reac]=float(ncond["VALUE(F/C)"]);
+##        aff("free net", netan["flux_free"]["net"]);
+##        aff("free xch", netan["flux_free"]["xch"]);
+##        aff("constr net", netan["flux_free"]["net"]);
+##        aff("free xch", netan["flux_free"]["xch"]);
 
     # measured fluxes
-    for row in ftbl.get('FLUX_MEASUREMENTS',[]):
-        netan['flux_measured'][row['FLUX_NAME']]={\
-                'val': float(row['VALUE']), \
-                'dev': float(row['DEVIATION'])};
+    for row in ftbl.get("FLUX_MEASUREMENTS",[]):
+        netan["flux_measured"][row["FLUX_NAME"]]={\
+                "val": float(row["VALUE"]), \
+                "dev": float(row["DEVIATION"])};
     # input isotopomers
-    for row in ftbl.get('LABEL_INPUT',[]):
-        metab=row['META_NAME'] or metab;
-        iiso=strbit2int(row['ISOTOPOMER']);
-        if metab not in netan['iso_input']:
-            netan['iso_input'][metab]={};
-        netan['iso_input'][metab][iiso]=float(row['VALUE']);
+    for row in ftbl.get("LABEL_INPUT",[]):
+        metab=row["META_NAME"] or metab;
+        iiso=strbit2int(row["ISOTOPOMER"]);
+        if metab not in netan["iso_input"]:
+            netan["iso_input"][metab]={};
+        netan["iso_input"][metab][iiso]=float(row["VALUE"]);
+    if set(netan["iso_input"].keys()) != set(netan["input"]):
+        raise Exception("Label input section must contain all network input metabolites and only them\n"+
+            "label_input: "+str(netan["iso_input"].keys())+"\n"+
+            "network input: "+str(netan["input"]));
     
     # translate input iso to input cumo
-    for metab in netan['iso_input']:
-       for icumo in xrange(1,1<<(netan['Clen'][metab])):
-           cumo=metab+':'+str(icumo);
-           netan['cumo_input'][cumo]=iso2cumo(netan['Clen'][metab], icumo, netan['iso_input'][metab]);
+    for metab in netan["iso_input"]:
+       for icumo in xrange(1,1<<(netan["Clen"][metab])):
+           cumo=metab+":"+str(icumo);
+           netan["cumo_input"][cumo]=iso2cumo(netan["Clen"][metab], icumo, netan["iso_input"][metab]);
     
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
     # and comp is of "<", "<=", ...
     # net fluxes
-    for row in ftbl.get('INEQUALITIES',{}).get('NET',[]):
+    for row in ftbl.get("INEQUALITIES",{}).get("NET",[]):
         #print row;##
-        netan['flux_inequal']['net'].append((
-                row['VALUE'],
-                row['COMP'],
-                formula2dict(row['FORMULA'])));
+        netan["flux_inequal"]["net"].append((
+                float(row["VALUE"]),
+                row["COMP"],
+                formula2dict(row["FORMULA"])));
     # xch fluxes
-    for row in ftbl.get('INEQUALITIES',{}).get('XCH',[]):
+    for row in ftbl.get("INEQUALITIES",{}).get("XCH",[]):
         #print row;##
-        netan['flux_inequal']['xch'].append((
-                row['VALUE'],
-                row['COMP'],
-                formula2dict(row['FORMULA'])));
+        netan["flux_inequal"]["xch"].append((
+                float(row["VALUE"]),
+                row["COMP"],
+                formula2dict(row["FORMULA"])));
 
     # flux equalities
     # list of tuples (value,dict) where dict is flux:coef
     # net fluxes
-    for row in ftbl.get('EQUALITIES',{}).get('NET',[]):
+    for row in ftbl.get("EQUALITIES",{}).get("NET",[]):
         #print row;##
-        netan['flux_equal']['net'].append((
-                row['VALUE'],
-                formula2dict(row['FORMULA'])));
+        netan["flux_equal"]["net"].append((
+                float(row["VALUE"]),
+                formula2dict(row["FORMULA"])));
     # xch fluxes
-    for row in ftbl.get('EQUALITIES',{}).get('XCH',[]):
+    for row in ftbl.get("EQUALITIES",{}).get("XCH",[]):
         #print row;##
-        netan['flux_equal']['xch'].append((
-                row['VALUE'],
-                formula2dict(row['FORMULA'])));
+        netan["flux_equal"]["xch"].append((
+                float(row["VALUE"]),
+                formula2dict(row["FORMULA"])));
     
     # label measurements
     # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}}
-    metab='';
-    for row in ftbl.get('LABEL_MEASUREMENTS',[]):
+    metab="";
+    for row in ftbl.get("LABEL_MEASUREMENTS",[]):
         #print row;##
         # test the cumomer pattern validity
-        if (not re.match(r'#[01x]+(\+#[01x]+)*', row['CUM_CONSTRAINTS'])):
-            raise "Not valid cumomer's pattern in '"+row['CUM_CONSTRAINTS']+"'";
-        metab=row['META_NAME'] or metab;
-        if not metab in netan['metabs']:
+        if (not re.match(r"#[01x]+(\+#[01x]+)*", row["CUM_CONSTRAINTS"])):
+            raise "Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"'";
+        metab=row["META_NAME"] or metab;
+        if not metab in netan["metabs"]:
             raise "Unknown metabolite name '"+metab+"' in LABEL_MEASUREMENTS";
-        mlen=netan['Clen'][metab];
-        group=row['CUM_GROUP'] or group;
-        if not metab in netan['label_meas']:
-            netan['label_meas'][metab]={};
-        if not group in netan['label_meas'][metab]:
-            netan['label_meas'][metab][group]=[];
+        mlen=netan["Clen"][metab];
+        group=row["CUM_GROUP"] or group;
+        if not metab in netan["label_meas"]:
+            netan["label_meas"][metab]={};
+        if not group in netan["label_meas"][metab]:
+            netan["label_meas"][metab][group]=[];
         # prepare cumos list
         # if bcumos is not empty use it
         # else use group name as carbon number (starting from # character)
-        if row.get('CUM_CONSTRAINTS',''):
-            bcumos=row['CUM_CONSTRAINTS'].split('+');
+        if row.get("CUM_CONSTRAINTS",""):
+            bcumos=row["CUM_CONSTRAINTS"].split("+");
         else:
             try:
                 i=int(group);
-                bcumos='#'+'x'*netan['Clen'][metab];
-                bcumos[i-1]='1';
+                bcumos="#"+"x"*netan["Clen"][metab];
+                bcumos[i-1]="1";
                 bcumos=[bcumos];
             except:
                 raise "Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row="+str(row);
-        netan['label_meas'][metab][group].append({
-                'val':float(row['VALUE']),
-                'dev':float(row['DEVIATION']),
-                'bcumos':row['CUM_CONSTRAINTS'].split('+')
+        netan["label_meas"][metab][group].append({
+                "val":float(row["VALUE"]),
+                "dev":float(row["DEVIATION"]),
+                "bcumos":row["CUM_CONSTRAINTS"].split("+")
         });
         # test the icumomer lengths
         if not all(len(ic)==mlen+1 for ic in 
-                netan['label_meas'][metab][group][-1]['bcumos']):
-            raise "Wrong cumomer length for "+metab+" in "+row['CUM_CONSTRAINTS']
+                netan["label_meas"][metab][group][-1]["bcumos"]):
+            raise "Wrong cumomer length for "+metab+" in "+row["CUM_CONSTRAINTS"]
     
     # peak measurements
     # [metab][c_no][peak_type in (S,D-,D+,(DD|T))]={val:x, dev:y}
-    metab='';
-    for row in ftbl.get('PEAK_MEASUREMENTS',[]):
+    metab="";
+    for row in ftbl.get("PEAK_MEASUREMENTS",[]):
         #print row;##
         # test the pattern validity
-        if (row.get('VALUE_DD','') and row.get('VALUE_T','')):
+        if (row.get("VALUE_DD","") and row.get("VALUE_T","")):
             raise "Not valid value combination. Only one of DD and T has to be in row "+str(row);
-        metab=row['META_NAME'] or metab;
-        if not metab in netan['metabs']:
-            raise "Unknown metabolite name '"+metab+"' in PEAK_MEASUREMENTS";
-        clen=netan['Clen'][metab];
-        netan['peak_meas'].setdefault(metab,{});
-        for suff in ('S', 'D-', 'D+', 'DD', 'T'):
+        metab=row["META_NAME"] or metab;
+        if not metab in netan["metabs"]:
+            raise "Unknown metabolite name ""+metab+"" in PEAK_MEASUREMENTS";
+        clen=netan["Clen"][metab];
+        netan["peak_meas"].setdefault(metab,{});
+        for suff in ("S", "D-", "D+", "DD", "T"):
             # get val and dev for this type of peak
-            val=row.get('VALUE_'+suff,'');
+            val=row.get("VALUE_"+suff,"");
             if (not val):
                 continue;
-            dev=row.get('DEVIATION_'+suff,'') or row.get('DEVIATION_S');
+            dev=row.get("DEVIATION_"+suff,"") or row.get("DEVIATION_S");
             # test validity
             if not dev:
-                raise 'Deviation is not determined for VALUE_'+suff+' in row \n'+str(row);
-            c_no=int(row['PEAK_NO']);
+                raise "Deviation is not determined for VALUE_"+suff+" in row \n"+str(row);
+            c_no=int(row["PEAK_NO"]);
             if c_no > clen:
-                raise 'Carbon number '+str(c_no)+' is gretaer than carbon length '+str(clen)+' for metabolite "'+metab+'" in row \n'+str(row);
-            if suff == 'D-' and c_no == 1:
-                raise 'Peak D- cannot be set for metabolite '+metab+', c_no=1 in row \n'+str(row);
-            if suff == 'D+' and c_no == clen:
-                raise 'Peak D+ cannot be set for metabolite '+metab+', c_no='+str(c_no)+' in row \n'+str(row);
-            if (suff == 'DD' or suff == 'T') and (c_no == 1 or c_no == clen or clen < 3):
-                raise 'Peak DD (or T) cannot be set for metabolite '+metab+', c_no='+str(c_no)+', len='+str(clen)+' in row \n'+str(row);
-            netan['peak_meas'][metab].setdefault(c_no,{});
-            netan['peak_meas'][metab][c_no][suff]={'val': float(val), 'dev': float(dev)};
+                raise "Carbon number "+str(c_no)+" is gretaer than carbon length "+str(clen)+" for metabolite '"+metab+"' in row \n"+str(row);
+            if suff == "D-" and c_no == 1:
+                raise "Peak D- cannot be set for metabolite "+metab+", c_no=1 in row \n"+str(row);
+            if suff == "D+" and c_no == clen:
+                raise "Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" in row \n"+str(row);
+            if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
+                raise "Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" in row \n"+str(row);
+            netan["peak_meas"][metab].setdefault(c_no,{});
+            netan["peak_meas"][metab][c_no][suff]={"val": float(val), "dev": float(dev)};
     
     # mass measurements
     # dict:[metab][frag_mask][weight]={val:x, dev:y}
-    metab='';
-    for row in ftbl.get('MASS_SPECTROMETRY',[]):
+    metab="";
+    for row in ftbl.get("MASS_SPECTROMETRY",[]):
         #print row;##
-        metab=row['META_NAME'] or metab;
-        clen=netan['Clen'][metab];
+        metab=row["META_NAME"] or metab;
+        clen=netan["Clen"][metab];
         # test the validity
-        if not metab in netan['metabs']:
+        if not metab in netan["metabs"]:
             raise "Unknown metabolite name '"+metab+"' in MASS_SPECTROMETRY";
-        frag=row['FRAGMENT'] or frag;
-        if row['FRAGMENT']:
+        frag=row["FRAGMENT"] or frag;
+        if row["FRAGMENT"]:
             # recalculate fragment mask
             mask=0;
-            for item in frag.split(','):
+            for item in frag.split(","):
                 try:
                     i=int(item);
                     # add this simple item to the mask
@@ -524,71 +530,73 @@ def ftbl_netan(ftbl):
                 except ValueError:
                     # try the interval
                     try:
-                        (start,end)=item.split('~');
+                        (start,end)=item.split("~");
                         #print "start,end=%s,%s" % (start,end);##
                         try:
                             for i in xrange(int(start),int(end)+1):
                                 if i > clen:
-                                    raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan['Clen'][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
+                                    raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan["Clen"][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
                                 mask|=1<<(clen-i);
                         except:
                             raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
                     except:
                         raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
-        weight=int(row['WEIGHT']);
+        weight=int(row["WEIGHT"]);
         if sumbit(mask) < weight:
             raise "Weight "+str(weight)+" is higher than fragment length "+frag+" in MASS_SPECTROMETRY\nrow="+str(row);
-        netan['mass_meas'].setdefault(metab, {});
-        netan['mass_meas'][metab].setdefault(mask, {});
-        netan['mass_meas'][metab][mask][weight]={
-                'val':float(row['VALUE']),
-                'dev':float(row['DEVIATION']),
+        if clen < sumbit(mask):
+            raise "Fragment "+frag+" is longer than metabolite length "+str(clen)+" in MASS_SPECTROMETRY\nrow="+str(row);
+        netan["mass_meas"].setdefault(metab, {});
+        netan["mass_meas"][metab].setdefault(mask, {});
+        netan["mass_meas"][metab][mask][weight]={
+                "val":float(row["VALUE"]),
+                "dev":float(row["DEVIATION"]),
         }
     
     # discard empty entries
     for e in netan:
         try:
-            netan[e].discard('');
+            netan[e].discard("");
             netan[e].discard(None);
         except AttributeError: pass;
 
     # fwd-rev flux balance
     del(res);
-    res=netan['flux_m_r'];
-    # res[metab]['in']=list(flux.fwd|flux.rev)
-    # res[metab]['out']=list(flux.fwd|flux.rev)
-    for metab,lr in netan['sto_m_r'].iteritems():
+    res=netan["flux_m_r"];
+    # res[metab]["in"]=list(flux.fwd|flux.rev)
+    # res[metab]["out"]=list(flux.fwd|flux.rev)
+    for metab,lr in netan["sto_m_r"].iteritems():
         # lr is dico with 'left' and 'right' entries
         #print "fwd metab="+str(metab);##
         if not metab in res:
-            res[metab]={'in':[], 'out':[]};
-        for reac in lr['left']:
+            res[metab]={"in":[], "out":[]};
+        for reac in lr["left"]:
             # here metabolite is consumed in fwd reaction
             # and produced in the reverse one.
-            res[metab]['out'].append(reac+".fwd");
-            if reac not in netan['notrev']:
-                res[metab]['in'].append(reac+".rev");
-        for reac in lr['right']:
+            res[metab]["out"].append(reac+".fwd");
+            if reac not in netan["notrev"]:
+                res[metab]["in"].append(reac+".rev");
+        for reac in lr["right"]:
             # here metabolite is consumed in rev reaction
             # and produced in the forward one.
-            res[metab]['in'].append(reac+".fwd");
-            if reac not in netan['notrev']:
-                res[metab]['out'].append(reac+".rev");
+            res[metab]["in"].append(reac+".fwd");
+            if reac not in netan["notrev"]:
+                res[metab]["out"].append(reac+".rev");
 
     # metabolite network
     del(res);
-    res=netan['metab_netw'];
+    res=netan["metab_netw"];
     # left part or reaction points to right part
-    for reac,parts in netan['formula'].iteritems():
-        for metab in parts['left']:
+    for reac,parts in netan["formula"].iteritems():
+        for metab in parts["left"]:
             if not metab in res:
                 res[metab]=set();
-            res[metab].update(parts['right']);
+            res[metab].update(parts["right"]);
     # order cumomers by weight. For a given weight, cumomers are sorted by
     # metabolites order.
-    netan['Cmax']=max(netan['Clen'].values());
-    Cmax=netan['Cmax'];
-    
+    netan["Cmax"]=max(netan["Clen"].values());
+    Cmax=netan["Cmax"];
+    #return netan;##
     # cumomers systems A*x=b, one by weight
     # weights are going from 1 to Cmax where Cmax is the maximal
     # carbon string length in all metabolites
@@ -597,213 +605,220 @@ def ftbl_netan(ftbl):
     # the dimensions of various weights in b are not the same
     # too short metabolites are dropped when going to higher weights.
     del(res);
-    res=netan['cumo_sys'];
-    res['A']=[{} for i in xrange(Cmax)];
-    res['b']=[{} for i in xrange(Cmax)];
+    res=netan["cumo_sys"];
+    res["A"]=[{} for i in xrange(Cmax)];
+    res["b"]=[{} for i in xrange(Cmax)];
     # run through all reactions and update bilan of involved cumomers
-    for (reac,lrdict) in netan['carbotrans'].iteritems():
+    for (reac,lrdict) in netan["carbotrans"].iteritems():
         # run through metabs
-        ## aff('lrdict', lrdict);#
+        ## aff("lrdict", lrdict);#
         for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
                 for (lr,lst) in lrdict.iteritems()
                 for (imetab,(metab,cstr)) in enumerate(lst)):
             # if output metab then influx is set to 1
             # so its cumomer distribution is directly
             # defined by cumodistr of inputs
-            Clen=netan['Clen'][metab];
+            Clen=netan["Clen"][metab];
             # input metabolite has fixed value so put it in rhs
             # when it is an influx for some internal cumomer
-            if metab in netan['input'] or metab in netan['output']:
+            if metab in netan["input"] or metab in netan["output"]:
                 continue;
             # 'out' part of this metab
-            fwd_rev=('.fwd' if lr=='left' else '.rev');
+            fwd_rev=(".fwd" if lr=="left" else ".rev");
             flux=reac+fwd_rev;
-            if (fwd_rev=='.fwd' or reac not in netan['notrev']):
+            if (fwd_rev==".fwd" or reac not in netan["notrev"]):
                 # add this out-flux;
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
-                    cumo=metab+':'+str(icumo);
+                    cumo=metab+":"+str(icumo);
                     w=sumbit(icumo);
                     #print "w,i,clen,metab=", w, icumo,Clen,metab;##
-                    if cumo not in res['A'][w-1]:
-                        res['A'][w-1][cumo]={cumo:[]};
+                    if cumo not in res["A"][w-1]:
+                        res["A"][w-1][cumo]={cumo:[]};
                     # main diagonal term ('out' part)
-                    res['A'][w-1][cumo][cumo].append(flux);
+                    res["A"][w-1][cumo][cumo].append(flux);
                     ##print 'm,ic,w='+metab, icumo, w;#
-                    ##aff("res['A'][w-1][cumo][cumo]", res['A'][w-1][cumo][cumo]);#
+                    ##aff("res["A"][w-1][cumo][cumo]", res["A"][w-1][cumo][cumo]);#
             # 'in' part
-            fwd_rev=('.rev' if lr=='left' else '.fwd');
+            fwd_rev=(".rev" if lr=="left" else ".fwd");
             flux=reac+fwd_rev;
-            in_lr=('left' if lr=='right' else 'right');
-            if (fwd_rev=='.rev' and reac in netan['notrev']):
+            in_lr=("left" if lr=="right" else "right");
+            if (fwd_rev==".rev" and reac in netan["notrev"]):
                 continue;
             # add this in-flux;
             for (in_i,(in_metab, in_cstr)) in enumerate(lrdict[in_lr]):
                 # run through all cumomers of metab
                 for icumo in xrange(1,1<<Clen):
-                    cumo=metab+':'+str(icumo);
+                    cumo=metab+":"+str(icumo);
                     w=sumbit(icumo);
                     # get in_cumo
                     in_icumo=src_ind(in_cstr, cstr, icumo);
-                    in_cumo=in_metab+':'+str(in_icumo);
+                    if in_icumo==None:
+                        continue;
+                    in_cumo=in_metab+":"+str(in_icumo);
                     in_w=sumbit(in_icumo);
-                    if cumo not in res['A'][w-1]:
-                        res['A'][w-1][cumo]={cumo:[]};
+                    if cumo not in res["A"][w-1]:
+                        res["A"][w-1][cumo]={cumo:[]};
                     if in_w==w:
                         if in_metab in netan["input"]:
                             # put it in rhs
-                            if cumo not in res['b'][w-1]:
-                                res['b'][w-1][cumo]={};
-                            if flux not in res['b'][w-1][cumo]:
-                                res['b'][w-1][cumo][flux]={};
-                            if imetab not in res['b'][w-1][cumo][flux]:
-                                res['b'][w-1][cumo][flux][imetab]=[];
-                            res['b'][w-1][cumo][flux][imetab].append(netan["cumo_input"][in_cumo]);
+                            if cumo not in res["b"][w-1]:
+                                res["b"][w-1][cumo]={};
+                            if flux not in res["b"][w-1][cumo]:
+                                res["b"][w-1][cumo][flux]={};
+                            if imetab not in res["b"][w-1][cumo][flux]:
+                                res["b"][w-1][cumo][flux][imetab]=[];
+                            if in_cumo in netan["cumo_input"]:
+                                fract=netan["cumo_input"][in_cumo];
+                            else:
+                                raise Exception(in_cumo+" should be in input section of ftbl file:\n"+
+                                    str(netan["input"])+"\n"+str(netan["cumo_input"]));
+                            res["b"][w-1][cumo][flux][imetab].append(fract);
                         else:
-                            if in_cumo not in res['A'][w-1][cumo]:
-                                res['A'][w-1][cumo][in_cumo]=[];
+                            if in_cumo not in res["A"][w-1][cumo]:
+                                res["A"][w-1][cumo][in_cumo]=[];
                             # matrix: linearized off-diagonal term
-                            res['A'][w-1][cumo][in_cumo].append(flux);
+                            res["A"][w-1][cumo][in_cumo].append(flux);
                     elif in_w>0:
                         # put it in rhs list[iterm]
-                        if cumo not in res['b'][w-1]:
-                            res['b'][w-1][cumo]={};
-                        if flux not in res['b'][w-1][cumo]:
-                            res['b'][w-1][cumo][flux]={};
-                            if imetab not in res['b'][w-1][cumo][flux]:
-                                res['b'][w-1][cumo][flux][imetab]=[];
+                        if cumo not in res["b"][w-1]:
+                            res["b"][w-1][cumo]={};
+                        if flux not in res["b"][w-1][cumo]:
+                            res["b"][w-1][cumo][flux]={};
+                            if imetab not in res["b"][w-1][cumo][flux]:
+                                res["b"][w-1][cumo][flux][imetab]=[];
                         #print "metab,imetab,cumo,in_cumo,flux=%s"%join(",", (metab,imetab,cumo,in_cumo,flux));##
-                        res['b'][w-1][cumo][flux][imetab].append(
+                        res["b"][w-1][cumo][flux][imetab].append(
                             in_cumo if in_metab not in netan["input"] else
                             netan["cumo_input"][in_cumo]);
-                        #print "b="+str(res['b'][w-1][cumo][flux]);##
-                    # if in_w==0 then in_cumo=1 by definition
+                        #print "b="+str(res["b"][w-1][cumo][flux]);##
+                    # if in_w==0 then in_cumo=1 by definition => ignore here
                     # in_w cannot be > w because of src_ind();
     
     # ordered cumomer lists
-    for w in xrange(1,netan['Cmax']+1):
+    for w in xrange(1,netan["Cmax"]+1):
         # weight 1 equations have all metabolites
-        ##aff("A "+str(w), netan['cumo_sys']['A'][w-1]);#
-        ##aff("b "+str(w), netan['cumo_sys']['b'][w-1]);#
+        ##aff("A "+str(w), netan["cumo_sys"]["A"][w-1]);#
+        ##aff("b "+str(w), netan["cumo_sys"]["b"][w-1]);#
         # order cumos along pathways
         # starts are input cumomers
-        starts=[cumo for cumo in netan['cumo_sys']['A'][w-1] \
-            if cumo.split(':')[0] in netan['input']];
+        starts=[cumo for cumo in netan["cumo_sys"]["A"][w-1] \
+            if cumo.split(":")[0] in netan["input"]];
         ##aff("st "+str(w), starts);
         # complete starts by all others cumomers
-        starts+=[c for c in netan['cumo_sys']['A'][w-1] if not c in starts];
-        cumo_paths=cumo_path(starts, netan['cumo_sys']['A'][w-1], set());
+        starts+=[c for c in netan["cumo_sys"]["A"][w-1] if not c in starts];
+        cumo_paths=cumo_path(starts, netan["cumo_sys"]["A"][w-1], set());
         # order
-        netan['vcumo'].append([cumo for cumo in valval(cumo_paths)]);
+        netan["vcumo"].append([cumo for cumo in valval(cumo_paths)]);
 
     # ordered unknown flux lists
     # get all reactions which are not constrained neither free
-    netan['vflux']['net'].extend(reac for reac in netan['reac']
-        if reac not in netan['flux_constr']['net'] and
-        reac not in netan['flux_free']['net']);
-    netan['vflux']['xch'].extend(reac for reac in netan['reac']
-        if reac not in netan['flux_constr']['xch'] and
-        reac not in netan['flux_free']['xch']);
+    netan["vflux"]["net"].extend(reac for reac in netan["reac"]
+        if reac not in netan["flux_constr"]["net"] and
+        reac not in netan["flux_free"]["net"]);
+    netan["vflux"]["xch"].extend(reac for reac in netan["reac"]
+        if reac not in netan["flux_constr"]["xch"] and
+        reac not in netan["flux_free"]["xch"]);
 
     # order
-    netan['vflux']['net'].sort();
-    netan['vflux']['xch'].sort();
+    netan["vflux"]["net"].sort();
+    netan["vflux"]["xch"].sort();
     
     # easy index finder
-    netan['vflux']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux']['net']))
-    netan['vflux']['xch2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux']['xch']))
+    netan["vflux"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux"]["net"]))
+    netan["vflux"]["xch2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux"]["xch"]))
 
 
     # ordered free flux lists
-    netan['vflux_free']['net']=netan['flux_free']['net'].keys();
-    netan['vflux_free']['xch']=netan['flux_free']['xch'].keys();
+    netan["vflux_free"]["net"]=netan["flux_free"]["net"].keys();
+    netan["vflux_free"]["xch"]=netan["flux_free"]["xch"].keys();
 
     # order
-    netan['vflux_free']['net'].sort();
-    netan['vflux_free']['xch'].sort();
+    netan["vflux_free"]["net"].sort();
+    netan["vflux_free"]["xch"].sort();
     
     # easy index finder
-    netan['vflux_free']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_free']['net']))
-    netan['vflux_free']['xch2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_free']['xch']))
+    netan["vflux_free"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_free"]["net"]))
+    netan["vflux_free"]["xch2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_free"]["xch"]))
 
 
     # ordered constrained flux lists
-    netan['vflux_constr']['net']=netan['flux_constr']['net'].keys();
-    netan['vflux_constr']['xch']=netan['flux_constr']['xch'].keys();
+    netan["vflux_constr"]["net"]=netan["flux_constr"]["net"].keys();
+    netan["vflux_constr"]["xch"]=netan["flux_constr"]["xch"].keys();
 
     # order
-    netan['vflux_constr']['net'].sort();
-    netan['vflux_constr']['xch'].sort();
+    netan["vflux_constr"]["net"].sort();
+    netan["vflux_constr"]["xch"].sort();
     
     # easy index finder
-    netan['vflux_constr']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_constr']['net']))
-    netan['vflux_constr']['xch2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_constr']['xch']))
+    netan["vflux_constr"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_constr"]["net"]))
+    netan["vflux_constr"]["xch2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_constr"]["xch"]))
 
 
     # ordered measured flux lists
-    netan['vflux_meas']['net']=netan['flux_measured'].keys();
+    netan["vflux_meas"]["net"]=netan["flux_measured"].keys();
 
     # order
-    netan['vflux_meas']['net'].sort();
+    netan["vflux_meas"]["net"].sort();
     
     # easy index finder
-    netan['vflux_meas']['net2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_meas']['net']))
+    netan["vflux_meas"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_meas"]["net"]))
 
 
     # ordered complete flux lists
-    netan['vflux_compl']={
-        'net': 
-        netan['vflux']['net']+
-        netan['vflux_free']['net']+
-        netan['vflux_constr']['net'],
-        'xch':
-        netan['vflux']['xch']+
-        netan['vflux_free']['xch']+
-        netan['vflux_constr']['xch'],
+    netan["vflux_compl"]={
+        "net": 
+        netan["vflux"]["net"]+
+        netan["vflux_free"]["net"]+
+        netan["vflux_constr"]["net"],
+        "xch":
+        netan["vflux"]["xch"]+
+        netan["vflux_free"]["xch"]+
+        netan["vflux_constr"]["xch"],
     };
     # easy index finding
     # net
-    netan['vflux_compl']['net2i']=dict(
-        (fl,i) for (i,fl) in enumerate(netan['vflux']['net'])
+    netan["vflux_compl"]["net2i"]=dict(
+        (fl,i) for (i,fl) in enumerate(netan["vflux"]["net"])
     );
-    netan['vflux_compl']['net2i'].update(dict(
-        (fl,i+len(netan['vflux']['net']))
-        for (i,fl) in enumerate(netan['vflux_free']['net'])
+    netan["vflux_compl"]["net2i"].update(dict(
+        (fl,i+len(netan["vflux"]["net"]))
+        for (i,fl) in enumerate(netan["vflux_free"]["net"])
     ));
-    netan['vflux_compl']['net2i'].update(dict(
-        (fl,i+len(netan['vflux']['net'])+len(netan['vflux_free']['net']))
-        for (i,fl) in enumerate(netan['vflux_constr']['net'])
+    netan["vflux_compl"]["net2i"].update(dict(
+        (fl,i+len(netan["vflux"]["net"])+len(netan["vflux_free"]["net"]))
+        for (i,fl) in enumerate(netan["vflux_constr"]["net"])
     ));
     # xch
-    netan['vflux_compl']['xch2i']=dict(
-        (fl,i) for (i,fl) in enumerate(netan['vflux']['xch'])
+    netan["vflux_compl"]["xch2i"]=dict(
+        (fl,i) for (i,fl) in enumerate(netan["vflux"]["xch"])
     );
-    netan['vflux_compl']['xch2i'].update(dict(
-        (fl,i+len(netan['vflux']['xch']))
-        for (i,fl) in enumerate(netan['vflux_free']['xch'])
+    netan["vflux_compl"]["xch2i"].update(dict(
+        (fl,i+len(netan["vflux"]["xch"]))
+        for (i,fl) in enumerate(netan["vflux_free"]["xch"])
     ));
-    netan['vflux_compl']['xch2i'].update(dict(
-        (fl,i+len(netan['vflux']['xch'])+len(netan['vflux_free']['xch']))
-        for (i,fl) in enumerate(netan['vflux_constr']['xch'])
+    netan["vflux_compl"]["xch2i"].update(dict(
+        (fl,i+len(netan["vflux"]["xch"])+len(netan["vflux_free"]["xch"]))
+        for (i,fl) in enumerate(netan["vflux_constr"]["xch"])
     ));
 
 
     # ordered fwd-rev flux lists
     # fw and rv parts are identical so they match each other
-    netan['vflux_fwrv']['fw']=\
-        netan['vflux']['net']+\
-        netan['vflux_free']['net']+\
-        netan['vflux_constr']['net'];
+    netan["vflux_fwrv"]["fw"]=\
+        netan["vflux"]["net"]+\
+        netan["vflux_free"]["net"]+\
+        netan["vflux_constr"]["net"];
     
     # order
-    netan['vflux_fwrv']['fw'].sort();
+    netan["vflux_fwrv"]["fw"].sort();
     
     # easy index finder
-    netan['vflux_fwrv']['fw2i']=dict((fl,i) for (i,fl) in enumerate(netan['vflux_fwrv']['fw']))
+    netan["vflux_fwrv"]["fw2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_fwrv"]["fw"]))
     
     # duplicate
-    netan['vflux_fwrv']['rv']=netan['vflux_fwrv']['fw'];
-    netan['vflux_fwrv']['rv2i']=netan['vflux_fwrv']['fw2i'];
+    netan["vflux_fwrv"]["rv"]=netan["vflux_fwrv"]["fw"];
+    netan["vflux_fwrv"]["rv2i"]=netan["vflux_fwrv"]["fw2i"];
 
 
     # linear problem on fluxes Afl*(fl_net;fl_xch)=bfl
@@ -818,22 +833,22 @@ def ftbl_netan(ftbl):
     # numeric coefficients
     
     # stocheometric part
-    res=netan['Afl'];
-    for (metab,lr) in netan['sto_m_r'].iteritems():
-        if (metab in netan['input'] or metab in netan['output']):
+    res=netan["Afl"];
+    for (metab,lr) in netan["sto_m_r"].iteritems():
+        if (metab in netan["input"] or metab in netan["output"]):
             continue;
         # calculate coefs (repeated fluxes)
         # 'left' part consumes metab
-        coefs=list2count(lr['left'], -1);
+        coefs=list2count(lr["left"], -1);
         # 'right' part produces metab
         # NB: it is assumed that metab cannot appear
         # both in left and right hand side of reaction
-        coefs.update(list2count(lr['right']));
-        qry=[coefs.get(fl,0) for fl in netan['vflux']['net']];
-        qry.extend([0]*len(netan['vflux']['xch']));
+        coefs.update(list2count(lr["right"]));
+        qry=[coefs.get(fl,0) for fl in netan["vflux"]["net"]];
+        qry.extend([0]*len(netan["vflux"]["xch"]));
         if qry==[0]*len(qry):
             # degenerated equation, skip it
-            #netan['flux_equal']['net'].append((0., coefs));
+            #netan["flux_equal"]["net"].append((0., coefs));
             #raise "Stocheometric equation is zero for metab "+metab+"\n"+str(lr)+"\n"+str(coefs);
             continue;
         # check if this line was already entered before
@@ -845,28 +860,28 @@ def ftbl_netan(ftbl):
             res.append(qry);
             netan["vrowAfl"].append(metab);
             # prepare right hand side
-            netan['bfl'].append({});
-            dtmp=netan['bfl'][-1];
+            netan["bfl"].append({});
+            dtmp=netan["bfl"][-1];
             for fl in coefs:
-                if fl in netan['flux_free']['net']:
-                    dtmp[fl+'.net']=dtmp.get(fl+'.net',0)-coefs[fl];
-                if fl in netan['flux_constr']['net']:
-                    val=netan['flux_constr']['net'][fl];
+                if fl in netan["flux_free"]["net"]:
+                    dtmp[fl+".net"]=dtmp.get(fl+".net",0)-coefs[fl];
+                if fl in netan["flux_constr"]["net"]:
+                    val=netan["flux_constr"]["net"][fl];
                     if val:
                         dtmp[val]=dtmp.get(val,0)-coefs[fl];
 
     # flux equality part
-    res=netan['Afl'];
-    for nx in ('net', 'xch'):
-        for eq in netan['flux_equal'][nx]:
+    res=netan["Afl"];
+    for nx in ("net", "xch"):
+        for eq in netan["flux_equal"][nx]:
             qry=[];
-            qry.extend(eq[1].get(fl,0) for fl in netan['vflux'][nx]);
-            if nx=='net':
+            qry.extend(eq[1].get(fl,0) for fl in netan["vflux"][nx]);
+            if nx=="net":
                 # add xch zeros
-                qry.extend([0]*len(netan['vflux']['xch']));
+                qry.extend([0]*len(netan["vflux"]["xch"]));
             else:
                 # prepend zeros for net fluxes
-                qry[0:0]=[0]*len(netan['vflux']['net']);
+                qry[0:0]=[0]*len(netan["vflux"]["net"]);
             # check qry
             if qry==[0]*len(qry):
                 # degenerated equality
@@ -878,18 +893,18 @@ def ftbl_netan(ftbl):
                     raise "An equality in section "+nx+" is redondant. eq:"+str(eq);
             res.append(qry);
             netan["vrowAfl"].append("eq "+nx+": "+str(eq[1]));
-            netan['bfl'].append({"":eq[0]})
-            dtmp=netan['bfl'][-1];
+            netan["bfl"].append({"":eq[0]})
+            dtmp=netan["bfl"][-1];
             # pass free fluxes to rhs
-            for fl in netan['flux_free'][nx]:
+            for fl in netan["flux_free"][nx]:
                 if fl in eq[1]:
-                    dtmp[fl+'.'+nx]=dtmp.get(fl+'.'+nx,0)-eq[1][fl];
+                    dtmp[fl+"."+nx]=dtmp.get(fl+"."+nx,0)-float(eq[1][fl]);
             # pass constrained fluxes to rhs
-            for fl in netan['flux_constr'][nx]:
+            for fl in netan["flux_constr"][nx]:
                 if fl in eq[1]:
-                    val=netan['flux_constr'][nx][fl];
+                    val=netan["flux_constr"][nx][fl];
                     if val:
-                        dtmp[val]=dtmp.get(val,0)-eq[1][fl];
+                        dtmp[val]=dtmp.get(val,0)-float(eq[1][fl]);
     return netan;
 
 def enum_path(starts, netw, outs, visited=set()):
@@ -916,11 +931,11 @@ def enum_path(starts, netw, outs, visited=set()):
             res.append([start]);
     return res;
 def cumo_path(starts, A, visited=set()):
-    '''Enumerate cumomers along to reaction pathways.
+    """Enumerate cumomers along to reaction pathways.
     Algo: start from an input, follow chemical pathways till no more
-    neighbours or till rest only visited metabolite.
-    Returns a list of cumomer pathways.
-    Each pathways is an ordered list.'''
+    neighbours or till only visited metabolite rest in network.
+    Return a list of cumomer pathways.
+    Each pathways is an ordered list."""
     #if [s for s in starts if s.find('.') >= 0]:
     #    aff('s', starts);
     res=[];
@@ -953,8 +968,12 @@ def cumo_path(starts, A, visited=set()):
     return res;
     
 def src_ind(substrate, product, iprod):
-    '''For given substrate and product carbon strings (e.g. "abc", "ab")
-    calculate substrate index corresponding to product index'''
+    """src_ind(substrate, product, iprod)
+    For given substrate and product carbon strings (e.g. "abc", "ab")
+    calculate substrate index corresponding to product index.
+    Return None if no source found.
+    Return 0 if iprod==0 and intersection of product and substrate strings
+    is not empty"""
     movbit=1;
     isubstr=0;
     substrate=substrate[::-1];
@@ -968,10 +987,13 @@ def src_ind(substrate, product, iprod):
             except ValueError:
                 pass;
         movbit<<=1;
-    return isubstr;
+    return isubstr if (isubstr or
+        (iprod==0 and (set(product) & set(substrate)))) else None;
 def labprods(prods, metab, isostr, strs):
-    """return a set of tuples (vmetab,visostr) which receive at least
-    one labeled carbon from (metab, isostr)"""
+    """labprods(prods, metab, isostr, strs)
+    Return a set of tuples (vmetab,visostr) which receive at least
+    one labeled carbon from (metab, isostr)
+    """
     # run through product part of reaction to get
     # metabs containing labeled letter from isostr
     #print "p=", prods, "m=", metab, "i=", isostr, "s=", strs;##
@@ -992,11 +1014,12 @@ def labprods(prods, metab, isostr, strs):
     #print "res=", res;##
     return res;
 def allprods(srcs, prods, isos, metab, isostr):
-    """return a set of tuples (cmetab, cisostr, vmetab, visostr)
+    """allprods(srcs, prods, isos, metab, isostr)
+    Return a set of tuples (cmetab, cisostr, vmetab, visostr)
     where cmetab and cisostr describe a contex metabolite
     which combined with metab+isostr produced vmetab+visostr.
     if metab is alone on its reaction part cmetab and cisostr are set to
-    an empty string "".
+    an empty string ("").
     The set covers all combination of
     metab+isostr and its co-substrates which
     produce isotopes having at least one labeled carbon from
@@ -1046,7 +1069,8 @@ def allprods(srcs, prods, isos, metab, isostr):
     #print "res=", res;
     return res;
 def prod(metab, iso, s, cmetab, ciso, cs, prods):
-    "get isotops from labeled substrates"
+    """prod(metab, iso, s, cmetab, ciso, cs, prods)
+    get isotops from labeled substrates"""
     #print "prod: m=", metab, "s=", s, "i=", iso, "cm=", cmetab, "cs=", cs, "ci=", ciso;
     res=set();
     if cs and ciso == -1:
@@ -1064,7 +1088,8 @@ def prod(metab, iso, s, cmetab, ciso, cs, prods):
     #print "res=", res;
     return res;
 def frag_prod(metab, frag, s, cmetab, cfrag, cs, prods):
-    "get fragments from labeled substrates"
+    """frag_prod(metab, frag, s, cmetab, cfrag, cs, prods)
+    Get fragments from labeled substrates"""
     #print "frag_prod: m=", metab, "s=", s, "f=", frag, "cm=", cmetab, "cs=", cs, "cf=", cfrag;
     res=set();
     if cs and not cfrag:
@@ -1080,12 +1105,12 @@ def frag_prod(metab, frag, s, cmetab, cfrag, cs, prods):
     #print "res=", res;
     return res;
 def cumo_iw(w,nlen):
-    '''iterator for a given cumomer weight w in the carbon length nlen'''
+    """iterator for a given cumomer weight w in the carbon length nlen"""
     #print ("cumo_iw: w=%d,nlen=%d\n" % (w,nlen));##
     if w < 0 or w > nlen:
        raise "CumoWeightOutOfRange";
     if nlen < 0:
-       raise "CumoLengthOutOfRange";
+       raise "CumoLengthNegative";
     if w == 1:
         movbit=1;
         for i in xrange(nlen):
@@ -1098,42 +1123,42 @@ def cumo_iw(w,nlen):
                 yield movbit+subi;
             movbit<<=1;
 def iso2cumo(Clen, icumo, iso_dic):
-    '''calculate cumomer fraction from isotopomer ones'''
+    """calculate cumomer fraction from isotopomer ones"""
     return sum(iso_dic.get(iiso,0.)
         for iiso in icumo2iiso(icumo, Clen));
 def formula2dict(f):
-    '''parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
+    """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
-    character (# is allowed). Output is a dict f_i:[+-]a_i'''
+    character (# is allowed). Output is a dict f_i:[+-]a_i"""
     pterm=re.compile(r'\W*([+-])\W*'); # returns list of match1,sep,match2,...
     pflux=re.compile(r'\W*(?P<coef>\d+\.?\d*|^)?\W*\*?\W*(?P<var>[a-zA-Z_][\w\.-]*)\W*');
     res={};
-    sign='+';
+    sign="+";
     l=(i for i in pterm.split(str(f)));
     for term in l:
         try:
             next_sign=l.next();
         except StopIteration:
-            next_sign='';
+            next_sign="";
             pass;
         if (len(term) == 0):
             continue;
         m=pflux.match(term);
         if (m):
-            coef=m.group('coef');
-            coef='1.' if coef==None or not len(coef) else str(float(coef));
-            var=m.group('var');
-            sign='-' if sign=='-' else '+';
+            coef=m.group("coef");
+            coef="1." if coef==None or not len(coef) else str(float(coef));
+            var=m.group("var");
+            sign="-" if sign=="-" else "+";
             res[var]=sign+coef;
             sign=next_sign;
         else:
             raise "Not parsed term '"+term+"'";
     return res;
 def label_meas2matrix_vec_dev(netan):
-    '''use netan['label_meas'] to construct a corresponding measure matrix matx_lab
+    """use netan["label_meas"] to construct a corresponding measure matrix matx_lab
     such that scale_diag*matx_lab*cumos_vector corresponds to label_measures_vector.
     matx_lab is defined as
-    list of dict{'scale':scale_name, 'coefs':dict{icumo:coef}}
+    list of dict{"scale":scale_name, "coefs":dict{icumo:coef}}
     where coef is a contribution of cumo in linear combination for given measure.
     scale_name is of the form "metab;group". Group number is not differentiating between
     measures of the same metabolite.
@@ -1141,74 +1166,74 @@ def label_meas2matrix_vec_dev(netan):
     dev is a list of deviations.
     Elements in matx_lab, vec and dev are ordered in the same way.
     The returned result is a dict (mat,vec,dev)
-    '''
+    """
     # lab[metab][group]=list of {val:x, dev:y, bcumos:list of #bcumo}
     # bcumo is like #1xx01 (0,1 and x are permitted)
     # their sum have to be transformed in cumomer linear combination
     mat=[];
     vec=[];
     dev=[];
-    for (metab,groups) in netan.get('label_meas', {}).iteritems():
+    for (metab,groups) in netan.get("label_meas", {}).iteritems():
         for (group,rows) in groups.iteritems():
             for row in rows:
-                vec.append(row['val']);
-                dev.append(row['dev']);
-                mat.append({'scale': metab+';'+group, 'coefs':{}});
-                res=mat[-1]['coefs'];
-                for cumostr in row['bcumos']:
+                vec.append(row["val"]);
+                dev.append(row["dev"]);
+                mat.append({"scale": metab+";"+group, "coefs":{}});
+                res=mat[-1]["coefs"];
+                for cumostr in row["bcumos"]:
                     decomp=bcumo_decomp(cumostr);
-                    for icumo in decomp['+']:
+                    for icumo in decomp["+"]:
                         res.setdefault(icumo,0);
                         res[icumo]+=1;
-                    for icumo in decomp['-']:
+                    for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
-    return {'mat': mat, 'vec': vec, 'dev': dev};
+    return {"mat": mat, "vec": vec, "dev": dev};
 def mass_meas2matrix_vec_dev(netan):
-    '''use netan['mass_meas'] to construct a corresponding measure matrix matx_mass
+    """use netan["mass_meas"] to construct a corresponding measure matrix matx_mass
     such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.
     matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()
     Elements in matx_mass, vec and dev are ordered in the same way.
     scale name is defined as "metab;fragment_mask"
     The returned result is a dict (mat,vec,dev)
-    '''
+    """
     # mass[metab][frag_mask][weight]={val:x, dev:y}
     # weight has to be transformed in cumomer linear combination
     mat=[];
     vec=[];
     dev=[];
-    for (metab,frag_masks) in netan.get('mass_meas',{}).iteritems():
+    for (metab,frag_masks) in netan.get("mass_meas",{}).iteritems():
         #print "mass matx calc for ", metab;##
-        n=netan['Clen'][metab];
-        str0='0'*n;
-        strx='x'*n;
+        n=netan["Clen"][metab];
+        str0="0"*n;
+        strx="x"*n;
         for (fmask,weights) in frag_masks.iteritems():
             onepos=[b_no for (b_no,b) in iternumbit(fmask) if b];
-            fmask0x=setcharbit(strx,'0',fmask);
+            fmask0x=setcharbit(strx,"0",fmask);
             nmask=sumbit(fmask);
-#            aff('weights for met,fmask '+', '.join((metab,strbit(fmask))), weights);##
+#            aff("weights for met,fmask "+", ".join((metab,strbit(fmask))), weights);##
             for (weight,row) in weights.iteritems():
-                vec.append(row['val']);
-                dev.append(row['dev']);
-                mat.append({'scale': metab+';'+strbit(fmask), 'coefs':{}});
-                res=mat[-1]['coefs'];
+                vec.append(row["val"]);
+                dev.append(row["dev"]);
+                mat.append({"scale": metab+";"+strbit(fmask), "coefs":{}});
+                res=mat[-1]["coefs"];
                 # for a given weight construct bcumo sum: #x10x+#x01x+...
-                bcumos=('#'+setcharbit(fmask0x,'1',expandbit(iw,onepos))
+                bcumos=("#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
                         for iw in xrange(1<<nmask) if sumbit(iw)==weight);
-#                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+#                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                 for cumostr in bcumos:
                     #print cumostr;##
                     decomp=bcumo_decomp(cumostr);
-                    for icumo in decomp['+']:
+                    for icumo in decomp["+"]:
                         res.setdefault(icumo,0);
                         res[icumo]+=1;
-                    for icumo in decomp['-']:
+                    for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
-    return {'mat': mat, 'vec': vec, 'dev': dev};
+    return {"mat": mat, "vec": vec, "dev": dev};
 
-def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD': 7}):
-    '''use netan['peak_meas'] to construct a corresponding measure
+def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD": 7}):
+    """use netan["peak_meas"] to construct a corresponding measure
     matrix matx_peak
     such that scale_diag*matx_peak*cumos_vector corresponds to
     peak_measures_vector.
@@ -1220,91 +1245,91 @@ def peak_meas2matrix_vec_dev(netan, dmask={'S': 2, 'D-': 6, 'D+': 3, 'T': 7, 'DD
     Elements in matx_peak, vec and dev are ordered in the same way.
     scale name is defined as "metab;c_no"
     The returned result is a dict (mat,vec,dev)
-    '''
+    """
     # peak[metab][c_no][peak_type]={val:x, dev:y}
     # c_no+peak_type have to be transformed in cumomer linear combination
     # c_no is 1-based and left (just after # sign) started.
     mat=[];
     vec=[];
     dev=[];
-    for (metab,c_nos) in netan.get('peak_meas',{}).iteritems():
+    for (metab,c_nos) in netan.get("peak_meas",{}).iteritems():
         #print "peak matx calc for ", metab;##
-        n=netan['Clen'][metab];
-        strx='#'+'x'*n;
+        n=netan["Clen"][metab];
+        strx="#"+"x"*n;
         for (c_no,peaks) in c_nos.iteritems():
             # pmask0x put 0 on three targeted carbons and leave x elsewhere
-            pmask0x=setcharbit(strx,'0',1<<(n-c_no));
+            pmask0x=setcharbit(strx,"0",1<<(n-c_no));
             if c_no > 1:
                 # add left neighbour
-                pmask0x=setcharbit(pmask0x,'0',1<<(n-c_no+1));
+                pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no+1));
             if c_no < n:
                 # add right neighbour
-                pmask0x=setcharbit(pmask0x,'0',1<<(n-c_no-1));
-#            aff('peaks for met,c_no,pmask0x='+', '.join((metab,str(c_no),pmask0x)), peaks);##
+                pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no-1));
+#            aff("peaks for met,c_no,pmask0x="+", ".join((metab,str(c_no),pmask0x)), peaks);##
             for (peak,row) in peaks.iteritems():
-                vec.append(row['val']);
-                dev.append(row['dev']);
-                mat.append({'scale': metab+';'+str(c_no), 'coefs':{}});
-                res=mat[-1]['coefs'];
+                vec.append(row["val"]);
+                dev.append(row["dev"]);
+                mat.append({"scale": metab+";"+str(c_no), "coefs":{}});
+                res=mat[-1]["coefs"];
                 # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
                 # shift the 3-bit mask to the right carbon position
                 if c_no < n:
                     pmask=dmask[peak]<<(n-c_no-1);
                 else:
                     pmask=dmask[peak]>>1;
-                bcumos=[setcharbit(pmask0x,'1',pmask)];
-                if peak=='D-' and 'T' in peaks:
+                bcumos=[setcharbit(pmask0x,"1",pmask)];
+                if peak=="D-" and "T" in peaks:
                     # D+===D- => add D+ to the list of measured bcumomers
                     # set the 3-bit mask to the right carbon position
                     if c_no < n:
-                        pmask=dmask['D+']<<(n-c_no-1);
+                        pmask=dmask["D+"]<<(n-c_no-1);
                     else:
-                        pmask=dmask['D+']>>1;
-                    bcumos.append(setcharbit(pmask0x,'1',pmask));
-#                aff('bcumos for met,fmask,w '+', '.join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+                        pmask=dmask["D+"]>>1;
+                    bcumos.append(setcharbit(pmask0x,"1",pmask));
+#                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                 for cumostr in bcumos:
                     #print cumostr;##
                     decomp=bcumo_decomp(cumostr);
-                    for icumo in decomp['+']:
+                    for icumo in decomp["+"]:
                         res.setdefault(icumo,0);
                         res[icumo]+=1;
-                    for icumo in decomp['-']:
+                    for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
-                #print "metab,c_no,peak="+','.join((metab,str(c_no),str(peak)));##
+                #print "metab,c_no,peak="+",".join((metab,str(c_no),str(peak)));##
                 #print "res=",str(res);##
-    return {'mat': mat, 'vec': vec, 'dev': dev};
+    return {"mat": mat, "vec": vec, "dev": dev};
 
 def bcumo_decomp(bcumo):
-    '''bcumo is a string of the form #[01x]+. It has to be decomposed
+    """bcumo is a string of the form #[01x]+. It has to be decomposed
     in the linear combination of cumomers #[1x]+. The coefficients
     of this linear combination are 1 or -1. So it can be represented as
     sum(cumos_positive)-sum(cumos_negative). The result of this function
-    is a dictionary {'+': list of icumos, '-': list of icumos}. icumo is
-    an integer who's binary form indicates 1's positions in a cumomer.'''
+    is a dictionary {"+": list of icumos, "-": list of icumos}. icumo is
+    an integer who's binary form indicates 1's positions in a cumomer."""
     
     # take zero positions
-    zpos=[ i for i in xrange(len(bcumo)-1) if bcumo[-i-1]=='0' ];
+    zpos=[ i for i in xrange(len(bcumo)-1) if bcumo[-i-1]=="0" ];
     
     # basic 1's cumomer mask
     icumo_base=0;
     for i in xrange(len(bcumo)-1):
-        if bcumo[-i-1]=='1':
+        if bcumo[-i-1]=="1":
             icumo_base|=1<<i;
     
     # run through all 2^n zero masks separating positive and negative
     # cumomers
-    res={'+': [], '-': []};
+    res={"+": [], "-": []};
     nz=len(zpos);
     for zmask in xrange(1<<nz):
         # odd or even bit number?
-        sign='-' if sumbit(zmask)%2 else '+';
+        sign="-" if sumbit(zmask)%2 else "+";
         
         # get full cumomer mask
         icumo=icumo_base|expandbit(zmask,zpos);
         # put in result dict
         res[sign].append(icumo);
-    #print bcumo+'=' + '+'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['+'])+('-' if res['-'] else '') +'-'.join(setcharbit('x'*len(bcumo),'1',i) for i in res['-']);##
+    #print bcumo+"=" + "+".join(setcharbit("x"*len(bcumo),"1",i) for i in res["+"])+("-" if res["-"] else "") +"-".join(setcharbit("x"*len(bcumo),"1",i) for i in res["-"]);##
     return res;
 def mat2graph(A, fp):
     """write digraph file on file pointer fp representing
@@ -1345,19 +1370,17 @@ def aglom_loop1(A):
     Return a new dictionary of influence where entries are those of A aglomerated
     and glued "by" tab symbol"""
     # i->loop_name(=min of all nodes in this loop)
-    na=dict(A);
+    na=copy.deepcopy(A);
     loop=dict();
-    # transposed na
-    ta=dict();
-    for i in na:
-        for j in na[i]:
-            ta[j]=ta.get(j,{});
-            ta[j][i]=na[i][j];
-    found=True;
-    while aglom(na,ta,loop):
+    while aglom(na,transpose(na),loop):
         pass;
     return({"na": na, "loop":loop});
 def aglom(na,ta,loop):
+    """new matrix A (na), transpose A (ta) are used to
+    aglomerate neigbour mutually influencing nodes in a supernode.
+    Aglomerated noeds are put in the loop dictionnary.
+    Return False if no nodes were aglomerated.
+    """
     found=False;
     for i in na:
         for j in na[i]:
@@ -1444,12 +1467,20 @@ def transpose(A):
             tA[j]=tA.get(j,{});
             tA[j][i]=A[i][j];
     return(tA);
-def rcumo_sys(netan, measures):
+def rcumo_sys(netan):
     """Calculate reduced cumomers systems A*x=b
     we start with observed cumomers of max weight
     and we include only needed influxes"""
     # get cumomers involved in measures
     meas_cumos=set();
+    # generate measures dico if not yet done
+    if "measures" not in netan:
+        measures=dict();
+        for meas in ("label", "mass", "peak"):
+            measures[meas]=eval("%s_meas2matrix_vec_dev(netan)"%meas);
+        netan["measures"]=measures;
+    measures=netan["measures"];
+    
     for meas in measures:
         for row in measures[meas]["mat"]:
             metab=row["scale"].split(";")[0];
@@ -1492,7 +1523,7 @@ def rcumo_sys(netan, measures):
                 # get the influents to cumo of all weights: equal and lower
                 # equals go to A and lowers go to b
                 infl=cumo_infl(netan, cumo);
-                for (incumo,fl,imetab) in infl:
+                for (incumo,fl,imetab,iinmetab) in infl:
                     if incumo==cumo:
                         # no equation as no transformation
                         continue;
@@ -1537,30 +1568,33 @@ def rcumo_sys(netan, measures):
     return {"A": A, "b": b};
 
 def cumo_infl(netan, cumo):
-    """return the list of tuples (in_cumo,fl, imetab): input cumomer and flux
-    generating cumo (given in the form 'metab:icumo') and metab index(imetab)
-    in the reaction"""
+    """cumo_infl(netan, cumo)
+    return the list of tuples (in_cumo, fl, imetab, iin_metab):
+    input cumomer, flux (.fwd or .rev), index of metab and index of in_metab
+    generating cumo (given in the form "metab:icumo")"""
     (metab, icumo)=cumo.split(":");
     icumo=int(icumo);
     res=[];
     # run through input forward fluxes of this metab
     for reac in set(netan["sto_m_r"][metab]["right"]):
         # get all cstr for given metab
-        for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan['carbotrans'][reac]["right"])
+        for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["right"])
             if m==metab):
             # get all input cumomer in this reaction for this cstr
-            for (in_metab,in_str) in netan['carbotrans'][reac]["left"]:
+            for (iin_metab, (in_metab,in_str)) in enumerate(netan["carbotrans"][reac]["left"]):
                 in_icumo=src_ind(in_str, cstr, icumo);
-                in_cumo=in_metab+':'+str(in_icumo);
-                res.append((in_cumo, reac+".fwd", imetab));
+                if in_icumo != None:
+                    in_cumo=in_metab+":"+str(in_icumo);
+                    res.append((in_cumo, reac+".fwd", imetab, iin_metab));
     # run through input reverse fluxes of this metab
     for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
         # get all cstr for given metab
-        for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan['carbotrans'][reac]["left"])
+        for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["left"])
             if m==metab):
             # get all input cumomer in this reaction for this cstr
-            for (in_metab,in_str) in netan['carbotrans'][reac]["right"]:
+            for (iin_metab, (in_metab,in_str)) in enumerate(netan["carbotrans"][reac]["right"]):
                 in_icumo=src_ind(in_str, cstr, icumo);
-                in_cumo=in_metab+':'+str(in_icumo);
-                res.append((in_cumo, reac+".rev", imetab));
+                if in_icumo != None:
+                    in_cumo=in_metab+":"+str(in_icumo);
+                    res.append((in_cumo, reac+".rev", imetab, iin_metab));
     return res;
