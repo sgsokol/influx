@@ -56,7 +56,7 @@ while true; do
    esac
    shift
 done
-direx=/home/sokol/insa/sysbio/dev/ftbl2sys;
+direx=$(dirname $0);
 DEBUG="${DEBUG:-}"
 [ "$me" = "ffmeshd.sh" ] && DEBUG="--DEBUG"
 #echo "nargs=$#"
