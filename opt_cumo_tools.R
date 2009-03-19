@@ -129,8 +129,8 @@ cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, me
    }
    return(grad);
 }
-param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
-   # claculate all fluxes from free fluxes
+param2fl=function(param, no_f, invAfl, p2bfl, bp, fc) {
+      # claculate all fluxes from free fluxes
 #cat("resid: \n")
 #print(no_f);
 #print(no_w);
@@ -150,6 +150,12 @@ param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, m
 #cat("fwrv");
 #print(fwrv);
    }
+   return(list(flcnx=flcnx, fwrv=fwrv));
+}
+
+param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
+   # claculate all fluxes from free fluxes
+   lf=param2fl(param, no_f, p2bfl, bp, fc);
    # construct the system A*x=b from fluxes
    # and find x for every weight
    x=numeric(0);
@@ -181,7 +187,7 @@ if (DEBUG) {
 }
    }
 #print(x);
-   return(list(x=x, flcnx=flcnx, fwrv=fwrv));
+   return(append(list(x=x), lf));
 }
 Tiso2cumo=function(len) {
    if (len<0) {
