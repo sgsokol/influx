@@ -114,16 +114,16 @@ ftbl2code.netan2Rinit(netan, org, f, ff);
 f.write("""
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
 # for corresponding measures
-vr=param2fl_x(param, no_f, no_rw, no_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
+vr=param2fl_x(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
 simvec=(measmat%*%c(vr$x[irmeas],1.));
 if (DEBUG) {
 cat("initial simvec:\\n");
 print(simvec);
 }
-if (no_ff < length(param)) {
+if (nb_ff < length(param)) {
 ms=measvec*simvec*measinvvar;
 ss=simvec*simvec*measinvvar;
-for (i in (no_ff+1):length(param)) {
+for (i in (nb_ff+1):length(param)) {
   im=(ir2isc==(i+1));
   param[i]=sum(ms[im])/sum(ss[im]);
 }
@@ -165,7 +165,7 @@ for (fl,par) in meshpar["ff"]["xch"].iteritems():
     });
     indent+=1;
 # R: check feasibility of flux set
-f.write(indent*"   "+"param[1:no_ff]=c(%(fls)s);\n"%{
+f.write(indent*"   "+"param[1:nb_ff]=c(%(fls)s);\n"%{
    "fls": ",".join([fl+".net" for fl in meshpar["ff"]["net"].keys()]+
    [fl+".xch" for fl in meshpar["ff"]["xch"].keys()]),
 });
@@ -173,10 +173,10 @@ f.write(indent*"   "+"names(param)=nm_par;\n");
 f.write(indent*"   "+"if (all(ui%*%param-ci>=0)) {\n");
 f.write((indent+1)*"   "+"# this free flux vector is feasible => save it\n");
 f.write((indent+1)*"   "+"feas_tot=feas_tot+1;\n");
-f.write((indent+1)*"   "+'obj2kvh(param[1:no_ff], feas_tot, cnct, 1);\n');
+f.write((indent+1)*"   "+'obj2kvh(param[1:nb_ff], feas_tot, cnct, 1);\n');
 if cost:
     f.write((indent+1)*"   "+
-        'cost=try(cumo_cost(param, no_f, no_rw, no_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo"));\n');
+        'cost=try(cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo"));\n');
     f.write((indent+1)*"   "+"""if (inherits(cost, "try-error")) {\n""");
     f.write((indent+2)*"   "+"cost=NA;\n");
     f.write((indent+1)*"   "+"}\n");
