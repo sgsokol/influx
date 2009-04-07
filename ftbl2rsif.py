@@ -28,23 +28,29 @@ def color(m, netan, nc):
 
 # Configurable constants
 ns={
-    'm': 'roundrect',    # metabolite shape
+    'm': 'roundrect',     # metabolite shape
     'r': 'diamond'        # reaction shape
 };
 nc={
     'm': '255,255,255',    # metabolite colour
     'i': '0,255,0',        # input colour (uptake)
     'o': '255,0,0',        # output colour (escape)
-    'r': '204,0,255'    # reaction colour
+    'r': '204,0,255'       # reaction colour
 };
 et={
-    'nr': 'ARROW',        # not reversible target
+    'nr': 'ARROW',       # not reversible target
     'r': 'ARROW',        # reversible target
 };
 es={
     'nr': 'NONE',        # not reversible source
-    'r': 'DIAMOND',        # reversible source
+    'r': 'DIAMOND',      # reversible source
 };
+# arrow colours
+ec={
+    'd': '0,0,255',    # dependent flux
+    'c': '0,0,0',    # constrained flux
+    'f': '0,255,0',    # free flux
+}
 ##print 'start'
 # decide where to read and write
 if len(sys.argv) == 2:
@@ -65,17 +71,21 @@ if len(sys.argv) == 2:
     fes=open(os.path.sep.join((fdir, "edge.sourceArrowShape."+base)), "w");
     fet=open(os.path.sep.join((fdir, "edge.targetArrowShape."+base)), "w");
     fel=open(os.path.sep.join((fdir, "edge.label."+base)), "w");
+    fesc=open(os.path.sep.join((fdir, "edge.sourceArrowColor."+base)), "w");
+    fetc=open(os.path.sep.join((fdir, "edge.targetArrowColor."+base)), "w");
     # write headers for attributes
     fns.write("node.shape\n");
     fnc.write("node.fillColor\n");
     fes.write("edge.sourceArrowShape\n");
     fet.write("edge.targetArrowShape\n");
     fel.write("edge.label\n");
+    fesc.write("edge.sourceArrowColor\n");
+    fetc.write("edge.targetArrowColor\n");
 elif len(sys.argv) == 1:
     # standart input and output are used
     fin=sys.stdin;
     fout=sys.stdout;
-    fns=fnc=fes=fet=fel=0;
+    fns=fnc=fes=fet=fel=fesc=fetc=0;
     
 # Parse .ftbl file
 ##print 'parse'
@@ -120,6 +130,12 @@ for flux in ftbl['NETWORK']:
             fout.write("%s %s %s\n" % (reac, path, p));
             edges.append(reac+" ("+path+") "+p);
     revers="r" if reac not in netan['notrev'] else "nr";
+    net_dfc=("c" if reac in netan["flux_constr"]["net"] else
+             "f" if reac in netan["flux_free"]["net"] else
+             "d");
+    xch_dfc=("c" if reac in netan["flux_constr"]["xch"] else
+             "f" if reac in netan["flux_free"]["xch"] else
+             "d");
 ##    print reac, revers
     if fns:
         # add node/edge shape and colour
@@ -134,6 +150,8 @@ for flux in ftbl['NETWORK']:
         for e in edges:
             fet.write(e+" = "+et[revers]+"\n");
             fes.write(e+" = "+es[revers]+"\n");
+            fesc.write(e+" = "+ec[xch_dfc]+"\n");
+            fetc.write(e+" = "+ec[net_dfc]+"\n");
 
 # close opened streams
 fin.close();
