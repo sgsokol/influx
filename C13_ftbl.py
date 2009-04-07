@@ -50,19 +50,37 @@
 # 2008-09-23 sokol: added mat2graph()
 # 2008-10-10 sokol: added rcumo_sys()
 # 2009-02-02 sokol: added iin_metab to output of cumo_infl()
+# 2009-03-24 sokol: ftbl_netan(): added tmax, dt, metab_scale, met_pools
+# 2009-03-27 sokol: ftbl_parse(): added float_conv field set
 
 from tools_ssg import *;
 
 import re;
 import copy;
+float_conv=set((
+    "VALUE",
+    "DEVIATION",
+    "OPT_VALUE",
+    "META_SIZE",
+    "VALUE_S",
+    "VALUE_D-",
+    "VALUE_D+",
+    "VALUE_DD",
+    "VALUE(F/C)",
+));
 def ftbl_parse(f):
-    """reads .ftbl file. The only input parameter f is a stream pointer
-    with read permission. It's user care to open and close it outside of
-    this module. This function parses the input and returns a dictionnary
+    """ftbl_parse(f) -> dict
+    read and parse .ftbl file. The only input parameter f is a stream pointer
+    with read permission or a file name.
+    This function parses the input and returns a dictionnary
     with items corresponding to sections in .ftbl. One section is added.
     "TRANS" correponds to carbon transitions.""";
     import re;
     ftbl={};    # main dictionary to be returned;
+    open_here=False;
+    if isstr(f):
+        f=open(f, "r");
+        open_here=True;
     
     #print f;##
     reblank=re.compile("^[\t ]*$");
@@ -146,8 +164,12 @@ def ftbl_parse(f):
                 ftbl["TRANS"][fl_name]=dic;
                 continue;
             for i in xrange(len(col_names)):
+                # classic data
                 try:
+                    # decimal point conversion
                     dic[col_names[i]]=data[i].strip();
+                    if col_names[i] in float_conv:
+                       dic[col_names[i]]=dic[col_names[i]].replace(",", ".");
                 except IndexError:
                     pass;
             stock.append(dic);
@@ -156,6 +178,8 @@ def ftbl_parse(f):
         #print "len(flds)=", len(flds), flds, l, data;##
         #print "keys", ftbl.keys(), (ftbl[sec_name].keys() \
         #        if type(ftbl[sec_name])==type({}) else "");##
+    if open_here:
+        f.close();
     return ftbl;
 
 def ftbl_netan(ftbl):
@@ -235,6 +259,8 @@ def ftbl_netan(ftbl):
         "vrowAfl":[],
         "flux_in":set(),
         "flux_out":set(),
+        "opt": {},
+        "met_pools": {},
     };
     res="";     # auxiliary short-cut to current result;
 
@@ -245,10 +271,10 @@ def ftbl_netan(ftbl):
         reac=row["FLUX_NAME"];
         #print "reac="+reac;#
         e1=row.get("EDUCT_1");
-        if not e1: raise "EDUCT_1 must be defined in flux "+reac;
+        if not e1: raise Exception("EDUCT_1 must be defined in flux "+reac);
         e2=row.get("EDUCT_2");
         p1=row.get("PRODUCT_1");
-        if not p1: raise "PRODUCT_1 must be defined in flux "+reac;
+        if not p1: raise Exception("PRODUCT_1 must be defined in flux "+reac);
         p2=row.get("PRODUCT_2");
         
         # local substrate (es), product (ps) and metabolites (ms) sets
@@ -281,7 +307,7 @@ def ftbl_netan(ftbl):
             if not m or not carb:
                 continue;
             if carb[0] != "#":
-                raise ("In carbon string for metabolite "+m+" a starting "#" is missing."+
+                raise Exception("In carbon string for metabolite "+m+" a starting "#" is missing."+
                     "\nreaction="+str(row)+"\ncarbons ="+str(trans));
             # carbon transitions
             netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
@@ -289,9 +315,9 @@ def ftbl_netan(ftbl):
             # carbon length
             if netan["Clen"].get(m, 0) and \
                     netan["Clen"][m] != len(carb)-1:
-                raise "Metabolite "+m+" has length "+\
-                        str(netan["Clen"][m])+" but in reaction "+reac+\
-                        " it has legth "+str(len(carb)-1);
+                raise Exception("Metabolite "+m+" has length "+
+                        str(netan["Clen"][m])+" but in reaction "+reac+
+                        " it has legth "+str(len(carb)-1));
             netan["Clen"][m]=len(carb)-1; # don't count '#' character
 
         # stocheometric matrix in dictionnary form
@@ -441,10 +467,10 @@ def ftbl_netan(ftbl):
         #print row;##
         # test the cumomer pattern validity
         if (not re.match(r"#[01x]+(\+#[01x]+)*", row["CUM_CONSTRAINTS"])):
-            raise "Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"'";
+            raise Exception("Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"'");
         metab=row["META_NAME"] or metab;
         if not metab in netan["metabs"]:
-            raise "Unknown metabolite name '"+metab+"' in LABEL_MEASUREMENTS";
+            raise Exception("Unknown metabolite name '"+metab+"' in LABEL_MEASUREMENTS");
         mlen=netan["Clen"][metab];
         group=row["CUM_GROUP"] or group;
         if not metab in netan["label_meas"]:
@@ -463,7 +489,7 @@ def ftbl_netan(ftbl):
                 bcumos[i-1]="1";
                 bcumos=[bcumos];
             except:
-                raise "Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row="+str(row);
+                raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row="+str(row));
         netan["label_meas"][metab][group].append({
                 "val":float(row["VALUE"]),
                 "dev":float(row["DEVIATION"]),
@@ -472,7 +498,7 @@ def ftbl_netan(ftbl):
         # test the icumomer lengths
         if not all(len(ic)==mlen+1 for ic in 
                 netan["label_meas"][metab][group][-1]["bcumos"]):
-            raise "Wrong cumomer length for "+metab+" in "+row["CUM_CONSTRAINTS"]
+            raise Exception("Wrong cumomer length for "+metab+" in "+row["CUM_CONSTRAINTS"]);
     
     # peak measurements
     # [metab][c_no][peak_type in (S,D-,D+,(DD|T))]={val:x, dev:y}
@@ -481,10 +507,10 @@ def ftbl_netan(ftbl):
         #print row;##
         # test the pattern validity
         if (row.get("VALUE_DD","") and row.get("VALUE_T","")):
-            raise "Not valid value combination. Only one of DD and T has to be in row "+str(row);
+            raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row));
         metab=row["META_NAME"] or metab;
         if not metab in netan["metabs"]:
-            raise "Unknown metabolite name ""+metab+"" in PEAK_MEASUREMENTS";
+            raise Exception("Unknown metabolite name ""+metab+"" in PEAK_MEASUREMENTS");
         clen=netan["Clen"][metab];
         netan["peak_meas"].setdefault(metab,{});
         for suff in ("S", "D-", "D+", "DD", "T"):
@@ -495,16 +521,16 @@ def ftbl_netan(ftbl):
             dev=row.get("DEVIATION_"+suff,"") or row.get("DEVIATION_S");
             # test validity
             if not dev:
-                raise "Deviation is not determined for VALUE_"+suff+" in row \n"+str(row);
+                raise Exception("Deviation is not determined for VALUE_"+suff+" in row \n"+str(row));
             c_no=int(row["PEAK_NO"]);
             if c_no > clen:
-                raise "Carbon number "+str(c_no)+" is gretaer than carbon length "+str(clen)+" for metabolite '"+metab+"' in row \n"+str(row);
+                raise Exception("Carbon number "+str(c_no)+" is gretaer than carbon length "+str(clen)+" for metabolite '"+metab+"' in row \n"+str(row));
             if suff == "D-" and c_no == 1:
-                raise "Peak D- cannot be set for metabolite "+metab+", c_no=1 in row \n"+str(row);
+                raise Exception("Peak D- cannot be set for metabolite "+metab+", c_no=1 in row \n"+str(row));
             if suff == "D+" and c_no == clen:
-                raise "Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" in row \n"+str(row);
+                raise Exception("Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" in row \n"+str(row));
             if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
-                raise "Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" in row \n"+str(row);
+                raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" in row \n"+str(row));
             netan["peak_meas"][metab].setdefault(c_no,{});
             netan["peak_meas"][metab][c_no][suff]={"val": float(val), "dev": float(dev)};
     
@@ -517,7 +543,7 @@ def ftbl_netan(ftbl):
         clen=netan["Clen"][metab];
         # test the validity
         if not metab in netan["metabs"]:
-            raise "Unknown metabolite name '"+metab+"' in MASS_SPECTROMETRY";
+            raise Exception("Unknown metabolite name '"+metab+"' in MASS_SPECTROMETRY");
         frag=row["FRAGMENT"] or frag;
         if row["FRAGMENT"]:
             # recalculate fragment mask
@@ -535,17 +561,17 @@ def ftbl_netan(ftbl):
                         try:
                             for i in xrange(int(start),int(end)+1):
                                 if i > clen:
-                                    raise "End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan["Clen"][metab])+". \nMASS_SPECTROMETRY, row="+str(row);
+                                    raise Exception("End of interval '"+item+"' is higher than metabolite "+metab+" length "+str(netan["Clen"][metab])+". \nMASS_SPECTROMETRY, row="+str(row));
                                 mask|=1<<(clen-i);
                         except:
-                            raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
+                            raise Exception("Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row));
                     except:
-                        raise "Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row);
+                        raise Exception("Badly formed fragment interval '"+item+"' in MASS_SPECTROMETRY,\nrow="+str(row));
         weight=int(row["WEIGHT"]);
         if sumbit(mask) < weight:
-            raise "Weight "+str(weight)+" is higher than fragment length "+frag+" in MASS_SPECTROMETRY\nrow="+str(row);
+            raise Exception("Weight "+str(weight)+" is higher than fragment length "+frag+" in MASS_SPECTROMETRY\nrow="+str(row));
         if clen < sumbit(mask):
-            raise "Fragment "+frag+" is longer than metabolite length "+str(clen)+" in MASS_SPECTROMETRY\nrow="+str(row);
+            raise Exception("Fragment "+frag+" is longer than metabolite length "+str(clen)+" in MASS_SPECTROMETRY\nrow="+str(row));
         netan["mass_meas"].setdefault(metab, {});
         netan["mass_meas"][metab].setdefault(mask, {});
         netan["mass_meas"][metab][mask][weight]={
@@ -553,6 +579,14 @@ def ftbl_netan(ftbl):
                 "dev":float(row["DEVIATION"]),
         }
     
+    # Isotopomer dynamics and other options
+    for row in ftbl.get("OPTIONS",[]):
+        try:
+            netan["opt"][row["OPT_NAME"]]=float(row["OPT_VALUE"]);
+        except:
+            netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"];
+    for row in ftbl.get("METABOLITE_POOLS",[]):
+        netan["met_pools"][row["META_NAME"]]=float(row["META_SIZE"]);
     # discard empty entries
     for e in netan:
         try:
@@ -849,11 +883,16 @@ def ftbl_netan(ftbl):
         if qry==[0]*len(qry):
             # degenerated equation, skip it
             #netan["flux_equal"]["net"].append((0., coefs));
-            #raise "Stocheometric equation is zero for metab "+metab+"\n"+str(lr)+"\n"+str(coefs);
+            #raise Exception("Stocheometric equation is zero for metab "+metab+"\n"+str(lr)+"\n"+str(coefs));
             continue;
         # check if this line was already entered before
-        for row in res:
+        for (i,row) in enumerate(res):
             if row==qry:
+                sys.stderr.write("Warning: when trying to add balance for "+metab+
+                    " got the same equation as for "+netan["vrowAfl"][i]+"\n");
+                sys.stderr.write("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n");
+                sys.stderr.write(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n");
+                sys.stderr.write(metab+":\t"+join("\t", qry)+"\n");
                 break;
         else:
             # identique row is not found, add it
@@ -885,12 +924,12 @@ def ftbl_netan(ftbl):
             # check qry
             if qry==[0]*len(qry):
                 # degenerated equality
-                raise "Equality is zero in "+nx+" section: "+str(eq)+"\n";
+                raise Exception("Equality is zero in "+nx+" section: "+str(eq)+"\n");
                 continue;
             # check if this line was already entered before
             for row in res:
                 if row==qry:
-                    raise "An equality in section "+nx+" is redondant. eq:"+str(eq);
+                    raise Exception("An equality in section "+nx+" is redondant. eq:"+str(eq));
             res.append(qry);
             netan["vrowAfl"].append("eq "+nx+": "+str(eq[1]));
             netan["bfl"].append({"":eq[0]})
@@ -1108,9 +1147,9 @@ def cumo_iw(w,nlen):
     """iterator for a given cumomer weight w in the carbon length nlen"""
     #print ("cumo_iw: w=%d,nlen=%d\n" % (w,nlen));##
     if w < 0 or w > nlen:
-       raise "CumoWeightOutOfRange";
+       raise Exception("CumoWeightOutOfRange");
     if nlen < 0:
-       raise "CumoLengthNegative";
+       raise Exception("CumoLengthNegative");
     if w == 1:
         movbit=1;
         for i in xrange(nlen):
@@ -1133,26 +1172,27 @@ def formula2dict(f):
     pterm=re.compile(r'\W*([+-])\W*'); # returns list of match1,sep,match2,...
     pflux=re.compile(r'\W*(?P<coef>\d+\.?\d*|^)?\W*\*?\W*(?P<var>[a-zA-Z_][\w\.-]*)\W*');
     res={};
-    sign="+";
+    sign=1;
     l=(i for i in pterm.split(str(f)));
     for term in l:
         try:
             next_sign=l.next();
+            next_sign=-1 if next_sign == "-" else 1;
         except StopIteration:
-            next_sign="";
+            next_sign=0;
             pass;
         if (len(term) == 0):
             continue;
         m=pflux.match(term);
         if (m):
             coef=m.group("coef");
-            coef="1." if coef==None or not len(coef) else str(float(coef));
+            coef=1. if coef==None or not len(coef) else float(coef);
             var=m.group("var");
-            sign="-" if sign=="-" else "+";
-            res[var]=sign+coef;
+            sign=-1 if sign==-1 else 1;
+            res[var]=sign*coef;
             sign=next_sign;
         else:
-            raise "Not parsed term '"+term+"'";
+            raise Exception("Not parsed term '"+term+"'");
     return res;
 def label_meas2matrix_vec_dev(netan):
     """use netan["label_meas"] to construct a corresponding measure matrix matx_lab
