@@ -1,0 +1,72 @@
+wx.Frame
+	varname	mainframe
+	param	None, wx.ID_ANY, me, size=(800,600)
+	wx.MenuBar
+		varname	menubar
+		wx.Menu
+			varname	file_menu
+			callmeth
+				
+				Append(wx.ID_OPEN, "&Open FTBL", "FTBL defines metabolic network")
+				Append(wx.ID_SAVE, "&Save settings", "Store settings in a file")
+				AppendSeparator()
+				Append(wx.ID_EXIT, "&Quit", "Exit the program")
+		wx.Menu
+			varname	help_menu
+			callmeth
+				Append(wx.ID_ABOUT, "&About")
+		callmeth
+			Append(file_menu, '&File')
+			Append(help_menu, '&Help')
+	wx.Notebook
+		varname	nb
+		param	.parent, wx.ID_ANY, size=(21,21), style=wx.BK_DEFAULT, name="nb"
+		wx.html.HtmlWindow
+			varname	win_welc
+			param	.parent, wx.ID_ANY, size=.top.GetSize()
+			callmeth
+				SetBackgroundColour("WHITE")
+				SetPage(welc_text)
+				Bind(wx.html.EVT_HTML_LINK_CLICKED, OnLinkClicked)
+		wx.ScrolledWindow
+			varname	sw_data
+			param	.parent, wx.ID_ANY, (0,0), size=.top.GetSize(), style=wx.SUNKEN_BORDER
+			wx.Panel
+				varname	pan_data
+				param	.parent, wx.ID_ANY, size=.top.GetSize()
+				callmeth
+					SetBackgroundColour("WHITE")
+			callmeth
+				SetMaxSize(.top.GetSize())
+				SetVirtualSize(.top.GetSize())
+				SetScrollRate(20,20)
+		wx.ScrolledWindow
+			varname	sw_netw
+			param	.parent, wx.ID_ANY, (0,0), size=.top.GetSize(), style=wx.SUNKEN_BORDER
+			wx.Panel
+				varname	pan_netw
+				param	.parent, wx.ID_ANY, size=.top.GetSize()
+				callmeth
+					SetBackgroundColour("WHITE")
+					Bind(wx.EVT_PAINT, OnPaint)
+			callmeth
+				SetMaxSize(.top.GetSize())
+				SetVirtualSize(.top.GetSize())
+				SetScrollRate(20,20)
+		callmeth
+			AddPage(win_welc, "Welcome")
+			AddPage(sw_netw, "Network")
+			AddPage(sw_data, "Data")
+			#AddPage(sw_sett, "Settings")
+	callmeth
+		SetMenuBar(menubar)
+		CreateStatusBar()
+		SetStatusText("Welcome to "+me)
+		.self.timer	wx.Timer(.self)
+		timer.Start(settings["frame_period"])
+		Bind(wx.EVT_MENU, OnOpen, id=wx.ID_OPEN)
+		Bind(wx.EVT_MENU, OnExit, id=wx.ID_EXIT)
+		Bind(wx.EVT_MENU, OnSave, id=wx.ID_SAVE)
+		Bind(wx.EVT_CLOSE, OnExit)
+		Bind(wx.EVT_TIMER, OnTimer)
+		Show(True)
