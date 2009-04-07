@@ -50,52 +50,52 @@ if (DEBUG) {
    }
 }
 
-dfc2flcnx=function(no_f, flnx, param, fc) {
+dfc2flcnx=function(nb_f, flnx, param, fc) {
    # produce complete flux (net,xch)*(dep,free,constr) vector
    # from dep,free,constr
    f=numeric(0);
-   if (no_f$no_fln) {
-      f=c(f, flnx[1:no_f$no_fln]);
+   if (nb_f$nb_fln) {
+      f=c(f, flnx[1:nb_f$nb_fln]);
    }
-   if (no_f$no_ffn) {
-      f=c(f, param[1:no_f$no_ffn]);
+   if (nb_f$nb_ffn) {
+      f=c(f, param[1:nb_f$nb_ffn]);
    }
-   if (no_f$no_fcn) {
-      f=c(f, fc[1:no_f$no_fcn]);
+   if (nb_f$nb_fcn) {
+      f=c(f, fc[1:nb_f$nb_fcn]);
    }
-   if (no_f$no_flx) {
-      f=c(f, flnx[(no_f$no_fln+1):no_f$no_fl]);
+   if (nb_f$nb_flx) {
+      f=c(f, flnx[(nb_f$nb_fln+1):nb_f$nb_fl]);
    }
-   if (no_f$no_ffx) {
-      f=c(f, param[(no_f$no_ffn+1):no_f$no_ff]);
+   if (nb_f$nb_ffx) {
+      f=c(f, param[(nb_f$nb_ffn+1):nb_f$nb_ff]);
    }
-   if (no_f$no_fcx) {
-      f=c(f, fc[(no_f$no_fcn+1):no_f$no_fc]);
+   if (nb_f$nb_fcx) {
+      f=c(f, fc[(nb_f$nb_fcn+1):nb_f$nb_fc]);
    }
    return(f);
 }
-cumo_resid=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
+cumo_resid=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
 #cat("resid: \n")
-#print(no_f);
-#print(no_w);
+#print(nb_f);
+#print(nb_w);
 #print(param);
 #print(p2bfl);
    # find x for all weights
-   lres=param2fl_x(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun)
+   lres=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun)
 #print(imeas);
    # find simulated scaled measure vector scale*(measmat*x)
    simvec=c(1.,param)[ir2isc]*(measmat%*%c(lres$x[imeas],1.));
    # diff between simulated and measured
    return(list(res=(simvec-measvec), flcnx=lres$flcnx));
 }
-cumo_cost=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
+cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
 #cat("cost: ");
-#cat("list no_f\n")
-#print(no_f);
-#print(no_w);
+#cat("list nb_f\n")
+#print(nb_f);
+#print(nb_w);
 #cat("param\n");
 #print(param);
-    resl=cumo_resid(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun);
+    resl=cumo_resid(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun);
    res=resl$res;
    flcnx=resl$flcnx;
    # flux residuals
@@ -106,14 +106,14 @@ cumo_cost=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, me
    }
    return(fn);
 }
-cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
+cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: forward finite differences f(x+h)-f(x)/h
    # x+h is taken as (1+fact)*x
    fact=1.e-7;
    grad=param; # make place for gradient
    # f(x)
-   f=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun);
+   f=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun);
    for (i in 1:length(param)) {
       x=param[i];
       h=x*fact;
@@ -122,27 +122,27 @@ cumo_grad=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, me
          # we are too close to zero here
          param[i]=fact;
       }
-      fh=cumo_cost(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun);
+      fh=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun);
       # restore modified param
       param[i]=x;
       grad[i]=(fh-f)/h;
    }
    return(grad);
 }
-param2fl=function(param, no_f, invAfl, p2bfl, bp, fc) {
+param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
       # claculate all fluxes from free fluxes
 #cat("resid: \n")
-#print(no_f);
-#print(no_w);
+#print(nb_f);
+#print(nb_w);
 #print(param);
 #print(p2bfl);
-   flnx=invAfl%*%(p2bfl%*%param[1:no_f$no_ff]+bp);
+   flnx=invAfl%*%(p2bfl%*%param[1:nb_f$nb_ff]+bp);
 #cat("flnx");
 #print(flnx);
-   flcnx=dfc2flcnx(no_f, flnx, param, fc);
+   flcnx=dfc2flcnx(nb_f, flnx, param, fc);
    fwrv=flcnx2fwrv(flcnx);
    if (DEBUG) {
-      write.matrix(p2bfl%*%param[1:no_f$no_ff]+bp, file="dbg_bfl.txt", sep="\t");
+      write.matrix(p2bfl%*%param[1:nb_f$nb_ff]+bp, file="dbg_bfl.txt", sep="\t");
       n=length(fwrv);
       nms=paste(nm_fwrv,c(rep("fwd", n/2),rep("rev", n/2)),sep="_");
       write.matrix(cbind(1:n,nms,fwrv), file="dbg_fwrv.txt", sep="\t");
@@ -153,27 +153,29 @@ param2fl=function(param, no_f, invAfl, p2bfl, bp, fc) {
    return(list(flcnx=flcnx, fwrv=fwrv));
 }
 
-param2fl_x=function(param, no_f, no_w, no_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
+param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
    # claculate all fluxes from free fluxes
-   lf=param2fl(param, no_f, p2bfl, bp, fc);
+   lf=param2fl(param, nb_f, p2bfl, bp, fc);
    # construct the system A*x=b from fluxes
    # and find x for every weight
    x=numeric(0);
-   for (iw in 1:no_w) {
+   for (iw in 1:nb_w) {
       nx=length(x);
-      ncumow=no_cumos[iw];
+      ncumow=nb_cumos[iw];
       A=matrix(0.,ncumow,ncumow);
       b=double(ncumow);
       #fwrv2Abcumo(fl, nf, x, nx, iw, n, A, b)
       res<-.Fortran(fortfun,
-         fl=as.double(fwrv),
-         nf=length(fwrv),
+         fl=as.double(lf$fwrv),
+         nf=length(lf$fwrv),
          x=as.double(x),
          nx=as.integer(nx),
          iw=as.integer(iw),
          n=as.integer(ncumow),
          A=as.matrix(A),
          b=as.double(b),
+         calcA=as.integer(TRUE),
+         calcb=as.integer(TRUE),
          NAOK=TRUE,
          DUP=FALSE);
       # solve the system A*x=b;
@@ -219,6 +221,19 @@ Tiso2mass=function(len) {
    }
    return(mass);
 }
+Vcumo2iso0=function(len) {
+   # coefficients of first row of matrix Tcumo2iso
+   # giving the conversion to isotopomer of weight 0
+   if (len<0) {
+      return(FALSE);
+   }
+   if (len==0) {
+      return(c(1));
+   }
+   # recursive call for len>1
+   V=Vcumo2iso0(len-1);
+   return(c(V,-V));
+}
 sumbit=function(i) {
    i=as.integer(i);
    res=0;
@@ -229,40 +244,74 @@ sumbit=function(i) {
    }
    return(res);
 }
-print_mass=function(x) {
+cumo2mass=function(x) {
+   # convert cumomer vector to mass vectors
+
    # separate cumos by name and order by weight
    n=length(x);
    nm_x=names(x);
-   tbl=matrix(0,0,3); # metab,icumo,value_cumo
-   metabs=list();
    if (length(nm_x)!=n) {
       return();
    }
-   for (i in 1:n) {
-      nm=nm_x[i];
-      tmp=strsplit(nm,":");
-      metab=tmp[[1]][1];
-      icumo=tmp[[1]][2];
-      tbl=rbind(tbl,c(metab,as.integer(icumo),x[i]));
-      metabs[metab]="";
-   }
+   metabs=c(); # unique metab names
+   spl=unlist(strsplit(nm_x,":"));
+   i=1:n;
+   icumo=as.integer(spl[2*i]);
+   metabs=spl[2*i-1];
+   umetabs=union(metabs, NULL);
 #cat("metabs:\n");
 #print(metabs);
 #cat("tbl:\n");
 #print(tbl);
-   # extract, order and print each metab vector
-   for (metab in names(metabs)) {
-      cat(paste(metab,":\n",sep=""));
-      im=tbl[,1]==metab;
-      d=matrix(tbl[im,],nrow=sum(im), ncol=3);
+   # extract, order and convert each metab vector
+   res=c();
+   for (metab in umetabs) {
+#      cat(paste(metab,":\n",sep=""));
+      im=metabs==metab;
 #print(d);
-      o=order(as.integer(d[,2]));
+      o=order(icumo[im]);
       # ordered cumomer vector with #0==1 component
-      vcumo=c(1,as.double(d[o,3]));
+      vcumo=c(1,x[im][o]);
       clen=log2(length(vcumo));
       # mass vector
-      mass=Tiso2mass(clen)%*%(Tcumo2iso(clen)%*%vcumo);
-      dimnames(mass)=list(paste("m+", 0:clen, sep=""),NULL);
-      print(mass);
+      mass=c(Tiso2mass(clen)%*%(Tcumo2iso(clen)%*%vcumo));
+      names(mass)=paste(metab, "+", 0:clen, sep="");
+      res=c(res, mass);
    }
+   return(res);
+}
+cumo2lab=function(x) {
+   # converts cumomer vector to fraction of labeled isotopomer 1-i#0
+   # separate cumos by name and order by weight
+   n=length(x);
+   nm_x=names(x);
+   if (length(nm_x)!=n) {
+      return();
+   }
+   metabs=c(); # unique metab names
+   spl=unlist(strsplit(nm_x,":"));
+   i=1:n;
+   icumo=as.integer(spl[2*i]);
+   metabs=spl[2*i-1];
+   umetabs=union(metabs, NULL);
+#cat("metabs:\n");
+#print(metabs);
+#cat("tbl:\n");
+#print(tbl);
+   # extract, order and convert each metab vector
+   res=c();
+   for (metab in umetabs) {
+#      cat(paste(metab,":\n",sep=""));
+      im=metabs==metab;
+#print(d);
+      o=order(icumo[im]);
+      # ordered cumomer vector with #0==1 component
+      vcumo=c(1,x[im][o]);
+      clen=log2(length(vcumo));
+      # labeled fraction
+      lab=1-Vcumo2iso0(clen)%*%vcumo;
+      names(lab)=metab;
+      res=c(res, lab);
+   }
+   return(res);
 }
