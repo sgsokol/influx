@@ -128,8 +128,8 @@ initial values of free fluxes in ftbl file.\\n", file=stderr());
 }
 """);
 f.write("""
-# prepare and store data for plot
 plotx=function(x, plottype, ti, ...) {
+   # prepare and store data for plot
    # x is a full cumomer vector
    # ti is time point (if "row_col", write just name's row)
    # plottype is one of pos_enrich, mass, labeled
@@ -164,6 +164,14 @@ plotx=function(x, plottype, ti, ...) {
       }
    }
 }
+## input cumomers xinp
+xinp=c(%(xinp)s);
+nm_xinp=c(%(nm_xinp)s);
+names(xinp)=nm_xinp;
+nm2=matrix(unlist(strsplit(nm_xinp, ":", fixed=TRUE)), ncol=2, byrow=TRUE);
+o=order(nm2[,1], as.numeric(nm2[,2]));
+xinp=xinp[o];
+
 ## variables for isotopomer cinetics
 tstart=0.;
 tmax=%(tmax)f;
@@ -213,6 +221,8 @@ fplot=file("%(org)s_ipl.kvh", "w");
     "met_pools": join(", ", (netan["met_pools"][cumo.split(":")[0]]
         for w in netan["vcumo"]
         for cumo in w)),
+    "xinp": join(", ", netan["cumo_input"].values()),
+    "nm_xinp": join(", ", netan["cumo_input"].keys(), '"', '"'),
 });
 # main part: ode solver
 f.write("""
@@ -232,7 +242,8 @@ names(f)=nm_flcnx;
 obj2kvh(f, "net-xch flux vector", fkvh, ident=1);
 
 # alphabetic order of output cumomers
-o_acumo=order(nm_cumo);
+nm2=matrix(unlist(strsplit(nm_cumo, ":", fixed=TRUE)), ncol=2, byrow=TRUE);
+o_acumo=order(nm2[,1], as.numeric(nm2[,2]));
 # plot options
 plottype="%(plottype)s";
 plotby=%(plotby)d;
@@ -245,11 +256,11 @@ f.write("""
 xold=rep(0., sum(nb_cumos));
 names(xold)=nm_cumo;
 cat("time course cumomers\n", file=fkvh);
-cat("\trow_col", nm_cumo[o_acumo], file=fkvh, sep="\t");
+cat("\trow_col", c(nm_xinp, nm_cumo[o_acumo]), file=fkvh, sep="\t");
 cat("\n", file=fkvh);
-obj2kvh(paste(xold[o_acumo], collapse="\t"), "0.", fkvh, ident=1);
-plotx(xold, plottype, "row_col", fplot);
-plotx(xold, plottype, 0., fplot);
+obj2kvh(paste(c(xinp, xold[o_acumo]), collapse="\t"), "0.", fkvh, ident=1);
+plotx(c(xinp,xold[o_acumo]), plottype, "row_col", fplot);
+plotx(c(xinp,xold[o_acumo]), plottype, 0., fplot);
 
 # time going (implicite Euler)
 it=1;
@@ -277,12 +288,12 @@ for (ti in seq(dt, tmax, by=dt)) {
       x=c(x, Acumot[[iw]]%*%(b+Metab_dt[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]*xold[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]));
    }
    # store this time step result
-   obj2kvh(paste(x[o_acumo], collapse="\t"), ti, fkvh, ident=1);
+   obj2kvh(paste(c(xinp,x[o_acumo]), collapse="\t"), ti, fkvh, ident=1);
    
    # data to plot
    if (!it%%plotby) {
       names(x)=nm_cumo;
-      plotx(x, plottype, ti, fplot);
+      plotx(c(xinp,x[o_acumo]), plottype, ti, fplot);
    }
    
    xold=x;
