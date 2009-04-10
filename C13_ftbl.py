@@ -78,6 +78,7 @@ def ftbl_parse(f):
     import re;
     ftbl={};    # main dictionary to be returned;
     open_here=False;
+    #print("f=", f);
     if isstr(f):
         f=open(f, "r");
         open_here=True;
@@ -266,6 +267,8 @@ def ftbl_netan(ftbl):
 
     # analyse networks
     netw=ftbl.get("NETWORK");
+    if not netw:
+        raise Exception("No NETWORK section in ftbl");
     row_to_del=[];
     for row in netw:
         reac=row["FLUX_NAME"];
