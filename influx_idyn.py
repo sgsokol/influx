@@ -6,11 +6,11 @@ usage: influx_idyn.py [-h|--help] [--DEBUG] [network[.ftbl]]
 """
 #Todo:
 #+transparence
-#+zooming
 #+OnSize
 #+video controls
+#+data table
 #-arrows
-#-data table (plot?)
+#-(plot?)
 
 # 2009-03-24 sokol
 # Copyright 2009, MetaSys/INRA, France
@@ -40,13 +40,15 @@ import wx;
 import wx.html;
 import wx.grid as wxg;
 import wx.lib.ogl as wxo;
+from wx.lib.wordwrap import wordwrap;
 
 import webbrowser;
 import xml.dom.minidom as xd;
 
 #sys.path.append('/home/sokol/dev/python/pytools');
 #sys.path.append('/home/sokol/insa/sysbio/dev/ftbl2sys');
-dirx=os.path.dirname(sys.argv[0]) or os.getcwd();
+dirx=os.path.dirname(os.path.abspath(os.sys.argv[0]));
+#print("dirx=", dirx);
 sys.path.append(dirx);
 import tools_ssg as tls;
 #from C13_ftbl import *;
@@ -101,7 +103,7 @@ welc_text="""
 results in isotopomer non stationnary simulations.
 </p>
 
-<h3>Usage.</h3>
+<h3>Usage:</h3>
 <ol>
 <li>Open an FTBL file: File > Open > ...(choose some file, let call it network.ftbl)
 
@@ -115,7 +117,7 @@ for a file network.ftbl it must be in the same directory the following files:
 <ul>
 <li>network.xgmml (network graph produced by <a href="http://www.cytoscape.org">cytoscape</a>)</li>
 <li>network_ipl.kvh (data to plot produced by <tt>influx_i.sh network.ftbl</tt>) </li>
-<li>network_idyn.kvh (your custom settings for the network saved
+<li>network_idyn.kvh (your optional custom settings for the network saved
 from previous session)</li>
 </ul>
 </li>
@@ -136,6 +138,9 @@ For legal information see Help > About
 </html>
 """ % {"me": me};
 welc_text=re.sub("\n\n", "<br>\n", welc_text);
+fp=open(os.path.join(dirx,"licence_en.txt"), "r");
+licenseText=fp.read();
+fp.close();
 
 ## global vars
 network="";
@@ -150,7 +155,6 @@ settings={
     "tw2tm": 1., # coefficient for time conversion from wallclock to modeled time
     "colour_bar_bold": "#346CDF",
     "frame_period": 100, # milliseconds between two updates of the picture
-    "zoom": 1, # zooming factor
 };
 #pnodes={}; # node plot attributes
 pmetabs=set(); # set of plotted metabolites
@@ -173,22 +177,22 @@ def OnExit(evt):
     #for a in dir(evt):
     #    if a[:3]=="Get":
     #        print("evt."+a+"="+eval("str(evt."+a+"())"));
-    win=evt.GetEventObject();
-    if "TopLevelParent" in dir(win):
-        win=win.TopLevelParent;
-    elif "InvokingWindow" in dir(win):
-        win=win.InvokingWindow;
-    else:
-        dlg=wx.MessageDialog(None, "Oups. Should not be there.\nUknown event type in OnExit()", 'Error', wx.OK | 
-            wx.ICON_ERROR);
-        if dlg.ShowModal() == wx.ID_OK:
-            dlg.Destroy();
-            sys.exit(1);
-    dlg = wx.MessageDialog(win, 'Exit such a beautifull program?', 'I Need To Know!',
+    #win=evt.GetEventObject();
+    #if "TopLevelParent" in dir(win):
+    #    win=win.TopLevelParent;
+    #elif "InvokingWindow" in dir(win):
+    #    win=win.InvokingWindow;
+    #else:
+    #    dlg=wx.MessageDialog(None, "Oups. Should not be there.\nUknown event type in OnExit()", 'Error', wx.OK | 
+    #        wx.ICON_ERROR);
+    #    if dlg.ShowModal() == wx.ID_OK:
+    #        dlg.Destroy();
+    #        sys.exit(1);
+    dlg = wx.MessageDialog(None, 'Exit such a beautifull program?', 'I Need To Know!',
                           wx.YES_NO | wx.ICON_QUESTION);
     if dlg.ShowModal() == wx.ID_YES:
         dlg.Destroy();
-        win.Destroy();
+        mainframe.Destroy();
     else:
         dlg.Destroy();
 def OnOpen(evt):
@@ -196,16 +200,17 @@ def OnOpen(evt):
     This is executed when the user clicks the 'Open' option
     under the 'File' menu.  We ask the user to choose an ftbl file.
     """
-    win=evt.GetEventObject();
-    win=win.InvokingWindow;
-    dlg = wx.FileDialog(win, defaultDir=os.getcwd(), wildcard="FTBL files (*.ftbl)|*.ftbl",
+    #win=evt.GetEventObject();
+    #win=win.InvokingWindow;
+    print("wd=", wd);
+    dlg = wx.FileDialog(None, defaultDir=wd, wildcard="FTBL files (*.ftbl)|*.ftbl",
         style=wx.OPEN);
     if dlg.ShowModal() == wx.ID_OK:
         #print "selected file="+dlg.GetPath();
         # proceed the ftbl
-        get_proj(dlg.GetPath(), win);
-    else:
-        dlg.Destroy();
+        get_proj(dlg.GetPath());
+    dlg.Destroy();
+
 def OnSave(evt):
     """
     This is executed when the user clicks the 'Save settings' option
@@ -225,24 +230,76 @@ def OnSave(evt):
         # ask permission to overwrite
         dlg=wx.MessageDialog(None, "Overwrite "+fpath+"?", "Confirm", 
                 wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION);
-        if dlg.ShowModal() == "Yes":
+        rep=dlg.ShowModal();
+        #print("rep=", rep);
+        if rep == wx.ID_YES:
             # write sttings
-            dict2kvh(settings, fpath);
+            print("writing "+fpath);
+            tls.dict2kvh(settings, fpath);
+            mainframe.SetStatusText("Written "+fpath);
         else:
             dlg.Destroy();
     else:
-        # write sttings
-        dict2kvh(settings, fpath);
+        # write directly
+        tls.dict2kvh(settings, fpath);
+        mainframe.SetStatusText("Written "+fpath);
+
+def OnAbout(evt):
+    "show about dialog"
+    win=evt.GetEventObject();
+    win=win.InvokingWindow;
+    info = wx.AboutDialogInfo();
+    #print("sz=", info.GetSizer());
+    info.SetIcon(wx.IconFromLocation(wx.IconLocation(os.path.join(dirx, "icons", "metasys.png"))));
+    info.Name = "influx_idyn.py";
+    info.Version = "1.0.0";
+    info.Copyright = "(C) 2009 INRA";
+    info.Description = wordwrap(
+        "A 'influx_idyn.py' program is a software that shows"
+        " an animation presenting labeling propagation in a metabolic"
+        " network which is in metabolicaly stationary state."
+        " It comes as visualisation tool for results obtained with"
+        " influx_i program." ,
+        350, wx.ClientDC(win));
+    info.WebSite = ("http://metasys.insa-toulouse.fr", "MetaSys home page");
+    info.Developers = [ "Serguei SOKOL" ];
+
+    info.License = wordwrap(licenseText, 500, wx.ClientDC(win));
+
+    # Then we call wx.AboutBox giving it that info object
+    wx.AboutBox(info);
 
 def OnPaint(evt):
     #print("pe=", evt);
     #sw_netw.SetBackgroundStyle(wx.BG_STYLE_CUSTOM);
+    global netw_img, pbuf;
     if netw_img:
         pbuf=netw_img.ConvertToBitmap();
         dc = wx.BufferedPaintDC(pan_netw, pbuf);
+        drawBars(dc, ti_ms);
         #print("pos=", evt.GetEventObject().GetViewStart());
         #vs=evt.GetEventObject().GetViewStart()
         #dc.DrawBitmap(pbuf, -vs[0]*20, -vs[1]*20);
+        ## create graph layout
+    else:
+        # create static buffer for the network graph
+        mrg_x=settings["mrg_x"];
+        mrg_y=settings["mrg_y"];
+        (w,h)=(graph["box"][-2:]);
+        (w,h)=(int(w+2*mrg_x), int(h+2*mrg_y));
+        #pbuf=wx.EmptyBitmap(w+2*mrg_x, h+2*mrg_y);
+        bpp = 4  # bytes per pixel
+        bytes = array.array("B", [128] * (w*h*bpp));
+        pbuf=wx.BitmapFromBufferRGBA(w, h, bytes);
+        # connect the buffer to DC
+        dc=wx.BufferedPaintDC(pan_netw, pbuf);
+        # draw to buffer via DC
+        drawGraph(graph, dc);
+        # draw the starting labeling
+        drawBars(dc, ti_ms);
+        # store the static image
+        netw_img=pbuf.ConvertToImage();
+
 
 def OnLinkClicked(evt):
     #print(str(dir(evt)));
@@ -263,11 +320,13 @@ def OnTimer(evt):
     ti_m=ti_ms+(ti_wcc-ti_wcs)*settings["tw2tm"];
     ftime=s2ftime(ti_m);
     pbuf=netw_img.ConvertToBitmap();
-    dc=wx.BufferedPaintDC(pan_netw, pbuf);
+    dc=wx.ClientDC(pan_netw);
+    dc.DrawBitmap(pbuf, 0, 0);
     #dc.DrawLabel(ftime, (ti_wcc-ti_wcs, ti_wcc-ti_wcs, 100, 100));
     #print("ftime=", ftime);
     labti_m.SetLabel(ftime);
     drawBars(dc, ti_m);
+    wx.App.Yield(app);
     if ti_m > data[-1,0]:
         # we are at the end of modeled time
         timer.Stop();
@@ -324,7 +383,21 @@ def OnSlider(evt):
         if play.Enabled:
             #print("try to draw");
             pbuf=netw_img.ConvertToBitmap();
-            drawBars(wx.BufferedPaintDC(pan_netw, pbuf), ti_ms);
+            dc=wx.ClientDC(pan_netw);
+            dc.DrawBitmap(pbuf, 0, 0);
+            drawBars(dc, ti_ms);
+
+def OnSettings(evt):
+    "store the new value in settings"
+    global settings;
+    #print(evt.GetString(), dir(inp));
+    k=evt.GetEventObject().set_field;
+    v=evt.GetString();
+    try:
+        settings[k]=eval(v);
+    except:
+        settings[k]=v;
+    #print(settings);
 
 def ToDo(evt):
     """
@@ -337,14 +410,17 @@ def ToDo(evt):
     dlg.Destroy();
 
 ## working functions
-def get_proj(fn, mf):
+def get_proj(fn):
     """get_proj(fn)
     parse files associated to ftbl given in fn
     """
     global network, pnetw, cnames, data, dom, netan, pmetabs,\
-        netw_img, dind, graph, ti_ms;
+        netw_img, dind, graph, ti_ms, settings, wd;
+    mf=mainframe;
     if not fn or fn[-5:] != ".ftbl":
         return;
+    netw_img=None; # this oblige to redraw the graph on next call to OnPaint
+    wd=os.path.dirname(os.path.abspath(fn));
     # parse ftbl to netan
     mainframe.SetStatusText("Parsing "+fn)
     #print("ftbl=",c13.ftbl_parse(fn));
@@ -356,9 +432,26 @@ def get_proj(fn, mf):
     
     fdata=os.path.join(pnetw, network+"_ipl.kvh");
     fx=os.path.join(pnetw, network+".xgmml");
+    fs=os.path.join(pnetw, network+"_idyn.kvh");
+    
+    # get settings if exist
+    if os.path.exists(fs):
+        d=tls.kvh2dict(fs);
+        for (k,v) in d.iteritems():
+            if k not in settings:
+                continue;
+            try:
+                settings[k]=eval(v);
+            except:
+                settings[k]=v;
+    #print("s=", settings);
+    
     #print ("fdata=", fdata);
     # get data to plot
-    (cnames,data)=ipl2data(fdata);
+    try:
+        (cnames,data)=ipl2data(fdata);
+    except:
+        return;
     cnames[0]="time";
     ti_ms=data[0,0];
     # set min max video position
@@ -367,7 +460,7 @@ def get_proj(fn, mf):
     # fill the set of metabolite names
     pmetabs=set(re.split("[:#+]", s)[0] for s in cnames[1:]);
     pmetabs.update(netan["input"]);
-    # store indeces of data columns for each metabolite
+    # store indices of data columns for each metabolite
     dind={};
     for (ic,nm) in enumerate(cnames):
         m=re.split("[:#+]", nm)[0];
@@ -381,24 +474,10 @@ def get_proj(fn, mf):
     graph=dom2gr(dom);
     #print("dom=", dom);
     
-    ## create graph layout
-    # create static buffer for the network graph
-    mrg_x=settings["mrg_x"];
-    mrg_y=settings["mrg_y"];
-    (w,h)=(graph["box"][-2:]);
-    (w,h)=(int(w+2*mrg_x), int(h+2*mrg_y));
-    #pbuf=wx.EmptyBitmap(w+2*mrg_x, h+2*mrg_y);
-    bpp = 4  # bytes per pixel
-    bytes = array.array("B", [128] * (w*h*bpp));
-    pbuf=wx.BitmapFromBufferRGBA(w, h, bytes);
-    # connect the buffer to DC
-    dc=wx.BufferedPaintDC(pan_netw, pbuf);
-    # draw to buffer via DC
-    drawGraph(graph, dc);
-    # draw the starting labeling
-    drawBars(dc, ti_ms);
-    # store the static image
-    netw_img=pbuf.ConvertToImage();
+    # draw the graph
+    evt=wx.PaintEvent(pan_netw.GetId());
+    pan_netw.GetEventHandler().ProcessEvent(evt);
+    
     play.Enable();
     i,p=lab2ip(nb, "Network");
     nb.SetSelection(i); # show directly network tab
@@ -418,11 +497,19 @@ def get_proj(fn, mf):
     # if not, it hangs
     #i,p=lab2ip(nb, "Data");
     #p.Enable(False); # the panel is enabled at the end of thread
-    th=fitGrid(grid);
-    th.start();
+    #th=fitGrid(grid);
+    #th.start();
+    grid.Fit();
+    sw_data.SetVirtualSize(grid.GetSize());
 
 def ipl2data(fn):
-    fp=open(fn, "r");
+    try:
+        fp=open(fn, "r");
+    except:
+        dlg=wx.MessageDialog(None, "File "+fn+" could not be read\nChoose another FTBL file or run influx_i before", "Error", wx.OK | wx.ICON_ERROR);
+        if dlg.ShowModal() == wx.ID_OK:
+            dlg.Destroy();
+            return;
     # get column names
     cnames=fp.readline().strip().split("\t");
     #print cnames;
@@ -432,24 +519,27 @@ def ipl2data(fn):
     return (cnames, data);
 
 def drawGraph(graph, dc):
+    global netw_img;
     mrg_x=settings["mrg_x"];
     mrg_y=settings["mrg_y"];
     dc.SetPen(wx.Pen("BLACK",1));
-    (w,h)=(graph["box"][-2:]);
-    pan_netw.SetSize(((w+2*mrg_x)*settings["zoom"], (h+2*mrg_y)*settings["zoom"]));
-    sw_netw.SetVirtualSize(pan_netw.GetSize());
+    dc.SetBackground(wx.Brush("#ffffff"));
     dc.Clear();
+    (w,h)=(graph["box"][-2:]);
+    #print("w,mrg_x=", (w+2*mrg_x));
+    w=(w+2*mrg_x);
+    h=(h+2*mrg_y);
+    pan_netw.SetSize((w,h));
+    sw_netw.SetVirtualSize(pan_netw.GetSize());
     #dc.SetLogicalOrigin(-mrg_x,-mrg_y);
     # set font size
     font=dc.GetFont();
     font.SetPointSize(int(settings["fontPointSize"]));
     dc.SetFont(font);
-    dc.SetUserScale(settings["zoom"], settings["zoom"]);
     #canvas=wxo.ShapeCanvas(sw_netw);
     # draw edges
     n=graph["node"];
     idl=graph["id2lab"];
-    z=settings["zoom"];
     for e in graph["edge"]:
         s=n[idl[e["source"]]];
         t=n[idl[e["target"]]];
@@ -463,7 +553,10 @@ def drawGraph(graph, dc):
                 lp[-1:];
         #lp=[(x*z, y*z) for (x,y) in lp];
         #InsertLineControlPoint(self, dc=None, point=None)
-        dc.DrawSpline(lp);
+        if len(lp) > 2:
+            dc.DrawSpline(lp);
+        else:
+            dc.DrawLinePoint(lp[0], lp[1]);
     # draw strait rectangles
     #print("nodes (x,y,w,h)=", [(pn["x"], pn["y"], pn["w"], pn["h"]) for pn in pnodes if pn["shape"]=="RECTANGLE"]);
     dc.DrawRectangleList([(pn["x"], pn["y"], pn["w"], pn["h"])
@@ -490,6 +583,7 @@ def drawGraph(graph, dc):
                 dc.SetPen(pen);
         dc.DrawLabel(pn["label"],
             (pn["x"], pn["y"], pn["w"], pn["h"]), wx.ALIGN_CENTER);
+    netw_img=pbuf.ConvertToImage();
 
 def dom2gr(dom):
     """dom2gr(dom)-> dict
@@ -570,11 +664,8 @@ def dia2points(x, y, w, h):
     x,y is the top left point of the rectangle
     w,h are the width and heght of the rectangle
     """
-    #z=settings["zoom"];
     w*=0.5;
     h*=0.5;
-    #x*=z;
-    #y*=z;
     return ((x, y+h), (x+w,y), (x+w+w, y+h), (x+w, y+h+h));
 
 def s2ftime(s=0.):
@@ -600,7 +691,6 @@ def drawBars(dc, ti_m):
     mrg_x=settings["mrg_x"];
     mrg_y=settings["mrg_y"];
     #dc.SetLogicalOrigin(-mrg_x,-mrg_y);
-    dc.SetUserScale(settings["zoom"], settings["zoom"]);
     nds=graph["node"];
     if not base_rect:
         # prepare list of tuples (x,y,w) of lower left corner of each rectangle
@@ -691,7 +781,30 @@ def lab2ip(nb, lab):
     for i in xrange(nb_pages):
         if lab == nb.GetPageText(i):
             return((i,nb.GetPage(i)));
-    return (None,None);
+    return((None,None));
+
+def sett2wx(win):
+    "create input wx widgets for settings in the window win"
+    global inp;
+    gs=wx.FlexGridSizer(len(settings), 2, 2, 2)  # rows, cols, vgap, hgap;
+    panel=wx.Panel(win, wx.ID_ANY);
+    # create widgets and add them to the sizer
+    gs.AddSpacer(10);
+    gs.AddSpacer(10);
+    for (k,v) in settings.iteritems():
+        #print("set k=", k);
+        gs.Add(wx.StaticText(panel, wx.ID_ANY, k), 0, wx.EXPAND, 5);
+        inp=wx.TextCtrl(panel, wx.ID_ANY, str(v), size=(125, -1));
+        inp.Bind(wx.EVT_TEXT, OnSettings);
+        inp.set_field=k;
+        gs.Add(inp, 0, wx.EXPAND, 5);
+    gs.AddSpacer(10);
+    gs.AddSpacer(10);
+    panel.SetSizer(gs);
+    panel.Fit();
+    win.SetVirtualSize(panel.GetSize());
+    #panel.Center(wx.HORIZONTAL);
+    
 ## take arguments
 #<--skip in interactive session
 # get arguments
@@ -719,21 +832,25 @@ if fftbl and not os.path.exists(fftbl):
     sys.stderr.write(me+": file '"+fftbl+"' does not exist.\n");
     sys.exit(1);
 if fftbl:
-    wd=os.path.dirname(fftbl);
-    if wd != "":
-        #print("wd='"+wd+"'");
-        os.chdir(wd);
+    wd=os.path.dirname(os.path.abspath(fftbl));
+    os.chdir(wd);
     fftbl=os.path.basename(fftbl);
+else:
+    wd=os.path.abspath(os.getcwd());
 
 ## create GUI
 app=wx.App();
-code=tls.wxlay2py(tls.kvh2tlist(sys.argv[0][:-3]+"_lay.kvh"));
+code=tls.wxlay2py(tls.kvh2tlist(os.path.join(dirx, me[:-3]+"_lay.kvh")));
 flname=sys.argv[0][:-3]+"_lay.py";
 fp=open(flname, "w");
 fp.write(code);
 fp.close();
 execfile(flname);
+
 if fftbl:
-    get_proj(os.path.join(os.getcwd(), fftbl), mainframe);
+    get_proj(os.path.join(os.getcwd(), fftbl));
+
+# add setting controls
+sett2wx(sw_sett);
 app.MainLoop();
 

@@ -115,11 +115,18 @@ wx.Frame
 			callmeth
 				SetSizer(nwsizer)
 				Bind(wx.EVT_SIZE, OnSize)
+		wx.ScrolledWindow
+			varname	sw_sett
+			param	.parent, wx.ID_ANY, style=wx.SUNKEN_BORDER|wx.NO_FULL_REPAINT_ON_RESIZE
+			callmeth
+				SetScrollRate(20,20)
+				SetBackgroundColour("WHITE")
+				Bind(wx.EVT_SIZE, OnSize)
 		callmeth
 			AddPage(win_welc, "Welcome")
 			AddPage(pan_video, "Network")
 			AddPage(sw_data, "Data")
-			#AddPage(sw_sett, "Settings")
+			AddPage(sw_sett, "Settings")
 	callmeth
 		SetMenuBar(menubar)
 		CreateStatusBar()
@@ -129,6 +136,7 @@ wx.Frame
 		Bind(wx.EVT_MENU, OnOpen, id=wx.ID_OPEN)
 		Bind(wx.EVT_MENU, OnExit, id=wx.ID_EXIT)
 		Bind(wx.EVT_MENU, OnSave, id=wx.ID_SAVE)
+		Bind(wx.EVT_MENU, OnAbout, id=wx.ID_ABOUT)
 		Bind(wx.EVT_CLOSE, OnExit)
 		Bind(wx.EVT_TIMER, OnTimer)
 		Bind(wx.EVT_BUTTON, OnPlay, id=ID_PLAY)
