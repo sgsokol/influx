@@ -39,8 +39,9 @@ from threading import Thread;
 import wx;
 import wx.html;
 import wx.grid as wxg;
-import wx.lib.ogl as wxo;
+#import wx.lib.ogl as wxo;
 from wx.lib.wordwrap import wordwrap;
+import wx.lib.floatcanvas.FloatCanvas as wxfc;
 
 import webbrowser;
 import xml.dom.minidom as xd;
@@ -74,16 +75,42 @@ class data2tab(wxg.PyGridTableBase):
     def GetColLabelValue(self, col):
         return self.cnames[col] if self.cnames else None;
 
-class fitGrid(Thread):
-    def __init__(self, grid):
-        Thread.__init__(self);
-        self.grid=grid;
-    def run(self):
-        self.grid.Fit();
-        parent=self.grid.GetParent();
-        parent.SetVirtualSize(self.grid.GetSize());
-        #parent.Refresh();
-        #parent.Enable(True);
+class MovingObjectMixin:
+    """
+    Methods required for a Moving object
+    
+    """
+    def GetOutlinePoints(self):
+        BB = self.BoundingBox
+        OutlinePoints = np.array( ( (BB[0,0], BB[0,1]),
+                                    (BB[0,0], BB[1,1]),
+                                    (BB[1,0], BB[1,1]),
+                                    (BB[1,0], BB[0,1]),
+                                 )
+                               )
+        return OutlinePoints
+
+class MovingRectangle(wxfc.Rectangle, MovingObjectMixin):
+    """
+    ScaledBitmap Object that can be moved
+    """
+    ## All we need to do is is inherit from:
+    ##  ScaledBitmap, MovingObjectMixin
+    def GetXYWH(self):
+        (x,y),(w,h)=self.XY,self.WH;
+        return(x,y,w,h);
+
+# workaround for transparency with gcdc
+Draw_orig=wxfc.Rectangle._Draw;
+def gcdcDraw(self, dc, *args, **kwargs):
+    try:
+        dc=wx.GCDC(dc);
+        #print "gcdc ok";
+    except:
+        #print "gcdc ko";
+        pass;
+    Draw_orig(self, dc, *args, **kwargs);
+wxfc.Rectangle._Draw=gcdcDraw;
 
 ## config constants
 # program name
@@ -164,8 +191,10 @@ netw_img=None; # static image of the network
 graph={}; # dictionary describing metab graph (node, edge and so on)
 ti_wcs=None; # wall clocktime at the model's start
 ti_ms=None; # model's start time (after a pause it may be non zero)
-base_rect=None; # list of (x,y,w) coord of left lower corner for each bar
+bars=None; # list of [x,y,w,h, shape] indexed by column number in data array
 dind=None; # dict of column indexes for each metabolite
+canvas=None; # plotting canvas for network and animations
+sett_inp=None; # dictionary of input widgets for settings
 
 ## call back functions
 def OnExit(evt):
@@ -174,20 +203,6 @@ def OnExit(evt):
     under the 'File' menu or close the window.  We ask the user if he *really*
     want to exit, then close everything down if he does.
     """
-    #for a in dir(evt):
-    #    if a[:3]=="Get":
-    #        print("evt."+a+"="+eval("str(evt."+a+"())"));
-    #win=evt.GetEventObject();
-    #if "TopLevelParent" in dir(win):
-    #    win=win.TopLevelParent;
-    #elif "InvokingWindow" in dir(win):
-    #    win=win.InvokingWindow;
-    #else:
-    #    dlg=wx.MessageDialog(None, "Oups. Should not be there.\nUknown event type in OnExit()", 'Error', wx.OK | 
-    #        wx.ICON_ERROR);
-    #    if dlg.ShowModal() == wx.ID_OK:
-    #        dlg.Destroy();
-    #        sys.exit(1);
     dlg = wx.MessageDialog(None, 'Exit such a beautifull program?', 'I Need To Know!',
                           wx.YES_NO | wx.ICON_QUESTION);
     if dlg.ShowModal() == wx.ID_YES:
@@ -200,9 +215,7 @@ def OnOpen(evt):
     This is executed when the user clicks the 'Open' option
     under the 'File' menu.  We ask the user to choose an ftbl file.
     """
-    #win=evt.GetEventObject();
-    #win=win.InvokingWindow;
-    print("wd=", wd);
+    #print("wd=", wd);
     dlg = wx.FileDialog(None, defaultDir=wd, wildcard="FTBL files (*.ftbl)|*.ftbl",
         style=wx.OPEN);
     if dlg.ShowModal() == wx.ID_OK:
@@ -234,7 +247,7 @@ def OnSave(evt):
         #print("rep=", rep);
         if rep == wx.ID_YES:
             # write sttings
-            print("writing "+fpath);
+            #print("writing "+fpath);
             tls.dict2kvh(settings, fpath);
             mainframe.SetStatusText("Written "+fpath);
         else:
@@ -269,38 +282,6 @@ def OnAbout(evt):
     # Then we call wx.AboutBox giving it that info object
     wx.AboutBox(info);
 
-def OnPaint(evt):
-    #print("pe=", evt);
-    #sw_netw.SetBackgroundStyle(wx.BG_STYLE_CUSTOM);
-    global netw_img, pbuf;
-    if netw_img:
-        pbuf=netw_img.ConvertToBitmap();
-        dc = wx.BufferedPaintDC(pan_netw, pbuf);
-        drawBars(dc, ti_ms);
-        #print("pos=", evt.GetEventObject().GetViewStart());
-        #vs=evt.GetEventObject().GetViewStart()
-        #dc.DrawBitmap(pbuf, -vs[0]*20, -vs[1]*20);
-        ## create graph layout
-    else:
-        # create static buffer for the network graph
-        mrg_x=settings["mrg_x"];
-        mrg_y=settings["mrg_y"];
-        (w,h)=(graph["box"][-2:]);
-        (w,h)=(int(w+2*mrg_x), int(h+2*mrg_y));
-        #pbuf=wx.EmptyBitmap(w+2*mrg_x, h+2*mrg_y);
-        bpp = 4  # bytes per pixel
-        bytes = array.array("B", [128] * (w*h*bpp));
-        pbuf=wx.BitmapFromBufferRGBA(w, h, bytes);
-        # connect the buffer to DC
-        dc=wx.BufferedPaintDC(pan_netw, pbuf);
-        # draw to buffer via DC
-        drawGraph(graph, dc);
-        # draw the starting labeling
-        drawBars(dc, ti_ms);
-        # store the static image
-        netw_img=pbuf.ConvertToImage();
-
-
 def OnLinkClicked(evt):
     #print(str(dir(evt)));
     #for o in dir(evt.GetLinkInfo()):
@@ -311,27 +292,24 @@ def OnTimer(evt):
     """plot the current state of labeled matabs
     if evt==None, set timers to zero.
     """
-    global ti_wcs, ti_ms, netw_img;
+    global ti_wcs, ti_ms;
     if ti_wcs is None:
         ti_wcs=time.time();
     if ti_ms is None:
         ti_ms=data[0,0]; # starting value for modeled time
     ti_wcc=time.time();
+    #print("ti_wcc=", ti_wcc);
     ti_m=ti_ms+(ti_wcc-ti_wcs)*settings["tw2tm"];
     ftime=s2ftime(ti_m);
-    pbuf=netw_img.ConvertToBitmap();
-    dc=wx.ClientDC(pan_netw);
-    dc.DrawBitmap(pbuf, 0, 0);
-    #dc.DrawLabel(ftime, (ti_wcc-ti_wcs, ti_wcc-ti_wcs, 100, 100));
-    #print("ftime=", ftime);
+    #print("ti_m, ftime=", ti_m, ftime);
     labti_m.SetLabel(ftime);
-    drawBars(dc, ti_m);
-    wx.App.Yield(app);
-    if ti_m > data[-1,0]:
+    vpos.SetValue(round(ti_m));
+    drawBars(ti_m);
+    #wx.App.Yield(app);
+    if ti_m >= data[-1,0]:
         # we are at the end of modeled time
         timer.Stop();
         ti_ms=data[0,0];
-        netw_img=pbuf.ConvertToImage();
         pan_netw.Refresh();
         play.Enable(True);
         pause.Enable(False);
@@ -343,6 +321,7 @@ def OnPlay(evt):
     ti_wcs=time.time();
     if ti_ms is None:
         ti_ms=data[0,0]; # starting value for modeled time
+    #print("period=", settings["frame_period"]);
     timer.Start(settings["frame_period"]);
     play.Enable(False);
     pause.Enable(True);
@@ -370,9 +349,7 @@ def OnSlider(evt):
     if evt.GetEventObject().Id == speed.Id:
         v=speed.GetValue();
         f=4**((v-50.)/50.);
-        settings["tw2tm"]=f;
-        lf="%.1f"%f;
-        labspeed.SetLabel("" if lf=="1.0" else "x"+lf if f > 1. else "/%.1f"%(1./f));
+        show_tfactor(f);
     if evt.GetEventObject().Id == vpos.Id:
         v=vpos.GetValue();
         #print("v=",v);
@@ -382,10 +359,7 @@ def OnSlider(evt):
         labti_m.SetLabel(s2ftime(ti_ms));
         if play.Enabled:
             #print("try to draw");
-            pbuf=netw_img.ConvertToBitmap();
-            dc=wx.ClientDC(pan_netw);
-            dc.DrawBitmap(pbuf, 0, 0);
-            drawBars(dc, ti_ms);
+            drawBars(ti_ms);
 
 def OnSettings(evt):
     "store the new value in settings"
@@ -397,6 +371,15 @@ def OnSettings(evt):
         settings[k]=eval(v);
     except:
         settings[k]=v;
+    if k=="frame_period" and timer.IsRunning():
+        timer.Stop();
+        timer.Start(settings["frame_period"]);
+    elif k=="tw2tm":
+        try:
+            settings[k]=float(settings[k]);
+            show_tfactor(settings[k]);
+        except:
+            pass;
     #print(settings);
 
 def ToDo(evt):
@@ -415,11 +398,10 @@ def get_proj(fn):
     parse files associated to ftbl given in fn
     """
     global network, pnetw, cnames, data, dom, netan, pmetabs,\
-        netw_img, dind, graph, ti_ms, settings, wd;
+        dind, graph, ti_ms, settings, wd, bars;
     mf=mainframe;
     if not fn or fn[-5:] != ".ftbl":
         return;
-    netw_img=None; # this oblige to redraw the graph on next call to OnPaint
     wd=os.path.dirname(os.path.abspath(fn));
     # parse ftbl to netan
     mainframe.SetStatusText("Parsing "+fn)
@@ -444,6 +426,10 @@ def get_proj(fn):
                 settings[k]=eval(v);
             except:
                 settings[k]=v;
+    # set slider of speed
+    f=settings["tw2tm"];
+    show_tfactor(f);
+    
     #print("s=", settings);
     
     #print ("fdata=", fdata);
@@ -452,6 +438,8 @@ def get_proj(fn):
         (cnames,data)=ipl2data(fdata);
     except:
         return;
+    # remove precedent project
+    bars=None;
     cnames[0]="time";
     ti_ms=data[0,0];
     # set min max video position
@@ -475,8 +463,8 @@ def get_proj(fn):
     #print("dom=", dom);
     
     # draw the graph
-    evt=wx.PaintEvent(pan_netw.GetId());
-    pan_netw.GetEventHandler().ProcessEvent(evt);
+    drawGraph(graph);
+    drawBars(ti_ms);
     
     play.Enable();
     i,p=lab2ip(nb, "Network");
@@ -518,25 +506,23 @@ def ipl2data(fn):
     #print data;
     return (cnames, data);
 
-def drawGraph(graph, dc):
-    global netw_img;
+def drawGraph(graph):
+    global canvas;
+    (w,h)=(graph["box"][-2:]);
     mrg_x=settings["mrg_x"];
     mrg_y=settings["mrg_y"];
-    dc.SetPen(wx.Pen("BLACK",1));
-    dc.SetBackground(wx.Brush("#ffffff"));
-    dc.Clear();
-    (w,h)=(graph["box"][-2:]);
-    #print("w,mrg_x=", (w+2*mrg_x));
     w=(w+2*mrg_x);
     h=(h+2*mrg_y);
+    # Create new Canvas
+    canvas = wxfc.FloatCanvas(pan_netw, wx.ID_ANY,(w,h),
+        ProjectionFun = None,
+        Debug = 0,
+        BackgroundColor = "White",
+        );
+    #print("w,mrg_x=", (w+2*mrg_x));
     pan_netw.SetSize((w,h));
     sw_netw.SetVirtualSize(pan_netw.GetSize());
-    #dc.SetLogicalOrigin(-mrg_x,-mrg_y);
-    # set font size
-    font=dc.GetFont();
-    font.SetPointSize(int(settings["fontPointSize"]));
-    dc.SetFont(font);
-    #canvas=wxo.ShapeCanvas(sw_netw);
+    
     # draw edges
     n=graph["node"];
     idl=graph["id2lab"];
@@ -551,39 +537,33 @@ def drawGraph(graph, dc):
             lp=lp[0:1]+\
                 [(i["x"], i["y"]) for i in b]+\
                 lp[-1:];
-        #lp=[(x*z, y*z) for (x,y) in lp];
-        #InsertLineControlPoint(self, dc=None, point=None)
         if len(lp) > 2:
-            dc.DrawSpline(lp);
+            canvas.AddSpline(lp);
         else:
-            dc.DrawLinePoint(lp[0], lp[1]);
-    # draw strait rectangles
-    #print("nodes (x,y,w,h)=", [(pn["x"], pn["y"], pn["w"], pn["h"]) for pn in pnodes if pn["shape"]=="RECTANGLE"]);
-    dc.DrawRectangleList([(pn["x"], pn["y"], pn["w"], pn["h"])
-        for pn in graph["node"].values() if pn["label"] in pmetabs or pn["gr"]["type"]=="RECTANGLE"]);
+            canvas.AddLine(lp);
+    for pn in graph["node"].values():
+        if not (pn["label"] in pmetabs or pn["gr"]["type"]=="RECTANGLE"):
+            continue;
+        canvas.AddRectangle((pn["x"], pn["y"]), (pn["w"], pn["h"]));
     # draw nodes (rounded rectangles, rombs, etc.)
     # and their labels
-    pen=dc.GetPen();
     for pn in graph["node"].values():
         if pn["label"] not in pmetabs:
             if pn["gr"]["type"]=="ROUNDED_RECTANGLE":
-                dc.SetBrush(wx.Brush(pn["gr"]["fill"]));
-                dc.DrawRoundedRectangle(pn["x"], pn["y"], pn["w"], pn["h"], settings["radius"]);
+                canvas.AddRectangle((pn["x"], pn["y"]), (pn["w"], pn["h"]), FillColor=pn["gr"]["fill"]);
             elif pn["gr"]["type"]=="DIAMOND":
-                dc.SetBrush(wx.Brush(pn["gr"]["fill"]));
-                #dc.DrawRectangle(pn["x"], pn["y"], pn["w"], pn["h"]);
-                dc.DrawPolygon(dia2points(pn["x"], pn["y"], pn["w"], pn["h"]));
+                canvas.AddPolygon(dia2points(pn["x"], pn["y"], pn["w"], pn["h"]), FillColor=pn["gr"]["fill"]);
         else:
-            # inputs are in green
-            dc.SetBrush(wx.Brush(wx.WHITE));
             if pn["label"] in netan["input"]:
-                dc.SetPen(wx.Pen(wx.GREEN));
-                dc.DrawRectangle(pn["x"], pn["y"], pn["w"], pn["h"]);
-                #r=wxo.DrawnShape.DrawRectangle((pn["x"], pn["y"], pn["w"], pn["h"]));
-                dc.SetPen(pen);
-        dc.DrawLabel(pn["label"],
-            (pn["x"], pn["y"], pn["w"], pn["h"]), wx.ALIGN_CENTER);
-    netw_img=pbuf.ConvertToImage();
+                # inputs are in green
+                canvas.AddRectangle((pn["x"], pn["y"]), (pn["w"], pn["h"]), LineColor="Green", FillColor="White");
+            else:
+                # regular nodes
+                canvas.AddRectangle((pn["x"], pn["y"]), (pn["w"], pn["h"]), FillColor="White");
+        canvas.AddText(pn["label"],
+            (pn["x"]+0.5*pn["w"], pn["y"]+0.5*pn["h"]), Size=10, Position="cc");
+    canvas.ZoomToBB();
+    canvas.Draw(True);
 
 def dom2gr(dom):
     """dom2gr(dom)-> dict
@@ -608,7 +588,7 @@ def dom2gr(dom):
     for n in res["node"].values():
         #print("n=", n);
         n["x"]=float(n["gr"]["x"]);
-        n["y"]=float(n["gr"]["y"]);
+        n["y"]=-float(n["gr"]["y"]);
         n["w"]=float(n["gr"]["w"]);
         n["h"]=float(n["gr"]["h"]);
         minx=min(minx, n["x"]);
@@ -631,7 +611,7 @@ def dom2gr(dom):
         b=e.get("edgeBend", []);
         for item in b:
             item["x"]=float(item["x"])+dx;
-            item["y"]=float(item["y"])+dy;
+            item["y"]=-float(item["y"])+dy;
     return(res);
 
 def el2dict(e):
@@ -682,36 +662,41 @@ def s2ftime(s=0.):
     hh=s;
     return("%02d:%02d:%02d.%02d"%(hh,mm,ss,cc));
 
-def drawBars(dc, ti_m):
-    """drawBars(dc, ti_m) -> None
+def drawBars(ti_m):
+    """drawBars(ti_m) -> None
     Draw rectangle bars in the metabolite nodes representing
     labeling propagation.
     """
-    global base_rect;
-    mrg_x=settings["mrg_x"];
-    mrg_y=settings["mrg_y"];
-    #dc.SetLogicalOrigin(-mrg_x,-mrg_y);
+    global bars;
     nds=graph["node"];
-    if not base_rect:
+    nb_bars=data.shape[1];
+    if not bars:
         # prepare list of tuples (x,y,w) of lower left corner of each rectangle
-        base_rect=[];
+        bars=[None]*nb_bars;
         for m in pmetabs:
             if m not in dind:
                 continue; # no data for this metabolite, it must be an input
             nd=nds[m];
-            py=nd["y"]+nd["h"];
-            n=len(dind[m]);
+            py=nd["y"];
+            cols=dind[m];
+            n=len(cols);
             w=nd["w"]/n;
             pxs=[round(nd["x"]+i*w) for i in xrange(n)];
+            pxs.append(nd["x"]+nd["w"]);
             #print("m=", m, "pxs=", pxs);
-            for i in xrange(n-1):
-                base_rect.append((pxs[i],py,pxs[i+1]-pxs[i], m));
-            # treat the last bar
-            base_rect.append((pxs[n-1], py, pxs[0]+nd["w"]-pxs[n-1], m));
-    #print("br=", base_rect);
+            for (i,ic) in enumerate(cols):
+                x,y,w=(pxs[i],py,pxs[i+1]-pxs[i]);
+                color=wx.NamedColour(settings["colour_bar_bold"]);
+                r,g,b=color.Get();
+                color.Set(r,g,b, alpha=128);
+                r=MovingRectangle((x,y), (w,0), FillColor=color, LineWidth=0);
+                r.PutInForeground();
+                bars[ic]=r;
+                canvas.AddObject(r);
+    #print("bars=", bars);
     #print("n=", [(nds[l]["x"], nds[l]["y"], nds[l]["w"], l) for l in pmetabs]);
     #sys.exit(1);
-    # find the max row index in data s.t ti(ir)<=tm
+    # find the max row index ir in data s.t. ti(ir)<=tm
     # and fraction f of ir+1 s.t. 0<=f<=1, f=0 => 100% ir, f=1 => 100% of ir+1
     (nr,nc)=data.shape;
     if ti_m >= data[-1,0]:
@@ -726,52 +711,23 @@ def drawBars(dc, ti_m):
                 ir=ir-1;
                 f=(ti_m-data[ir,0])/(data[ir+1,0]-data[ir,0]);
                 break;
-    # prepare the heights of all bars
+    # set the heights of all bars
     # the bars ar proportional to the faction of labeled component
     #print("ti_m=", ti_m, "ir=", ir, "f=", f);
-    hs=[];
     for m in pmetabs:
         if m not in dind:
-            continue; # no data for this metabolite, it must be an input
+            continue; # no data for this metabolite, it must be an output
         nd=nds[m];
-        n=len(dind[m]);
-        h=nd["h"];
-        for i in xrange(n):
-            ic=dind[m][i];
+        cols=dind[m];
+        H=nd["h"];
+        for ic in cols:
             v=data[ir,ic]*(1.-f)+data[ir+1,ic]*f;
-            hs.append(round(h*v));
-    # gather all ractangles and draw them
-    rect=[(b[0],b[1]-hs[i],b[2],hs[i]) for (i,b) in enumerate(base_rect)];
-    dc.SetPen(wx.Pen(settings["colour_bar_bold"], 0));
-    brush=wx.Brush(settings["colour_bar_bold"]);
-    (r,g,b)=brush.GetColour().Get()
-    dc.SetBrush(wx.Brush(wx.Colour(r,g,b,alpha=128)));
-    #dc.SetBrush(wx.Brush(settings["colour_bar_bold"], wx.TRANSPARENT|wx.SOLID));
-    DrawRectangleListAsBitmap(dc, rect);
-
-def DrawRectangleListAsBitmap(dc, rect):
-    """DrawRectangleListAsBitmap(dc, rect)->None
-    Create a rectangle bitmap for each rectangle to
-    be able to use the transparency.
-    """
-    # get max w,h
-    (maxw,maxh)=(0,0);
-    for r in rect:
-        (maxw,maxh)=(max(maxw,r[2]), max(maxh,r[3]));
-    (maxw,maxh)=(int(maxw),int(maxh));
-    # allocate buffer with brush colour values
-    colour=dc.GetBrush().GetColour();
-    (r,g,b)=colour;
-    a=colour.Alpha();
-    #print("a=", a);
-    buf=array.array("B", [r,g,b,a]*(maxw*maxh));
-    for (x,y,w,h) in rect:
-        (x,y,w,h)=(int(x),int(y),int(w),int(h));
-        #print("x,y,w,h=",x,y,w,h);
-        if w*h <= 0:
-            continue;
-        bmp=wx.BitmapFromBufferRGBA(w, h, buf[:4*w*h]);
-        dc.DrawBitmap(bmp, x, y, True);
+            r=bars[ic];
+            x,y,w,h=r.GetXYWH();
+            r.SetShape((x,y), (w,round(H*v)));
+            #print("ic=", ic, "r=", r);
+            #r.Show(True);
+    canvas.Draw(True);
 
 def lab2ip(nb, lab):
     """lab2i(nb, nm) -> (i,Page) or (None,None)
@@ -785,12 +741,13 @@ def lab2ip(nb, lab):
 
 def sett2wx(win):
     "create input wx widgets for settings in the window win"
-    global inp;
+    global sett_inp;
     gs=wx.FlexGridSizer(len(settings), 2, 2, 2)  # rows, cols, vgap, hgap;
     panel=wx.Panel(win, wx.ID_ANY);
     # create widgets and add them to the sizer
     gs.AddSpacer(10);
     gs.AddSpacer(10);
+    sett_inp={};
     for (k,v) in settings.iteritems():
         #print("set k=", k);
         gs.Add(wx.StaticText(panel, wx.ID_ANY, k), 0, wx.EXPAND, 5);
@@ -798,13 +755,23 @@ def sett2wx(win):
         inp.Bind(wx.EVT_TEXT, OnSettings);
         inp.set_field=k;
         gs.Add(inp, 0, wx.EXPAND, 5);
+        sett_inp[k]=inp;
     gs.AddSpacer(10);
     gs.AddSpacer(10);
     panel.SetSizer(gs);
     panel.Fit();
     win.SetVirtualSize(panel.GetSize());
     #panel.Center(wx.HORIZONTAL);
-    
+
+def show_tfactor(f):
+    "set slider of speed, its label and setting input"
+    settings["tw2tm"]=f;
+    speed.SetValue((math.log(f)/math.log(4))*50+50);
+    lf="%.1f"%f;
+    labspeed.SetLabel("" if lf=="1.0" else "x"+lf if f > 1. else "/%.1f"%(1./f));
+    if sett_inp["tw2tm"].GetValue() != str(f):
+        sett_inp["tw2tm"].SetValue(str(f));
+
 ## take arguments
 #<--skip in interactive session
 # get arguments
@@ -846,11 +813,11 @@ fp=open(flname, "w");
 fp.write(code);
 fp.close();
 execfile(flname);
+# add setting controls
+sett2wx(sw_sett);
 
 if fftbl:
     get_proj(os.path.join(os.getcwd(), fftbl));
 
-# add setting controls
-sett2wx(sw_sett);
 app.MainLoop();
 

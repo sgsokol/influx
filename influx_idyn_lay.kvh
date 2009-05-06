@@ -103,7 +103,6 @@ wx.Frame
 					param	.parent, wx.ID_ANY, style=wx.SUNKEN_BORDER
 					callmeth
 						SetBackgroundColour("WHITE")
-						Bind(wx.EVT_PAINT, OnPaint)
 				callmeth
 					SetScrollRate(20,20)
 			wx.BoxSizer
