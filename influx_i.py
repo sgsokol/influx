@@ -97,8 +97,8 @@ n_ftbl=org+".ftbl";
 n_R=org+".R";
 n_fort=org+".f";
 f_ftbl=open(n_ftbl, "r");
-os.system("chmod u+w '%s' 2>/dev/null"%n_R);
-os.system("chmod u+w '%s' 2>/dev/null"%n_fort);
+os.chmod(n_R,755);
+os.chmod(n_fort,755);
 f=open(n_R, "w");
 ff=open(n_fort, "w");
 
@@ -211,10 +211,12 @@ for (iw in 1:nb_w) {
 }
 
 # formated output in kvh file
-fkvh=file("%(org)s_ires.kvh", "w");
-fplot=file("%(org)s_ipl.kvh", "w");
+fkvh=file("%(fkvh)s", "w");
+fplot=file("%(fplot)s", "w");
 """%{
     "org": org,
+    "fkvh": escape("%s_ires.kvh"%org, "\\"),
+    "fplot": escape("%s_ipl.kvh"%org, "\\"),
     "dt": netan["opt"]["dt"],
     "tmax": netan["opt"]["tmax"],
     "metab_scale": netan["opt"]["metab_scale"],
@@ -303,5 +305,5 @@ for (ti in seq(dt, tmax, by=dt)) {
 f.close();
 ff.close();
 # make output files just readable to avoid later casual edition
-os.system("chmod a-w '%s'"%n_R);
-os.system("chmod a-w '%s'"%n_fort);
+os.chmod(n_R, 666);
+os.chmod(n_fort, 666);

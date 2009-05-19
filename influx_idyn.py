@@ -112,6 +112,16 @@ def gcdcDraw(self, dc, *args, **kwargs):
     Draw_orig(self, dc, *args, **kwargs);
 wxfc.Rectangle._Draw=gcdcDraw;
 
+# work around for negative height
+SetUpDraw_orig=wxfc.Rectangle.SetUpDraw;
+def SetUpDraw_pos(self, *args, **kwargs):
+    (XY, WH) = SetUpDraw_orig(self, *args, **kwargs);
+    if WH[1] < 0:
+       XY[1] += WH[1]-1;
+       WH[1] = np.abs(WH[1]);
+    return(XY, WH);
+wxfc.Rectangle.SetUpDraw=SetUpDraw_pos;
+
 ## config constants
 # program name
 me=os.path.basename(sys.argv[0]);

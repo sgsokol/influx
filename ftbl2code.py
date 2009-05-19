@@ -334,8 +334,8 @@ if (is.na(method) || !length(which(method==validmethods))) {
 }
 
 # get some tools
-source("%(dirx)s/tools_ssg.R");
-source("%(dirx)s/opt_cumo_tools.R");
+source("%(dirx)s%(psep)stools_ssg.R");
+source("%(dirx)s%(psep)sopt_cumo_tools.R");
 #require(matrid, lib.loc="/home/sokol/R/lib");
 dyn.load("%(sofile)s");
 
@@ -370,9 +370,10 @@ flcnx2fwrv=function(flcnx) {
         else nb_flx+netan["vflux_free"]["xch2i"][fl] if fl in netan["vflux_free"]["xch2i"]
         else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl])
         for fl in netan["vflux_fwrv"]["fw"])),
-        "proffile": os.path.basename(f.name)[:-1]+"Rprof",
-        "sofile": os.path.basename(ff.name)[:-1]+"so",
-        "dirx": dirx,
+        "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
+        "sofile": escape(os.path.basename(ff.name)[:-1]+"dll", "\\"),
+        "dirx": escape(dirx, "\\"),
+	"psep": escape(os.sep, "\\"),
     });
     f.write("""
 # fwd-rev flux names
@@ -464,7 +465,7 @@ nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
    nb_flcnx=nb_flcnx);
 
 """ % {
-    "n_ftbl": org+".ftbl",
+    "n_ftbl": escape(org+".ftbl", "\\"),
     "nm_fwrv": join(", ", netan['vflux_fwrv']["fw"]*2, '"', '"'),
     "nm_flcnx": join(", ", (join(".", t) for t in tflcnx), '"', '"'),
     "nm_fln": join(", ", netan['vflux']['net'], '"', '"'),
