@@ -11,6 +11,7 @@ import C13_ftbl;
 import copy;
 import os;
 import sys;
+import platform;
 global DEBUG;
 dirx=os.path.dirname(sys.argv[0]);
 
@@ -371,9 +372,10 @@ flcnx2fwrv=function(flcnx) {
         else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl])
         for fl in netan["vflux_fwrv"]["fw"])),
         "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
-        "sofile": escape(os.path.basename(ff.name)[:-1]+"dll", "\\"),
+        "sofile": escape(os.path.basename(ff.name)[:-1]+
+            ("dll" if platform.system() == "windows" else "so"), "\\"),
         "dirx": escape(dirx, "\\"),
-	"psep": escape(os.sep, "\\"),
+        "psep": escape(os.sep, "\\"),
     });
     f.write("""
 # fwd-rev flux names
