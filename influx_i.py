@@ -61,8 +61,9 @@
 
 import sys;
 import os;
-import time;
-import copy;
+import stat;
+#import time;
+#import copy;
 
 from tools_ssg import *;
 import C13_ftbl;
@@ -97,8 +98,11 @@ n_ftbl=org+".ftbl";
 n_R=org+".R";
 n_fort=org+".f";
 f_ftbl=open(n_ftbl, "r");
-os.chmod(n_R,755);
-os.chmod(n_fort,755);
+try:
+    os.chmod(n_R, stat.S_IRUSR | stat.S_IWUSR);
+    os.chmod(n_fort, stat.S_IRUSR | stat.S_IWUSR);
+except:
+    pass;
 f=open(n_R, "w");
 ff=open(n_fort, "w");
 
@@ -305,5 +309,5 @@ for (ti in seq(dt, tmax, by=dt)) {
 f.close();
 ff.close();
 # make output files just readable to avoid later casual edition
-os.chmod(n_R, 666);
-os.chmod(n_fort, 666);
+os.chmod(n_R, stat.S_IRUSR);
+os.chmod(n_fort, stat.S_IRUSR);
