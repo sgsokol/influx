@@ -52,11 +52,16 @@
 # 2009-02-02 sokol: added iin_metab to output of cumo_infl()
 # 2009-03-24 sokol: ftbl_netan(): added tmax, dt, metab_scale, met_pools
 # 2009-03-27 sokol: ftbl_parse(): added float_conv field set
+# 2009-05-28 sokol: added t_iso2m(): transition matrix from isotopomer vector to MID vector
+# 2009-05-28 sokol: added t_iso2cumo(): transition matrix from isotopomer vector to cumomer vector
+# 2009-05-28 sokol: added t_iso2pos(): transition matrix from isotopomer vector to positional labelling vector
+
+import numpy as np;
+import re;
+import copy;
 
 from tools_ssg import *;
 
-import re;
-import copy;
 float_conv=set((
     "VALUE",
     "DEVIATION",
@@ -1641,3 +1646,38 @@ def cumo_infl(netan, cumo):
                     in_cumo=in_metab+":"+str(in_icumo);
                     res.append((in_cumo, reac+".rev", imetab, iin_metab));
     return res;
+
+def t_iso2m(n):
+    """t_iso2m(n) return transition matrix from isotopomers fractions to MID vector
+    n - carbon number
+    return numpy array of size (n+1,2**n)
+    """
+    # isotopomer number
+    ni=2**n;
+    return np.array(
+        [[1. if sumbit(ii)==im else 0 for ii in xrange(ni)] for im in xrange(n+1)]
+    );
+
+def t_iso2cumo(n):
+    """t_iso2cumo(n) return transition matrix from isotopomers fractions to cumomer vector
+    n - carbon number
+    return numpy array of size (2**n,2**n)
+    """
+    if n <= 0:
+        return np.array(1, ndmin=2);
+    # recursive call
+    m_1=t_iso2cumo(n-1);
+    nc1,nc1=m_1.shape;
+    nc=2*nc1;
+    m=np.zeros((nc,nc));
+    m[0:nc1,0:nc1],m[0:nc1,nc1:],m[nc1:,nc1:]=m_1,m_1,m_1;
+    return m;
+
+def t_iso2pos(n):
+    """t_iso2pos(n) return transition matrix from isotopomers fractions to positional
+    labelling vector (cumomers of weight 1)
+    n - carbon number
+    return numpy array of size (n,2**n)
+    """
+    m=t_iso2cumo(n);
+    return m[[1<<i for i in xrange(n)],:];
