@@ -55,6 +55,7 @@
 # 2009-05-28 sokol: added t_iso2m(): transition matrix from isotopomer vector to MID vector
 # 2009-05-28 sokol: added t_iso2cumo(): transition matrix from isotopomer vector to cumomer vector
 # 2009-05-28 sokol: added t_iso2pos(): transition matrix from isotopomer vector to positional labelling vector
+# 2009-07-21 sokol: added conv_mid(): convolution of two mass isotopomer distribution
 
 import numpy as np;
 import re;
@@ -727,9 +728,8 @@ def ftbl_netan(ftbl):
                             res["b"][w-1][cumo]={};
                         if flux not in res["b"][w-1][cumo]:
                             res["b"][w-1][cumo][flux]={};
-                            if imetab not in res["b"][w-1][cumo][flux]:
-                                res["b"][w-1][cumo][flux][imetab]=[];
-                        #print "metab,imetab,cumo,in_cumo,flux=%s"%join(",", (metab,imetab,cumo,in_cumo,flux));##
+                        if imetab not in res["b"][w-1][cumo][flux]:
+                            res["b"][w-1][cumo][flux][imetab]=[];
                         res["b"][w-1][cumo][flux][imetab].append(
                             in_cumo if in_metab not in netan["input"] else
                             netan["cumo_input"][in_cumo]);
@@ -1681,3 +1681,15 @@ def t_iso2pos(n):
     """
     m=t_iso2cumo(n);
     return m[[1<<i for i in xrange(n)],:];
+
+def conv_mid(x,y):
+    """conv_mid(x,y)->z
+    convolute two mid vectors (numpy arrays)
+    and return the result as numpy array.
+    """
+    nx=len(x);
+    ny=len(y);
+    z=np.zeros(nx+ny-1);
+    for i in xrange(ny):
+        z[i:i+nx]+=x*y[i];
+    return(z);
