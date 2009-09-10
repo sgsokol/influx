@@ -36,7 +36,7 @@
 # org - (str) prefix of .ftbl  file like "PPP"
 # File names (str):
 #    n_ftbl (descriptor f_ftbl);
-#    n_opt (R code) (f);
+#    n_R (R code) (f);
 #    n_fort (fortran code) (ff);
 # Counts: nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total),
 #         nb_ffn, nb_ffx (free fluxes)
@@ -97,7 +97,7 @@ import C13_ftbl;
 
 me=os.path.basename(sys.argv[0]);
 def usage():
-    sys.stderr.write("usage: "+me+" network_name[.ftbl]");
+    sys.stderr.write("usage: "+me+" network_name[.ftbl]\n");
 
 #<--skip in interactive session
 if len(sys.argv) < 2:
@@ -123,12 +123,12 @@ if DEBUG:
 
 
 n_ftbl=org+".ftbl";
-n_opt=org+".R";
+n_R=org+".R";
 n_fort=org+".f";
 f_ftbl=open(n_ftbl, "r");
 os.system("chmod u+w '%s' 2>/dev/null"%n_R);
 os.system("chmod u+w '%s' 2>/dev/null"%n_fort);
-f=open(n_opt, "w");
+f=open(n_R, "w");
 ff=open(n_fort, "w");
 
 # parse ftbl
@@ -195,7 +195,11 @@ fkvh=file("%(org)s_res.kvh", "w");
 });
 # main part: call optimization
 f.write("""
-# get initial flux and cumomer distribution
+# save options of command line
+cat("command line\n", file=fkvh);
+obj2kvh(opts, "opts", fkvh, ident=1);
+
+# save initial flux and cumomer distribution
 cat("initial approximation\n", file=fkvh);
 names(param)=nm_par;
 obj2kvh(param, "free parameters", fkvh, ident=1);
@@ -263,7 +267,13 @@ obj2kvh(rres$res, "cumomer residual vector", fkvh);
 obj2kvh(rres$flcnx[ifmn]-fmn, "flux residual vector", fkvh);
 obj2kvh(measvec, "cumomer measure vector", fkvh);
 
-v=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, "fwrv2Abcumo");
+if (sensitive=="linxf") {
+   fj_rhs="fj_rhs";
+} else {
+   fj_rhs=NULL;
+}
+v=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas,
+   measmat, measvec, ir2isc, "fwrv2Abcumo", fj_rhs);
 x=v$x;
 names(x)=nm_cumo;
 o=order(nm_cumo);
@@ -368,10 +378,13 @@ if (sensitive=="grad") {
       free_mc=cbind(free_mc, res$par);
    }
    dimnames(free_mc)[[1]]=names(param);
+} else if (sensitive=="linxf") {
+   # Linear simulation by jacobian x_f
+   x_f=v$x_f;
+   dimnames(x_f)=list(nm_cumo, names(fwrv));
 """);
 f.write("""
-   write.table(meas_mc, file="%(org)s_mmc.txt");
-   write.table(free_mc, file="%(org)s_fmc.txt");
+   write.table(x_f, file="%(org)s_x_f.txt");
 }
 if (prof) {
    Rprof(NULL);
