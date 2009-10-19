@@ -25,7 +25,7 @@
 # Important python variables:
 # Collections:
 #    netan - (dict) ftbl structured content;
-#    tflcnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
+#    tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
 #    collection;
 #    measures - (dict) exp data;
 #    rAb - (list) reduced linear systems A*x_cumo=b by weight;
@@ -55,7 +55,7 @@
 #    nb_fcn, nb_fcx, nb_fc (constrained fluxes),
 #    nb_ineq, nb_param, nb_fmn
 # Name vectors:
-#    nm_cumo, nm_fwrv, nm_flcnx, nm_fln, nm_flx, nm_fl, nm_par,
+#    nm_cumo, nm_fwrv, nm_fallnx, nm_fln, nm_flx, nm_fl, nm_par,
 #    nm_ffn, nm_ffx,
 #    nm_fcn, nm_fcx,
 #    nm_mcumo, nm_fmn
@@ -65,9 +65,9 @@
 #    param - free flux net, free flux xch, scale label, scale mass, scale peak
 #    fcn, fcx, fc,
 #    bp - helps to construct the rhs of flux system
-#    flcnx - complete flux vector (constr+net+xch)
-#    bc - helps to construct flcnx
-#    li - inequality vector (mi%*%flcnx>=li)
+#    fallnx - complete flux vector (constr+net+xch)
+#    bc - helps to construct fallnx
+#    li - inequality vector (mi%*%fallnx>=li)
 #    ir2isc - measur row to scale vector replicator
 #    ci - inequalities for param use (ui%*%param-ci>=0)
 #    measvec,
@@ -77,7 +77,7 @@
 # Matrices:
 #    Afl, qrAfl, invAfl,
 #    p2bfl - helps to construct the rhs of flux system
-#    mf, md - help to construct flcnx
+#    mf, md - help to construct fallnx
 #    mi - inequality matrix (ftbl content)
 #    ui - inequality matrix (ready for param use)
 #    measmat - measmat*(x[imeas];1)=vec of simulated not-yet-scaled measures
@@ -210,18 +210,18 @@ obj2kvh(x, "starting cumomer vector", fkvh, ident=1);
 
 fwrv=vr$fwrv;
 n=length(fwrv);
-names(fwrv)=paste(nm_fwrv, c(rep("fwd", n/2), rep("rev", n/2)), sep=".");
+names(fwrv)=nm_fwrv;
 obj2kvh(fwrv, "starting fwd-rev flux vector", fkvh, ident=1);
 
-f=vr$flcnx;
+f=vr$fallnx;
 n=length(f);
-names(f)=nm_flcnx;
+names(f)=nm_fallnx;
 obj2kvh(f, "starting net-xch flux vector", fkvh, ident=1);
 
 rres=cumo_resid(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
 obj2kvh(rres$res, "starting cumomer residuals", fkvh, ident=1);
 
-obj2kvh(rres$flcnx[ifmn]-fmn, "flux residual vector", fkvh, ident=1);
+obj2kvh(rres$fallnx[ifmn]-fmn, "flux residual vector", fkvh, ident=1);
 
 rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
 obj2kvh(rcost, "starting cost value", fkvh, ident=1);
@@ -232,24 +232,19 @@ obj2kvh(p2bfl%*%param[1:nb_f$nb_ff]+bp, "flux system (bfl)", fkvh, ident=1);
 #cat("mass vector:\\n");
 #print_mass(x);
 
-f=vr$fwrv;
-n=length(f);
-names(f)=nm_fwrv;
-obj2kvh(f, "fwd-rev flux vector", fkvh, ident=1);
-
 # optimize all this
 names(param)=nm_par;
 if (method == "BFGS") {
    control=list(maxit=500, trace=1);
    res=constrOptim(param, cumo_cost, grad=cumo_grad,
-      ui, ci, mu = 1e-04, control,
+      ui, ci, mu = 1e-4, control,
       method="BFGS", outer.iterations=100, outer.eps=1e-07,
       nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
       irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
 } else if (method == "Nelder-Mead") {
    control=list(maxit=1000, trace=1);
    res=constrOptim(param, cumo_cost, grad=cumo_grad,
-      ui, ci, mu = 1e-04, control,
+      ui, ci, mu = 1e-4, control,
       method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
       nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
       irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
@@ -264,7 +259,7 @@ obj2kvh(res, "optimization process stats", fkvh);
 
 rres=cumo_resid(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
 obj2kvh(rres$res, "cumomer residual vector", fkvh);
-obj2kvh(rres$flcnx[ifmn]-fmn, "flux residual vector", fkvh);
+obj2kvh(rres$fallnx[ifmn]-fmn, "flux residual vector", fkvh);
 obj2kvh(measvec, "cumomer measure vector", fkvh);
 
 if (sensitive=="linxf") {
@@ -281,12 +276,12 @@ obj2kvh(x[o], "cumomer vector", fkvh);
 
 fwrv=v$fwrv;
 n=length(fwrv);
-names(fwrv)=paste(nm_fwrv, c(rep("fwd", n/2), rep("rev", n/2)), sep=".");
+names(fwrv)=nm_fwrv;
 obj2kvh(fwrv, "fwd-rev flux vector", fkvh);
 
-f=v$flcnx;
+f=v$fallnx;
 n=length(f);
-names(f)=nm_flcnx;
+names(f)=nm_fallnx;
 obj2kvh(f, "net-xch flux vector", fkvh);
 close(fkvh);
 
@@ -337,7 +332,7 @@ if (sensitive=="grad") {
    print(v$fwrv);
       sensit=cbind(sensit, (v$fwrv-fwrv)/dv);
    }
-   dimnames(sensit)[[1]]=paste(nm_fwrv,c(rep("fwd",length(nm_fwrv)/2),rep("rev",length(nm_fwrv)/2)),sep=".");
+   dimnames(sensit)[[1]]=nm_fwrv;
    # SD vector for fluxes
    fl_sd=sqrt((sensit**2)%*%(1./measinvvar));
    #names(fl_sd)=dimnames(sensit)[[1]];

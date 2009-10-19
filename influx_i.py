@@ -13,7 +13,7 @@
 # Important python variables:
 # Collections:
 #    netan - (dict) ftbl structured content;
-#    tflcnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
+#    tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
 #    collection;
 #    measures - (dict) exp data;
 #    scale - unique scale names;
@@ -39,7 +39,7 @@
 #    nb_fcn, nb_fcx, nb_fc (constrained fluxes),
 #    nb_ineq, nb_param, nb_fmn
 # Name vectors:
-#    nm_cumo, nm_fwrv, nm_flcnx, nm_fln, nm_flx, nm_fl, nm_par,
+#    nm_cumo, nm_fwrv, nm_fallnx, nm_fln, nm_flx, nm_fl, nm_par,
 #    nm_ffn, nm_ffx,
 #    nm_fcn, nm_fcx,
 #    nm_mcumo, nm_fmn
@@ -49,13 +49,13 @@
 #    param - free flux net, free flux xch, scale label, scale mass, scale peak
 #    fcn, fcx, fc,
 #    bp - helps to construct the rhs of flux system
-#    flcnx - complete flux vector (constr+net+xch)
-#    bc - helps to construct flcnx
+#    fallnx - complete flux vector (constr+net+xch)
+#    bc - helps to construct fallnx
 #    fmn
 # Matrices:
 #    Afl, qrAfl, invAfl,
 #    p2bfl - helps to construct the rhs of flux system
-#    mf, md - help to construct flcnx
+#    mf, md - help to construct fallnx
 # Functions:
 #    param2fl - translate param to fluxes
 
@@ -242,9 +242,9 @@ n=length(fwrv);
 names(fwrv)=paste(nm_fwrv, c(rep("fwd", n/2), rep("rev", n/2)), sep=".");
 obj2kvh(fwrv, "fwd-rev flux vector", fkvh, ident=1);
 
-f=lf$flcnx;
+f=lf$fallnx;
 n=length(f);
-names(f)=nm_flcnx;
+names(f)=nm_fallnx;
 obj2kvh(f, "net-xch flux vector", fkvh, ident=1);
 
 # alphabetic order of output cumomers
