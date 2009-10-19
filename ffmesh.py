@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Generate a mesh of starting values for free fluxes
 # and check the feasibility (inequality constraints) at each node
-# If asked a khi2 valuea are calculated at feasible nodes.
+# If asked a khi2 values are calculated at feasible nodes.
 
 # 2008-12-10 sokol
 # Copyright 2008, INRA
