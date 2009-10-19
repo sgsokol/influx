@@ -38,12 +38,12 @@ trisparse_solv=function(A, b, w, method="dense") {
       # Sherman-Morrison-Woodbury for low rank matrix modification
       require(matrid, lib.loc="/home/sokol/R/lib");
       atrim=new("matridm", A);
-if (DEBUG) {
-   cat(paste("dim A at weight ", w, ":\n", sep=""));
-   print(dim(A));
-   write.matrix(cbind(A,b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t");
-#   print(A);
-}
+      if (DEBUG) {
+         cat(paste("dim A at weight ", w, ":\n", sep=""));
+         print(dim(A));
+         write.matrix(cbind(A,b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t");
+      #   print(A);
+      }
       x=qr.solve(atrim,b);
       return(x);
    } else {
@@ -51,7 +51,7 @@ if (DEBUG) {
    }
 }
 
-dfc2flcnx=function(nb_f, flnx, param, fc) {
+dfc2fallnx=function(nb_f, flnx, param, fc) {
    # produce complete flux (net,xch)*(dep,free,constr) vector
    # from dep,free,constr
    f=numeric(0);
@@ -87,7 +87,7 @@ cumo_resid=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    # find simulated scaled measure vector scale*(measmat*x)
    simvec=c(1.,param)[ir2isc]*(measmat%*%c(lres$x[imeas],1.));
    # diff between simulated and measured
-   return(list(res=(simvec-measvec), flcnx=lres$flcnx));
+   return(list(res=(simvec-measvec), fallnx=lres$fallnx));
 }
 cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo") {
 #cat("cost: ");
@@ -98,9 +98,9 @@ cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
 #print(param);
     resl=cumo_resid(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun);
    res=resl$res;
-   flcnx=resl$flcnx;
+   fallnx=resl$fallnx;
    # flux residuals
-   resfl=flcnx[ifmn]-fmn;
+   resfl=fallnx[ifmn]-fmn;
    fn=sum(res*res*measinvvar)+sum(resfl*resfl*invfmnvar);
    if (DEBUG) {
       write.matrix(fn, file="dbg_cost.txt", sep="\t");
@@ -145,18 +145,17 @@ param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
    flnx=invAfl%*%(p2bfl%*%param[1:nb_f$nb_ff]+bp);
 #cat("flnx");
 #print(flnx);
-   flcnx=dfc2flcnx(nb_f, flnx, param, fc);
-   fwrv=flcnx2fwrv(flcnx);
+   fallnx=dfc2fallnx(nb_f, flnx, param, fc);
+   fwrv=fallnx2fwrv(fallnx);
    if (DEBUG) {
       write.matrix(p2bfl%*%param[1:nb_f$nb_ff]+bp, file="dbg_bfl.txt", sep="\t");
       n=length(fwrv);
-      nms=paste(nm_fwrv,c(rep("fwd", n/2),rep("rev", n/2)),sep="_");
-      write.matrix(cbind(1:n,nms,fwrv), file="dbg_fwrv.txt", sep="\t");
-      write.matrix(cbind(1:n,nm_flcnx,flcnx), file="dbg_flcnx.txt", sep="\t");
+      write.matrix(cbind(1:n,nm_fwrv,fwrv), file="dbg_fwrv.txt", sep="\t");
+      write.matrix(cbind(1:n,nm_fallnx,fallnx), file="dbg_fallnx.txt", sep="\t");
 #cat("fwrv");
 #print(fwrv);
    }
-   return(list(flcnx=flcnx, fwrv=fwrv));
+   return(list(fallnx=fallnx, fwrv=fwrv));
 }
 
 param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo", fj_rhs=NULL) {
