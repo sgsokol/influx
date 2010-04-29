@@ -11,10 +11,10 @@
 #import pdb;
 import sys;
 import os;
-#sys.path.append('/home/sokol/dev/python');
+import getopt;
 import re;
-from tools_ssg import *;
 
+from tools_ssg import *;
 from C13_ftbl import *;
 
 # determin colour of metabolite (in, out or plain)
@@ -52,41 +52,86 @@ ec={
     'f': '0,255,0',    # free flux
 }
 ##print 'start'
-# decide where to read and write
-if len(sys.argv) == 2:
-    # input file is an argument
-    base=re.sub(".ftbl$", "", sys.argv[1]);
-    fdir=os.path.dirname(sys.argv[1]) or ".";
-    base=os.path.basename(base);
+# take arguments
+#<--skip in interactive session
+# get arguments
+me=os.path.basename(sys.argv[0]);
+def usage():
+    sys.stderr.write("usage: "+me+
+        """ [-h|--help|--DEBUG] network[.ftbl]
+Take an ftbl file and produce a .cif and attribute files for
+cytoscape visualisation of the network defined in the ftbl.
+
+OPTIONS
+-h, --help print this message and exit
+--DEBUG enable some debuggin features and output (for advanced users)
+
+PARAMETERS
+network - the base of an ftbl file (network.ftbl)
+
+OUTPUT
+network.sif:
+ - network definition for cytoscape
+
+For attribute files the names are self explanatory :
+edge.label.network
+edge.sourceArrowColor.network
+edge.targetArrowColor.network
+node.fillColor.network
+node.shape.network
+
+NB
+Base name of ftbl file ('network' in this example)
+is used to create or silently overwrite all result files.
+""");
+try:
+    opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "DEBUG"]);
+except getopt.GetoptError, err:
+    sys.stderr.write(str(err)+"\n");
+    usage();
+    sys.exit(1);
+cost=False;
+DEBUG=False;
+for o,a in opts:
+    if o in ("-h", "--help"):
+        usage();
+        sys.exit();
+    elif o=="--DEBUG":
+        DEBUG=True;
+    else:
+        assert False, "unhandled option";
+#aff("args", args);##
+if len(args) != 1:
+    usage();
+    exit(1);
+base=args[0];
+if base[-5:]==".ftbl":
+    base=base[:-5];
+#-->
+# define where to read and write
+# input file is an argument
+fdir=os.path.dirname(base) or ".";
+base=os.path.basename(base);
 ##    print base;
-    if base==sys.argv[1]:
-        sys.stderr.write(sys.argv[0]+": The only argument must be a .ftbl file name, got \
-'"+sys.argv[1]+"'\n");
-        raise "FileTypeError";
 ##    print 'open files'
-    fin=open(sys.argv[1], "r");
-    fout=open(os.path.sep.join((fdir, base+".sif")), "w");
-    fns=open(os.path.sep.join((fdir, "node.shape."+base)), "w");
-    fnc=open(os.path.sep.join((fdir, "node.fillColor."+base)), "w");
-    fes=open(os.path.sep.join((fdir, "edge.sourceArrowShape."+base)), "w");
-    fet=open(os.path.sep.join((fdir, "edge.targetArrowShape."+base)), "w");
-    fel=open(os.path.sep.join((fdir, "edge.label."+base)), "w");
-    fesc=open(os.path.sep.join((fdir, "edge.sourceArrowColor."+base)), "w");
-    fetc=open(os.path.sep.join((fdir, "edge.targetArrowColor."+base)), "w");
-    # write headers for attributes
-    fns.write("node.shape\n");
-    fnc.write("node.fillColor\n");
-    fes.write("edge.sourceArrowShape\n");
-    fet.write("edge.targetArrowShape\n");
-    fel.write("edge.label\n");
-    fesc.write("edge.sourceArrowColor\n");
-    fetc.write("edge.targetArrowColor\n");
-elif len(sys.argv) == 1:
-    # standart input and output are used
-    fin=sys.stdin;
-    fout=sys.stdout;
-    fns=fnc=fes=fet=fel=fesc=fetc=0;
-    
+fin=open(os.path.sep.join((fdir, base+".ftbl")), "r");
+fout=open(os.path.sep.join((fdir, base+".sif")), "w");
+fns=open(os.path.sep.join((fdir, "node.shape."+base)), "w");
+fnc=open(os.path.sep.join((fdir, "node.fillColor."+base)), "w");
+fes=open(os.path.sep.join((fdir, "edge.sourceArrowShape."+base)), "w");
+fet=open(os.path.sep.join((fdir, "edge.targetArrowShape."+base)), "w");
+fel=open(os.path.sep.join((fdir, "edge.label."+base)), "w");
+fesc=open(os.path.sep.join((fdir, "edge.sourceArrowColor."+base)), "w");
+fetc=open(os.path.sep.join((fdir, "edge.targetArrowColor."+base)), "w");
+# write headers for attributes
+fns.write("node.shape\n");
+fnc.write("node.fillColor\n");
+fes.write("edge.sourceArrowShape\n");
+fet.write("edge.targetArrowShape\n");
+fel.write("edge.label\n");
+fesc.write("edge.sourceArrowColor\n");
+fetc.write("edge.targetArrowColor\n");
+
 # Parse .ftbl file
 ##print 'parse'
 ftbl=ftbl_parse(fin);
@@ -156,8 +201,7 @@ for flux in ftbl['NETWORK']:
 # close opened streams
 fin.close();
 fout.close();
-if fns:
-    fns.close();
-    fnc.close();
-    fet.close();
-    fes.close();
+fns.close();
+fnc.close();
+fet.close();
+fes.close();
