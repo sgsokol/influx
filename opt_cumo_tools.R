@@ -16,8 +16,8 @@ trisparse_solv=function(A, b, w, method="dense") {
       if (inherits(x, "try-error")) {
          # matrix seems to be singular
          # switch to Moore-Penrose inverse
-         if (exists("control") && control$trace) {
-            cat("switch to generalized inverse\n");
+         if ((exists("control") && control$trace) || DEBUG) {
+            cat("switch to generalized inverse at weight ", w, "\n", sep="");
          }
          x=ginv(A)%*%b;
       }
@@ -150,7 +150,8 @@ param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
    if (DEBUG) {
       write.matrix(p2bfl%*%param[1:nb_f$nb_ff]+bp, file="dbg_bfl.txt", sep="\t");
       n=length(fwrv);
-      write.matrix(cbind(1:n,nm_fwrv,fwrv), file="dbg_fwrv.txt", sep="\t");
+      names(fwrv)=nm_fwrv;
+      write.matrix(fwrv, file="dbg_fwrv.txt", sep="\t");
       write.matrix(cbind(1:n,nm_fallnx,fallnx), file="dbg_fallnx.txt", sep="\t");
 #cat("fwrv");
 #print(fwrv);
@@ -167,6 +168,16 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    nb_fwrv=length(lf$fwrv);
    x=numeric(0);
    x_f=matrix(0., nrow=0., ncol=nb_fwrv);
+   if (DEBUG) {
+      tmp=lf$fwrv;
+      names(tmp)=nm_fwrv;
+      conct=file("dbg_fwrv.txt", "wb");
+      obj2kvh(tmp, "fwrv", conct);
+      tmp=lf$fallnx;
+      names(tmp)=nm_fallnx
+      obj2kvh(tmp, "net-xch", conct);
+ #     write.matrix(tmp, file="dbg_fwrv.txt", sep="\t");
+   }
    for (iw in 1:nb_w) {
       nx=length(x);
       ncumow=nb_cumos[iw];
