@@ -1,4 +1,4 @@
-date;
+echo "compil:" $(date);
 direx=/home/sokol/insa/sysbio/dev/ftbl2sys;
 me=$(basename $0)
 DEBUG=""
@@ -6,6 +6,7 @@ DEBUG=""
 
 $direx/ftbl2optR.py $1 $DEBUG &&
    R CMD SHLIB $1.f &&
-   date && R --no-save --silent --args --meth $2 --sens $3 < $1.R \
+   echo "calcul:" $(date) &&
+   R --no-save --silent --args --meth $2 --sens $3 < $1.R \
    > $1.log 2> $1.err;
-date;
+echo "end:   " $(date);
