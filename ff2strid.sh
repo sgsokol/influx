@@ -6,8 +6,8 @@ DEBUG=""
 
 org="$1";
 org="${org%.ftbl}"; # strip out .ftbl if any
-$direx/ff2strid.py "$org" $DEBUG &&
+$direx/ff2strid.py "$org" $DEBUG > "$org.log" 2> "$org.err" &&
    R CMD SHLIB "$org.f" &&
    echo "calcul:" $(date) && R --no-save --slave --args $DEBUG < "$org.R" \
-   > "$org.log" 2> "$org.err";
+   >> "$org.log" 2>> "$org.err";
 echo "end   :" $(date);
