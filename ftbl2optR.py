@@ -377,6 +377,10 @@ if (sensitive=="grad") {
    # Linear simulation by jacobian x_f
    x_f=v$x_f;
    dimnames(x_f)=list(nm_cumo, names(fwrv));
+   # numerical simulation
+   x_fn=num_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, "fwrv2Abcumo")
+   dimnames(x_fn)=list(nm_cumo, c("x0", names(fwrv)));
+   browser();
 """);
 f.write("""
    write.table(x_f, file="%(org)s_x_f.txt");
