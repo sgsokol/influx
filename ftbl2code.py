@@ -323,12 +323,15 @@ def netan2R_fl(netan, org, f, ff):
             );
 
     f.write("""
-# get runtime arguments
-opts=commandArgs();
+# get runtime arguments if not already set
+# opts=strsplit("--meth  --sens linxf", " ")[[1]];
+if (length(find("opts"))==0) {
+   opts=commandArgs();
+}
 # profile or not profile?
 prof=(length(which(opts=="--prof")) > 0);
 
-# is there method for sensitivity matrix calculation?
+# is there a method for sensitivity matrix calculation?
 sensitive=which(opts=="--sens");
 if (length(sensitive)) {
    sensitive=opts[sensitive[1]+1];
@@ -423,7 +426,7 @@ if (nb_fl) {
 dimnames(Afl)=list(c(%(nm_rows)s), nm_fl);
 if (DEBUG) {
    library(MASS);
-   write.matrix(Afl, file="dbg_Afl.txt", sep="\t");
+   write.matrix(Afl, file="dbg_Afl.txt", sep="\\t");
 }
 if (nrow(Afl) != ncol(Afl)) {
    write.table(Afl);
@@ -975,36 +978,43 @@ C
 C************************************************************************
 
 
-      SUBROUTINE %(fortfun)s(fl, nf, x, x_f, nx, iw, n, j_rhs)
+      SUBROUTINE %(fortfun)s(fl, nf, x, xw, x_f, nx, nxw, iw, j_rhs, b_x)
 
       IMPLICIT NONE
 C-------------------------------------------------------------------------
 C For a given weight iw, update term by term j_rhs matrix
 C for cumomer vector x and x_f of previous weights.
+C The term b_x*x_f is not included in j_rhs, only b_x
+C is calculated and returned. It is left to care of the user
+C to integrate this term to j_rhs
+C
 C Input:
 C fl (double): array of forward-reverse fluxes 
 C nf (int): dimension of previous array
-C x (double): array of cumomer with weight lighter or equal to iw
-C x_f (double): matrix (nx, nf) with weight lighter or equal to iw
+C x (double): array of cumomer with weight lighter than current iw
+C x_f (double): matrix (nx, nf) with weight lighter than current iw
 C nx (int): x  and x_f column dimension
+C nxw (int): cumomer number for current weight iw
 C iw (int): weight for which the matrix should be calculated
-C n (int): cumomer number for this weight iw
-C j_rhs (double): array(n x nf) initial value of right hand side
+C j_rhs (double): array(nxw x nf) initial value of right hand side
 C   matrix.
 C Output:
 C j_rhs (double): array(n x nf)
+C b_x (double): array(nxw x nx)
       INTEGER            nf
       INTEGER            nx
+      INTEGER            nxw
       INTEGER            iw
-      INTEGER            n
       DOUBLE PRECISION   fl(nf)
       DOUBLE PRECISION   x(nx)
+      DOUBLE PRECISION   xw(nxw)
       DOUBLE PRECISION   x_f(nx,nf)
-      DOUBLE PRECISION   j_rhs(n,nf)
+      DOUBLE PRECISION   j_rhs(nxw,nf)
+      DOUBLE PRECISION   b_x(nxw,nx)
       
-C      write(0,*) "%(fortfun)s: start", nf, nx, iw, n
+C      write(0,*) "%(fortfun)s: start", nf, nx, nxw, iw,
 C fluxes: %(fl)s
-C x: %(x)s
+C all weight x: %(x)s
     """%{
     "cmd": join(" ", sys.argv),
     "date": time.ctime(),
@@ -1016,6 +1026,9 @@ C x: %(x)s
         b=bl[iwl];
         w=iwl+1;
         cumos=vcumol[iwl];
+        # current weight cumomer numbering for xw vector
+        wcumo2i=dict((c,i+1) for (i,c) in enumerate(cumos));
+        #print ("wcumo2i", wcumo2i);
         ncumo=len(cumos);
         #d=[c for c in netan['cumo_sys']['A'][w-1] if not c in cumos]
         if ncumo != len(A):
@@ -1024,13 +1037,11 @@ C x: %(x)s
         f.write("""
       if (iw .EQ. %(iw)d) then
 C        dA_dv * cumos definition
-C        cumos: %(cumos)s
+C        xw: %(cumos)s
 """%    {
         "iw": w,
         "cumos": join(", ", ((i+1,c) for (i,c) in enumerate(cumos))),
         });
-        # this weight cumomer numbering
-        wcumo2i=dict((c,i) for (i,c) in enumerate(cumos));
         # run through the matrix A
         for irow in xrange(ncumo):
             # for a given row and vi, A_vi*x is just a sum of x concerned by vi
@@ -1041,15 +1052,15 @@ C        cumos: %(cumos)s
 C        ir=%d, cumo=%s\n"""%(irow+1, cumos[irow]));
             xsum="";
             for cumo in A[cumos[irow]].keys():
-                icol=wcumo2i[cumo];
-                sign="-" if (irow != icol) else "+";
+                icol=wcumo2i[cumo]-1; # back to zero based
+                sign="+" if (irow != icol) else "-";
                 for fl in A[cumos[irow]][cumo]:
                     visum[fl]=visum.get(fl, {"+": [], "-": []});
                     visum[fl][sign].append(cumos[icol]);
-            # update irow in j_rhs with a_v_x
+            # update irow in j_rhs with -a_v_x
             for fl in visum:
                 for sign in visum[fl]:
-                    term=join('+', trd(visum[fl][sign], cumo2i, 'x(', ')', None));
+                    term=join('+', trd(visum[fl][sign], wcumo2i, 'xw(', ')', None));
                     if not term:
                         continue;
                     code="         j_rhs(%(ir)d,%(ic)d)=j_rhs(%(ir)d,%(ic)d)%(sign)s(%(term)s)\n" % {
@@ -1068,19 +1079,20 @@ C        b_v term""");
             for (fl, dlst) in brow.iteritems():
                 f.write(fwrap("""
          j_rhs(%(ir)d,%(ic)d)=j_rhs(%(ir)d,%(ic)d)+%(b_v)s
-""" %   {
-        "ir": irow+1,
-        "ic": fwrv2i[fl],
-        "b_v": joint("+", [
-            join("*", trd(lst, cumo2i, "x(", ")", None))
-            for (imetab,lst) in dlst.iteritems()
+""" %           {
+                    "ir": irow+1,
+                    "ic": fwrv2i[fl],
+                    "b_v": joint("+", [
+                        join("*", trd(lst, cumo2i, "x(", ")", None))
+                        for (imetab,lst) in dlst.iteritems()
         ])}));
-            f.write("""
-C        b_x*x_f term""");
+            if iwl > 0:
+                f.write("""
+C        b_x term""");
             for (fl, dlst) in brow.iteritems():
                 ifl=fwrv2i[fl];
-                b_x="fl(%d)*("%ifl;
-                csum=[];
+                b_x="fl(%d)"%ifl;
+                csum=dict();
                 for (imetab,lst) in dlst.iteritems():
                     if len(lst)==1:
                         # input cumomer, skip
@@ -1088,17 +1100,18 @@ C        b_x*x_f term""");
                     # derive the cumo products item*factor
                     for (item,ifct) in ((0,1), (1,0)):
                         if lst[item] in cumo2i:
-                            factor="x(%d)"%cumo2i[lst[ifct]] if lst[ifct] in cumo2i else lst[ifct];
-                            csum.append(factor+"*"+"x_f(%d,%d)"%(cumo2i[lst[item]], ifl));
+                            factor=("x(%d)"%cumo2i[lst[ifct]]) if lst[ifct] in cumo2i else lst[ifct];
+                            csum[cumo2i[lst[item]]]=factor;
                 if not csum:
                     continue;
-                b_x+="+".join(csum)+")";
-                f.write(fwrap("""
-         j_rhs(%(ir)d,%(ic)d)=j_rhs(%(ir)d,%(ic)d)+%(b_x)s
+                for (ix,factor) in csum.iteritems():
+                    f.write(fwrap("""
+         b_x(%(ir)d,%(ic)d)=b_x(%(ir)d,%(ic)d)+%(b_x)s*%(factor)s
 """ %   {
         "ir": irow+1,
-        "ic": ifl,
-        "b_x": b_x}));
+        "ic": ix,
+        "b_x": b_x,
+        "factor": factor}));
         f.write("""
       endif
 """); # end of fortran if on iw
