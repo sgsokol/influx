@@ -167,7 +167,7 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    # if fj_rhs is not NULL, calculate jacobian x_f
    nb_fwrv=length(lf$fwrv);
    x=numeric(0);
-   x_f=matrix(0., nrow=0., ncol=nb_fwrv);
+   x_f=matrix(0., nrow=0, ncol=nb_fwrv);
    if (DEBUG) {
       tmp=lf$fwrv;
       names(tmp)=nm_fwrv;
@@ -203,26 +203,33 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
       }
       lsolv=trisparse_solv(A, b, iw, method="dense");
       xw=lsolv$x;
+      nxw=length(xw);
 #fj_rhs(fl, nf, x, x_f, nx, iw, n, j_rhs)
-      if (length(fj_rhs)) {
+      if (length(fj_rhs) && nchar(fj_rhs)) {
          # calculate jacobian x_f
          # first, calculate right hand side for jacobian solve
-         j_rhsw=matrix(0., nx, nb_fwrv);
+         j_rhsw=matrix(0., nxw, nb_fwrv);
+         b_x=matrix(0., nxw, nx);
          res<-.Fortran(fj_rhs,
          fl=as.double(lf$fwrv),
          nf=nb_fwrv,
          x=as.double(x),
+         xw=as.double(xw),
          x_f=as.double(x_f),
          nx=as.integer(nx),
+         nxw=as.integer(nxw),
          iw=as.integer(iw),
-         n=as.integer(ncumow),
          j_rhs=as.matrix(j_rhsw),
+         b_x=as.matrix(b_x),
          NAOK=TRUE,
          DUP=FALSE);
          if (DEBUG) {
-            write.matrix(j_rhsw, file=paste("dbg_j_rhs_",iw,".txt", sep=""), sep="\t");
+            write.matrix(cbind(j_rhsw,b_x), file=paste("dbg_j_rhs_",iw,".txt", sep=""), sep="\t");
          }
-         if (iw > 0) {
+         browser();
+         if (iw > 1) {
+            x_f=rbind(x_f, solve(lsolv$qrA, j_rhsw+b_x%*%x_f));
+         } else {
             x_f=rbind(x_f, solve(lsolv$qrA, j_rhsw));
          }
       }
@@ -231,6 +238,63 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    }
 #print(x);
    return(append(list(x=x, x_f=x_f), lf));
+}
+num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
+   # numerical calculation of jacobian dx_df
+   # we variate fvrw one by one and recalculate the whole x
+   # each variation. The result is returned as matix.
+   # The first column of matrix is just cumomer vector corresponding
+   # to non perturbed fluxes.
+   
+   # calculate all fluxes from free fluxes
+   lf=param2fl(param, nb_f, invAfl, p2bfl, bp, fc);
+   f0=lf$fwrv;
+   dfl=0.0001;
+   x_f=matrix(0., ncol=0, nrow=sum(nb_cumos));
+   nb_fwrv=length(f0);
+   for (i in 0:length(f0)) {
+      f1=f0;
+      if (i > 0) {
+         f1[i]=f0[i]+dfl;
+      }
+      # construct the system A*x=b from fluxes
+      # and find x for every weight
+      # if fj_rhs is not NULL, calculate jacobian x_f
+      x=numeric(0);
+      for (iw in 1:nb_w) {
+         nx=length(x);
+         ncumow=nb_cumos[iw];
+         A=matrix(0.,ncumow,ncumow);
+         b=double(ncumow);
+         #fwrv2Abcumo(fl, nf, x, nx, iw, n, A, b)
+         res<-.Fortran(fortfun,
+            fl=as.double(f1),
+            nf=nb_fwrv,
+            x=as.double(x),
+            nx=as.integer(nx),
+            iw=as.integer(iw),
+            n=as.integer(ncumow),
+            A=as.matrix(A),
+            b=as.double(b),
+            calcA=as.integer(TRUE),
+            calcb=as.integer(TRUE),
+            NAOK=TRUE,
+            DUP=FALSE);
+         # solve the system A*x=b;
+         lsolv=trisparse_solv(A, b, iw, method="dense");
+         xw=lsolv$x;
+         nxw=length(xw);
+         # bind vectors and matrices
+         x=c(x,xw);
+      }
+      if (i > 0) {
+         x_f=cbind(x_f, (x-x0)/dfl);
+      } else {
+         x0=x;
+         x_f=cbind(x_f, x0);
+      }
+   }
+   return(x_f);
 }
 Tiso2cumo=function(len) {
    if (len<0) {
