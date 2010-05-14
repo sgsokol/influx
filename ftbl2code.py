@@ -546,6 +546,10 @@ cnst2bfl=c(cnst2bfl, c(%(rowcnst)s));\n\
         });
     f.write("""
 bp=c2bfl%*%fc+cnst2bfl;
+
+# intermediate jacobian
+dfl_dff = invAfl %*% p2bfl
+
 # prepare mf, md matrices and bd vector
 # such that mf%*%ff+md%*%fl+mc%*%fc gives fallnx
 # here ff free fluxes (param), fl are dependent fluxes and fc are constrained
@@ -641,6 +645,7 @@ nm_par=c(nm_par,c(%(sc_names)s));
 
     f.write("""
 nb_param=length(param);
+nb_sc=nb_param-nb_ff;
 # indices mapping from scaling to measure matrix row
 # c(1,par)[ir2isc] replicates scale parameters
 # for corresponding rows of measure matrix

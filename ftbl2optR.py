@@ -377,13 +377,21 @@ if (sensitive=="grad") {
    # Linear simulation by jacobian x_f
    x_f=v$x_f;
    dimnames(x_f)=list(nm_cumo, names(fwrv));
-   # numerical simulation
-   x_fn=num_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, "fwrv2Abcumo")
-   dimnames(x_fn)=list(nm_cumo, c("x0", names(fwrv)));
-   browser();
+   if (DEBUG) {
+      library(numDeriv); # for numerical jacobian
+      # numerical simulation
+      x_fn=num_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, "fwrv2Abcumo")
+      dimnames(x_fn)=list(nm_cumo, c("x0", names(fwrv)));
+      gr=jacobian(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
+      grn=cumo_grad(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs=NULL);
+      # reset fluxes according to param
+      cost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
+      grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
+      browser();
 """);
 f.write("""
-   write.table(x_f, file="%(org)s_x_f.txt");
+      write.table(x_f, file="%(org)s_x_f.txt");
+   }
 }
 if (prof) {
    Rprof(NULL);
