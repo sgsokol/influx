@@ -85,6 +85,7 @@
 #    param2fl_x - translate param to flux and cumomer vector (initial approximation)
 #    cumo_cost - cost function (khi2)
 #    cumo_grad - finite difference gradient
+#    cumo_gradj - implicit derivative gradient
 
 import sys;
 import os;
@@ -236,14 +237,14 @@ obj2kvh(p2bfl%*%param[1:nb_f$nb_ff]+bp, "flux system (bfl)", fkvh, ident=1);
 names(param)=nm_par;
 if (method == "BFGS") {
    control=list(maxit=500, trace=1);
-   res=constrOptim(param, cumo_cost, grad=cumo_grad,
+   res=constrOptim(param, cumo_cost, grad=cumo_gradj,
       ui, ci, mu = 1e-4, control,
       method="BFGS", outer.iterations=100, outer.eps=1e-07,
       nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
       irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
 } else if (method == "Nelder-Mead") {
    control=list(maxit=1000, trace=1);
-   res=constrOptim(param, cumo_cost, grad=cumo_grad,
+   res=constrOptim(param, cumo_cost, grad=cumo_gradj,
       ui, ci, mu = 1e-4, control,
       method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
       nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
@@ -300,21 +301,21 @@ if (sensitive=="grad") {
       # solve perturbed problem
       if (method == "BFGS") {
          control=list(maxit=500, trace=1)
-         res=constrOptim(param, cumo_cost, grad=cumo_grad,
+         res=constrOptim(param, cumo_cost, grad=cumo_gradj,
             ui, ci, mu = 1e-04, control,
             method="BFGS", outer.iterations=10, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
             imeas, measmat, measpert, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
       } else if (method == "Nelder-Mead") {
          control=list(maxit=1000, trace=1);
-         res=constrOptim(param, cumo_cost, grad=cumo_grad,
+         res=constrOptim(param, cumo_cost, grad=cumo_gradj,
             ui, ci, mu = 1e-04, control,
             method="Nelder-Mead", outer.iterations=100, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
             imeas, measmat, measpert, measinvvar, ir2isc, fmn, invfmnvar, ifmn);
       } else if (method == "SANN") {
          control=list(maxit=10000, trace=1)
-         res=constrOptim(param, cumo_cost, grad=cumo_grad,
+         res=constrOptim(param, cumo_cost, grad=cumo_gradj,
             ui, ci, mu = 1e-04, control,
             method="SANN", outer.iterations=100, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
@@ -354,14 +355,14 @@ if (sensitive=="grad") {
       # minimization
       if (method == "BFGS") {
          control=list(maxit=500, trace=0);
-         res=constrOptim(param, cumo_cost, grad=cumo_grad,
+         res=constrOptim(param, cumo_cost, grad=cumo_gradj,
             ui, ci, mu = 1e-04, control,
             method="BFGS", outer.iterations=10, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
             imeas, measmat, meas_mc[,imc], measinvvar, ir2isc, fmn, invfmnvar, ifmn);
       } else if (method == "Nelder-Mead") {
          control=list(maxit=1000, trace=0);
-         res=constrOptim(param, cumo_cost, grad=cumo_grad,
+         res=constrOptim(param, cumo_cost, grad=cumo_gradj,
             ui, ci, mu = 1e-04, control,
             method="Nelder-Mead", outer.iterations=100, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
