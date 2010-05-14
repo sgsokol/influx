@@ -60,6 +60,8 @@
 # 2009-10-19 sokol: ftbl_netan(): added consistancy check on fluxes, metabs and lengthes
 # 2009-11-26 sokol: added infl(): set of incoming fluxes
 # 2010-02-15 sokol: ftbl_parse(): fixed input/output fluxes with respect to d/f/c characterisation
+# 2010-05-05 sokol: ftbl_parse(): if file name is given, check for .ftbl and add it if needed
+
 import numpy as np;
 import re;
 import copy;
@@ -89,6 +91,8 @@ def ftbl_parse(f):
     open_here=False;
     #print("f=", f);
     if isstr(f):
+        if f[-5:].lower() != ".ftbl":
+            f=f+".ftbl";
         f=open(f, "r");
         open_here=True;
     
@@ -247,6 +251,7 @@ def ftbl_netan(ftbl):
         "cumo_sys":{},
         "carbotrans":{},
         "Cmax":{},
+        "flux_dep":{},
         "flux_free":{},
         "flux_constr":{},
         "flux_measured":{},
@@ -370,8 +375,10 @@ def ftbl_netan(ftbl):
     # analyse reaction reversibility
     # and free fluxes(dictionary flux->init value for simulation or minimization)
     # and constrained fluxes (dictionary flux->value)
+    # The rest are dependent fluxes
     netan["flux_free"]={"net":{}, "xch":{}};
     netan["flux_constr"]={"net":{}, "xch":{}};
+    netan["flux_dep"]={"net":set(), "xch":set()};
     flx=ftbl.get("FLUXES");
     if flx:
         xch=flx.get("XCH");
@@ -401,6 +408,7 @@ def ftbl_netan(ftbl):
         if len(ncond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
             raise Exception("Reaction `%s` is not defined D/F/C in net fluxes."%reac);
         if len(ncond) == 0 and (reac in (netan["flux_in"] | netan["flux_out"])):
+            # input-output fluxes are by definition not reversible
             netan["notrev"].add(reac);
             netan["flux_constr"]["xch"][reac]=0.;
             continue;
@@ -422,12 +430,18 @@ def ftbl_netan(ftbl):
             elif (cond and cond["FCD"] == "F"):
                 # free xch
                 netan["flux_free"]["xch"][reac]=float(cond["VALUE(F/C)"]);
+            elif (cond and cond["FCD"] == "D"):
+                # dependent xch
+                netan["flux_dep"]["xch"].add(reac);
             if (ncond and ncond["FCD"] == "F"):
                 # free net
                 netan["flux_free"]["net"][reac]=float(ncond["VALUE(F/C)"]);
             elif (ncond and ncond["FCD"] == "C"):
                 # constr net
                 netan["flux_constr"]["net"][reac]=float(ncond["VALUE(F/C)"]);
+            elif (ncond and ncond["FCD"] == "D"):
+                # dependent net
+                netan["flux_dep"]["net"].add(reac);
 ##        aff("free net", netan["flux_free"]["net"]);
 ##        aff("free xch", netan["flux_free"]["xch"]);
 ##        aff("constr net", netan["flux_free"]["net"]);
@@ -439,6 +453,9 @@ def ftbl_netan(ftbl):
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
         if row["FLUX_NAME"] not in netan["reac"]:
             raise Exception("Mesured flux `%s` is not defined."%row["FLUX_NAME"]);
+        if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
+            row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
+            raise Exception("Mesured flux `%s` must be defined as either free or dependent."%row["FLUX_NAME"]);
         netan["flux_measured"][row["FLUX_NAME"]]={\
                 "val": float(row["VALUE"]), \
                 "dev": float(row["DEVIATION"])};
