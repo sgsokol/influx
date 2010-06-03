@@ -186,6 +186,21 @@ if (nb_ff < length(param)) {
       param[i]=sum(ms[im])/sum(ss[im]);
    }
 }
+
+# check if initial approximation is feasible
+ineq=ui%*%param-ci;
+if (!all(ineq > 0)) {
+   if (sum(ineq==0.)) {
+      cat("The following ", sum(ineq==0.), " ineqalities are on the border:\n", sep="");
+      print(ineq[ineq==0.,1]);
+      stop("Inequalities on the border, cf. log file.");
+   }
+   if (sum(ineq<0.)) {
+      cat("The following ", sum(ineq<0.), " ineqalities are on not respected:\n", sep="");
+      print(ineq[ineq<0.,1]);
+      stop("Inequalities violated, cf. log file.");
+   }
+}
 """);
 
 f.write("""
@@ -233,43 +248,59 @@ obj2kvh(p2bfl%*%param[1:nb_f$nb_ff]+bp, "flux system (bfl)", fkvh, ident=1);
 #cat("mass vector:\\n");
 #print_mass(x);
 
-# optimize all this
 names(param)=nm_par;
-if (method == "BFGS") {
-   control=list(maxit=500, trace=1);
-   res=constrOptim(param, cumo_cost, grad=cumo_gradj,
-      ui, ci, mu = 1e-4, control,
-      method="BFGS", outer.iterations=100, outer.eps=1e-07,
-      nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
-      irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
-} else if (method == "Nelder-Mead") {
-   control=list(maxit=1000, trace=1);
-   res=constrOptim(param, cumo_cost, grad=cumo_gradj,
-      ui, ci, mu = 1e-4, control,
-      method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
-      nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
-      irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
-} else {
-   stop(paste("Unknown minimization method '", method, "'", sep=""));
-}
-param=res$par;
-names(param)=nm_par;
+
+if (optimize) {
+   # optimize all this
+   # few iterations of Nelder-Mead before passing to true method
+   #control=list(maxit=50, trace=1);
+   #res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+   #      ui, ci, mu = 1e-4, control,
+   #      method="Nelder-Mead", outer.iterations=10, outer.eps=1e-07,
+   #      nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
+   #      irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar,
+   #      ifmn, "fwrv2rAbcumo", NULL);
+   #param=res$par;
+
+   # pass control to the true method
+   if (method == "BFGS") {
+      control=list(maxit=500, trace=1);
+      res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+         ui, ci, mu = 1e-4, control,
+         method="BFGS", outer.iterations=100, outer.eps=1e-07,
+         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
+         irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
+   } else if (method == "Nelder-Mead") {
+      control=list(maxit=1000, trace=1);
+      res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+         ui, ci, mu = 1e-4, control,
+         method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
+         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
+         irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
+   } else if (method == "SANN") {
+      control=list(maxit=1000, trace=1);
+      res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+         ui, ci, mu = 1e-4, control,
+         method="SANN", outer.iterations=100, outer.eps=1e-07,
+         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
+         irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
+   } else {
+      stop(paste("Unknown minimization method '", method, "'", sep=""));
+   }
+   param=res$par;
+   names(param)=nm_par;
 """);
 f.write("""
-obj2kvh(res, "optimization process stats", fkvh);
-
+   obj2kvh(res, "optimization process informations", fkvh);
+}
 rres=cumo_resid(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
 obj2kvh(rres$res, "cumomer residual vector", fkvh);
 obj2kvh(rres$fallnx[ifmn]-fmn, "flux residual vector", fkvh);
+names(measvec)=nm_meas;
 obj2kvh(measvec, "cumomer measure vector", fkvh);
 
-if (sensitive=="linxf") {
-   fj_rhs="fj_rhs";
-} else {
-   fj_rhs=NULL;
-}
 v=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas,
-   measmat, measvec, ir2isc, "fwrv2Abcumo", fj_rhs);
+   measmat, measvec, ir2isc, "fwrv2Abcumo", "fj_rhs");
 x=v$x;
 names(x)=nm_cumo;
 o=order(nm_cumo);
@@ -284,7 +315,6 @@ f=v$fallnx;
 n=length(f);
 names(f)=nm_fallnx;
 obj2kvh(f, "net-xch flux vector", fkvh);
-close(fkvh);
 
 if (sensitive=="grad") {
    # sensitivity analysis
@@ -360,11 +390,11 @@ if (sensitive=="grad") {
             method="BFGS", outer.iterations=10, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
             imeas, measmat, meas_mc[,imc], measinvvar, ir2isc, fmn, invfmnvar, ifmn);
-      } else if (method == "Nelder-Mead") {
+      } else if (method == "Nelder-Mead" || method == "SANN") {
          control=list(maxit=1000, trace=0);
          res=constrOptim(param, cumo_cost, grad=cumo_gradj,
             ui, ci, mu = 1e-04, control,
-            method="Nelder-Mead", outer.iterations=100, outer.eps=1e-05,
+            method=method, outer.iterations=100, outer.eps=1e-05,
             nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
             imeas, measmat, meas_mc[,imc], measinvvar, ir2isc, fmn, invfmnvar, ifmn);
       } else {
@@ -374,7 +404,7 @@ if (sensitive=="grad") {
       free_mc=cbind(free_mc, res$par);
    }
    dimnames(free_mc)[[1]]=names(param);
-} else if (sensitive=="linxf") {
+} else {
    # Linear simulation by jacobian x_f
    x_f=v$x_f;
    dimnames(x_f)=list(nm_cumo, names(fwrv));
@@ -385,21 +415,30 @@ if (sensitive=="grad") {
       dimnames(x_fn)=list(nm_cumo, c("x0", names(fwrv)));
       gr=jacobian(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
       grn=cumo_grad(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs=NULL);
-      # reset fluxes according to param
-      cost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
-      grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
       browser();
-""");
-f.write("""
-      write.table(x_f, file="%(org)s_x_f.txt");
    }
+   # reset fluxes and jacobians according to param
+   cost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
+   grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
+   
+   # covariance matrix of free fluxes
+   covff=solve(t(jx_f$dfm_dff)%*%(jx_f$dfm_dff*invfmnvar)+
+      t(jx_f$dr_dff)%*%(jx_f$dr_dff*measinvvar));
+   # standart deviations of free fluxes
+   sdff=sqrt(diag(covff));
+   cat("stats\n", file=fkvh);
+   obj2kvh(covff, "covariance free fluxes", fkvh, ident=1);
+   covf=jx_f$df_dff%*%covff%*%t(jx_f$df_dff);
+   sdf=sqrt(diag(covf));
+   obj2kvh(covf, "covariance all fluxes", fkvh, ident=1);
+   obj2kvh(sdff, "SD free fluxes", fkvh, ident=1);
+   obj2kvh(sdf, "SD all fluxes", fkvh, ident=1);
 }
 if (prof) {
    Rprof(NULL);
 }
-""" % {
-   "org": org,
-});
+close(fkvh);
+""");
 
 f.close();
 ff.close();
