@@ -61,12 +61,14 @@
 # 2009-11-26 sokol: added infl(): set of incoming fluxes
 # 2010-02-15 sokol: ftbl_parse(): fixed input/output fluxes with respect to d/f/c characterisation
 # 2010-05-05 sokol: ftbl_parse(): if file name is given, check for .ftbl and add it if needed
+# 2010-05-31 sokol: ftbl_parse(): non blocking errors for not complete ftbl (e.g. for graph plotting)
 
 import numpy as np;
 import re;
 import copy;
 
 from tools_ssg import *;
+werr=sys.stderr.write;
 
 float_conv=set((
     "VALUE",
@@ -314,28 +316,34 @@ def ftbl_netan(ftbl):
         netan["formula"][reac]={"left":es, "right":ps, "all":ms};
 
         # Carbon length and transitions
-        trans=ftbl["TRANS"][reac];
-        netan["carbotrans"][reac]={"left":[], "right":[]};
-        for (m,carb,lr) in [(e1,trans.get("EDUCT_1"),"left"),
-                (e2,trans.get("EDUCT_2"),"left"),
-                (p1,trans.get("PRODUCT_1"),"right"),
-                (p2,trans.get("PRODUCT_2"),"right")]:
-                #print "m="+str(m), "; carb="+str(carb);##
-            if not m or not carb:
-                continue;
-            if carb[0] != "#":
-                raise Exception("In carbon string for metabolite "+m+" a starting "#" is missing."+
-                    "\nreaction="+str(row)+"\ncarbons ="+str(trans));
-            # carbon transitions
-            netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
+        try:
+            trans=ftbl["TRANS"][reac];
+            
+            netan["carbotrans"][reac]={"left":[], "right":[]};
+            for (m,carb,lr) in [(e1,trans.get("EDUCT_1"),"left"),
+                    (e2,trans.get("EDUCT_2"),"left"),
+                    (p1,trans.get("PRODUCT_1"),"right"),
+                    (p2,trans.get("PRODUCT_2"),"right")]:
+                    #print "m="+str(m), "; carb="+str(carb);##
+                if not m or not carb:
+                    continue;
+                if carb[0] != "#":
+                    raise Exception("In carbon string for metabolite "+m+" a starting '#' is missing."+
+                        "\nreaction="+str(row)+"\ncarbons ="+str(trans));
+                # carbon transitions
+                netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
 
-            # carbon length
-            if netan["Clen"].get(m, 0) and \
-                    netan["Clen"][m] != len(carb)-1:
-                raise Exception("Metabolite "+m+" has length "+
-                        str(netan["Clen"][m])+" but in reaction "+reac+
-                        " it has legth "+str(len(carb)-1));
-            netan["Clen"][m]=len(carb)-1; # don't count '#' character
+                # carbon length
+                if netan["Clen"].get(m, 0) and \
+                        netan["Clen"][m] != len(carb)-1:
+                    raise Exception("CarbonLength", "Metabolite "+m+" has length "+
+                            str(netan["Clen"][m])+" but in reaction "+reac+
+                            " it has legth "+str(len(carb)-1));
+                netan["Clen"][m]=len(carb)-1; # don't count '#' character
+        except KeyError:
+            werr("CarbonTrans: No reaction "+reac+" in carbon transitions\n");
+        except Exception as inst:
+            werr(": ".join(inst)+"\n");
 
         # stocheometric matrix in dictionnary form
         # sto_r_m[reac]['left'|'right']=list(metab) and
@@ -385,70 +393,74 @@ def ftbl_netan(ftbl):
         net=flx.get("NET");
 ##        aff("net", net);
     else:
-        sys.stderr.write(sys.argv[0]+": netan[FLUXES][XCH] is not defined");
-        return None;
+        werr(sys.argv[0]+": netan[FLUXES][XCH] is not defined");
+        #return None;
     #print "list reac=", netan["reac"];##
-    for reac in netan["reac"] | netan["flux_in"] | netan["flux_out"]:
-        # get xch condition for this reac
-        cond=[row for row in xch if row["NAME"]==reac];
-        # get net condition for this reac
-        ncond=([row for row in net if row["NAME"]==reac]) if net else [];
-        # no xch dispatch check for input/output fluxes as they are
-        # constrained by definition
-        #print "r,c,n=", reac, len(cond), len(ncond);##
-        if len(cond) > 1:
-            raise Exception("Reaction `%s` is over defined in exchange fluxes."%reac);
-        if len(cond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
-            sys.stderr.write("in+out fluxes="+str(netan["flux_in"])+"+"+str(netan["flux_out"]));##
-            raise Exception("Reaction `%s` is not defined D/F/C in exchange fluxes."%reac);
-        if cond:
-            cond=cond[0];
-        if len(ncond) > 1:
-            raise Exception("Reaction `%s` is over defined in net fluxes."%reac);
-        if len(ncond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
-            raise Exception("Reaction `%s` is not defined D/F/C in net fluxes."%reac);
-        if len(ncond) == 0 and (reac in (netan["flux_in"] | netan["flux_out"])):
-            # input-output fluxes are by definition not reversible
-            netan["notrev"].add(reac);
-            netan["flux_constr"]["xch"][reac]=0.;
-            continue;
-        ncond=ncond[0];
-        #aff("cond", cond);##
-        #aff("ncond", ncond);##
-        # not reversibles are those reaction having xch flux=0 or
-        # input/output fluxes
-        try:
-            if (cond and cond["FCD"] == "C") or (reac in netan["flux_in"]) or \
-                    (reac in netan["flux_out"]):
-                if (reac in (netan["flux_in"] | netan["flux_out"])) or \
-                    (float(cond["VALUE(F/C)"]) == 0.):
-                    netan["notrev"].add(reac);
-                    netan["flux_constr"]["xch"][reac]=0.;
-                else:
-                    # not null constrained xch
-                    netan["flux_constr"]["xch"][reac]=float(cond["VALUE(F/C)"]);
-            elif (cond and cond["FCD"] == "F"):
-                # free xch
-                netan["flux_free"]["xch"][reac]=float(cond["VALUE(F/C)"]);
-            elif (cond and cond["FCD"] == "D"):
-                # dependent xch
-                netan["flux_dep"]["xch"].add(reac);
-            if (ncond and ncond["FCD"] == "F"):
-                # free net
-                netan["flux_free"]["net"][reac]=float(ncond["VALUE(F/C)"]);
-            elif (ncond and ncond["FCD"] == "C"):
-                # constr net
-                netan["flux_constr"]["net"][reac]=float(ncond["VALUE(F/C)"]);
-            elif (ncond and ncond["FCD"] == "D"):
-                # dependent net
-                netan["flux_dep"]["net"].add(reac);
-##        aff("free net", netan["flux_free"]["net"]);
-##        aff("free xch", netan["flux_free"]["xch"]);
-##        aff("constr net", netan["flux_free"]["net"]);
-##        aff("free xch", netan["flux_free"]["xch"]);
-        except:
-            print "Error occured in the following row of ftbl file:\n"+str(cond);
-            raise;
+    try:
+        for reac in netan["reac"] | netan["flux_in"] | netan["flux_out"]:
+            # get xch condition for this reac
+            cond=[row for row in xch if row["NAME"]==reac];
+            # get net condition for this reac
+            ncond=([row for row in net if row["NAME"]==reac]) if net else [];
+            # no xch dispatch check for input/output fluxes as they are
+            # constrained by definition
+            #print "r,c,n=", reac, len(cond), len(ncond);##
+            if len(cond) > 1:
+                raise Exception("FluxDef", "Reaction `%s` is over defined in exchange fluxes."%reac);
+            if len(cond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
+                werr("in+out fluxes="+str(netan["flux_in"])+"+"+str(netan["flux_out"]));##
+                raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in exchange fluxes."%reac);
+            if cond:
+                cond=cond[0];
+            if len(ncond) > 1:
+                raise Exception("FluxDef", "Reaction `%s` is over defined in net fluxes."%reac);
+            if len(ncond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
+                raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in net fluxes."%reac);
+            if len(ncond) == 0 and (reac in (netan["flux_in"] | netan["flux_out"])):
+                # input-output fluxes are by definition not reversible
+                netan["notrev"].add(reac);
+                netan["flux_constr"]["xch"][reac]=0.;
+                continue;
+            ncond=ncond[0];
+            #aff("cond", cond);##
+            #aff("ncond", ncond);##
+            # not reversibles are those reaction having xch flux=0 or
+            # input/output fluxes
+            try:
+                if (cond and cond["FCD"] == "C") or (reac in netan["flux_in"]) or \
+                        (reac in netan["flux_out"]):
+                    if (reac in (netan["flux_in"] | netan["flux_out"])) or \
+                        (float(cond["VALUE(F/C)"]) == 0.):
+                        netan["notrev"].add(reac);
+                        netan["flux_constr"]["xch"][reac]=0.;
+                    else:
+                        # not null constrained xch
+                        netan["flux_constr"]["xch"][reac]=float(cond["VALUE(F/C)"]);
+                elif (cond and cond["FCD"] == "F"):
+                    # free xch
+                    netan["flux_free"]["xch"][reac]=float(cond["VALUE(F/C)"]);
+                elif (cond and cond["FCD"] == "D"):
+                    # dependent xch
+                    netan["flux_dep"]["xch"].add(reac);
+                if (ncond and ncond["FCD"] == "F"):
+                    # free net
+                    netan["flux_free"]["net"][reac]=float(ncond["VALUE(F/C)"]);
+                elif (ncond and ncond["FCD"] == "C"):
+                    # constr net
+                    netan["flux_constr"]["net"][reac]=float(ncond["VALUE(F/C)"]);
+                elif (ncond and ncond["FCD"] == "D"):
+                    # dependent net
+                    netan["flux_dep"]["net"].add(reac);
+    ##        aff("free net", netan["flux_free"]["net"]);
+    ##        aff("free xch", netan["flux_free"]["xch"]);
+    ##        aff("constr net", netan["flux_free"]["net"]);
+    ##        aff("free xch", netan["flux_free"]["xch"]);
+            except:
+                werr("Error occured in the following row of ftbl file:\n"+str(cond));
+                raise;
+    except Exception as inst:
+        werr(": ".join(inst));
+    
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
         if row["FLUX_NAME"] not in netan["reac"]:
@@ -473,9 +485,9 @@ def ftbl_netan(ftbl):
             netan["iso_input"][metab]={};
         netan["iso_input"][metab][iiso]=float(row["VALUE"]);
     if set(netan["iso_input"].keys()) != set(netan["input"]):
-        raise Exception("Label input section must contain all network input metabolites and only them\n"+
+        werr("LabelInput: Label input section must contain all network input metabolites and only them\n"+
             "label_input: "+str(netan["iso_input"].keys())+"\n"+
-            "network input: "+str(netan["input"]));
+            "network input: "+str(netan["input"])+"\n");
     
     # translate input iso to input cumo
     for metab in netan["iso_input"]:
@@ -720,93 +732,95 @@ def ftbl_netan(ftbl):
     res=netan["cumo_sys"];
     res["A"]=[{} for i in xrange(Cmax)];
     res["b"]=[{} for i in xrange(Cmax)];
-    # run through all reactions and update bilan of involved cumomers
-    for (reac,lrdict) in netan["carbotrans"].iteritems():
-        # run through metabs
-        ## aff("lrdict", lrdict);#
-        for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
-                for (lr,lst) in lrdict.iteritems()
-                for (imetab,(metab,cstr)) in enumerate(lst)):
-            # if output metab then influx is set to 1
-            # so its cumomer distribution is directly
-            # defined by cumodistr of inputs
-            Clen=netan["Clen"][metab];
-            # input metabolite has fixed value so put it in rhs
-            # when it is an influx for some internal cumomer
-            if metab in netan["input"] or metab in netan["output"]:
-                continue;
-            # 'out' part of this metab
-            fwd_rev=("fwd." if lr=="left" else "rev.");
-            flux=fwd_rev+reac;
-            if (fwd_rev=="fwd." or reac not in netan["notrev"]):
-                # add this out-flux;
-                # run through all cumomers of metab
-                for icumo in xrange(1,1<<Clen):
-                    cumo=metab+":"+str(icumo);
-                    w=sumbit(icumo);
-                    #print "w,i,clen,metab=", w, icumo,Clen,metab;##
-                    if cumo not in res["A"][w-1]:
-                        res["A"][w-1][cumo]={cumo:[]};
-                    # main diagonal term ('out' part)
-                    res["A"][w-1][cumo][cumo].append(flux);
-                    ##print 'm,ic,w='+metab, icumo, w;#
-                    ##aff("res["A"][w-1][cumo][cumo]", res["A"][w-1][cumo][cumo]);#
-            # 'in' part
-            fwd_rev=("rev." if lr=="left" else "fwd.");
-            flux=fwd_rev+reac;
-            in_lr=("left" if lr=="right" else "right");
-            if (fwd_rev=="rev." and reac in netan["notrev"]):
-                # this cannot be by definition
-                continue;
-            # add this in-flux;
-            for (in_i,(in_metab, in_cstr)) in enumerate(lrdict[in_lr]):
-                # run through all cumomers of metab
-                for icumo in xrange(1,1<<Clen):
-                    cumo=metab+":"+str(icumo);
-                    w=sumbit(icumo);
-                    # get in_cumo
-                    in_icumo=src_ind(in_cstr, cstr, icumo);
-                    if in_icumo==None:
-                        continue;
-                    in_cumo=in_metab+":"+str(in_icumo);
-                    in_w=sumbit(in_icumo);
-                    if cumo not in res["A"][w-1]:
-                        res["A"][w-1][cumo]={cumo:[]};
-                    if in_w==w:
-                        if in_metab in netan["input"]:
-                            # put it in rhs
+    try:
+        # run through all reactions and update bilan of involved cumomers
+        for (reac,lrdict) in netan["carbotrans"].iteritems():
+            # run through metabs
+            ## aff("lrdict", lrdict);#
+            for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
+                    for (lr,lst) in lrdict.iteritems()
+                    for (imetab,(metab,cstr)) in enumerate(lst)):
+                # if output metab then influx is set to 1
+                # so its cumomer distribution is directly
+                # defined by cumodistr of inputs
+                Clen=netan["Clen"][metab];
+                # input metabolite has fixed value so put it in rhs
+                # when it is an influx for some internal cumomer
+                if metab in netan["input"] or metab in netan["output"]:
+                    continue;
+                # 'out' part of this metab
+                fwd_rev=("fwd." if lr=="left" else "rev.");
+                flux=fwd_rev+reac;
+                if (fwd_rev=="fwd." or reac not in netan["notrev"]):
+                    # add this out-flux;
+                    # run through all cumomers of metab
+                    for icumo in xrange(1,1<<Clen):
+                        cumo=metab+":"+str(icumo);
+                        w=sumbit(icumo);
+                        #print "w,i,clen,metab=", w, icumo,Clen,metab;##
+                        if cumo not in res["A"][w-1]:
+                            res["A"][w-1][cumo]={cumo:[]};
+                        # main diagonal term ('out' part)
+                        res["A"][w-1][cumo][cumo].append(flux);
+                        ##print 'm,ic,w='+metab, icumo, w;#
+                        ##aff("res["A"][w-1][cumo][cumo]", res["A"][w-1][cumo][cumo]);#
+                # 'in' part
+                fwd_rev=("rev." if lr=="left" else "fwd.");
+                flux=fwd_rev+reac;
+                in_lr=("left" if lr=="right" else "right");
+                if (fwd_rev=="rev." and reac in netan["notrev"]):
+                    # this cannot be by definition
+                    continue;
+                # add this in-flux;
+                for (in_i,(in_metab, in_cstr)) in enumerate(lrdict[in_lr]):
+                    # run through all cumomers of metab
+                    for icumo in xrange(1,1<<Clen):
+                        cumo=metab+":"+str(icumo);
+                        w=sumbit(icumo);
+                        # get in_cumo
+                        in_icumo=src_ind(in_cstr, cstr, icumo);
+                        if in_icumo==None:
+                            continue;
+                        in_cumo=in_metab+":"+str(in_icumo);
+                        in_w=sumbit(in_icumo);
+                        if cumo not in res["A"][w-1]:
+                            res["A"][w-1][cumo]={cumo:[]};
+                        if in_w==w:
+                            if in_metab in netan["input"]:
+                                # put it in rhs
+                                if cumo not in res["b"][w-1]:
+                                    res["b"][w-1][cumo]={};
+                                if flux not in res["b"][w-1][cumo]:
+                                    res["b"][w-1][cumo][flux]={};
+                                if imetab not in res["b"][w-1][cumo][flux]:
+                                    res["b"][w-1][cumo][flux][imetab]=[];
+                                if in_cumo in netan["cumo_input"]:
+                                    fract=netan["cumo_input"][in_cumo];
+                                else:
+                                    raise Exception("LabelInput", in_cumo+" should be in input section of ftbl file:\n"+
+                                        str(netan["input"])+"\n"+str(netan["cumo_input"]));
+                                res["b"][w-1][cumo][flux][imetab].append(fract);
+                            else:
+                                if in_cumo not in res["A"][w-1][cumo]:
+                                    res["A"][w-1][cumo][in_cumo]=[];
+                                # matrix: linearized off-diagonal term
+                                res["A"][w-1][cumo][in_cumo].append(flux);
+                        elif in_w>0:
+                            # put it in rhs list[iterm]
                             if cumo not in res["b"][w-1]:
                                 res["b"][w-1][cumo]={};
                             if flux not in res["b"][w-1][cumo]:
                                 res["b"][w-1][cumo][flux]={};
                             if imetab not in res["b"][w-1][cumo][flux]:
                                 res["b"][w-1][cumo][flux][imetab]=[];
-                            if in_cumo in netan["cumo_input"]:
-                                fract=netan["cumo_input"][in_cumo];
-                            else:
-                                raise Exception(in_cumo+" should be in input section of ftbl file:\n"+
-                                    str(netan["input"])+"\n"+str(netan["cumo_input"]));
-                            res["b"][w-1][cumo][flux][imetab].append(fract);
-                        else:
-                            if in_cumo not in res["A"][w-1][cumo]:
-                                res["A"][w-1][cumo][in_cumo]=[];
-                            # matrix: linearized off-diagonal term
-                            res["A"][w-1][cumo][in_cumo].append(flux);
-                    elif in_w>0:
-                        # put it in rhs list[iterm]
-                        if cumo not in res["b"][w-1]:
-                            res["b"][w-1][cumo]={};
-                        if flux not in res["b"][w-1][cumo]:
-                            res["b"][w-1][cumo][flux]={};
-                        if imetab not in res["b"][w-1][cumo][flux]:
-                            res["b"][w-1][cumo][flux][imetab]=[];
-                        res["b"][w-1][cumo][flux][imetab].append(
-                            in_cumo if in_metab not in netan["input"] else
-                            netan["cumo_input"][in_cumo]);
-                        #print "b="+str(res["b"][w-1][cumo][flux]);##
-                    # if in_w==0 then in_cumo=1 by definition => ignore here
-                    # in_w cannot be > w because of src_ind();
-    
+                            res["b"][w-1][cumo][flux][imetab].append(
+                                in_cumo if in_metab not in netan["input"] else
+                                netan["cumo_input"][in_cumo]);
+                            #print "b="+str(res["b"][w-1][cumo][flux]);##
+                        # if in_w==0 then in_cumo=1 by definition => ignore here
+                        # in_w cannot be > w because of src_ind();
+    except Exception as inst:
+        werr(": ".join(inst)+"\n");
     # ordered cumomer lists
     for w in xrange(1,netan["Cmax"]+1):
         # weight 1 equations have all metabolites
@@ -973,11 +987,11 @@ def ftbl_netan(ftbl):
         # check if this line was already entered before
         for (i,row) in enumerate(res):
             if row==qry:
-                sys.stderr.write("Warning: when trying to add balance for "+metab+
+                werr("Warning: when trying to add balance for "+metab+
                     " got the same equation as for "+netan["vrowAfl"][i]+"\n");
-                sys.stderr.write("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n");
-                sys.stderr.write(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n");
-                sys.stderr.write(metab+":\t"+join("\t", qry)+"\n");
+                werr("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n");
+                werr(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n");
+                werr(metab+":\t"+join("\t", qry)+"\n");
                 break;
         else:
             # identique row is not found, add it
