@@ -438,7 +438,13 @@ cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    # during the call to cost function (to take advantage of matrix
    # factorisation made at this time).
    
-   stopifnot(param==jx_f$param); # must not be. The cost function must be alread called at this time
+   if (!all(param==jx_f$param)) {
+      # Normally it must not be. The cost function must be alread called at this time
+      # But for some strange reason it happened. So let recalculate the cost
+      res=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
+      stopifnot(param==jx_f$param);
+   }
+   names(param)=nm_par;
    # grad=c(2*t(dr_df%*%df_dff)*(measinvvar*rescumo)+
    #    t(drf_dff)*(invfmnvar*resfl), 2*(t(dr_dw)%*%rescumo))
    # dfl_dff=invAfl%*%p2bfl; is already calculated
@@ -490,6 +496,8 @@ cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
       }
    }
    df_dff=df_dfl%*%dfl_dff+df_dffd;
+   # store it for all flux covariance
+   jx_f$df_dff<<-df_dff;
    
    # measured fluxes derivation
    dfm_dff=matrix(0., length(nm_fmn), length(nm_ffn)+length(nm_ffx));
@@ -504,8 +512,15 @@ cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
          dfm_dff[nm_y,]=dfl_dff[nm_y,];
       }
    }
+   # store flux part of jacobian for sensitivity matrix
+   jx_f$dfm_dff<<-dfm_dff;
+   
    dmx_df=measmat[,-dim(measmat)[2]]%*%jx_f$x_f[imeas,];
    dr_dff=c(1.,param)[ir2isc]*(dmx_df%*%df_dff);
+   
+   # store isotope part of jacobian for sensitivity matrix
+   jx_f$dr_dff<<-dr_dff;
+   
    # part of gradient due to free fluxes
    r=measinvvar*jx_f$res;
    grad=2*(t(dr_dff)%*%r+
@@ -520,3 +535,12 @@ cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    }
    return(grad);
 }
+# cost function for donlp2 solver
+cumo_fn=function(p) {
+   return(cumo_cost(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs"))
+}
+cumo_dfn=function(p) {
+   return(cumo_gradj(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs"))
+}
+attr(cumo_fn, "gr")=cumo_dfn;
+#cumo_fn@gr=cumo_dfn;
