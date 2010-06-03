@@ -342,13 +342,18 @@ if (is.na(sensitive)) {
    sensitive=""; # no sensitivity matrix calculation
 }
 #cat("sens=", sensitive, "\\n");
+optimize=TRUE;
+argopt=which(opts=="--noopt");
+if (length(argopt)) {
+   optimize=FALSE;
+}
 # R profiling
 if (prof) {
    Rprof("%(proffile)s");
 }
 
 # minimisation method
-validmethods=list("BFGS", "Nelder-Mead");
+validmethods=list("BFGS", "Nelder-Mead", "SANN");
 method=which(opts=="--meth");
 if (length(method)) {
    method=opts[method[1]+1];
