@@ -6,8 +6,34 @@
 # or: ./ftbl2rsif.py fnetw.ftbl (in this case node.<attribute>.fnetw are silently
 # rewritten)
 # 
-# 2008-01-23 sokol
+# 2008-01-23 sokol: initial release
+# 2010-05-31 non blocking on ftbl parse errors
+"""usage: ./ftbl2rsif [-h|--help|--DEBUG] network[.ftbl]
+Take an ftbl file and produce a .cif and attribute files for
+cytoscape visualisation of the network defined in the ftbl.
 
+OPTIONS
+-h, --help print this message and exit
+--DEBUG enable some debuggin features and output (for advanced users)
+
+PARAMETERS
+network - the base of an ftbl file (network.ftbl)
+
+OUTPUT
+network.sif:
+ - network definition for cytoscape
+
+For attribute files the names are self explanatory :
+edge.label.network
+edge.sourceArrowColor.network
+edge.targetArrowColor.network
+node.fillColor.network
+node.shape.network
+
+NB
+Base name of ftbl file ('network' in this example)
+is used to create or silently overwrite all result files.
+"""
 #import pdb;
 import sys;
 import os;
@@ -16,6 +42,8 @@ import re;
 
 from tools_ssg import *;
 from C13_ftbl import *;
+
+werr=sys.stderr.write;
 
 # determin colour of metabolite (in, out or plain)
 def color(m, netan, nc):
@@ -57,33 +85,7 @@ ec={
 # get arguments
 me=os.path.basename(sys.argv[0]);
 def usage():
-    sys.stderr.write("usage: "+me+
-        """ [-h|--help|--DEBUG] network[.ftbl]
-Take an ftbl file and produce a .cif and attribute files for
-cytoscape visualisation of the network defined in the ftbl.
-
-OPTIONS
--h, --help print this message and exit
---DEBUG enable some debuggin features and output (for advanced users)
-
-PARAMETERS
-network - the base of an ftbl file (network.ftbl)
-
-OUTPUT
-network.sif:
- - network definition for cytoscape
-
-For attribute files the names are self explanatory :
-edge.label.network
-edge.sourceArrowColor.network
-edge.targetArrowColor.network
-node.fillColor.network
-node.shape.network
-
-NB
-Base name of ftbl file ('network' in this example)
-is used to create or silently overwrite all result files.
-""");
+    sys.stderr.write(__doc__);
 try:
     opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "DEBUG"]);
 except getopt.GetoptError, err:
@@ -134,7 +136,12 @@ fetc.write("edge.targetArrowColor\n");
 
 # Parse .ftbl file
 ##print 'parse'
-ftbl=ftbl_parse(fin);
+
+try:
+   ftbl=ftbl_parse(fin);
+except Exception as inst:
+   werr(str(inst)+"\n");
+
 ##print ftbl
 ent="FLUXES";
 #aff("ftbl["+ent+"]", ftbl[ent], f=sys.stderr);
