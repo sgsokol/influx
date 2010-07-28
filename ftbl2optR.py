@@ -422,8 +422,16 @@ if (sensitive=="grad") {
    grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
    
    # covariance matrix of free fluxes
-   covff=solve(t(jx_f$dfm_dff)%*%(jx_f$dfm_dff*invfmnvar)+
-      t(jx_f$dr_dff)%*%(jx_f$dr_dff*measinvvar));
+   invcov=t(jx_f$dfm_dff)%*%(jx_f$dfm_dff*invfmnvar)+
+      t(jx_f$dr_dff)%*%(jx_f$dr_dff*measinvvar);
+   covff=try(solve(invcov));
+   if (inherits(covff, "try-error")) {
+      # matrix seems to be singular
+      cat("Inverse of covariance matrix is singular => there are unsolved fluxes\\n",
+         file=stderr());
+      # regularize and inverse
+      covff=solve(invcov+diag(1.e-4, nrow(invcov)));
+   }
    # standart deviations of free fluxes
    sdff=sqrt(diag(covff));
    cat("stats\n", file=fkvh);
@@ -433,6 +441,34 @@ if (sensitive=="grad") {
    obj2kvh(covf, "covariance all fluxes", fkvh, ident=1);
    obj2kvh(sdff, "SD free fluxes", fkvh, ident=1);
    obj2kvh(sdf, "SD all fluxes", fkvh, ident=1);
+   # select best defined flux combinations
+   s=svd(covf);
+   iord=apply(s$u,2,function(v){o=order(abs(v), decreasing=T); n=which(cumsum(v[o]**2)>=0.95); o[1:n[1]]})
+   # lin comb coeff matrix
+   l=s$u;
+   dimnames(l)=dimnames(covf);
+   nm_fvrw=dimnames(l)[[1]];
+   nb_fvrw=nrow(s$u);
+   comb=rep("", nb_fvrw);
+   for (j in 1:nb_fvrw) {
+      l[j,]=0;
+      cva=s$u[iord[[j]],j];
+      cva=cva/cva[1];
+      l[j,iord[[j]]]=cva;
+      cva=sprintf("%+.3g*", cva);
+      cva[cva=="+1*"]="+";
+      cva[cva=="-1*"]="-";
+      cva[1]="";
+      comb[j]=paste(cva, nm_fvrw[iord[[j]]], sep="", collapse="");
+   }
+   # three columns : val sd cv
+   sta_comb=l%*%v$fwrv;
+   sta_comb=cbind(sta_comb, sqrt(diag(l%*%covf%*%t(l))));
+   sta_comb=cbind(sta_comb, sta_comb[,2]/abs(sta_comb[,1]));
+   dimnames(sta_comb)=list(comb, c("val", "sd", "cv"));
+   o=order(sta_comb[, "cv"]);
+   sta_comb=sta_comb[o,];
+   obj2kvh(sta_comb, "best cv for fw-rv linear combinations", fkvh, ident=1);
 }
 if (prof) {
    Rprof(NULL);
