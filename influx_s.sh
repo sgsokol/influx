@@ -1,12 +1,26 @@
-date;
-direx=$(dirname $0);
-me=$(basename $0)
-DEBUG=""
-[ "$me" = "optd.sh" ] && DEBUG="DEBUG"
-[ "$1" = "DEBUG" ] && DEBUG="DEBUG"
+#!/bin/sh
+# wrapper script for minimizing static fluxes by R script
+# - generate .f and .R files by ftbl2optR.py
+# - compile .f in .so
+# - start generated R script for minimization
+#
+# usage: ./influx_s.sh network[.ftbl] [...]
+# optional extra params [...] are passed as is to R script
+if [ $# = 0 ]; then
+   echo "usage: ./influx_s.sh network[.ftbl] [opt params to R script]";
+   exit 1;
+fi
 
-$direx/ftbl2optR.py $1 $DEBUG &&
-   R CMD SHLIB $1.f &&
-   date && R --no-save --silent --args --meth $2 --sens $3 < $1.R \
-   > $1.log 2> $1.err;
-date;
+echo "code gen:" $(date);
+direx=$(dirname "$0");
+f="$1"
+shift;
+eargs="$@"
+
+$direx/ftbl2optR.py "$f" &&
+   echo "compil  :" $(date) &&
+   R CMD SHLIB "$f.f" &&
+   echo "calcul  :" $(date) &&
+   R --no-save --silent $eargs < "$f.R" \
+   > "$f.log" 2> "$f.err";
+echo "end     :" $(date);
