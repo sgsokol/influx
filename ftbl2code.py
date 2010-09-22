@@ -15,6 +15,7 @@ import os;
 import sys;
 import platform;
 from operator import itemgetter;
+
 global DEBUG;
 dirx=os.path.dirname(sys.argv[0]);
 
@@ -104,7 +105,7 @@ C        cumos: %(cumos)s
          if (calcA) then
 """%    {
         "iw": w,
-        "cumos": join(", ", cumos),
+        "cumos": join(", ", [(i+1,c) for (i,c) in enumerate(cumos)]),
         });
         # run through the matrix
         for icol in xrange(ncumo):
@@ -324,7 +325,7 @@ def netan2R_fl(netan, org, f, ff):
 
     f.write("""
 # get runtime arguments if not already set
-# opts=strsplit("--meth  --sens linxf", " ")[[1]];
+# opts=strsplit("--meth nlsic --sens linxf", " ")[[1]];
 if (length(find("opts"))==0) {
    opts=commandArgs();
 }
@@ -353,14 +354,16 @@ if (prof) {
 }
 
 # minimisation method
-validmethods=list("BFGS", "Nelder-Mead", "SANN");
+validmethods=list("BFGS", "Nelder-Mead", "SANN", "nlsic");
 method=which(opts=="--meth");
 if (length(method)) {
    method=opts[method[1]+1];
-}
-if (is.na(method) || !length(which(method==validmethods))) {
-   # set default method
-   method="BFGS";
+   if (! method %%in%% validmethods) {
+      warning(paste("method", method, "is not known."));
+      method="nlsic";
+   }
+} else {
+   method="nlsic";
 }
 
 # get some tools
@@ -917,19 +920,19 @@ nm_i=c(nm_i, "%(nm0)s", "%(nm1)s");
     "nm1": t+"."+nxi+"."+fli+"<=0.999",
     });
     f.write("""
-# add standard limits on net >= 0 for not reversible reactions
+# add standard limits on net >= 1.e-5 for not reversible reactions
 """);
     for (fli,t,nxi) in tfallnx:
         if nxi=="x" or fli not in netan["notrev"]:
             continue;
         f.write("""
 mi=rbind(mi,c(%(mi)s));
-li=c(li,0.);
+li=c(li,1.e-5);
 nm_i=c(nm_i,"%(nm)s");
 """%{
     "mi": join(", ", (
         ("1." if fli==fl and nx=="n" else "0.") for (fl,t,nx) in tfallnx)),
-    "nm": t+"."+nxi+"."+fli+">=0",
+    "nm": t+"."+nxi+"."+fli+">=1.e-5",
     });
 
     f.write("nb_ineq=NROW(li);\n");
@@ -951,6 +954,7 @@ zi=apply(ui,1,function(v){r=range(v); return(max(abs(v))<=1.e-14)});
 if (all(ci[zi]<=1.e-14)) {
    ui=ui[!zi,];
    ci=ci[!zi];
+   nm_i=nm_i[!zi];
 } else {
    cat("The following constant inequalities are not satisfied:\\n");
    cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n");
@@ -959,10 +963,14 @@ if (all(ci[zi]<=1.e-14)) {
 # complete ui by zero columns corresponding to scale params
 ui=cbind(ui, matrix(0., NROW(ui), nb_param-nb_ff));
 
-# complete ui by scales >=0
-ui=rbind(ui, cbind(matrix(0, nb_param-nb_ff, nb_ff), diag(1, nb_param-nb_ff)));
-ci=c(ci,rep(0., nb_param-nb_ff));
-
+if (nb_param>nb_ff) {
+   # complete ui by scales >=0
+   ui=rbind(ui, cbind(matrix(0, nb_param-nb_ff, nb_ff), diag(1, nb_param-nb_ff)));
+   ci=c(ci,rep(0., nb_param-nb_ff));
+   nm_i=c(nm_i, paste(nm_par[(nb_ff+1):nb_param], ">=0", sep=""));
+   dimnames(ui)[[1]]=nm_i;
+   names(ci)=nm_i;
+}
 """);
 
 def netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, fortfun="fj_rhs"):
@@ -1111,17 +1119,21 @@ C        b_x term""");
                     for (item,ifct) in ((0,1), (1,0)):
                         if lst[item] in cumo2i:
                             factor=("x(%d)"%cumo2i[lst[ifct]]) if lst[ifct] in cumo2i else lst[ifct];
-                            csum[cumo2i[lst[item]]]=factor;
+                            ici=cumo2i[lst[item]]; # index of cumomer item
+                            if ici in csum:
+                                csum[ici].append(factor);
+                            else:
+                                csum[ici]=[factor];
                 if not csum:
                     continue;
                 for (ix,factor) in csum.iteritems():
                     f.write(fwrap("""
-         b_x(%(ir)d,%(ic)d)=b_x(%(ir)d,%(ic)d)+%(b_x)s*%(factor)s
+         b_x(%(ir)d,%(ic)d)=b_x(%(ir)d,%(ic)d)+%(b_x)s*(%(factor)s)
 """ %   {
         "ir": irow+1,
         "ic": ix,
         "b_x": b_x,
-        "factor": factor}));
+        "factor": join("+", factor)}));
         f.write("""
       endif
 """); # end of fortran if on iw
