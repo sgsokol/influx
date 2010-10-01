@@ -325,7 +325,7 @@ def netan2R_fl(netan, org, f, ff):
 
     f.write("""
 # get runtime arguments if not already set
-# opts=strsplit("--meth nlsic --sens linxf", " ")[[1]];
+# opts=strsplit("--sens mc=5", " ")[[1]];
 if (length(find("opts"))==0) {
    opts=commandArgs();
 }
@@ -342,6 +342,13 @@ if (length(sensitive)) {
 if (is.na(sensitive)) {
    sensitive=""; # no sensitivity matrix calculation
 }
+if (substring(sensitive, 1, 3)=="mc=") {
+   # read the mc iteration number
+   nmc=as.integer(substring(sensitive, 4));
+   sensitive="mc";
+} else if (sensitive=="mc") {
+   nmc=10;
+}
 #cat("sens=", sensitive, "\\n");
 optimize=TRUE;
 argopt=which(opts=="--noopt");
@@ -353,7 +360,7 @@ if (prof) {
    Rprof("%(proffile)s");
 }
 
-# minimisation method
+# minimization method
 validmethods=list("BFGS", "Nelder-Mead", "SANN", "nlsic");
 method=which(opts=="--meth");
 if (length(method)) {
