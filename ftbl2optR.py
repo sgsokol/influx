@@ -91,6 +91,7 @@ import sys;
 import os;
 import time;
 import copy;
+import getopt;
 
 #sys.path.append("/home/sokol/dev/python");
 from tools_ssg import *;
@@ -106,20 +107,43 @@ except ImportError:
 
 me=os.path.basename(sys.argv[0]);
 def usage():
-    sys.stderr.write("usage: "+me+" network_name[.ftbl]\n");
+    sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--DEBUG] network_name[.ftbl]\n");
 
 #<--skip in interactive session
-if len(sys.argv) < 2:
+try:
+    opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "DEBUG"]);
+except getopt.GetoptError, err:
+    sys.stderr.write(str(err)+"\n");
     usage();
     sys.exit(1);
+fullsys=False;
+DEBUG=False;
+for o,a in opts:
+    if o in ("-h", "--help"):
+        usage();
+        sys.exit();
+    elif o=="--cost":
+        cost=True;
+    elif o=="--fullsys":
+        fullsys=True;
+    elif o=="--DEBUG":
+        DEBUG=True;
+    else:
+        #assert False, "unhandled option";
+        # unknown options can come from shell which call
+        # which pass all options both to python and R scripts
+        # so just ignore unknown options
+        pass;
+#aff("args", args);##
+if len(args) != 1:
+    usage();
+    exit(1);
+org=args[0];
 
-# set some python constants
-org=sys.argv[1];
 # cut .ftbl if any
 if org[-5:]==".ftbl":
     org=org[:-5];
 
-DEBUG=True if len(sys.argv) > 2 and sys.argv[2] else False;
 #-->
 #DEBUG=True;
 import ftbl2code;
@@ -150,7 +174,7 @@ f_ftbl.close();
 netan=C13_ftbl.ftbl_netan(ftbl);
 
 # write initialization part of R code
-ftbl2code.netan2Rinit(netan, org, f, ff);
+ftbl2code.netan2Rinit(netan, org, f, ff, fullsys);
 
 #f.write(
 """
@@ -178,9 +202,28 @@ if (nb_fcx) {
 }
 """
 f.write("""
+# check if initial approximation is feasible
+ineq=ui%*%param-ci;
+if (any(ineq < 0.)) {
+   cat("The following ", sum(ineq<0.), " ineqalities are not respected:\\n", sep="");
+   print(ineq[ineq<0.,1]);
+   cat("Starting values are put in feasible domain:\\n", sep="");
+   #stop("Inequalities violated, cf. log file.");
+   # put them inside
+   dp=ldp(ui, -ineq);
+   names(param)=nm_par;
+   tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dp[1:nb_ff]);
+   dimnames(tmp)=list(nm_par[1:nb_ff], c("old", "new"));
+   obj2kvh(tmp, "starting free fluxes");
+   param=param+dp;
+}
+
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
 # for corresponding measures
-vr=param2fl_x(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
+vr=param2fl_x(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, "fwrv2rAbcumo");
+if (!is.null(vr$err) && vr$err) {
+   stop(vr$mes);
+}
 simvec=(measmat%*%c(vr$x[irmeas],1.));
 if (DEBUG) {
    cat("initial simvec:\\n");
@@ -195,19 +238,12 @@ if (nb_ff < length(param)) {
    }
 }
 
-# check if initial approximation is feasible
+# see if there are any active inequalities at starting point
 ineq=ui%*%param-ci;
-if (!all(ineq > 1.e-10)) {
-   if (sum(abs(ineq)<=1.e-10)) {
-      cat("The following ", sum(ineq==0.), " ineqalities are on the border:\\n", sep="");
-      print(ineq[abs(ineq)<=1.e-10,1]);
-      #stop("Inequalities on the border, cf. log file.");
-   }
-   if (sum(ineq<0.)) {
-      cat("The following ", sum(ineq<0.), " ineqalities are not respected:\\n", sep="");
-      print(ineq[ineq<0.,1]);
-      #stop("Inequalities violated, cf. log file.");
-   }
+if (any(abs(ineq)<=1.e-10)) {
+   cat("The following ", sum(ineq==0.), " ineqalities are on the border:\\n", sep="");
+   print(ineq[abs(ineq)<=1.e-10,1]);
+   #stop("Inequalities on the border, cf. log file.");
 }
 """);
 
@@ -230,7 +266,8 @@ obj2kvh(param, "starting free parameters", fkvh, indent=1);
 
 x=vr$x;
 names(x)=nm_rcumo;
-obj2kvh(x, "starting cumomer vector", fkvh, indent=1);
+o=order(nm_rcumo);
+obj2kvh(x[o], "starting cumomer vector", fkvh, indent=1);
 
 fwrv=vr$fwrv;
 n=length(fwrv);
@@ -295,7 +332,7 @@ opt_wrapper=function(measvec, fmn) {
          irmeas, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
    } else if (method == "nlsic") {
-      control=list(trace=1);
+      control=list(trace=1, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5);
       res=nlsic(param, cumo_resid, 
          ui, ci, control, e=NULL, eco=NULL,
          nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc,
@@ -333,11 +370,18 @@ names(gr)=nm_par;
 obj2kvh(gr, "gradient vector", fkvh);
 obj2kvh(jx_f$dr_dp, "jacobian dr_dp", fkvh);
 
-v=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas,
-   measmat, measvec, ir2isc, "fwrv2Abcumo", "fj_rhs");
+if (fullsys) {
+   v=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, "fwrv2Abcumo");
+} else {
+   v=param2fl_x(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, "fwrv2rAbcumo");
+}
 x=v$x;
-names(x)=nm_cumo;
-o=order(nm_cumo);
+if (fullsys) {
+   names(x)=nm_cumo;
+} else {
+   names(x)=nm_rcumo;
+}
+o=order(names(x));
 obj2kvh(x[o], "cumomer vector", fkvh);
 
 fwrv=v$fwrv;
@@ -351,24 +395,27 @@ names(f)=nm_fallnx;
 obj2kvh(f, "net-xch flux vector", fkvh);
 
 if (sensitive=="mc") {
-   # Monte-Carlo simulation
-   # random measure generation
+   # Monte-Carlo simulation in parallel way
+   library(multicore);
    nb_meas=length(measvec);
    invar=c(measinvvar, invfmnvar);
    simcumom=jx_f$simcumom;
    simfmn=f[nm_fmn];
-   meas_mc=matrix(rnorm(nmc*nb_meas, simcumom, 1./sqrt(measinvvar)), nb_meas, nmc);
-   fmn_mc=matrix(rnorm(nmc*nb_fmn, simfmn, 1./sqrt(invfmnvar)), nb_fmn, nmc);
-   free_mc=matrix(0, nb_param, nmc);
-   cost_mc=numeric(nmc);
-   for (imc in 1:nmc) {
-      cat("imc=", imc, "\n", sep="");
+   mc_sim=function(i) {
+      # random measure generation
+      meas_mc=rnorm(nb_meas, simcumom, 1./sqrt(measinvvar));
+      fmn_mc=rnorm(nb_fmn, simfmn, 1./sqrt(invfmnvar));
+      cat("imc=", i, "\n", sep="");
       # minimization
-      res=opt_wrapper(meas_mc[,imc], fmn_mc[,imc]);
-      # store the solution
-      free_mc[,imc]=res$par;
-      cost_mc[imc]=sum(jx_f$res*jx_f$res*invar);
+      res=opt_wrapper(meas_mc, fmn_mc);
+      # return the solution
+      return(list(cost=sum(jx_f$res*jx_f$res*invar), par=res$par));
    }
+   # parallel execution
+   mc_res=mclapply(1:nmc, mc_sim);
+   free_mc=matrix(unlist(mc_res), ncol=nmc);
+   cost_mc=free_mc[1,];
+   free_mc=free_mc[-1,,drop=F];
    dimnames(free_mc)[[1]]=nm_par;
    cat("monte-carlo\n", file=fkvh);
    indent=1;
@@ -433,7 +480,7 @@ if (sensitive=="mc") {
 cost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
 #grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
 x_f=v$x_f;
-dimnames(x_f)=list(nm_cumo, names(fwrv));
+dimnames(x_f)=list(names(x), names(fwrv));
 if (DEBUG) {
    library(numDeriv); # for numerical jacobian
    # numerical simulation
