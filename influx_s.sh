@@ -30,8 +30,8 @@ fi
 
 $direx/ftbl2optR.py "$f" &&
    echo "compil  :" $(date) &&
-   R CMD SHLIB "$f.f" &&
+   R CMD SHLIB "$f.f" 1> /dev/null 2> "$f.err" &&
    echo "calcul  :" $(date) &&
-   R --no-save --silent $eargs < "$f.R" \
+   R --no-save --slave $eargs < "$f.R" \
    > "$f.log" 2> "$f.err";
 echo "end     :" $(date);
