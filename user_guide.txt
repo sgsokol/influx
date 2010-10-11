@@ -1,0 +1,55 @@
+# 2010-10-11 sokol
+
+=========================
+User's guide for influx_s
+=========================
+
+------------
+Introduction
+------------
+
+------------
+Command line options
+------------
+
+--irand
+ randomly generated starting point. Starting values for free fluxes from
+ ftbl file are ignored
+
+--sens mc[=N]
+ use Monte-Carlo simulations for sensitivity analysis. N is the number
+ of Monte-Carlo simulations. If not given on the command line, N value is 10.
+ The number 10 is too low for realistic simulations. It's here just to
+ show that the option works and to illustrate what kind of output
+ user can get from it in result file.
+
+--noopt
+ don't do any optimization, just calculate fluxes and cumomers
+ corresponding to starting point values.
+
+--fullsys
+ produce the result output for the whole cumomer system. It can make
+ the compilation time longer but not calculation time
+
+----
+Why influx_s is much faster than 13C_flux or openflux?
+----
+
+There are serveral acceleration technics that were used in
+design and programming of influx_s. Here are some key points:
+
+system size reduction
+ comparing to C13_flux we use reduced set of cumomers. Like in
+ EMU algorithm we keep only cumomers that are particpating in
+ measured values. This can drasticaly reduce the system size.
+SQP-like algorithm
+ Non linear optimization used here for data feating proceed by
+ iterations. At each iteration a quadratique approximation is
+ used to approach the initial non linear problem. This approach
+ is called Sequential Quadratic Programming. In our case, in
+ addition to SQP we have inequality constraints to satisfy.
+ We integrated them in SQP stage instead of treating them in
+ non linear part. We call this approach SQPi ("i" for inequalities).
+ This make each SQPi solving longer compared to unconstraind SQP
+ but globally the convergeance is accelerated as it requires
+ much less iterations.
