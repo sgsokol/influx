@@ -11,20 +11,31 @@ trisparse_solv=function(A, b, w, method="dense") {
 #cat("trisparse: A,b\n");
 #print(A);
 #print(b);
+      n=ncol(A);
       if (DEBUG) {
-         write.matrix(A,file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
+         write.matrix(A, file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
       }
       qrA=qr(A);
-      x=try(solve(qrA,b));
-      if (inherits(x, "try-error")) {
-         # matrix seems to be singular
-         # switch to Moore-Penrose inverse
-         if ((exists("control") && control$trace) || DEBUG) {
-            cat("switch to generalized inverse at weight ", w, "\n", sep="");
-         }
-         x=ginv(A)%*%b;
+      if (qrA$rank < n) {
+          mes=paste("trisparse_solv: Cumomer matrix ",
+             n, "x", n, " at weight ", w,
+             " is singular.\nUnsolvable cumomers are:\n",
+             paste(qrA$pivot[-(1:qrA$rank)], sep="", collapse="\n"),
+             "\nThe matrix is dumped in dbg_Acumo_singular.txt\n",
+             sep="", collapse="");
+          write.matrix(A, file="dbg_Acumo_singular.txt");
+          return(list(x=rep(NA, n), qrA=qrA, err=1, mes=mes));
       }
-      return(list(x=x, qrA=qrA));
+      x=solve(qrA,b);
+      #if (inherits(x, "try-error")) {
+      #   # matrix seems to be singular
+      #   # switch to Moore-Penrose inverse
+      #   if ((exists("control") && control$trace) || DEBUG) {
+      #      cat("switch to generalized inverse at weight ", w, "\n", sep="");
+      #   }
+      #   x=ginv(A)%*%b;
+      #}
+      return(list(x=x, qrA=qrA, err=0, mes=NULL));
    } else if (method=="sparse") {
       # sparse
       # fulfill a matrix
@@ -86,7 +97,10 @@ cumo_resid=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
 #print(param);
 #print(p2bfl);
    # find x for all weights
-   lres=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun, fj_rhs);
+   lres=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun, fj_rhs);
+   if (!is.null(lres$err) && lres$err) {
+      return(list(err=1, mes=lres$mes));
+   }
 #print(imeas);
    # find simulated scaled measure vector scale*(measmat*x)
    jx_f$simcumom<<-measmat%*%c(lres$x[imeas],1.);
@@ -118,7 +132,10 @@ cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
 #print(nb_w);
 #cat("param\n");
 #print(param);
-    resl=cumo_resid(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs);
+   resl=cumo_resid(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs);
+   if (!is.null(resl$err) && resl$err) {
+      return(NA);
+   }
    res=resl$res;
    fn=sum(res*res);
    if (DEBUG) {
@@ -181,7 +198,7 @@ p2f=function(param, nb_f, invAfl, p2bfl, bp, fc) {
    # translate param to fwd-rev fluxes (for num deriv purpose only)
    return(param2fl(param, nb_f, invAfl, p2bfl, bp, fc)$fwrv);
 }
-param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
+param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
    # calculate all fluxes from free fluxes
    lf=param2fl(param, nb_f, invAfl, p2bfl, bp, fc);
    # construct the system A*x=b from fluxes
@@ -200,6 +217,7 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
       obj2kvh(tmp, "net-xch", conct);
 #      write.matrix(tmp, file="dbg_fwrv.txt", sep="\t");
    }
+   #browser();
    for (iw in 1:nb_w) {
       nx=length(x);
       ncumow=nb_cumos[iw];
@@ -231,6 +249,9 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
          }
       }
       lsolv=trisparse_solv(A, b, iw, method="dense");
+      if (!is.null(lsolv$err) && lsolv$err) {
+         return(list(err=1, mes=lsolv$mes));
+      }
       xw=lsolv$x;
       nxw=length(xw);
 #fj_rhs(fl, nf, x, x_f, nx, iw, n, j_rhs)
