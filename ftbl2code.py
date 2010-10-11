@@ -155,14 +155,15 @@ C        right hand side definition
       RETURN
       END SUBROUTINE %(fortfun)s
 """%{"fortfun": fortfun});
-def netan2Rinit(netan, org, f, ff):
+def netan2Rinit(netan, org, f, ff, fullsys):
     global DEBUG;
-    """netan2Rinit(netan, org, f, ff)
+    """netan2Rinit(netan, org, f, ff, fullsys)
     Write R code for initialization of all variables before
     cumomer system resolution by khi2 minimization.
     netan is a collection of parsed ftbl information
     f is R code output pointer
     ff is fortran code output pointer
+    fullsys=True means write also a code for the full cumomer system
     Return a dictionnary with some python variables:
         "measures": measures,
         "o_mcumos": o_mcumos,
@@ -219,7 +220,7 @@ def netan2Rinit(netan, org, f, ff):
     #    ci - inequalities for param use (ui%*%param-ci>=0)
     #    measvec,
     #    measinvvar,
-    #    imeas,
+    #    irmeas,
     #    fmn
     # Matrices:
     #    Afl, qrAfl, invAfl,
@@ -228,7 +229,7 @@ def netan2Rinit(netan, org, f, ff):
     #    mf, md, mc - help to construct fallnx
     #    mi - inequality matrix (ftbl content)
     #    ui - inequality matrix (ready for param use)
-    #    measmat - measmat*(x[imeas];1)=vec of simulated not-yet-scaled measures
+    #    measmat - measmat*(x[irmeas];1)=vec of simulated not-yet-scaled measures
     # Functions:
     #    param2fl_x - translate param to flux and cumomer vector (initial approximation)
     #    cumo_cost - cost function (khi2)
@@ -265,8 +266,9 @@ def netan2Rinit(netan, org, f, ff):
     netan2R_fl(netan, org, f, ff);
     d=netan2R_rcumo(netan, org, f, ff);
     res.update(d);
-    d=netan2R_cumo(netan, org, f, ff);
-    res.update(d);
+    if fullsys:
+        d=netan2R_cumo(netan, org, f, ff);
+        res.update(d);
     d=netan2R_meas(netan, org, f, ff);
     res.update(d);
     netan2R_ineq(netan, org, f, ff);
@@ -325,7 +327,7 @@ def netan2R_fl(netan, org, f, ff):
 
     f.write("""
 # get runtime arguments if not already set
-# opts=strsplit("--sens mc=5", " ")[[1]];
+# opts=strsplit("--sens mc=10", " ")[[1]];
 if (length(find("opts"))==0) {
    opts=commandArgs();
 }
@@ -355,6 +357,17 @@ argopt=which(opts=="--noopt");
 if (length(argopt)) {
    optimize=FALSE;
 }
+fullsys=FALSE;
+if (length(which(opts=="--fullsys"))) {
+   fullsys=TRUE;
+}
+initrand=FALSE;
+if (length(which(opts=="--irand"))) {
+   initrand=TRUE;
+}
+
+# end line argument proceeding
+
 # R profiling
 if (prof) {
    Rprof("%(proffile)s");
@@ -481,6 +494,9 @@ if (nb_ffx) {
    nm_par=c(nm_par, nm_ffx);
 }
 nb_param=length(param);
+if (initrand) {
+   param=runif(nb_param);
+}
 # scaling factors are added to param later
 
 nb_ff=nb_ffn+nb_ffx;
@@ -703,21 +719,19 @@ ir2isc[ir2isc<=0]=1;
     f.write("""
 # make measure matrix
 # matrix is "densified" such that
-# measmat*(x[imeas];1) or measmat*(xr[irmeas];1)vec of simulated not-yet-scaled measures
-# where imeas is the R-index of involved in measures cumomers
+# measmat*(xr[irmeas];1)vec of simulated not-yet-scaled measures
+# where irmeas is the R-index of involved in measures cumomers
 # all but 0. Coefficients of 0-cumomers, by defenition equal to 1,
 # are all regrouped in the last matrix column.
 measmat=matrix(0., 0, %(ncol)d);
 measvec=numeric(0);
 measinvvar=numeric(0);
 nm_meas=c();
-imeas=c(%(imeas)s);
 irmeas=c(%(irmeas)s);
 nm_mcumo=c(%(mcumos)s);
 """%{
     "nrow": len([measures[meas]["vec"] for meas in measures]),
     "ncol": (nb_mcumo+1),
-    "imeas": join(", ", trd(o_mcumos,netan["cumo2i"],a="")),
     "irmeas": join(", ", trd(o_mcumos,netan["rcumo2i"],a="")),
     "mcumos": join(", ", o_mcumos, '"', '"'),
     });
@@ -746,7 +760,7 @@ nm_mcumo=c(%(mcumos)s);
             f.write("""measmat=rbind(measmat,c(%(row)s));
 nm_meas=c(nm_meas, "%(nm_meas)s");
 """%{"row": join(", ", res),
-     "nm_meas": meas+":"+metab+":"+"+".join(row["bcumos"]),
+     "nm_meas": row["id"],
     });
         f.write("""
 measvec=c(measvec,c(%(vec)s));
@@ -978,6 +992,24 @@ if (nb_param>nb_ff) {
    dimnames(ui)[[1]]=nm_i;
    names(ci)=nm_i;
 }
+
+# remove redundant inequalities
+nb_i=nrow(ui);
+ired=c();
+for (i in 1:(nb_i-1)) {
+   nmref=nm_i[i];
+   for (j in setdiff((i+1):nb_i, ired)) {
+      if (all(ui[j,]==ui[i,]) && ci[i]==ci[j]) {
+         # redundancy
+         cat("inequality ", nm_i[j], " redundant with ", nmref, " is removed.\n", sep="");
+         ired=c(ired, j);
+      }
+   }
+}
+# remove all ired inequalities
+ui=ui[-ired,];
+ci=ci[-ired];
+nm_i=nm_i[-ired];
 """);
 
 def netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, fortfun="fj_rhs"):
