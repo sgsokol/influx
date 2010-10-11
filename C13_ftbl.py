@@ -62,12 +62,14 @@
 # 2010-02-15 sokol: ftbl_parse(): fixed input/output fluxes with respect to d/f/c characterisation
 # 2010-05-05 sokol: ftbl_parse(): if file name is given, check for .ftbl and add it if needed
 # 2010-05-31 sokol: ftbl_parse(): non blocking errors for not complete ftbl (e.g. for graph plotting)
-
+# 2010-10-11 sokol: ftbl_parse(): for measures added row number for later identification
+# 2010-10-11 sokol: ftbl_netan(): added "id" field in measures
 import numpy as np;
 import re;
 import copy;
 
 from tools_ssg import *;
+
 werr=sys.stderr.write;
 
 float_conv=set((
@@ -102,7 +104,9 @@ def ftbl_parse(f):
     reblank=re.compile("^[\t ]*$");
     recomm=re.compile("^[\t ]*//.*$");
     reading="data";
+    irow=0;
     for l in f:
+        irow+=1;
         #print "raw l="+l;##
         # strip out \r
         l=l.replace("\r", "");
@@ -165,7 +169,7 @@ def ftbl_parse(f):
             continue;
         if reading=="data":
             data=l[skiptab:].split("\t");
-            dic={};
+            dic={"irow": irow};
             if sec_name == "NETWORK" and len(data[0])==0:
                 # we are at carbon transition line here (e.g. #ABC -> #AB +#C)
                 #print "data_count="+str(data_count), \
@@ -574,6 +578,7 @@ def ftbl_netan(ftbl):
             bcumos=row["CUM_CONSTRAINTS"].split("+");
         else:
             try:
+                # just put "1" in group-th place
                 i=int(group);
                 bcumos="#"+"x"*netan["Clen"][metab];
                 bcumos[i-1]="1";
@@ -583,7 +588,8 @@ def ftbl_netan(ftbl):
         netan["label_meas"][metab][group].append({
                 "val":float(row["VALUE"]),
                 "dev":float(row["DEVIATION"]),
-                "bcumos":row["CUM_CONSTRAINTS"].split("+")
+                "bcumos":row["CUM_CONSTRAINTS"].split("+"),
+                "id":":".join(["l", metab, group, str(row["irow"])])
         });
         # test the icumomer lengths
         if not all(len(ic)==mlen+1 for ic in 
@@ -622,7 +628,11 @@ def ftbl_netan(ftbl):
             if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
                 raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" in row \n"+str(row));
             netan["peak_meas"][metab].setdefault(c_no,{});
-            netan["peak_meas"][metab][c_no][suff]={"val": float(val), "dev": float(dev)};
+            netan["peak_meas"][metab][c_no][suff]={
+               "val": float(val),
+               "dev": float(dev),
+               "id": ":".join(["p", metab, suff, str(row["irow"])])
+            };
     
     # mass measurements
     # dict:[metab][frag_mask][weight]={val:x, dev:y}
@@ -667,6 +677,7 @@ def ftbl_netan(ftbl):
         netan["mass_meas"][metab][mask][weight]={
                 "val":float(row["VALUE"]),
                 "dev":float(row["DEVIATION"]),
+                "id":":".join(["m", metab, frag, row["WEIGHT"], str(row["irow"])]),
         }
     
     # Isotopomer dynamics and other options
@@ -1304,7 +1315,7 @@ def label_meas2matrix_vec_dev(netan):
     Elements in matx_lab, vec and dev are ordered in the same way.
     The returned result is a dict (mat,vec,dev)
     """
-    # lab[metab][group]=list of {val:x, dev:y, bcumos:list of #bcumo}
+    # lab[metab][group]=list of {id:txt, val:x, dev:y, bcumos:list of #bcumo}
     # bcumo is like #1xx01 (0,1 and x are allowed)
     # their sum have to be transformed in cumomer linear combination
     mat=[];
@@ -1315,7 +1326,7 @@ def label_meas2matrix_vec_dev(netan):
             for row in rows:
                 vec.append(row["val"]);
                 dev.append(row["dev"]);
-                mat.append({"scale": metab+";"+group, "coefs":{},
+                mat.append({"id": row["id"], "scale": metab+";"+group, "coefs":{},
                     "bcumos": row["bcumos"], "metab": metab});
                 res=mat[-1]["coefs"];
                 for cumostr in row["bcumos"]:
@@ -1353,7 +1364,7 @@ def mass_meas2matrix_vec_dev(netan):
             for (weight,row) in weights.iteritems():
                 vec.append(row["val"]);
                 dev.append(row["dev"]);
-                mat.append({"scale": metab+";"+strbit(fmask), "coefs":{},
+                mat.append({"id": row["id"], "scale": metab+";"+strbit(fmask), "coefs":{},
                     "bcumos": None, "metab": metab});
                 res=mat[-1]["coefs"];
                 # for a given weight construct bcumo sum: #x10x+#x01x+...
@@ -1409,7 +1420,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
             for (peak,row) in peaks.iteritems():
                 vec.append(row["val"]);
                 dev.append(row["dev"]);
-                mat.append({"scale": metab+";"+str(c_no), "coefs":{},
+                mat.append({"id": row["id"], "scale": metab+";"+str(c_no), "coefs":{},
                     "bcumos": None, "metab": metab});
                 res=mat[-1]["coefs"];
                 # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
