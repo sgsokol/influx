@@ -1,8 +1,11 @@
 # 2010-10-11 sokol
 
 =========================
-User's guide for influx_s
+User's guide for influx_sim
 =========================
+
+influx_s
+========
 
 ------------
 Introduction
@@ -35,21 +38,49 @@ Command line options
 Why influx_s is much faster than 13C_flux or openflux?
 ----
 
-There are serveral acceleration technics that were used in
-design and programming of influx_s. Here are some key points:
+There are several acceleration technics that were used to
+design and programm influx_s. Here are some key points.
 
-system size reduction
- comparing to C13_flux we use reduced set of cumomers. Like in
- EMU algorithm we keep only cumomers that are particpating in
- measured values. This can drasticaly reduce the system size.
+System size reduction
+ compared to C13_flux we use reduced set of cumomers. Like in
+ EMU algorithm used in openflux we keep only cumomers that are
+ particpating in measured values. This can drasticaly reduce
+ the system size.
+
 SQP-like algorithm
- Non linear optimization used here for data feating proceed by
+ Non linear optimization used in MFA-ILE for data fiting proceedes by
  iterations. At each iteration a quadratique approximation is
  used to approach the initial non linear problem. This approach
- is called Sequential Quadratic Programming. In our case, in
+ is somtimes called Sequential Quadratic Programming. In our case, in
  addition to SQP we have inequality constraints to satisfy.
  We integrated them in SQP stage instead of treating them in
- non linear part. We call this approach SQPi ("i" for inequalities).
- This make each SQPi solving longer compared to unconstraind SQP
+ non linear part as it is done for example in C13_flux.
+ We call this approach SQPi ("i" for inequalities).
+ This makes solving one SQPi longer compared to unconstraind SQP
  but globally the convergeance is accelerated as it requires
  much less iterations.
+ 
+Globalized convergence
+ We use backtracking technic to make sure that at each SQPi iteration
+ we do reduce the cost function in conformance with quadratic
+ approximation. This insures the algorithm convergence starting
+ from any initial point of feasible domain.
+
+QR decomposition
+ When Solving SQPi we use QR decomposition of the jacobian matrix J.
+ While generic minimization algorithms use t(J)*J where t(J) is
+ the trasposed of J. For badly conditioned system, and it is the case
+ of flux calculation, the condition number kappa(t(J)*J) is as hign
+ as square of kappa(J) which considerably worses the situation.
+ Keeping condition number at lower level kappa(J)
+ make the convergence both quicker and more precise as the solution
+ of linear system is less sensible to rounding errors. Moreover,
+ using numerically stable version of QR prevents error cumulation
+ during iterations.
+
+Sparse matrices
+ for solving linear systems in influx_s, we use R package Matrix
+ offering sparse matrix algorithms. This reduces both the
+ time and memory requirements especialy for very big sytems.
+ For small systems, it can run slitly slower but as the time
+ is really small, who cares?
