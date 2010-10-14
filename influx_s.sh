@@ -25,7 +25,7 @@ else
    f="${@:n:1}";
    f="${f%%.ftbl}";
    n=$((n-1));
-   eargs="$@:1:n";
+   eargs="${@:1:n}";
 fi
 
 $direx/ftbl2optR.py "$f" &&
