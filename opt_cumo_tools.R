@@ -15,18 +15,19 @@ trisparse_solv=function(A, b, w, method="dense") {
       if (DEBUG) {
          write.matrix(A, file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
       }
-      qrA=qr(A);
-      if (qrA$rank < n) {
+      # factorize the matrix
+      fA=qr(A);
+      if (fA$rank < n) {
           mes=paste("trisparse_solv: Cumomer matrix ",
              n, "x", n, " at weight ", w,
              " is singular.\nUnsolvable cumomers are:\n",
-             paste(qrA$pivot[-(1:qrA$rank)], sep="", collapse="\n"),
+             paste(fA$pivot[-(1:fA$rank)], sep="", collapse="\n"),
              "\nThe matrix is dumped in dbg_Acumo_singular.txt\n",
              sep="", collapse="");
           write.matrix(A, file="dbg_Acumo_singular.txt");
-          return(list(x=rep(NA, n), qrA=qrA, err=1, mes=mes));
+          return(list(x=rep(NA, n), fA=fA, err=1, mes=mes));
       }
-      x=solve(qrA,b);
+      x=solve(fA,b);
       #if (inherits(x, "try-error")) {
       #   # matrix seems to be singular
       #   # switch to Moore-Penrose inverse
@@ -35,19 +36,22 @@ trisparse_solv=function(A, b, w, method="dense") {
       #   }
       #   x=ginv(A)%*%b;
       #}
-      return(list(x=x, qrA=qrA, err=0, mes=NULL));
+      return(list(x=x, fA=fA, err=0, mes=NULL));
    } else if (method=="sparse") {
       # sparse
       # fulfill a matrix
       require(Matrix);
-      As=Matrix(A);
-      x=solve(As,b);
+      As=Matrix(A, sparse=T);
+      x=solve(As,b); # As has also its factorized form
+      if (DEBUG) {
+         cat("As=", str(As), "\n", sep="");
+      }
 #q=qr(A);
 #print("qr");
 #print(q@V);
 #print(q@R);
 #print(q@p);
-      return(x);
+      return(list(x=as.numeric(x), fA=As, err=0, mes=NULL));
    } else if (method=="smw") {
       # Sherman-Morrison-Woodbury for low rank matrix modification
       require(matrid, lib.loc="/home/sokol/R/lib");
@@ -103,8 +107,8 @@ cumo_resid=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    }
 #print(imeas);
    # find simulated scaled measure vector scale*(measmat*x)
-   jx_f$simcumom<<-measmat%*%c(lres$x[imeas],1.);
-   simvec=c(1.,param)[ir2isc]*jx_f$simcumom;
+   jx_f$usimcumom<<-measmat%*%c(lres$x[imeas],1.);
+   simvec=c(1.,param)[ir2isc]*jx_f$usimcumom;
    # jacobians
    cumo_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
    imeas, measmat, measvec, ir2isc);
@@ -248,7 +252,7 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun=
             jx_f$wb<<-append(jx_f$wb, list(b));
          }
       }
-      lsolv=trisparse_solv(A, b, iw, method="dense");
+      lsolv=trisparse_solv(A, b, iw, method=ifelse(ncumow>200, "sparse", "dense"));
       if (!is.null(lsolv$err) && lsolv$err) {
          return(list(err=1, mes=lsolv$mes));
       }
@@ -285,9 +289,9 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun=
             }
          }
          if (iw > 1) {
-            x_f=rbind(x_f, solve(lsolv$qrA, j_rhsw+b_x%*%x_f));
+            x_f=rbind(x_f, as.matrix(solve(lsolv$fA, j_rhsw+b_x%*%x_f)));
          } else {
-            x_f=rbind(x_f, solve(lsolv$qrA, j_rhsw));
+            x_f=rbind(x_f, as.matrix(solve(lsolv$fA, j_rhsw)));
          }
       }
       # bind vectors and matrices
@@ -342,7 +346,7 @@ num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
             NAOK=TRUE,
             DUP=FALSE);
          # solve the system A*x=b;
-         lsolv=trisparse_solv(A, b, iw, method="dense");
+         lsolv=trisparse_solv(A, b, iw, method=ifelse(ncumow>200, "sparse", "dense"));
          xw=lsolv$x;
          nxw=length(xw);
          # bind vectors and matrices
@@ -624,7 +628,7 @@ cumo_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
    jx_f$dr_dff<<-rbind(drc_dff, jx_f$dfm_dff);
    
    # scale factor part
-   sm=jx_f$simcumom; # just cumomer measure part
+   sm=jx_f$usimcumom; # just cumomer measure part
    z=rep(0., NROW(sm));
    # each column is fullfilled with a part of residual vector
    # corresponding to a given scale parameter
