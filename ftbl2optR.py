@@ -259,6 +259,9 @@ f.write("""
 cat("command line\\n", file=fkvh);
 obj2kvh(opts, "opts", fkvh, indent=1);
 
+# resume system sizes
+obj2kvh(nb_sys, "system size resume", fkvh);
+
 # save initial flux and cumomer distribution
 cat("starting point\\n", file=fkvh);
 names(param)=nm_par;
@@ -266,7 +269,20 @@ obj2kvh(param, "starting free parameters", fkvh, indent=1);
 
 x=vr$x;
 names(x)=nm_rcumo;
-o=order(nm_rcumo);
+# replace :i by :x1's
+nm_mask=unlist(lapply(strsplit(names(x), ":"), function(v) {
+   n=length(v);
+   metab=paste(v[-n], collapse=":");
+   mask=int2bit(v[n], len=clen[metab])
+   c(metab, mask);
+}))
+nm_mask=t(matrix(nm_mask, nrow=2));
+o=order(nm_mask[,1], nm_mask[,2]);
+# replace 0 by x in mask
+nm_mask[,2]=gsub("0", "x", nm_mask[,2], fixed=T);
+nm_mask=paste(nm_mask[,1], nm_mask[,2], sep="#");
+names(nm_mask)=names(x);
+names(x)=nm_mask;
 obj2kvh(x[o], "starting cumomer vector", fkvh, indent=1);
 
 fwrv=vr$fwrv;
@@ -277,11 +293,11 @@ obj2kvh(fwrv, "starting fwd-rev flux vector", fkvh, indent=1);
 f=vr$fallnx;
 n=length(f);
 names(f)=nm_fallnx;
-obj2kvh(f, "starting net-xch flux vector", fkvh, indent=1);
+obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1);
 
 rres=cumo_resid(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, "fwrv2rAbcumo", "frj_rhs");
 names(rres$res)=c(nm_meas, nm_fmn);
-obj2kvh(rres$res, "starting residuals", fkvh, indent=1);
+obj2kvh(rres$res, "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1);
 
 rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
 obj2kvh(rcost, "starting cost value", fkvh, indent=1);
@@ -302,9 +318,12 @@ names(param)=nm_par;
 qrj=qr(jx_f$dr_dff);
 if (qrj$rank < nb_ff) {
    # Too bad. The jacobian of free fluxes is not of full rank.
+   dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx);
+   write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t");
    stop(paste("Provided measures (isotopomers and fluxes) are not
 sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:
-", paste(nm_par[qrj$pivot[-(1:qrj$rank)]], sep=", ", collapse=", ")));
+", paste(nm_par[qrj$pivot[-(1:qrj$rank)]], sep=", ", collapse=", "),
+      "\nJacobian dr_dff is dumped in dbg_dr_dff_singular.txt", sep=""));
 }
 opt_wrapper=function(measvec, fmn) {
    if (method == "BFGS") {
@@ -364,7 +383,7 @@ rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, me
 rres=cumo_resid(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, "fwrv2rAbcumo", "frj_rhs");
 obj2kvh(rcost, "final cost", fkvh);
 names(rres$res)=c(nm_meas, nm_fmn);
-obj2kvh(rres$res, "residual vector", fkvh);
+obj2kvh(rres$res, "(simulated-measured)/sd_exp", fkvh);
 gr=2*c((t(jx_f$res*c(measinvvar, invfmnvar))%*%jx_f$dr_dp));
 names(gr)=nm_par;
 obj2kvh(gr, "gradient vector", fkvh);
@@ -381,25 +400,38 @@ if (fullsys) {
 } else {
    names(x)=nm_rcumo;
 }
-o=order(names(x));
+# replace :i by :x1's
+nm_mask=unlist(lapply(strsplit(names(x), ":"), function(v) {
+   n=length(v);
+   metab=paste(v[-n], collapse=":");
+   mask=int2bit(v[n], len=clen[metab])
+   c(metab, mask);
+}))
+nm_mask=t(matrix(nm_mask, nrow=2));
+o=order(nm_mask[,1], nm_mask[,2]);
+# replace 0 by x in mask
+nm_mask[,2]=gsub("0", "x", nm_mask[,2], fixed=T);
+nm_mask=paste(nm_mask[,1], nm_mask[,2], sep="#");
+names(nm_mask)=names(x);
+names(x)=nm_mask;
 obj2kvh(x[o], "cumomer vector", fkvh);
 
 fwrv=v$fwrv;
-n=length(fwrv);
 names(fwrv)=nm_fwrv;
 obj2kvh(fwrv, "fwd-rev flux vector", fkvh);
 
 f=v$fallnx;
-n=length(f);
 names(f)=nm_fallnx;
-obj2kvh(f, "net-xch flux vector", fkvh);
+obj2kvh(f, "net-xch01 flux vector", fkvh);
+
+flnx=v$flnx;
+names(flnx)=c(nm_fln, nm_flx);
 
 if (sensitive=="mc") {
    # Monte-Carlo simulation in parallel way
    library(multicore);
-   nb_meas=length(measvec);
    invar=c(measinvvar, invfmnvar);
-   simcumom=jx_f$simcumom;
+   simcumom=c(1.,param)[ir2isc]*jx_f$usimcumom;
    simfmn=f[nm_fmn];
    mc_sim=function(i) {
       # random measure generation
@@ -450,6 +482,31 @@ if (sensitive=="mc") {
    obj2kvh((ci_mc-cbind(param, param, 0))*100/abs(param),
       "relative 95% confidence intervals (%)", fkvh, indent);
    
+   # net-xch01 stats
+   fnx_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, invAfl, p2bfl, bp, fc)$flnx);
+   fl=param2fl(param, nb_f, invAfl, p2bfl, bp, fc)$flnx;
+   dimnames(fnx_mc)[[1]]=nm_fl;
+   cat("\tnet-xch01 fluxes\n", file=fkvh);
+   # mean
+   obj2kvh(apply(fnx_mc, 1, mean), "mean", fkvh, indent);
+   # meadian
+   parmed=apply(fnx_mc, 1, median);
+   obj2kvh(parmed, "median", fkvh, indent);
+   # covariance matrix
+   covmc=cov(t(fnx_mc));
+   obj2kvh(covmc, "covariance", fkvh, indent);
+   # sd
+   sdmc=sqrt(diag(covmc));
+   obj2kvh(sdmc, "sd", fkvh, indent);
+   obj2kvh(sdmc*100/abs(fnx), "rsd (%)", fkvh, indent);
+   # confidence intervals
+   ci_mc=t(apply(fnx_mc, 1, quantile, probs=c(0.025, 0.975)));
+   ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
+   dimnames(ci_mc)[[2]][3]="length";
+   obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
+   obj2kvh((ci_mc-cbind(fl, fl, 0))*100/abs(fl),
+      "relative 95% confidence intervals (%)", fkvh, indent);
+
    # fwd-rev stats
    fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, invAfl, p2bfl, bp, fc)$fwrv);
    dimnames(fwrv_mc)[[1]]=nm_fwrv;
@@ -473,6 +530,8 @@ if (sensitive=="mc") {
    obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
    obj2kvh((ci_mc-cbind(fwrv, fwrv, 0))*100/abs(fwrv),
       "relative 95% confidence intervals (%)", fkvh, indent);
+} else if (length(sensitive) && nchar(sensitive)) {
+   stop(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""));
 }
 
 # Linear method based on jacobian x_f
@@ -503,47 +562,69 @@ invcov=t(jx_f$dr_dff)%*%(jx_f$dr_dff*c(measinvvar, invfmnvar));
 covff=try(solve(invcov));
 if (inherits(covff, "try-error")) {
    # matrix seems to be singular
-   cat("Inverse of covariance matrix is singular => there are unsolved fluxes\\n",
-      file=stderr());
+   svi=svd(invcov);
+   i=svi$d/svi$d[1]<1.e-14;
+   ibad=apply(svi$u[, i, drop=F], 2, which.max);
+   cat("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
+      paste(nm_ff[ibad], collapse="\\n"), "\\n", sep="", file=stderr());
    # regularize and inverse
-   covff=solve(invcov+diag(1.e-4, nrow(invcov)));
+   covff=solve(invcov+diag(1.e-14*svi$d[1], nrow(invcov)));
 }
+
 # standart deviations of free fluxes
 sdff=sqrt(diag(covff));
 cat("linear stats\\n", file=fkvh);
+mtmp=cbind(param[1:nb_ff], sdff, sdff/abs(param[1:nb_ff]));
+dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
+o=order(mtmp[,"rsd"]);
+obj2kvh(mtmp[o,], "val, sd, rsd fwd-rev fluxes", fkvh, indent=1);
+obj2kvh(sdff, "sd free fluxes", fkvh, indent=1);
 obj2kvh(covff, "covariance free fluxes", fkvh, indent=1);
+
+# sd dependent net-xch01 fluxes
+covfl=dfl_dff%*%covff%*%t(dfl_dff);
+sdfl=sqrt(diag(covfl));
+mtmp=cbind(flnx, sdfl, sdfl/abs(flnx));
+dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
+o=order(mtmp[,"rsd"]);
+obj2kvh(mtmp[o,], "val, sd, rsd dependent net-xch01 fluxes", fkvh, indent=1);
+obj2kvh(sdfl, "sd net-xch01 fluxes", fkvh, indent=1);
+obj2kvh(covfl, "covariance net-xch01 fluxes", fkvh, indent=1);
+
+# sd of all fwd-rev
 covf=jx_f$df_dff%*%covff%*%t(jx_f$df_dff);
 sdf=sqrt(diag(covf));
-obj2kvh(covf, "covariance all fluxes", fkvh, indent=1);
-obj2kvh(sdff, "SD free fluxes", fkvh, indent=1);
-mtmp=cbind(Val=param[1:nb_ff], SD=sdff, CV=sdff/param[1:nb_ff]);
-o=order(mtmp[,"CV"]);
-obj2kvh(mtmp[o,], "Val, SD, CV free fluxes", fkvh, indent=1);
-obj2kvh(sdf, "SD all fluxes", fkvh, indent=1);
+mtmp=cbind(fwrv, sdf, sdf/abs(fwrv));
+dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
+o=order(mtmp[,"rsd"]);
+obj2kvh(mtmp[o,], "val, sd, rsd fwd-rev fluxes", fkvh, indent=1);
+obj2kvh(sdf, "sd fwd-rev fluxes", fkvh, indent=1);
+obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1);
+
 # select best defined flux combinations
-s=svd(covf);
+s=svd(covfl);
 # lin comb coeff matrix
 l=t(s$u);
 iord=apply(l,1,function(v){o=order(abs(v), decreasing=T); n=which(cumsum(v[o]**2)>=0.999); o[1:n[1]]})
-dimnames(l)=dimnames(covf);
-nm_fvrw=dimnames(l)[[1]];
-nb_fvrw=nrow(s$u);
-comb=rep("", nb_fvrw);
-for (j in 1:nb_fvrw) {
+dimnames(l)=dimnames(covfl);
+nm_fl=dimnames(l)[[1]];
+nb_fl=nrow(s$u);
+comb=rep("", nb_fl);
+for (j in 1:nb_fl) {
    cva=l[j,iord[[j]]]; # abs(factor) ordered j-th lin combination
    cva=sign(cva[1])*cva;
    cva=sprintf("%+.3g*", cva);
    cva[cva=="+1*"]="+";
    cva[cva=="-1*"]="-";
    cva[1]=substring(cva[1], 2);
-   comb[j]=paste(cva, nm_fvrw[iord[[j]]], sep="", collapse="");
+   comb[j]=paste(cva, nm_fl[iord[[j]]], sep="", collapse="");
 }
 # from best to worst defined sd
-sta=sqrt(abs(diag(l%*%covf%*%t(l))));
+sta=sqrt(abs(diag(l%*%covfl%*%t(l))));
 names(sta)=comb;
 o=order(sta);
 sta=sta[o];
-obj2kvh(sta, "SD for uncorrelated fw-rv linear combinations", fkvh, indent=1);
+obj2kvh(sta, "sd for uncorrelated net-xch01 linear combinations", fkvh, indent=1);
 if (prof) {
    Rprof(NULL);
 }
