@@ -1,16 +1,20 @@
-DEBUG=0; # put to 1 to enable debugging information, 0=disable
+DEBUG=0; # 1 to enable debugging information, 0=disable
+TIMEIT=1; # 1 to enable time printing at some stages
+if (TIMEIT) {
+   cat("load    : ", date(), "\n", sep="");
+}
 jx_f=list();
 library(bitops);
 library(MASS); # for generalized inverse
 library(fUtilities); # for Heaviside function
 library(nnls); # for non negative least square
+library(lattice); # to keep Matrix silent
+library(Matrix, warn=F, verbose=F); # for sparse matrices
+#library(inline); # for inline fortran compilation
 
 trisparse_solv=function(A, b, w, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
-#cat("trisparse: A,b\n");
-#print(A);
-#print(b);
       n=ncol(A);
       if (DEBUG) {
          write.matrix(A, file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t");
@@ -25,33 +29,21 @@ trisparse_solv=function(A, b, w, method="dense") {
              "\nThe matrix is dumped in dbg_Acumo_singular.txt\n",
              sep="", collapse="");
           write.matrix(A, file="dbg_Acumo_singular.txt");
-          return(list(x=rep(NA, n), fA=fA, err=1, mes=mes));
+          return(list(x=NULL, fA=fA, err=1, mes=mes));
       }
       x=solve(fA,b);
-      #if (inherits(x, "try-error")) {
-      #   # matrix seems to be singular
-      #   # switch to Moore-Penrose inverse
-      #   if ((exists("control") && control$trace) || DEBUG) {
-      #      cat("switch to generalized inverse at weight ", w, "\n", sep="");
-      #   }
-      #   x=ginv(A)%*%b;
-      #}
       return(list(x=x, fA=fA, err=0, mes=NULL));
    } else if (method=="sparse") {
       # sparse
       # fulfill a matrix
-      require(Matrix);
-      As=Matrix(A, sparse=T);
-      x=solve(As,b); # As has also its factorized form
+      #require(Matrix);
+      #A=Matrix(A, sparse=T);
+#browser();
+      x=solve(A,b); # As has also its factorized form
       if (DEBUG) {
-         cat("As=", str(As), "\n", sep="");
+         cat("A=", str(A), "\n", sep="");
       }
-#q=qr(A);
-#print("qr");
-#print(q@V);
-#print(q@R);
-#print(q@p);
-      return(list(x=as.numeric(x), fA=As, err=0, mes=NULL));
+      return(list(x=as.numeric(x), fA=A, err=0, mes=NULL));
    } else if (method=="smw") {
       # Sherman-Morrison-Woodbury for low rank matrix modification
       require(matrid, lib.loc="/home/sokol/R/lib");
@@ -94,26 +86,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
    return(f);
 }
 
-cumo_resid=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
-#cat("resid: \n")
-#print(nb_f);
-#print(nb_w);
-#print(param);
-#print(p2bfl);
-   # find x for all weights
-   lres=param2fl_x(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun, fj_rhs);
-   if (!is.null(lres$err) && lres$err) {
-      return(list(err=1, mes=lres$mes));
-   }
-#print(imeas);
-   # find simulated scaled measure vector scale*(measmat*x)
-   jx_f$usimcumom<<-measmat%*%c(lres$x[imeas],1.);
-   simvec=c(1.,param)[ir2isc]*jx_f$usimcumom;
-   # jacobians
-   cumo_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
-   imeas, measmat, measvec, ir2isc);
-
-   # diff between simulated and measured
+cumo_resid=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
    if (length(measinvvar)) {
       sqm=sqrt(measinvvar);
    } else {
@@ -124,21 +97,48 @@ cumo_resid=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    } else {
       sqf=c();
    }
-   res=c((simvec-measvec), (lres$fallnx[ifmn]-fmn));
-   jx_f$res<<-res;
-   return(list(res=res*c(sqm, sqf), fallnx=lres$fallnx,
-      jacobian=jx_f$dr_dp*c(sqm,sqf)));
+   # find x for all weights
+   if (!identical(param, jx_f$param) ||
+         (cjac && is.null(jx_f$x_f))) {
+      lres=param2fl_x(param, cjac, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, fortfun, fj_rhs);
+      if (!is.null(lres$err) && lres$err) {
+         return(list(err=1, mes=lres$mes));
+      }
+      # store x, fluxes, ... in global space
+      jx_f$x<<-lres$x;
+      jx_f$fallnx<<-lres$fallnx;
+
+      # find simulated scaled measure vector scale*(measmat*x)
+      jx_f$usimcumom<<-measmat%*%c(jx_f$x[imeas],1.);
+      simvec=c(1.,param)[ir2isc]*jx_f$usimcumom;
+
+      # diff between simulated and measured
+      res=c((simvec-measvec), (jx_f$fallnx[ifmn]-fmn));
+      jx_f$ures<<-res;
+      jx_f$res<<-res*c(sqm, sqf);
+   } # else we have everything in jx_f
+   # jacobian
+   if (cjac) {
+      if (!identical(param, jx_f$param) || is.null(jx_f$jacobian)) {
+         # recalculate it
+         cumo_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl,
+            bp, fc, xi, imeas, measmat, measvec, ir2isc);
+         jacobian=jx_f$udr_dp*c(sqm,sqf);
+         jx_f$jacobian=jacobian;
+      } else {
+         jacobian=jx_f$jacobian
+      }
+   } else {
+      jacobian=NULL;
+   }
+
+   return(list(res=jx_f$res, fallnx=jx_f$fallnx,
+      jacobian=jacobian));
 }
-cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
-#cat("cost: ");
-#cat("list nb_f\n")
-#print(nb_f);
-#print(nb_w);
-#cat("param\n");
-#print(param);
-   resl=cumo_resid(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs);
+cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
+   resl=cumo_resid(param, cjac=FALSE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs);
    if (!is.null(resl$err) && resl$err) {
-      return(NA);
+      return(NULL);
    }
    res=resl$res;
    fn=sum(res*res);
@@ -147,14 +147,14 @@ cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
    }
    return(fn);
 }
-cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs=NULL) {
+cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs=NULL) {
    # calculate gradient of cost function for cumomer minimization problem
    # method: forward finite differences f(x+h)-f(x)/h
    # x+h is taken as (1+fact)*x
    fact=1.e-7;
    grad=param; # make place for gradient
    # f(x)
-   f=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
+   f=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
    for (i in 1:length(param)) {
       x=param[i];
       h=x*fact;
@@ -163,7 +163,7 @@ cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
          # we are too close to zero here
          param[i]=fact;
       }
-      fh=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
+      fh=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
       # restore modified param
       param[i]=x;
       grad[i]=(fh-f)/h;
@@ -171,20 +171,8 @@ cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
    return(grad);
 }
 param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
-      # claculate all fluxes from free fluxes
-#cat("resid: \n")
-#cat("nb_f", str(nb_f), "\n");
-#cat("nb_w", nb_w, "\n");
-#cat("param", param, "\n");
-#cat("bp", bp, "\n");
-#cat("p2bfl before", str(p2bfl), "\n");
-#   p2bfl=matrix(p2bfl, ncol=nb_f$nb_ff);
-#cat("p2bfl", str(p2bfl), "\n");
-#   invAfl=matrix(invAfl, nrow=nb_f$nb_fl);
-#cat("invAfl", invAfl, "\n");
+   # claculate all fluxes from free fluxes
    flnx=invAfl%*%(p2bfl%*%param[1:nb_f$nb_ff]+bp);
-#cat("flnx");
-#print(flnx);
    fallnx=dfc2fallnx(nb_f, flnx, param, fc);
    fwrv=fallnx2fwrv(fallnx);
    if (DEBUG) {
@@ -193,24 +181,40 @@ param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
       names(fwrv)=nm_fwrv;
       write.matrix(fwrv, file="dbg_fwrv.txt", sep="\t");
       write.matrix(cbind(1:n,nm_fallnx,fallnx), file="dbg_fallnx.txt", sep="\t");
-#cat("fwrv");
-#print(fwrv);
    }
    return(list(fallnx=fallnx, fwrv=fwrv, flnx=flnx));
 }
-p2f=function(param, nb_f, invAfl, p2bfl, bp, fc) {
+p2f=function(param, nb_f, invAfl, p2bfl, bp, fc, xi) {
    # translate param to fwd-rev fluxes (for num deriv purpose only)
-   return(param2fl(param, nb_f, invAfl, p2bfl, bp, fc)$fwrv);
+   return(param2fl(param, nb_f, invAfl, p2bfl, bp, fc, xi)$fwrv);
 }
-param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
+param2fl_x=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
+   if (!is.null(jx_f$param) && identical(param, jx_f$param)) {
+      if (cjac) {
+          if (!is.null(jx_f$x_f)) {
+             return(list(x=jx_f$x, x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx));
+          } # else recalculate it here
+      } else {
+         # just x, fallnx, ... that are already calculated
+         return(list(x=jx_f$x, x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx));
+      }
+   }
    # calculate all fluxes from free fluxes
    lf=param2fl(param, nb_f, invAfl, p2bfl, bp, fc);
+   jx_f$fallnx<<-lf$fallnx;
+   jx_f$fwrv<<-lf$fwrv
+   jx_f$flnx<<-lf$flnx
    # construct the system A*x=b from fluxes
    # and find x for every weight
    # if fj_rhs is not NULL, calculate jacobian x_f
    nb_fwrv=length(lf$fwrv);
-   x=numeric(0);
-   x_f=matrix(0., nrow=0, ncol=nb_fwrv);
+   nb_xi=length(xi);
+   x=c(1, xi);
+   if (cjac) {
+      x_f=matrix(0., nrow=sum(nb_cumos), ncol=nb_fwrv);
+   } else {
+      x_f=NULL;
+   }
    if (DEBUG) {
       tmp=lf$fwrv;
       names(tmp)=nm_fwrv;
@@ -219,31 +223,21 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun=
       tmp=lf$fallnx;
       names(tmp)=nm_fallnx
       obj2kvh(tmp, "net-xch", conct);
-#      write.matrix(tmp, file="dbg_fwrv.txt", sep="\t");
    }
-   #browser();
+#browser();
+   ba_x=0;
    for (iw in 1:nb_w) {
       nx=length(x);
-      ncumow=nb_cumos[iw];
-      A=matrix(0.,ncumow,ncumow);
-      b=double(ncumow);
-      #fwrv2Abcumo(fl, nf, x, nx, iw, n, A, b)
-      res<-.Fortran(fortfun,
-         fl=as.double(lf$fwrv),
-         nf=nb_fwrv,
-         x=as.double(x),
-         nx=as.integer(nx),
-         iw=as.integer(iw),
-         n=as.integer(ncumow),
-         A=as.matrix(A),
-         b=as.double(b),
-         calcA=as.integer(TRUE),
-         calcb=as.integer(TRUE),
-         NAOK=TRUE,
-         DUP=FALSE);
-      # solve the system A*x=b;
+      nxl=nx-1-nb_xi; # number of lighter cumomers
+      #ncumow=nb_cumos[iw];
+      #A=matrix(0.,ncumow,ncumow);
+      #b=double(ncumow);
+      #res<-.Fortran(fortfun, fl=as.double(lf$fwrv), nf=nb_fwrv, x=as.double(x[]), iw=as.integer(iw), n=as.integer(ncumow), A=as.matrix(A), b=as.double(b), calcA=as.integer(TRUE), calcb=as.integer(TRUE), NAOK=TRUE, DUP=FALSE);
+      lAb=fwrv2Ab(lf$fwrv, spAb[[iw]], x);
+      A=lAb$A;
+      b=lAb$b;
       if (DEBUG) {
-         write.matrix(cbind(A, b=b), file=paste("dbg_cumoAb_",iw,".txt", sep=""), sep="\t");
+         write.matrix(cbind(as.matrix(A), b=b), file=paste("dbg_cumoAb_",iw,".txt", sep=""), sep="\t");
          if (iw==1) {
             jx_f$wA<<-list(A);
             jx_f$wb<<-list(b);
@@ -252,34 +246,32 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun=
             jx_f$wb<<-append(jx_f$wb, list(b));
          }
       }
-      lsolv=trisparse_solv(A, b, iw, method=ifelse(ncumow>200, "sparse", "dense"));
+      #solve the system A*x=b;
+      #lsolv=trisparse_solv(A, b, iw, method=ifelse(ncumow>200, "sparse", "dense"));
+      lsolv=trisparse_solv(lAb$A, lAb$b, iw, method="sparse");
+      #lsolv=lsolvb;
       if (!is.null(lsolv$err) && lsolv$err) {
          return(list(err=1, mes=lsolv$mes));
       }
+      #stopifnot(isTRUE(all.equal(lsolv$x, lsolvb$x)));
       xw=lsolv$x;
       nxw=length(xw);
-#fj_rhs(fl, nf, x, x_f, nx, iw, n, j_rhs)
-      if (length(fj_rhs) && nchar(fj_rhs)) {
+      if (cjac) {
          # calculate jacobian x_f
          # first, calculate right hand side for jacobian calculation
-         j_rhsw=matrix(0., nxw, nb_fwrv);
-         b_x=matrix(0., nxw, nx);
-         res<-.Fortran(fj_rhs,
-         fl=as.double(lf$fwrv),
-         nf=nb_fwrv,
-         x=as.double(x),
-         xw=as.double(xw),
-         x_f=as.double(x_f),
-         nx=as.integer(nx),
-         nxw=as.integer(nxw),
-         iw=as.integer(iw),
-         j_rhs=as.matrix(j_rhsw),
-         b_x=as.matrix(b_x),
-         NAOK=TRUE,
-         DUP=FALSE);
+         #j_rhsw=matrix(0., nxw, nb_fwrv);
+         #b_x=matrix(0., nxw, nxl);
+         #res<-.Fortran(fj_rhs, fl=as.double(lf$fwrv), nf=nb_fwrv, x=as.double(x), xw=as.double(xw), x_f=as.double(x_f), nx=as.integer(length(x)), nxw=as.integer(nxw), iw=as.integer(iw), j_rhs=as.matrix(j_rhsw), b_x=as.matrix(b_x), NAOK=TRUE, DUP=FALSE);
+         # j_rhsw, b_x from sparse matrices
+         # bind cumomer vector
+#browser();
+         x=c(x,xw);
+         j_b_x=fx2j(lf$fwrv, spAb[[iw]], x);
+         j_rhsw=j_b_x$j_rhsw;
+         b_x=j_b_x$b_x;
          if (DEBUG) {
-            write.matrix(cbind(j_rhsw,b_x), file=paste("dbg_j_rhs_",iw,".txt", sep=""), sep="\t");
-            #browser();
+            write.matrix(cbind(j_rhsw, b_x),
+               file=paste("dbg_j_rhs_",iw,".txt", sep=""), sep="\t");
             if (iw==1) {
                jx_f$wbx<<-list(b_x);
                jx_f$wjr<<-list(j_rhsw);
@@ -288,25 +280,30 @@ param2fl_x=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, fortfun=
                jx_f$wjr<<-append(jx_f$wjr, list(j_rhsw));
             }
          }
+#browser()
          if (iw > 1) {
-            x_f=rbind(x_f, as.matrix(solve(lsolv$fA, j_rhsw+b_x%*%x_f)));
+            x_f[ba_x+(1:nb_cumos[iw]),]=
+               as.matrix(solve(lsolv$fA, j_rhsw+b_x%*%x_f[1:ba_x,]));
          } else {
-            x_f=rbind(x_f, as.matrix(solve(lsolv$fA, j_rhsw)));
+            x_f[ba_x+(1:nb_cumos[iw]),]=
+               as.matrix(solve(lsolv$fA, j_rhsw));
+         }
+      } else {
+         # bind cumomer vector
+         x=c(x,xw);
+         if (!is.null(jx_f$param) && !identical(param, jx_f$param)) {
+            x_f=NULL;
          }
       }
-      # bind vectors and matrices
-      x=c(x,xw);
+      ba_x=ba_x+nb_cumos[iw];
    }
 #print(x);
    # store usefull information in global list jx_f
    jx_f$param<<-param;
    jx_f$x_f<<-x_f;
-   jx_f$fallnx<<-lf$fallnx;
-   jx_f$fwrv<<-lf$fwrv;
-   jx_f$flnx<<-lf$flnx;
-   return(append(list(x=x, x_f=x_f), lf));
+   return(append(list(x=x[(2+nb_xi):length(x)], x_f=x_f), lf));
 }
-num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
+num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
    # numerical calculation of jacobian dx_df
    # we variate fvrw one by one and recalculate the whole x
    # for each variation. The result is returned as matix.
@@ -322,12 +319,11 @@ num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
       if (i > 0) {
          f1[i]=f0[i]+dfl;
       }
-      # construct the system A*x=b from fluxes
+      # take the system A*x=b from the global variablesjx_f$wA jx_f$wb
       # and find x for every weight
       # if fj_rhs is not NULL, calculate jacobian x_f
-      x=numeric(0);
+      x=c(1, xi);
       for (iw in 1:nb_w) {
-         nx=length(x);
          ncumow=nb_cumos[iw];
          A=matrix(0.,ncumow,ncumow);
          b=double(ncumow);
@@ -336,7 +332,6 @@ num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
             fl=as.double(f1),
             nf=nb_fwrv,
             x=as.double(x),
-            nx=as.integer(nx),
             iw=as.integer(iw),
             n=as.integer(ncumow),
             A=as.matrix(A),
@@ -361,7 +356,7 @@ num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, me
    }
    return(x_f);
 }
-num_fjacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs) {
+num_fjacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs) {
    # numerical calculation of full jacobian dres_dparam
    # we variate param one by one and recalculate the whole residual
    # for each variation. The result is returned as matix.
@@ -373,7 +368,7 @@ num_fjacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
       if (i>0) {
          p1[i]=p0[i]+dp;
       }
-      rres=cumo_resid(p1, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs);
+      rres=cumo_resid(p1, cjac=F, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun, fj_rhs);
       if (i > 0) {
          dr_dp=cbind(dr_dp, (rres$res-r0)/dp);
       } else {
@@ -507,7 +502,7 @@ cumo2lab=function(x) {
    }
    return(res);
 }
-cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
+cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs") {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: mult jacobian by residual 2*jac*resid*invvar
 
@@ -515,19 +510,20 @@ cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, m
    #    t(drf_dff)*(invfmnvar*resfl), 2*(t(dr_dw)%*%rescumo))
 
    # part of gradient due to free fluxes
-   grad=t(jx_f$res*c(measinvvar, invfmnvar))%*%jx_f$dr_dp;
+   grad=t(jx_f$ures*c(measinvvar, invfmnvar))%*%jx_f$udr_dp;
    return(c(2*grad));
 }
 # cost function for donlp2 solver
 cumo_fn=function(p) {
-   return(cumo_cost(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs"))
+   return(cumo_cost(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs"))
 }
 cumo_dfn=function(p) {
-   return(cumo_gradj(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs"));
+   return(cumo_gradj(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs"));
 }
 attr(cumo_fn, "gr")=cumo_dfn;
 #cumo_fn@gr=cumo_dfn;
-cumo_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
+cumo_jacob=function(param, nb_f, nb_w, nb_cumos,
+   invAfl, p2bfl, bp, fc, xi,
    imeas, measmat, measvec, ir2isc) {
    # calculate jacobian dmeas_dparam and some annexe matricies
    # without applying invvar matrix
@@ -537,68 +533,60 @@ cumo_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
       # called by this moment.
       # But for some strange reason it didn't happen.
       # So let recalculate the cost and some matricies
-      res=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
-      stopifnot(param==jx_f$param);
+      #res=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun, fj_rhs);
+      stopifnot(identical(param, jx_f$param));
    }
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
+   n_2=nb_fwrv/2;
    names(param)=nm_par;
    # grad=c(2*t(dr_df%*%df_dff)*(measinvvar*rescumo)+
    #    t(drf_dff)*(invfmnvar*resfl), 2*(t(dr_dw)%*%rescumo))
    # dfl_dff=invAfl%*%p2bfl; is already calculated
    # df_dfl=fw-rv derived by dependent n-x where x in 0;1
    df_dfl=matrix(0., length(jx_f$fwrv), length(jx_f$flnx));
-   dimnames(df_dfl)=list(nm_fwrv, nm_fl);
+   #dimnames(df_dfl)=list(nm_fwrv, nm_fl);
    # df_dffd=fw-rv derived directly by free n-x where x in 0;1
    df_dffd=matrix(0., length(jx_f$fwrv), nb_ff);
-   dimnames(df_dffd)=list(nm_fwrv, c(nm_ffn, nm_ffx));
-   for (nm_y in nm_fwrv) {
-      nm_arr=strsplit(nm_y, "\\.")[[1]];
-      reac=nm_arr[2];
-      if (nm_arr[1]=="fwd") {
-         # derive forward and reverse fluxes
-         # by dependent net part
-         nm_x=join(".", c("d", "n", reac));
-         nm_yr=join(".", c("rev", reac))
-         if (nm_x %in% nm_fl) {
-            net=jx_f$flnx[nm_x,1];
-            hnet=ifelse(abs(net)>ah, Heaviside(net), net/ah);
-            df_dfl[nm_y, nm_x]=hnet;
-            df_dfl[nm_yr, nm_x]=-1+hnet;
-         }
-         # by free net part
-         nm_x=join(".", c("f", "n", reac));
-         if (nm_x %in% nm_ffn) {
-            net=param[nm_x];
-            hnet=ifelse(abs(net)>ah, Heaviside(net), net/ah);
-            df_dffd[nm_y, nm_x]=hnet;
-            df_dffd[nm_yr, nm_x]=-1+hnet;
-         }
-         # by dependent xch part
-         nm_x=join(".", c("d", "x", reac));
-         if (nm_x %in% nm_fl) {
-            tmp=1./(1.-jx_f$flnx[nm_x,1])**2;
-            df_dfl[nm_y, nm_x]=tmp;
-            df_dfl[nm_yr, nm_x]=tmp;
-         }
-         # by free xch part
-         nm_x=join(".", c("f", "x", reac));
-         if (nm_x %in% nm_ffx) {
-            tmp=1./(1.-param[nm_x])**2;
-            df_dffd[nm_y, nm_x]=tmp;
-            df_dffd[nm_yr, nm_x]=tmp;
-         }
-      } else {
-         # already derived skip it
-         next;
-      }
-   }
+   #dimnames(df_dffd)=list(nm_fwrv, c(nm_ffn, nm_ffx));
+#browser();
+   # derivation by dependent fluxes
+   # net part
+   net=jx_f$flnx[nm_fln,];
+   hnet=Heaviside(net);
+   i=abs(net)<ah;
+   hnet[i]=net[i]/ah;
+   # xch part
+   xch=jx_f$flnx[nm_flx,];
+   xch=1./(1.-xch)**2;
+   
+   # forward fluxes
+   df_dfl[cfw_fl]=c(hnet, xch);
+   # reverse fluxes
+   df_dfl[crv_fl]=c(hnet-1., xch);
+   
+   # derivation by free fluxes
+   # net part
+   net=param[nm_ffn];
+   hnet=Heaviside(net);
+   i=abs(net)<ah;
+   hnet[i]=net[i]/ah;
+   # xch part
+   xch=param[nm_ffx];
+   xch=1./(1.-xch)**2;
+   
+   # forward fluxes
+   df_dffd[cfw_ff]=c(hnet, xch);
+   # reverse fluxes
+   df_dffd[crv_ff]=c(hnet-1., xch);
+   
    df_dff=df_dfl%*%dfl_dff+df_dffd;
+   dimnames(df_dff)=list(nm_fwrv, nm_ff);
    # store it for all flux covariance
    jx_f$df_dff<<-df_dff;
    
    # measured fluxes derivation
-   dfm_dff=matrix(0., length(nm_fmn), length(nm_ffn)+length(nm_ffx));
-   dimnames(dfm_dff)=list(nm_fmn, c(nm_ffn, nm_ffx));
+   dfm_dff=matrix(0., length(nm_fmn), length(nm_ff));
+   dimnames(dfm_dff)=list(nm_fmn, nm_ff);
    for (nm_y in nm_fmn) {
       nm_arr=strsplit(nm_y, "\\.")[[1]];
       if (nm_arr[1] == "f") {
@@ -634,10 +622,93 @@ cumo_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc,
    # corresponding to a given scale parameter
    if (nb_sc > 0) {
       jx_f$drc_sc<<-apply(t(nb_ff+1+(1:nb_sc)), 2, function(isc){i=ir2isc==isc; v=z; v[i]=sm[i]; v;});
-      jx_f$dr_dp<<-cbind(jx_f$dr_dff, rbind(jx_f$drc_sc, matrix(0, nrow=nb_fmn, ncol=nb_sc)));
+      jx_f$udr_dp<<-cbind(jx_f$dr_dff, rbind(jx_f$drc_sc, matrix(0, nrow=nb_fmn, ncol=nb_sc)));
    } else {
-      jx_f$dr_dp<<-jx_f$dr_dff;
+      jx_f$udr_dp<<-jx_f$dr_dff;
    }
-   #dimnames(jx_f$dr_dp)=list(names(jx_f$res), nm_par);
+   #dimnames(jx_f$udr_dp)=list(names(jx_f$res), nm_par);
    return(NULL);
+}
+fwrv2Ab=function(fwrv, spAb, incu) {
+   # calculate sparse A and its rhs b from fields of the list spAb
+   # according to conventions explained in comments to python function
+   # netan2Abcumo_sp() generating spAb
+   # return a list A, b
+   # 2010-10-17 sokol
+   a=spAb$tA;
+   a[]=0;
+   n=nrow(a);
+   res<-.Fortran("f2a",
+      fi=as.matrix(spAb$f2ta),
+      islot=a@i,
+      n=as.integer(ncol(spAb$f2ta)),
+      fwrv=as.double(fwrv),
+      x=a@x,
+      nx=as.integer(length(a@x)),
+      NAOK=TRUE,
+      DUP=FALSE
+   );
+   # sum off-diagonal terms
+   # and add fluxes from b
+   fb=rep(0., n);
+   b=rep(0., n);
+   res<-.Fortran("f2b",
+      bfpr=as.matrix(spAb$bfpr),
+      n=as.integer(ncol(spAb$bfpr)),
+      fwrv=as.double(fwrv),
+      incu=as.double(incu),
+      fb=as.double(fb),
+      b=as.double(b),
+      NAOK=TRUE,
+      DUP=FALSE
+   );
+   diag(a)=-apply(a, 2, sum)-fb;
+   return(list(A=-t(a), b=-b));
+}
+fx2j=function(fwrv, spAb, incu) {
+   # calculate sparse j_rhs and b_x from fields of the list spAb
+   # according to conventions explained in comments
+   # to python function netan2Abcumo_sp() generating spAb
+   # Return a list j_rhs, b_x
+   # 2010-10-22 sokol
+   fwrv=as.double(fwrv);
+   incu=as.double(incu);
+   a_fx=spAb$ta_fx;
+   a_fx[]=0.;
+   res<-.Fortran("x2a_fx",
+      xi=as.matrix(spAb$x2ta_fx),
+      n=as.integer(ncol(spAb$x2ta_fx)),
+      islot=a_fx@i,
+      x0=c(0., incu),
+      x=a_fx@x,
+      nx=as.integer(length(a_fx@x)),
+      NAOK=TRUE,
+      DUP=FALSE
+   );
+   b_f=spAb$tb_f;
+   b_f[]=0.;
+   res<-.Fortran("x2b_f",
+      xi=as.matrix(spAb$x2tb_f),
+      n=as.integer(ncol(spAb$x2tb_f)),
+      islot=b_f@i,
+      incu=incu,
+      x=b_f@x,
+      nx=as.integer(length(b_f@x)),
+      NAOK=TRUE,
+      DUP=FALSE
+   );
+   b_x=spAb$tb_x;
+   b_x[]=0.;
+   res<-.Fortran("fx2b_x",
+      fxi=as.matrix(spAb$fx2tb_x),
+      n=as.integer(ncol(spAb$fx2tb_x)),
+      islot=b_x@i,
+      fwrv=fwrv,
+      incu=incu,
+      x=b_x@x,
+      nx=as.integer(length(b_x@x)),
+      NAOK=TRUE,
+      DUP=FALSE
+   );
+   return(list(j_rhsw=-t(b_f-a_fx), b_x=-t(b_x)));
 }
