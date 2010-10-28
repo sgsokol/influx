@@ -1,0 +1,11 @@
+# 2009-03-18 sokol
+# Notes sur le portage du soft influx_sim
+
+Prérequis.
+
+- R-2.8 +packages
+  +bitops (in R do: install.packages("bitops"))
+  +Matrix
+  +nnls
+- python-2.6
+- Fortran (g77 or gfortran or ...)
