@@ -15,6 +15,7 @@ import os;
 import sys;
 import platform;
 from operator import itemgetter;
+from itertools import groupby;
 
 global DEBUG;
 dirx=os.path.dirname(sys.argv[0]);
@@ -31,7 +32,7 @@ def fwrap(text, comment=False):
     else:
         return text[0:72]+("\n     &" if lent > 72 else "")+"\n     &".join(text[i:min(i+66,lent)] for i in xrange(72, lent, 66));
 
-def netan2Abcumo_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, fortfun="fwrv2Abcumo"):
+def netan2Abcumo_f(Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1, fortfun="fwrv2Abcumo"):
     """
     Transform cumomer linear sytems collection (from ftbl file)
     to a Fortran subroutine code calculating matrix A and vector b
@@ -53,7 +54,7 @@ C
 C************************************************************************
 
 
-      SUBROUTINE %(fortfun)s(fl, nf, x, nx, iw, n, A, b, calcA, calcb)
+      SUBROUTINE %(fortfun)s(fl, nf, x, iw, n, A, b, calcA, calcb)
 
       IMPLICIT NONE
 C-------------------------------------------------------------------------
@@ -62,8 +63,7 @@ C for cumomer vector x of a given weight iw.
 C Input:
 C fl (double): array of forward-reverse fluxes 
 C nf (int): dimension of previous array
-C x (double): array of lighter cumomer
-C nx (int): x dimension
+C x (double): composite array of 1, input cumomers and lighter cumomers
 C iw (int): weight for which the matrix should be calculated
 C n (int): A dimension (n x n)
 C Output:
@@ -74,20 +74,24 @@ C b (double): array(n) representing the system rhs.
       INTEGER            iw
       INTEGER            n
       DOUBLE PRECISION   fl(nf)
-      DOUBLE PRECISION   x(nx)
+      DOUBLE PRECISION   x(*)
       DOUBLE PRECISION   A(n,n)
       DOUBLE PRECISION   b(n)
       LOGICAL            calcA
       LOGICAL            calcb
       
-C      write(0,*) "%(fortfun)s: start", nf, nx, iw, n
+C      write(0,*) "%(fortfun)s: start", nf, iw, n
 %(fluxe_names)s
+%(incu_names)s
     """%{
     "cmd": join(" ", sys.argv),
     "date": time.ctime(),
     "fortfun": fortfun,
     "fluxe_names": fwrap("C fluxes: "+join(", ",
-     (str(i)+"="+f for (f,i) in sorted(fwrv2i.iteritems(), key=itemgetter(1)))),
+     (str(i)+"="+f for (f,i) in sorted(fwrv2i.iteritems()))),
+     comment=True),
+    "incu_names": fwrap("C incu=c(1,input,x): "+join(", ",
+     (str(i)+"="+c for (c,i) in sorted(incu2i_b1.iteritems()))),
      comment=True)
     });
     for (iwl,A) in enumerate(Al):
@@ -137,13 +141,12 @@ C        right hand side definition
 """ %   {
         "b": (
         join("\n", (
-        fwrap("            b("+str(i+1)+")="+join("+", (
-        ("fl("+str(fwrv2i[flux])+")*("
-            if cumo.split(':')[0] not in minput else '') +
+        fwrap("            b("+str(i+1)+")="+join("+",
+        ("fl("+str(fwrv2i[flux])+")*(" +
         joint("+", [
-        join("*", trd(lst, cumo2i, "x(", ")", None))
+        join("*", trd(lst, incu2i_b1, "x(", ")", None))
         for (imetab,lst) in dlst.iteritems()
-        ])+(")" if cumo.split(":")[0] not in minput else "")
+        ])+")"
         for (flux,dlst) in bl[iwl].get(cumo,{}).iteritems()
         ), a="0."))
         for (i,cumo) in enumerate(cumos)
@@ -155,9 +158,187 @@ C        right hand side definition
       RETURN
       END SUBROUTINE %(fortfun)s
 """%{"fortfun": fortfun});
-def netan2Rinit(netan, org, f, ff, fullsys):
+
+def netan2Abcumo_sp(Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
+    """
+    Transform cumomer linear sytems collection (from ftbl file)
+    to a R code calculating sparse matrix A and vector b
+    in A*x=b for a given weight iw (index in resulting list)
+    Flux vector fl of all fwd. and rev. fluxes is known from
+    R environement.
+    
+    Resulting code is a list spAb indexed by cumomer weight
+    (cf. generated R comments for details on spAb)
+    cumomer vector incu=c(1, xi, xl), xi - input, xl - lighter cumomers.
+    
+    incu2i_b1 gives i in incu from cumomer name. i=1 corresponds to the constant 1.
+    
+    2010-10-15 sokol
+    """
+    nb_cumu=cumsum(len(l) for l in vcumol);
+    f.write(
+    """
+# sparse matrix static parts
+# spAb fields:
+#  tA - unsigned sparse transpose of cumomer A matrix (off-diagonal part)
+#   @i, @p and @x slots are those from Matrix::dgCMatrix class
+#  f2ax indexes of fluxes to calculate tA@x slot (cf. fortran
+#   f2ax() subroutine in cumo.f)
+#  bfpr - unsigned sparse rhs of Ax=b.
+#   [(irow, iflux, incu_index1, incu_index2),...]
+#   to calculate terms like flux*x1*x2. When there is only one
+#   term x, x2 is set to 1
+#  ta_fx - unsigned sparse matrix t(dA_df*x)
+#   @i run through the fluxes contibuting to a row of dA_df*x
+#  x2ta_fx - 1-based indexes of x0=c(0,x) for dA_df*x which is
+#   comosed of differences (x_diag - x_off-diag) and (x_diag)
+#   when flux is in b term. In this case index of x_off-diag is
+#   set to 1 (i.e. 0-value in x0).
+#   [irow, ixoff] irow is actually ixdiag
+#  tb_f - unsigned sparse matrix t(db_df) with indexes ix1, ix2 for product as in bfpr
+#   @i is running along fluxes
+#  x2tb_f - 2 row matrix with indexes ix1, ix2 for product as in bfpr
+#  tb_x - unsigned sparse transpose of db_dx over x in lighter weights
+#   @i runs over lighter cumomers
+
+nb_fwrv=%(n)d;
+spAb=list();
+nb_rcumos=c(%(lcu)s);
+"""%{
+    "n": len(fwrv2i),
+    "lcu": join(", ", (len(l) for l in vcumol))
+});
+    # base of cumomers in composed vector incu=c(1, input, xcumo)
+    # +1 for c(1,...)
+    ba_x=len(incu2i_b1) - sum(len(l) for l in vcumol)+1;
+    ba_xw=ba_x; # base for current weigth cumomer in incu
+    for (iwl,A) in enumerate(Al):
+        w=iwl+1;
+        b=bl[iwl];
+        cumos=vcumol[iwl];
+        ncumo=len(cumos);
+        c2i=dict((c,i) for (i,c) in enumerate(cumos));
+        #d=[c for c in netan['cumo_sys']['A'][w-1] if not c in cumos]
+        if ncumo != len(A):
+            raise "wrongCumomerNumber";
+        l_ia=[]; # list of non zero off-diagonal elements in A / row
+        l_ib=[]; # list of non zero elements in b / row
+        for irow in xrange(ncumo):
+            cr=cumos[irow];
+            row=A[cr];
+            # atuple is list of (icumo, list(fluxes))
+            atuple=[(c2i[c], [fwrv2i[fl] for fl in l])
+                for (c,l) in row.iteritems() if c!=cr];
+            # btuple is list of (iflux, icumo1, icumo2)
+            if cr in b:
+                btuple=[(fwrv2i[fl], incu2i_b1[l[0]], (incu2i_b1[l[1]] if len(l)==2 else 1))
+                    for (fl, d) in b[cr].iteritems()
+                    for (i,l) in d.iteritems()];
+            else:
+                btuple=[];
+            # one list per row
+            l_ia.append(atuple);
+            l_ib.append(btuple);
+        f.write(
+"""
+w=%(w)d;
+nb_c=%(nbc)d;
+spAb[[w]]=list();
+spAb[[w]]$tA=as(Matrix(0, nrow=nb_c, ncol=nb_c, sparse=T), "dgCMatrix");
+spAb[[w]]$tA@i=as.integer(c(%(ia)s));
+spAb[[w]]$tA@p=as.integer(c(%(pa)s));
+spAb[[w]]$tA@x=rep(0., length(spAb[[w]]$tA@i)); # place holder
+
+spAb[[w]]$f2ta=matrix(as.integer(c(%(f2ta)s)), nrow=2);
+spAb[[w]]$bfpr=matrix(as.integer(c(%(bfpr)s)), nrow=4);
+
+spAb[[w]]$ta_fx=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
+spAb[[w]]$ta_fx@i=as.integer(c(%(ia_fx)s));
+spAb[[w]]$ta_fx@p=as.integer(c(%(pa_fx)s));
+spAb[[w]]$ta_fx@x=rep(0., length(spAb[[w]]$ta_fx@i)); # place holder
+
+spAb[[w]]$x2ta_fx=matrix(as.integer(c(%(x2ta_fx)s)), nrow=3);
+
+spAb[[w]]$tb_f=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
+spAb[[w]]$tb_f@i=as.integer(c(%(ibf)s));
+spAb[[w]]$tb_f@p=as.integer(c(%(pbf)s));
+spAb[[w]]$tb_f@x=rep(0., length(spAb[[w]]$tb_f@i)); # place holder
+
+spAb[[w]]$x2tb_f=matrix(as.integer(c(%(x2tb_f)s)), nrow=2);
+
+spAb[[w]]$tb_x=as(Matrix(0, nrow=ifelse(w>1,sum(nb_rcumos[1:(w-1)]),0), ncol=nb_c, sparse=T), "dgCMatrix");
+spAb[[w]]$tb_x@i=as.integer(c(%(ib_x)s));
+spAb[[w]]$tb_x@p=as.integer(c(%(pb_x)s));
+spAb[[w]]$tb_x@x=rep(0., length(spAb[[w]]$tb_x@i)); # place holder
+
+spAb[[w]]$fx2tb_x=matrix(as.integer(c(%(fx2tb_x)s)), nrow=3);
+"""%{
+   "w": w,
+   "nbc": ncumo,
+   "ia": join(", ", [ix
+       for lt in l_ia
+       for (ix, lf) in sorted(lt)
+       ]),
+   "pa": join(", ", cumsum(len(lt) for lt in l_ia)),
+   "f2ta": join(", ", valval((len(lf), ifl)
+       for lt in l_ia
+       for (ix, lf) in sorted(lt)
+       for ifl in lf)),
+   "bfpr": join(", ", valval((ir+1, ifl, i1, i2)
+       for (ir, lt) in enumerate(l_ib)
+       for (ifl, i1, i2) in lt)),
+   "ia_fx": join(", ", (ifl-1
+       for (ir, lt) in enumerate(l_ia)
+       for ifl in sorted(set([f for (ix, lf) in lt for f in lf]+
+       [f for (f,i1,i2) in l_ib[ir]]))
+   )), # a flux is not unique in a given row of A, because of split reactions in two identical metabolites
+   "pa_fx": join(", ", cumsum(
+       len(set([f for ix,lf in lt for f in lf]+
+       [f for f,i1,i2 in l_ib[ir]]))
+       for (ir, lt) in enumerate(l_ia)
+   )),
+   "x2ta_fx": join(", ", valval((len(lg), ix, ir+ba_xw+2) # +2=+1 for c(0,incu), +1 for 1-based
+       for (ir, lt) in enumerate(l_ia)
+       for lg in [list(g) for k, g in
+       groupby(sorted([(ifl, ix+ba_xw+2) for ix,lf in lt for ifl in lf]+
+       [(ifl, 1) for ifl,i1,i2 in l_ib[ir]]), key=itemgetter(0))]
+       for (ifl, ix) in lg
+   )),
+   "ibf": join(", ", (ifl-1
+       for lt in l_ib
+       for ifl in sorted(ifl for (ifl, i1, i2) in lt)
+   )),
+   "pbf": join(", ", cumsum(len(lt) for lt in l_ib)),
+   "x2tb_f": join(", ", valval((ix1, ix2)
+       for lt in l_ib
+       for (ifl, ix1, ix2) in sorted(lt)
+   )),
+   "ib_x": join(", ", (icu-ba_x-1
+       for lt in l_ib
+       for icu in sorted(set(icu
+       for (ifl, i1, i2) in lt
+       for icu in (i1, i2) if icu > ba_x))
+   )),
+   "pb_x": join(", ", cumsum(len(set(icu
+       for (ifl, i1, i2) in lt
+       for icu in (i1, i2) if icu > ba_x))
+       for lt in l_ib
+   )),
+   "fx2tb_x": join(", ", valval((len(lg), ifl, icof)
+       for lt in l_ib
+       for lg in (list(g)
+       for k,g in groupby(sorted((icu, ifl, icof)
+       for (ifl, i1, i2) in lt
+       for (icu, icof) in ((i1,i2), (i2, i1))
+       if icu > ba_x), key=itemgetter(0)))
+       for (icu, ifl, icof) in lg
+   )),
+});
+        ba_xw+=ncumo;
+
+def netan2Rinit(netan, org, f, fullsys):
     global DEBUG;
-    """netan2Rinit(netan, org, f, ff, fullsys)
+    """netan2Rinit(netan, org, f, fullsys)
     Write R code for initialization of all variables before
     cumomer system resolution by khi2 minimization.
     netan is a collection of parsed ftbl information
@@ -264,16 +445,126 @@ def netan2Rinit(netan, org, f, ff, fullsys):
     #if DEBUG:
     #    pdb.set_trace();
     res={};
-    netan2R_fl(netan, org, f, ff);
-    d=netan2R_rcumo(netan, org, f, ff);
+    f.write("""
+
+# get some tools
+source("%(dirx)s/tools_ssg.R");
+source("%(dirx)s/opt_cumo_tools.R");
+dyn.load("%(dirx)s/cumo.%(so)s");
+if (TIMEIT) {
+   cat("rinit   : ", date(), "\n", sep="");
+}
+# get runtime arguments if not already set
+# opts=strsplit("--sens mc=10", " ")[[1]];
+if (length(find("opts"))==0) {
+   opts=commandArgs();
+}
+# profile or not profile?
+prof=(length(which(opts=="--prof")) > 0);
+
+# is there a method for sensitivity matrix calculation?
+sensitive=which(opts=="--sens");
+if (length(sensitive)) {
+   sensitive=opts[sensitive[1]+1];
+} else {
+   sensitive=""; # no sensitivity matrix calculation
+}
+if (is.na(sensitive)) {
+   sensitive=""; # no sensitivity matrix calculation
+}
+if (substring(sensitive, 1, 3)=="mc=") {
+   # read the mc iteration number
+   nmc=as.integer(substring(sensitive, 4));
+   sensitive="mc";
+} else if (sensitive=="mc") {
+   nmc=10;
+}
+#cat("sens=", sensitive, "\\n");
+optimize=TRUE;
+argopt=which(opts=="--noopt");
+if (length(argopt)) {
+   optimize=FALSE;
+}
+fullsys=FALSE;
+if (length(which(opts=="--fullsys"))) {
+   fullsys=TRUE;
+}
+initrand=FALSE;
+if (length(which(opts=="--irand"))) {
+   initrand=TRUE;
+}
+clownr=1.e-5;
+iopt=which(opts=="--clownr")
+if (length(iopt)) {
+   val=as.numeric(opts[iopt+1]);
+   if (!is.na(val)) {
+      clownr=val;
+   }
+}
+cupn=1.e5;
+iopt=which(opts=="--cupn")
+if (length(iopt)) {
+   val=as.numeric(opts[iopt+1]);
+   if (!is.na(val)) {
+      cupn=val;
+   }
+}
+cupx=1-1.e-5;
+iopt=which(opts=="--cupx")
+if (length(iopt)) {
+   val=as.numeric(opts[iopt+1]);
+   if (!is.na(val)) {
+      cupx=val;
+   }
+}
+# cupx==0 means no upper limit => cupx=1
+cupx=ifelse(cupx, cupx, 1);
+if (cupx < 0 || cupx > 1) {
+   stop(paste("Option '--cupx N' must have N in the interval [0,1]\n",
+      "Instead, the value ", cupx, " si given.", sep=""));
+}
+# end line argument proceeding
+# R profiling
+if (prof) {
+   Rprof("%(proffile)s");
+}
+
+# minimization method
+validmethods=list("BFGS", "Nelder-Mead", "SANN", "nlsic");
+method=which(opts=="--meth");
+if (length(method)) {
+   method=opts[method[1]+1];
+   if (! method %%in%% validmethods) {
+      warning(paste("method", method, "is not known."));
+      method="nlsic";
+   }
+} else {
+   method="nlsic";
+}
+
+# input cumomer vector
+xi=c(%(xi)s);
+nm_xi=c(%(nm_xi)s);
+nb_xi=length(xi);
+"""%{
+    "xi": join(", ", netan["cumo_input"].values()),
+    "nm_xi": join(", ", netan["cumo_input"].keys(), '"', '"'),
+#        "sofile": escape(os.path.basename(ff.name)[:-1]+
+#            ("dll" if platform.system() == "windows" else "so"), "\\"),
+        "dirx": escape(dirx, "\\"),
+        "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
+        "so": ("dll" if platform.system() == "windows" else "so"),
+});
+    netan2R_fl(netan, org, f);
+    d=netan2R_rcumo(netan, org, f);
     res.update(d);
     netan["rcumo_sys"]=res["rAb"];
     if fullsys:
-        d=netan2R_cumo(netan, org, f, ff);
+        d=netan2R_cumo(netan, org, f);
         res.update(d);
-    d=netan2R_meas(netan, org, f, ff);
+    d=netan2R_meas(netan, org, f);
     res.update(d);
-    netan2R_ineq(netan, org, f, ff);
+    netan2R_ineq(netan, org, f);
     f.write("""
 nb_sys=list(
    free.fluxes=%(ff)s,
@@ -294,8 +585,8 @@ names(clen)=c(%(nm_metab)s);
     });
     return res;
 
-def netan2R_fl(netan, org, f, ff):
-    """netan2R_fl(netan, org, f, ff)
+def netan2R_fl(netan, org, f):
+    """netan2R_fl(netan, org, f)
     generate R code for flux part
     for more details cf. netan2Rinit()
     """
@@ -346,71 +637,9 @@ def netan2R_fl(netan, org, f, ff):
             );
 
     f.write("""
-# get runtime arguments if not already set
-# opts=strsplit("--sens mc=10", " ")[[1]];
-if (length(find("opts"))==0) {
-   opts=commandArgs();
+if (TIMEIT) {
+   cat("r_flux  : ", date(), "\n", sep="");
 }
-# profile or not profile?
-prof=(length(which(opts=="--prof")) > 0);
-
-# is there a method for sensitivity matrix calculation?
-sensitive=which(opts=="--sens");
-if (length(sensitive)) {
-   sensitive=opts[sensitive[1]+1];
-} else {
-   sensitive=""; # no sensitivity matrix calculation
-}
-if (is.na(sensitive)) {
-   sensitive=""; # no sensitivity matrix calculation
-}
-if (substring(sensitive, 1, 3)=="mc=") {
-   # read the mc iteration number
-   nmc=as.integer(substring(sensitive, 4));
-   sensitive="mc";
-} else if (sensitive=="mc") {
-   nmc=10;
-}
-#cat("sens=", sensitive, "\\n");
-optimize=TRUE;
-argopt=which(opts=="--noopt");
-if (length(argopt)) {
-   optimize=FALSE;
-}
-fullsys=FALSE;
-if (length(which(opts=="--fullsys"))) {
-   fullsys=TRUE;
-}
-initrand=FALSE;
-if (length(which(opts=="--irand"))) {
-   initrand=TRUE;
-}
-
-# end line argument proceeding
-
-# R profiling
-if (prof) {
-   Rprof("%(proffile)s");
-}
-
-# minimization method
-validmethods=list("BFGS", "Nelder-Mead", "SANN", "nlsic");
-method=which(opts=="--meth");
-if (length(method)) {
-   method=opts[method[1]+1];
-   if (! method %%in%% validmethods) {
-      warning(paste("method", method, "is not known."));
-      method="nlsic";
-   }
-} else {
-   method="nlsic";
-}
-
-# get some tools
-source("%(dirx)s%(psep)stools_ssg.R");
-source("%(dirx)s%(psep)sopt_cumo_tools.R");
-#require(matrid, lib.loc="/home/sokol/R/lib");
-dyn.load("%(sofile)s");
 
 # custom functions
 # produce fw-rv fluxes from fallnx
@@ -433,6 +662,7 @@ fallnx2fwrv=function(fallnx) {
    return(fwrv);
 }
 """ % {
+#dyn.load("%(sofile)s");
         "inet2ifwrv": join(", ", (1+
         (netan["vflux"]["net2i"][fl[4:]] if fl[4:] in netan["vflux"]["net2i"]
         else nb_fln+netan["vflux_free"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["net2i"]
@@ -443,11 +673,6 @@ fallnx2fwrv=function(fallnx) {
         else nb_flx+netan["vflux_free"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["xch2i"]
         else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl[4:]])
         for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
-        "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
-        "sofile": escape(os.path.basename(ff.name)[:-1]+
-            ("dll" if platform.system() == "windows" else "so"), "\\"),
-        "dirx": escape(dirx, "\\"),
-        "psep": escape(os.sep, "\\"),
     });
     f.write("""
 # fwd-rev flux names
@@ -635,8 +860,8 @@ mc[nm_fc, nm_fc]=diag(1., nb_fc);
        "xch": dict((fl, t+".x."+fl) for (fl,t,nx) in tfallnx if nx=="x"),
     };
 
-def netan2R_meas(netan, org, f, ff):
-    """netan2R_meas(netan, org, f, ff)
+def netan2R_meas(netan, org, f):
+    """netan2R_meas(netan, org, f)
     generate code for measure treatment
     """
     # prepare python measures
@@ -690,7 +915,12 @@ def netan2R_meas(netan, org, f, ff):
         pdb.set_trace();
 
     # create R equivalent structures with indices for scaling
-    f.write("\n# make place for scaling factors\n");
+    f.write("""
+if (TIMEIT) {
+   cat("measure : ", date(), "\n", sep="");
+}
+# make place for scaling factors
+""");
     for meas in o_meas:
         if not o_sc[meas]:
             continue;
@@ -828,7 +1058,7 @@ ifmn=c(%(ifmn)s);
         "imcumo2i": imcumo2i,
     };
 
-def netan2R_rcumo(netan, org, f, ff):
+def netan2R_rcumo(netan, org, f):
     # prepare reduced python systems
     rAb=C13_ftbl.rcumo_sys(netan);
     # full matrix is Ab=netan["cumo_sys"]
@@ -839,6 +1069,7 @@ def netan2R_rcumo(netan, org, f, ff):
     if "vrcumo" not in netan:
         netan["vrcumo"]=copy.deepcopy(netan["vcumo"]);
         for i in xrange(len(netan["vrcumo"]),len(rAb["A"]),-1):
+            # delete extra weight systems
             del(netan["vrcumo"][i-1]);
         for (iw,cumol) in enumerate(netan["vrcumo"]):
             for i in xrange(len(cumol), 0, -1):
@@ -850,11 +1081,15 @@ def netan2R_rcumo(netan, org, f, ff):
     # translate cumoname like A:7 to its index in R vector of cumomers
     rcumos=list(valval(netan["vrcumo"]));
     rcumo2i=dict((c,i+1) for (i,c) in enumerate(rcumos));
+    # composit cumomer vector incu=c(1,xi,xc)
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"].keys()+rcumos));
     # write code for reduced cumomer systems
-    netan2Abcumo_f(rAb["A"], rAb["b"],
-        netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], rcumo2i, "fwrv2rAbcumo");
-    netan2j_rhs_f(rAb["A"], rAb["b"],
-        netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], rcumo2i, "frj_rhs");
+    #netan2Abcumo_f(rAb["A"], rAb["b"],
+    #    netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], incu2i_b1, "fwrv2rAbcumo");
+    netan2Abcumo_sp(rAb["A"], rAb["b"],
+        netan["vrcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1);
+    #netan2j_rhs_f(rAb["A"], rAb["b"],
+    #    netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], rcumo2i, incu2i_b1, "frj_rhs");
     # write R constants and names
     f.write("""
 # weight count
@@ -863,6 +1098,8 @@ nb_rw=%(nb_rw)d;
 nb_rcumos=c(%(nb_rc)s);
 # cumo names
 nm_rcumo=c(%(nm_rcumo)s);
+# composite cumomer vector incu c(1, xi, xc) names
+nm_incu=c("", nm_xi, nm_rcumo); # constant 1 has empty name
 """%{
     "nb_rw": len(rAb["A"]),
     "nb_rc": join(", ", (len(a) for a in rAb["A"])),
@@ -874,23 +1111,30 @@ nm_rcumo=c(%(nm_rcumo)s);
         "rAb": rAb,
     };
 
-def netan2R_cumo(netan, org, f, ff):
-    """netan2R_cumo(netan, org, f, ff)->dict
+def netan2R_cumo(netan, org, f):
+    """netan2R_cumo(netan, org, f)->dict
     generate fortran code for matrices
     """
     # prepare cumo2i
     # translate cumoname like A:7 to its index in R vector of cumomers
     cumos=list(valval(netan["vcumo"]));
     cumo2i=dict((c,i+1) for (i,c) in enumerate(cumos));
+    # composite cumomer vector
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"].keys()+cumos));
 
     # write fortran code for complete cumomer systems
-    netan2Abcumo_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
-        netan["vcumo"], netan["input"], ff, netan["fwrv2i"], cumo2i, "fwrv2Abcumo");
-    # debug
-    netan2j_rhs_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
-        netan["vcumo"], netan["input"], ff, netan["fwrv2i"], cumo2i, "fj_rhs");
+    #netan2Abcumo_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
+    #    netan["vcumo"], netan["input"], ff, netan["fwrv2i"], cumo2i, incu2i_b1, "fwrv2Abcumo");
+    #netan2j_rhs_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
+    #    netan["vcumo"], netan["input"], ff, netan["fwrv2i"], cumo2i, incu2i_b1, "fj_rhs");
+    netan2Abcumo_sp(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
+        netan["vcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1);
     # write R constants and names
     f.write("""
+if (TIMEIT) {
+   cat("rcumo   : ", date(), "\n", sep="");
+}
+
 # weight count
 nb_w=%(nb_w)d;
 
@@ -909,8 +1153,8 @@ nm_cumo=c(%(nm_cumo)s);
         "cumo2i": cumo2i,
     };
 
-def netan2R_ineq(netan, org, f, ff):
-    """netan2R_ineq(netan, org, f, ff)
+def netan2R_ineq(netan, org, f):
+    """netan2R_ineq(netan, org, f)
     generate inequality code
     """
     # ex: netan["flux_inequal"]
@@ -920,6 +1164,9 @@ def netan2R_ineq(netan, org, f, ff):
     #dict2kvh(dict((i,t) for (i,t) in enumerate(tfallnx)), "tfallnx.kvh");##
     nb_ineq=len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"]);
     f.write("""
+if (TIMEIT) {
+   cat("ineq    : ", date(), "\n", sep="");
+}
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
 # to the inequalities given in ftbl file
@@ -968,32 +1215,49 @@ li[%(i)s]=%(sign)s%(li)g;
     nb_fdx=len(netan["vflux"]["xch"]);
     nb_ffx=len(netan["vflux_free"]["xch"]);
     f.write("""
-# add standard limits on [df].xch 0;0.999
+# add standard limits on [df].xch [0;cupx]
 nb_tmp=nrow(mi);
-mi=rbind(mi, matrix(0, nrow=%(nb_idfx01)d, ncol=nb_fallnx));
-nm_i=c(nm_i,
-   paste(nm_flx, ">=0", sep=""),
-   paste(nm_ffx, ">=0", sep=""),
-   paste(nm_flx, "<=0.999", sep=""),
-   paste(nm_ffx, "<=0.999", sep="")
-   );
-li=c(li, rep(0, %(nb_idfx1)d), rep(-0.999, %(nb_idfx1)d));
-mi[nb_tmp+(1:%(nb_idfx1)d),c(nm_flx, nm_ffx)]=diag(1., %(nb_idfx1)d);
-mi[nb_tmp+%(nb_idfx1)d+(1:%(nb_idfx1)d),c(nm_flx, nm_ffx)]=diag(-1., %(nb_idfx1)d);
-"""%{
-   "nb_idfx01": 2*(nb_fdx+nb_ffx),
-   "nb_idfx1": (nb_fdx+nb_ffx),
-});
+nb_fx=nb_flx+nb_ffx;
+if (nb_fx) {
+   mi=rbind(mi, matrix(0, nrow=2*nb_fx, ncol=nb_fallnx));
+   if (nb_flx)
+      nm_i=c(nm_i, paste(nm_flx, ">=0", sep=""));
+   if (nb_ffx)
+      nm_i=c(nm_i, paste(nm_ffx, ">=0", sep=""));
+   if (nb_flx)
+      nm_i=c(nm_i, paste(nm_flx, "<=", cupx, sep=""));
+   if (nb_ffx)
+      nm_i=c(nm_i, paste(nm_ffx, "<=", cupx, sep=""));
+   li=c(li, rep(0, nb_fx), rep(-cupx, nb_fx));
+   mi[nb_tmp+(1:nb_fx),c(nm_flx, nm_ffx)]=diag(1., nb_fx);
+   mi[nb_tmp+nb_fx+(1:nb_fx),c(nm_flx, nm_ffx)]=diag(-1., nb_fx);
+}
+""");
     
     nb_notrev=len(netan["notrev"]);
     f.write("""
-# add standard limits on net >= 1.e-5 for not reversible reactions
-nb_tmp=nrow(mi);
-nm_tmp=c(%(nm_notrev)s);
-mi=rbind(mi, matrix(0, nrow=%(nb_notrev)d, ncol=nb_fallnx));
-nm_i=c(nm_i, paste(nm_tmp, ">=1.e-5"));
-mi[nb_tmp+(1:%(nb_notrev)d), nm_tmp]=diag(1., %(nb_notrev)d);
-li=c(li, rep(1.e-5, %(nb_notrev)d));
+if (clownr!=0) {
+   # add low limits on net >= 1.e-5 for not reversible reactions
+   nb_tmp=nrow(mi);
+   nm_tmp=c(%(nm_notrev)s);
+   mi=rbind(mi, matrix(0, nrow=%(nb_notrev)d, ncol=nb_fallnx));
+   nm_i=c(nm_i, paste(nm_tmp, ">=", clownr));
+   mi[nb_tmp+(1:%(nb_notrev)d), nm_tmp]=diag(1., %(nb_notrev)d);
+   li=c(li, rep(1.e-5, %(nb_notrev)d));
+}
+nb_fn=nb_fln+nb_ffn
+if (cupn != 0 && nb_fn) {
+   # add upper limits on [df].net <= 1.e5 for net fluxes
+   nb_tmp=nrow(mi);
+   mi=rbind(mi, matrix(0, nrow=nb_fn, ncol=nb_fallnx));
+   if (nb_fln)
+      nm_i=c(nm_i, paste(nm_fln, "<=", cupn, sep=""));
+   if (nb_ffn)
+      nm_i=c(nm_i, paste(nm_ffn, "<=", cupn, sep=""));
+   li=c(li, rep(-cupn, nb_fn));
+   mi[nb_tmp+(1:nb_fn),c(nm_fln, nm_ffn)]=diag(-1., nb_fn);
+}
+
 """%{
    "nb_notrev": nb_notrev,
    "nm_notrev": join(", ", (t+"."+nxi+"."+fli
@@ -1022,8 +1286,8 @@ if (all(ci[zi]<=1.e-14)) {
    ci=ci[!zi];
    nm_i=nm_i[!zi];
 } else {
-   cat("The following constant inequalities are not satisfied:\\n");
-   cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n");
+   cat("The following constant inequalities are not satisfied:\\n", file=stderr());
+   cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=stderr());
    stop();
 }
 # complete ui by zero columns corresponding to scale params
@@ -1059,7 +1323,7 @@ if (!is.null(ired)) {
 }
 """);
 
-def netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, fortfun="fj_rhs"):
+def netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, incu2i_b1, fortfun="fj_rhs"):
     """
     netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, fortfun="fj_rhs")->None
     minput - input metabolites
@@ -1089,13 +1353,13 @@ C-------------------------------------------------------------------------
 C For a given weight iw, update term by term j_rhs matrix
 C for cumomer vector x and x_f of previous weights.
 C The term b_x*x_f is not included in j_rhs, only b_x
-C is calculated and returned. It is left to care of the user
+C is calculated and returned. It is left to the care of the user
 C to integrate this term to j_rhs
 C
 C Input:
 C fl (double): array of forward-reverse fluxes 
 C nf (int): dimension of previous array
-C x (double): array of cumomer with weight lighter than current iw
+C x (double): composite array of input and lighter cumomers
 C x_f (double): matrix (nx, nf) with weight lighter than current iw
 C nx (int): x  and x_f column dimension
 C nxw (int): cumomer number for current weight iw
@@ -1118,13 +1382,13 @@ C b_x (double): array(nxw x nx)
       
 C      write(0,*) "%(fortfun)s: start", nf, nx, nxw, iw,
 C fluxes: %(fl)s
-C all weight x: %(x)s
+C composite x: %(x)s
     """%{
     "cmd": join(" ", sys.argv),
     "date": time.ctime(),
     "fortfun": fortfun,
     "fl": str(sorted((i,f) for (f,i) in fwrv2i.iteritems())),
-    "x": str(sorted((i,c) for (c,i) in cumo2i.iteritems())),
+    "x": str(sorted((i,c) for (c,i) in incu2i_b1.iteritems())),
     });
     for (iwl,A) in enumerate(Al):
         b=bl[iwl];
@@ -1187,7 +1451,7 @@ C        b_v term""");
                     "ir": irow+1,
                     "ic": fwrv2i[fl],
                     "b_v": joint("+", [
-                        join("*", trd(lst, cumo2i, "x(", ")", None))
+                        join("*", trd(lst, incu2i_b1, "x(", ")"))
                         for (imetab,lst) in dlst.iteritems()
         ])}));
             if iwl > 0:
@@ -1204,7 +1468,8 @@ C        b_x term""");
                     # derive the cumo products item*factor
                     for (item,ifct) in ((0,1), (1,0)):
                         if lst[item] in cumo2i:
-                            factor=("x(%d)"%cumo2i[lst[ifct]]) if lst[ifct] in cumo2i else lst[ifct];
+                            # the item is a variable cumomer (not input) so it's derivable
+                            factor=("x(%d)"%incu2i_b1[lst[ifct]]);
                             ici=cumo2i[lst[item]]; # index of cumomer item
                             if ici in csum:
                                 csum[ici].append(factor);
