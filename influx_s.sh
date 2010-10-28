@@ -7,13 +7,13 @@
 # usage:
 # ./influx_s.sh [...] network[.ftbl]
 # optional extra params [...] are passed as is to R script
+par="$@"
 n=$#
 if [ $n = 0 ]; then
    echo "usage: ./influx_s.sh [opt_params_to_R_script] network[.ftbl]";
    exit 1;
 fi
 
-echo "code gen:" $(date);
 direx=$(dirname "$0");
 
 # test which argument is ftbl file, first or last
@@ -27,11 +27,18 @@ else
    n=$((n-1));
    eargs="${@:1:n}";
 fi
+echo "$0 $par" > "$f.log";
+echo "code gen:" $(date) | tee -a "$f.log";
 
-$direx/ftbl2optR.py "$f" &&
-   echo "compil  :" $(date) &&
-   R CMD SHLIB "$f.f" 1> /dev/null 2> "$f.err" &&
-   echo "calcul  :" $(date) &&
-   R --no-save --slave $eargs < "$f.R" \
-   > "$f.log" 2> "$f.err";
-echo "end     :" $(date);
+# check if static fortran functions are ready
+[ $direx/cumo.f -nt $direx/cumo.so ] && { R CMD SHLIB --clean "$direx/cumo.f" || exit 1 ;}
+
+$direx/ftbl2optR.py "$f" 2> "$f.err" &&
+#   echo "compil  :" $(date) | tee -a "$f.log" &&
+#   R CMD SHLIB --clean "$f.f" 1> /dev/null 2>> /dev/null &&
+   echo "calcul  :" $(date) | tee -a "$f.log" &&
+   R --no-save --slave --args $eargs < "$f.R" \
+      2>> "$f.err" 1>> "$f.log";
+echo "end     :" $(date) | tee -a "$f.log";
+
+[ -s "$f.err" ] && echo "=>Check $f.err" | tee -a "$f.log"
