@@ -589,7 +589,7 @@ def ftbl_netan(ftbl):
                 "val":float(row["VALUE"]),
                 "dev":float(row["DEVIATION"]),
                 "bcumos":row["CUM_CONSTRAINTS"].split("+"),
-                "id":":".join(["l", metab, group, str(row["irow"])])
+                "id":":".join(["l", metab, row["CUM_CONSTRAINTS"], str(row["irow"])])
         });
         # test the icumomer lengths
         if not all(len(ic)==mlen+1 for ic in 
@@ -806,27 +806,30 @@ def ftbl_netan(ftbl):
                                 if imetab not in res["b"][w-1][cumo][flux]:
                                     res["b"][w-1][cumo][flux][imetab]=[];
                                 if in_cumo in netan["cumo_input"]:
-                                    fract=netan["cumo_input"][in_cumo];
+                                    #fract=netan["cumo_input"][in_cumo];
+                                    pass;
                                 else:
                                     raise Exception("LabelInput", in_cumo+" should be in input section of ftbl file:\n"+
                                         str(netan["input"])+"\n"+str(netan["cumo_input"]));
-                                res["b"][w-1][cumo][flux][imetab].append(fract);
+                                #res["b"][w-1][cumo][flux][imetab].append(fract);
+                                res["b"][w-1][cumo][flux][imetab].append(in_cumo);
                             else:
                                 if in_cumo not in res["A"][w-1][cumo]:
                                     res["A"][w-1][cumo][in_cumo]=[];
                                 # matrix: linearized off-diagonal term
                                 res["A"][w-1][cumo][in_cumo].append(flux);
-                        elif in_w>0:
-                            # put it in rhs list[iterm]
+                        elif in_w < w:
+                            # put lighter cumomer product in rhs list[iterm]
                             if cumo not in res["b"][w-1]:
                                 res["b"][w-1][cumo]={};
                             if flux not in res["b"][w-1][cumo]:
                                 res["b"][w-1][cumo][flux]={};
                             if imetab not in res["b"][w-1][cumo][flux]:
                                 res["b"][w-1][cumo][flux][imetab]=[];
-                            res["b"][w-1][cumo][flux][imetab].append(
-                                in_cumo if in_metab not in netan["input"] else
-                                netan["cumo_input"][in_cumo]);
+                            #res["b"][w-1][cumo][flux][imetab].append(
+                            #    in_cumo if in_metab not in netan["input"] else
+                            #    netan["cumo_input"][in_cumo]);
+                            res["b"][w-1][cumo][flux][imetab].append(in_cumo);
                             #print "b="+str(res["b"][w-1][cumo][flux]);##
                         # if in_w==0 then in_cumo=1 by definition => ignore here
                         # in_w cannot be > w because of src_ind();
@@ -1696,12 +1699,13 @@ def rcumo_sys(netan):
                             b[w-1][cumo]=b[w-1].get(cumo, {});
                             b[w-1][cumo][fl]=b[w-1][cumo].get(fl,{});
                             b[w-1][cumo][fl][imetab]=b[w-1][cumo][fl].get(imetab,[]);
-                            b[w-1][cumo][fl][imetab].append(netan["cumo_input"][incumo]);
+                            #b[w-1][cumo][fl][imetab].append(netan["cumo_input"][incumo]);
+                            b[w-1][cumo][fl][imetab].append(incumo);
                             continue;
                         A[w-1][cumo][incumo]=A[w-1][cumo].get(incumo,[]);
                         A[w-1][cumo][incumo].append(fl);
                         #aff("A "+str(w)+cumo, A[w-1][cumo]);##
-                    elif inw > 0:
+                    elif inw < w:
                         # lower weight => b
                         b[w-1][cumo]=b[w-1].get(cumo, {});
                         b[w-1][cumo][fl]=b[w-1][cumo].get(fl,{});
