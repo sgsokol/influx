@@ -1,14 +1,31 @@
-echo "compil:" $(date);
-direx=$(dirname $0);
-me=$(basename $0)
-DEBUG=""
-[ "$2" = "DEBUG" ] && DEBUG="DEBUG"
+par="$@"
+n=$#
+if [ $n = 0 ]; then
+   echo "usage: ./influx_s.sh [opt_params_to_R_script] network[.ftbl]";
+   exit 1;
+fi
 
-org="$1";
-[ -n "$org" ] || { echo 2>1 "$me: expecting ftbl file name"; exit 1; }
-org="${org%.ftbl}"; # strip out .ftbl if any
-$direx/influx_i.py "$org" $DEBUG 2>"$org.err" &&
-   R CMD SHLIB "$org.f" &&
-   echo "calcul:" $(date) && R --no-save --silent --args --meth $DEBUG < "$org.R" \
-   > "$org.log" 2>> "$org.err";
-echo "end   :" $(date);
+direx=$(dirname "$0");
+
+# test which argument is ftbl file, first or last
+f="${1%%.ftbl}"
+if [ -r "$f".ftbl ]; then
+   shift;
+   eargs="$@";
+else
+   f="${@:n:1}";
+   f="${f%%.ftbl}";
+   n=$((n-1));
+   eargs="${@:1:n}";
+fi
+echo "$0 $par" > "$f.log";
+echo "code gen:" $(date) | tee -a "$f.log";
+# check if static fortran functions are ready
+[ $direx/cumo.f -nt $direx/cumo.so ] && { R CMD SHLIB --clean "$direx/cumo.f" || exit 1 ;}
+
+$direx/influx_i.py "$f" $DEBUG 2>"$f.err" | tee -a "$f.log" &&
+   echo "calcul  :" $(date) && R --no-save --silent --args $eargs < "$f.R" \
+   1>> "$f.log" 2>> "$f.err";
+echo "end     :" $(date) | tee -a "$f.log";
+
+[ -s "$f.err" ] && echo "=>Check $f.err" | tee -a "$f.log"
