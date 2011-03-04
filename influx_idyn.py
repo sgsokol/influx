@@ -125,6 +125,7 @@ wxfc.Rectangle.SetUpDraw=SetUpDraw_pos;
 ## config constants
 # program name
 me=os.path.basename(sys.argv[0]);
+mybase=(me if me[-3:]!=".py" else me[:-3]);
 # border width in pixels for widgets
 wd_border=3;
 tsize=(24,24); # tollbar size
@@ -817,7 +818,7 @@ else:
 
 ## create GUI
 app=wx.App();
-code=tls.wxlay2py(tls.kvh2tlist(os.path.join(dirx, me[:-3]+"_lay.kvh")));
+code=tls.wxlay2py(tls.kvh2tlist(os.path.join(dirx, mybase+"_lay.kvh")));
 flname=sys.argv[0][:-3]+"_lay.py";
 fp=open(flname, "w");
 fp.write(code);
