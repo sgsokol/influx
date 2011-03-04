@@ -23,7 +23,6 @@
 # File names (str):
 #    n_ftbl (descriptor f_ftbl);
 #    n_R (R code) (f);
-#    n_fort (fortran code) (ff);
 # Counts: nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total),
 #         nb_ffn, nb_ffx (free fluxes)
 # Index translators:
@@ -96,15 +95,12 @@ if DEBUG:
 
 n_ftbl=org+".ftbl";
 n_R=org+".R";
-n_fort=org+".f";
 f_ftbl=open(n_ftbl, "r");
 try:
     os.chmod(n_R, stat.S_IRUSR | stat.S_IWUSR);
-    os.chmod(n_fort, stat.S_IRUSR | stat.S_IWUSR);
 except:
     pass;
 f=open(n_R, "w");
-ff=open(n_fort, "w");
 
 # parse ftbl
 ftbl=C13_ftbl.ftbl_parse(f_ftbl);
@@ -116,11 +112,12 @@ f_ftbl.close();
 netan=C13_ftbl.ftbl_netan(ftbl);
 
 # write initialization part of R code
+ftbl2code.netan2Rinit(netan, org, f, True);
 # flux part (Afl, bfl, ...)
-ftbl2code.netan2R_fl(netan, org, f, ff);
+ftbl2code.netan2R_fl(netan, org, f);
 # cumomer part (A, b, ...)
-ftbl2code.netan2R_cumo(netan, org, f, ff);
-ftbl2code.netan2R_ineq(netan, org, f, ff);
+ftbl2code.netan2R_cumo(netan, org, f);
+ftbl2code.netan2R_ineq(netan, org, f);
 # mesure, rcumo system are skipped
 
 f.write("""
@@ -168,13 +165,13 @@ plotx=function(x, plottype, ti, ...) {
       }
    }
 }
-## input cumomers xinp
-xinp=c(%(xinp)s);
-nm_xinp=c(%(nm_xinp)s);
-names(xinp)=nm_xinp;
-nm2=matrix(unlist(strsplit(nm_xinp, ":", fixed=TRUE)), ncol=2, byrow=TRUE);
+## input cumomers xi
+xi=c(%(xi)s);
+nm_xi=c(%(nm_xi)s);
+names(xi)=nm_xi;
+nm2=matrix(unlist(strsplit(nm_xi, ":", fixed=TRUE)), ncol=2, byrow=TRUE);
 o=order(nm2[,1], as.numeric(nm2[,2]));
-xinp=xinp[o];
+xi=xi[o];
 
 ## variables for isotopomer cinetics
 tstart=0.;
@@ -184,7 +181,7 @@ metab_scale=%(metab_scale)f;
 # Metabolite pool vector numbered and replicated to match cumomers x
 # and scaled by metab_scale/dt
 Metab_dt=(metab_scale/dt)*c(%(met_pools)s);
-
+#browser()
 # get full flux vectors
 lf=param2fl(param, nb_f, invAfl, p2bfl, bp, fc);
 
@@ -193,25 +190,15 @@ nbc_cumos=c(0, cumsum(nb_cumos));
 
 # prepare the cumosys cascade
 Acumot=list();
+nb_xi=length(xi);
+x=c(1, xi);
 for (iw in 1:nb_w) {
    ncumow=nb_cumos[iw];
-   A=matrix(0.,ncumow,ncumow);
-   #fwrv2Abcumo(fl, nf, x, nx, iw, n, A, b)
-   res<-.Fortran("fwrv2Abcumo",
-      fl=as.double(lf$fwrv),
-      nf=length(lf$fwrv),
-      x=as.double(0.),
-      nx=as.integer(0),
-      iw=as.integer(iw),
-      n=as.integer(ncumow),
-      A=as.matrix(A),
-      b=as.double(0.),
-      calcA=as.integer(TRUE),
-      calcb=as.integer(FALSE),
-      NAOK=TRUE,
-      DUP=FALSE);
+   lAb=fwrv2Ab(lf$fwrv, spAb_f[[iw]], x);
+   A=lAb$A;
+   b=lAb$b;
    # inverse A*x=b;
-   Acumot=append(Acumot, list(solve(A+diag(Metab_dt[(nbc_cumos[iw]+1):nbc_cumos[iw+1]], nrow=ncumow))));
+   Acumot=append(Acumot, list(as.matrix(solve(A+diag(Metab_dt[(nbc_cumos[iw]+1):nbc_cumos[iw+1]], nrow=ncumow)))));
 }
 
 # formated output in kvh file
@@ -227,29 +214,31 @@ fplot=file("%(fplot)s", "w");
     "met_pools": join(", ", (netan["met_pools"][cumo.split(":")[0]]
         for w in netan["vcumo"]
         for cumo in w)),
-    "xinp": join(", ", netan["cumo_input"].values()),
-    "nm_xinp": join(", ", netan["cumo_input"].keys(), '"', '"'),
+    "xi": join(", ", netan["cumo_input"].values()),
+    "nm_xi": join(", ", netan["cumo_input"].keys(), '"', '"'),
 });
 # main part: ode solver
 f.write("""
 # initial flux and cumomer distribution
 cat("flux parameters\n", file=fkvh);
 names(param)=nm_par;
-obj2kvh(param, "free parameters", fkvh, ident=1);
+obj2kvh(param, "free parameters", fkvh, indent=1);
 
 fwrv=lf$fwrv;
 n=length(fwrv);
 names(fwrv)=paste(nm_fwrv, c(rep("fwd", n/2), rep("rev", n/2)), sep=".");
-obj2kvh(fwrv, "fwd-rev flux vector", fkvh, ident=1);
+obj2kvh(fwrv, "fwd-rev flux vector", fkvh, indent=1);
 
 f=lf$fallnx;
 n=length(f);
 names(f)=nm_fallnx;
-obj2kvh(f, "net-xch flux vector", fkvh, ident=1);
+obj2kvh(f, "net-xch flux vector", fkvh, indent=1);
 
 # alphabetic order of output cumomers
-nm2=matrix(unlist(strsplit(nm_cumo, ":", fixed=TRUE)), ncol=2, byrow=TRUE);
+nm_incuf=c("one", nm_xi, nm_cumo); # full cumomer list names with input names
+nm2=matrix(unlist(strsplit(nm_incuf[-1], ":", fixed=TRUE)), ncol=2, byrow=TRUE);
 o_acumo=order(nm2[,1], as.numeric(nm2[,2]));
+o_acumo=c(0, o_acumo+1); # 0 is to exclude the leading "1" in incu vector
 # plot options
 plottype="%(plottype)s";
 plotby=%(plotby)d;
@@ -259,47 +248,49 @@ plotby=%(plotby)d;
 });
 f.write("""
 # time 0 cumomers (are all unlabeled)
-xold=rep(0., sum(nb_cumos));
-names(xold)=nm_cumo;
-cat("time course cumomers\n", file=fkvh);
-cat("\trow_col", c(nm_xinp, nm_cumo[o_acumo]), file=fkvh, sep="\t");
-cat("\n", file=fkvh);
-obj2kvh(paste(c(xinp, xold[o_acumo]), collapse="\t"), "0.", fkvh, ident=1);
-plotx(c(xinp,xold[o_acumo]), plottype, "row_col", fplot);
-plotx(c(xinp,xold[o_acumo]), plottype, 0., fplot);
+#browser();
+xold=rep(0., sum(nb_cumos)+nb_xi+1);
+names(xold)=nm_incuf;
+cat("time course cumomers\\n", file=fkvh);
+cat("\\trow_col", nm_incuf[o_acumo], file=fkvh, sep="\\t");
+cat("\\n", file=fkvh);
+obj2kvh(paste(xold[o_acumo], collapse="\\t"), "0.", fkvh, indent=1);
+plotx(xold[o_acumo], plottype, "row_col", fplot);
+plotx(xold[o_acumo], plottype, 0., fplot);
 
 # time going (implicite Euler)
 it=1;
 for (ti in seq(dt, tmax, by=dt)) {
    # solve cumomer cascade at current time
-   x=numeric(0);
+   x=c(1., xi);
    for (iw in 1:nb_w) {
       nx=length(x);
       # prepare rhs for current weight
       ncumow=nb_cumos[iw];
-      b=double(ncumow);
-      res<-.Fortran("fwrv2Abcumo",
-         fl=as.double(lf$fwrv),
-         nf=length(lf$fwrv),
-         x=as.double(x),
-         nx=as.integer(nx),
-         iw=as.integer(iw),
-         n=as.integer(ncumow),
-         A=as.matrix(0.),
+      fb=rep(0., ncumow);
+      b=rep(0., ncumow);
+      res<-.Fortran("f2b",
+         bfpr=as.matrix(spAb_f[[iw]]$bfpr),
+         n=as.integer(ncol(spAb_f[[iw]]$bfpr)),
+         fwrv=as.double(fwrv),
+         incu=as.double(x),
+         fb=as.double(fb),
          b=as.double(b),
-         calcA=as.integer(FALSE),
-         calcb=as.integer(TRUE),
          NAOK=TRUE,
-         DUP=FALSE);
-      x=c(x, Acumot[[iw]]%*%(b+Metab_dt[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]*xold[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]));
+         DUP=FALSE
+      );
+      b=-b;
+      x=c(x, Acumot[[iw]]%*%(b+
+         Metab_dt[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]*
+         xold[1+nb_xi+((nbc_cumos[iw]+1):nbc_cumos[iw+1])]));
    }
    # store this time step result
-   obj2kvh(paste(c(xinp,x[o_acumo]), collapse="\t"), ti, fkvh, ident=1);
+   obj2kvh(paste(x[o_acumo], collapse="\t"), ti, fkvh, indent=1);
    
    # data to plot
    if (!it%%plotby) {
-      names(x)=nm_cumo;
-      plotx(c(xinp,x[o_acumo]), plottype, ti, fplot);
+      names(x)=nm_incuf;
+      plotx(x[o_acumo], plottype, ti, fplot);
    }
    
    xold=x;
@@ -307,7 +298,5 @@ for (ti in seq(dt, tmax, by=dt)) {
 }
 """);
 f.close();
-ff.close();
 # make output files just readable to avoid later casual edition
 os.chmod(n_R, stat.S_IRUSR);
-os.chmod(n_fort, stat.S_IRUSR);
