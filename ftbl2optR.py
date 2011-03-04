@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Transform an ftbl to R code solving an optimization of flux analysis
+# Transform an ftbl to R code which will solve an optimization of flux analysis
 # problem min(S) over \Theta, where S=||Predicted-Observed||^2_\Sigma^2
 # and \Theta is a vector of free fluxes (net+xch) and scaling parameters.
 # Predicted vector is obtained from cumomer vector x (calculated from
@@ -114,15 +114,17 @@ def usage():
 try:
     opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "DEBUG"]);
 except getopt.GetoptError, err:
+    #pass;
     sys.stderr.write(str(err)+"\n");
     usage();
-    sys.exit(1);
+    #sys.exit(1);
+
 fullsys=False;
 DEBUG=False;
 for o,a in opts:
     if o in ("-h", "--help"):
         usage();
-        sys.exit();
+        sys.exit(0);
     elif o=="--cost":
         cost=True;
     elif o=="--fullsys":
@@ -131,8 +133,8 @@ for o,a in opts:
         DEBUG=True;
     else:
         #assert False, "unhandled option";
-        # unknown options can come from shell which call
-        # which pass all options both to python and R scripts
+        # unknown options can come from shell
+        # which passes all options both to python and R scripts
         # so just ignore unknown options
         pass;
 #aff("args", args);##
@@ -206,6 +208,7 @@ f.write("""
 if (TIMEIT) {
    cat("preopt  : ", date(), "\n", sep="");
 }
+#browser()
 # check if initial approximation is feasible
 ineq=ui%*%param-ci;
 if (any(ineq < 0.)) {
@@ -216,15 +219,16 @@ if (any(ineq < 0.)) {
    # put them inside
    dp=ldp(ui, -ineq);
    names(param)=nm_par;
-   tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dp[1:nb_ff]);
+   tmp=cbind(param[1:nb_ff], param[1:nb_ff]+1.001*dp[1:nb_ff]);
    dimnames(tmp)=list(nm_par[1:nb_ff], c("old", "new"));
    obj2kvh(tmp, "starting free fluxes");
-   param=param+dp;
+   # move starting point slightly inside of feasible domain
+   param=param+1.001*dp;
 }
 
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
 # for corresponding measures
-vr=param2fl_x(param, cjac=FALSE, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, "fwrv2rAbcumo", NULL);
+vr=param2fl_x(param, cjac=FALSE, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAb);
 if (!is.null(vr$err) && vr$err) {
    stop(vr$mes);
 }
@@ -256,8 +260,8 @@ crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1];
 # see if there are any active inequalities at starting point
 ineq=ui%*%param-ci;
 if (any(abs(ineq)<=1.e-10)) {
-   cat("The following ", sum(ineq==0.), " ineqalitie(s) are active at starting point:\\n",
-      paste(names(ineq[abs(ineq)<=1.e-10,1]), sep="\n"), sep="");
+   cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point:\\n",
+      paste(names(ineq[abs(ineq)<=1.e-10,1]), collapse="\\n"), "\\n", sep="");
 }
 """);
 
@@ -283,7 +287,8 @@ obj2kvh(param, "starting free parameters", fkvh, indent=1);
 
 x=vr$x;
 names(x)=nm_rcumo;
-# replace :i by :x1's
+obj2kvh(cumo2mass(x), "starting MID vector", fkvh, indent=1);
+# replace :i by #x1's
 nm_mask=unlist(lapply(strsplit(names(x), ":"), function(v) {
    n=length(v);
    metab=paste(v[-n], collapse=":");
@@ -309,11 +314,11 @@ n=length(f);
 names(f)=nm_fallnx;
 obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1);
 
-rres=cumo_resid(param, cjac=TRUE, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, "fwrv2rAbcumo", "frj_rhs");
+rres=cumo_resid(param, cjac=TRUE, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1);
 
-rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
+rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
 obj2kvh(rcost, "starting cost value", fkvh, indent=1);
 
 obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1);
@@ -321,34 +326,22 @@ btmp=c(p2bfl%*%param[1:nb_f$nb_ff]+bp);
 names(btmp)=dimnames(Afl)[[1]];
 obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1);
 names(measvec)=nm_meas;
-obj2kvh(measvec, "cumomer measure vector", fkvh, indent=1);
+obj2kvh(measvec, "measure vector", fkvh, indent=1);
 
 #cat("mass vector:\\n");
 #print_mass(x);
 
 names(param)=nm_par;
 
-# check if at starting position all fluxes can be resolved
-#browser();
-qrj=qr(jx_f$dr_dff);
-if (qrj$rank < nb_ff) {
-   # Too bad. The jacobian of free fluxes is not of full rank.
-   dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx);
-   write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t");
-   stop(paste("Provided measures (isotopomers and fluxes) are not
-sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:
-", paste(nm_par[qrj$pivot[-(1:qrj$rank)]], sep=", ", collapse=", "),
-      "\nJacobian dr_dff is dumped in dbg_dr_dff_singular.txt", sep=""));
-}
 opt_wrapper=function(measvec, fmn) {
    if (method == "BFGS") {
       control=list(maxit=500, trace=1);
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
-         ui, ci, mu = 1e-4, control,
-         method="BFGS", outer.iterations=100, outer.eps=1e-07,
+         ui, ci, mu = 1e-5, control,
+         method="BFGS", outer.iterations=100, outer.eps=1e-08,
          nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, measinvvar, ir2isc,
-         fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
+         fmn, invfmnvar, ifmn, spAb);
    } else if (method == "Nelder-Mead") {
       control=list(maxit=1000, trace=1);
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
@@ -356,7 +349,7 @@ opt_wrapper=function(measvec, fmn) {
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
          nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, measinvvar, ir2isc,
-         fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
+         fmn, invfmnvar, ifmn, spAb);
    } else if (method == "SANN") {
       control=list(maxit=1000, trace=1);
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
@@ -364,18 +357,20 @@ opt_wrapper=function(measvec, fmn) {
          method="SANN", outer.iterations=100, outer.eps=1e-07,
          nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, measinvvar, ir2isc,
-         fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
+         fmn, invfmnvar, ifmn, spAb);
    } else if (method == "nlsic") {
       control=list(trace=1, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5);
       res=nlsic(param, cumo_resid, 
          ui, ci, control, e=NULL, eco=NULL,
          nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
-         "fwrv2rAbcumo", "frj_rhs");
+         spAb);
       if (res$err || is.null(res$par)) {
          # store res in kvh
          obj2kvh(res, "optimization aborted here", fkvh);
-         stop(res$mes);
+         cat(res$mes, file=stderr());
+         res$par=rep(NA, length(param))
+         res$cost=NA
       }
    } else {
       stop(paste("Unknown minimization method '", method, "'", sep=""));
@@ -383,6 +378,20 @@ opt_wrapper=function(measvec, fmn) {
    return(res);
 }
 if (optimize) {
+   # check if at starting position all fluxes can be resolved
+   #browser();
+   qrj=qr(jx_f$dr_dff);
+   d=diag(qrj$qr)
+   qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
+   if (qrj$rank < nb_ff) {
+      # Too bad. The jacobian of free fluxes is not of full rank.
+      dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx);
+      write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t");
+      stop(paste("Provided measures (isotopomers and fluxes) are not
+   sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:
+   ", paste(nm_par[qrj$pivot[-(1:qrj$rank)]], sep=", ", collapse=", "),
+         "\nJacobian dr_dff is dumped in dbg_dr_dff_singular.txt", sep=""));
+   }
    if (TIMEIT) {
       cat("optim   : ", date(), "\n", sep="");
    }
@@ -391,6 +400,9 @@ if (optimize) {
    param=res$par;
    names(param)=nm_par;
    obj2kvh(res, "optimization process informations", fkvh);
+   if (any(is.na(res$par))) {
+      stop("Optimization failed")
+   }
 }
 if (TIMEIT) {
    cat("postopt : ", date(), "\n", sep="");
@@ -401,8 +413,8 @@ if (any(ine)) {
    obj2kvh(nm_i[ine], "active inequality constraints", fkvh);
 }
 #browser();
-rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo", "frj_rhs");
-rres=cumo_resid(param, cjac=T, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, "fwrv2rAbcumo", "frj_rhs");
+rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+rres=cumo_resid(param, cjac=T, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
 obj2kvh(rcost, "final cost", fkvh);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "(simulated-measured)/sd_exp", fkvh);
@@ -412,9 +424,9 @@ obj2kvh(gr, "gradient vector", fkvh);
 obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh);
 
 if (fullsys) {
-   v=param2fl_x(param, cjac=F, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, "fwrv2Abcumo");
+   v=param2fl_x(param, cjac=F, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb_f);
 } else {
-   v=param2fl_x(param, cjac=F, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, "fwrv2rAbcumo");
+   v=param2fl_x(param, cjac=F, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAb);
 }
 x=v$x;
 if (fullsys) {
@@ -422,6 +434,7 @@ if (fullsys) {
 } else {
    names(x)=nm_rcumo;
 }
+obj2kvh(cumo2mass(x), "MID vector", fkvh);
 # replace :i by :x1's
 nm_mask=unlist(lapply(strsplit(names(x), ":"), function(v) {
    n=length(v);
@@ -481,6 +494,14 @@ if (sensitive=="mc") {
    free_mc=matrix(unlist(mc_res), ncol=nmc);
    cost_mc=free_mc[1,];
    free_mc=free_mc[-1,,drop=F];
+   # remove failed m-c iterations
+   ifa=which(is.na(free_mc[1,]))
+   if (length(ifa)) {
+      warning("Some Monte-Carlo iterations failed.")
+      free_mc=free_mc[,-ifa,drop=F]
+      cost_mc=cost_mc[-ifa]
+      nmc=length(cost_mc)
+   }
 #browser();
    dimnames(free_mc)[[1]]=nm_par;
    cat("monte-carlo\n", file=fkvh);
@@ -573,10 +594,8 @@ if (TIMEIT) {
 }
 # Linear method based on jacobian x_f
 # reset fluxes and jacobians according to param
-rres=cumo_resid(param, cjac=T, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, "fwrv2rAbcumo", "frj_rhs");
-#grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
-x_f=v$x_f;
-dimnames(x_f)=list(names(x), names(fwrv));
+rres=cumo_resid(param, cjac=T, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+#grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
 if (DEBUG) {
    library(numDeriv); # for numerical jacobian
    # numerical simulation
@@ -585,13 +604,13 @@ if (DEBUG) {
       c(r$res);
    }
    #dr_dpn=jacobian(rj, param, method="Richardson", method.args=list(),
-   #   nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, "fwrv2Abcumo", "frj_rhs");
+   #   nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
    dx_dfn=num_jacob(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
-   dr_dp=num_fjacob(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, fortfun="fwrv2rAbcumo", fj_rhs="frj_rhs");
+   dr_dp=num_fjacob(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
    # to compare with jx_f$dr_dp
-   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, "fwrv2rAbcumo");
-   grn=cumo_grad(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, fortfun="fwrv2rAbcumo", fj_rhs=NULL);
-   browser();
+   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+   grn=cumo_grad(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+#browser();
 }
 
 # covariance matrix of free fluxes
