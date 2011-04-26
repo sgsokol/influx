@@ -33,10 +33,14 @@ Options:
     Default is 1.e5
  --clownr N
     lower limit for not reversible free and dependent fluxes
-    Default is 1.e-5
+    Default is 0, i.e. no lower limit
  --np N
     Number of parallel process used in Monte-Carlo simulations.
     Without this option all available cores in a given node are used.
+ --ln
+    Least norm solution is proposed when Jacobian is rank deficient.
+ --zc
+    Apply zero crossing strategy for net fluxes.
 For developers:
  --DEBUG
  --prof
