@@ -225,6 +225,34 @@ if (any(ineq < 0.)) {
    # move starting point slightly inside of feasible domain
    param=param+1.001*dp;
 }
+# inequalities to keep sens of net flux on first call to opt_wwrapper()
+# if active they are removed on the second call to opt_wrapper()
+mi_keep=NULL
+li_keep=NULL
+if (nb_fn && zerocross) {
+   # add lower limits on [df].net >= 0 for positive net fluxes
+   # and upper limits on [df].net <= 0 for negative net fluxes
+   nm_ikeep=c()
+   ipos=names(which(fallnx[grep("[df].n.", nm_fallnx)]>0.))
+   ineg=names(which(fallnx[grep("[df].n.", nm_fallnx)]<0.))
+   mi_keep=matrix(0, nrow=length(ipos)+length(ineg), ncol=nb_fallnx);
+   colnames(mi_keep)=nm_fallnx
+   if (length(ipos)) {
+      nm_ikeep=c(nm_ikeep, paste("keep ", ipos, ">=", 0., sep=""));
+      mi_keep[(1:length(ipos)),ipos]=diag(1., length(ipos));
+   }
+   if (length(ineg)) {
+      nm_ikeep=c(nm_ikeep, paste("keep ", ineg, "<=", 0., sep=""));
+      mi_keep[length(ipos)+(1:length(ineg)),ineg]=diag(-1., length(ineg));
+   }
+   rownames(mi_keep)=nm_ikeep
+   li_keep=rep(0., length(nm_ikeep));
+   ui=rbind(ui, cbind(mi_keep%*%(md%*%invAfl%*%p2bfl+mf),
+      matrix(0., nrow=nrow(mi_keep), ncol=nb_sc)));
+   ci=c(ci, li_keep-mi_keep%*%(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc));
+   nm_i=c(nm_i, nm_ikeep)
+   names(ci)=nm_i
+}
 
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
 # for corresponding measures
@@ -278,7 +306,7 @@ cat("command line\\n", file=fkvh);
 obj2kvh(opts, "opts", fkvh, indent=1);
 
 # resume system sizes
-obj2kvh(nb_sys, "system size resume", fkvh);
+obj2kvh(nb_sys, "system sizes", fkvh);
 
 # save initial flux and cumomer distribution
 cat("starting point\\n", file=fkvh);
@@ -332,10 +360,17 @@ obj2kvh(measvec, "measure vector", fkvh, indent=1);
 #print_mass(x);
 
 names(param)=nm_par;
-
+""");
+f.write("""
+control_ftbl=list(%(ctrl_ftbl)s);
+"""%{
+    "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].iteritems() if k.startswith("optctrl_"))),
+})
+f.write("""
 opt_wrapper=function(measvec, fmn) {
    if (method == "BFGS") {
       control=list(maxit=500, trace=1);
+      control[names(control_ftbl)]=control_ftbl;
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-5, control,
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
@@ -344,6 +379,7 @@ opt_wrapper=function(measvec, fmn) {
          fmn, invfmnvar, ifmn, spAb);
    } else if (method == "Nelder-Mead") {
       control=list(maxit=1000, trace=1);
+      control[names(control_ftbl)]=control_ftbl;
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
@@ -352,6 +388,7 @@ opt_wrapper=function(measvec, fmn) {
          fmn, invfmnvar, ifmn, spAb);
    } else if (method == "SANN") {
       control=list(maxit=1000, trace=1);
+      control[names(control_ftbl)]=control_ftbl;
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="SANN", outer.iterations=100, outer.eps=1e-07,
@@ -360,17 +397,20 @@ opt_wrapper=function(measvec, fmn) {
          fmn, invfmnvar, ifmn, spAb);
    } else if (method == "nlsic") {
       control=list(trace=1, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5);
+      control[names(control_ftbl)]=control_ftbl;
       res=nlsic(param, cumo_resid, 
-         ui, ci, control, e=NULL, eco=NULL,
+         ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
          nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
          spAb);
       if (res$err || is.null(res$par)) {
          # store res in kvh
          obj2kvh(res, "optimization aborted here", fkvh);
-         cat(res$mes, file=stderr());
+         cat(res$mes, "\n", file=stderr(), sep="");
          res$par=rep(NA, length(param))
          res$cost=NA
+      } else if (nchar(res$mes)) {
+         cat(res$mes, "\n", file=stderr(), sep="");
       }
    } else {
       stop(paste("Unknown minimization method '", method, "'", sep=""));
@@ -383,7 +423,7 @@ if (optimize) {
    qrj=qr(jx_f$dr_dff);
    d=diag(qrj$qr)
    qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
-   if (qrj$rank < nb_ff) {
+   if (qrj$rank < nb_ff && !least_norm) {
       # Too bad. The jacobian of free fluxes is not of full rank.
       dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx);
       write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t");
@@ -397,6 +437,25 @@ if (optimize) {
    }
    # pass control to the true method
    res=opt_wrapper(measvec, fmn);
+#browser()
+   if (zerocross && !is.null(mi_keep)) {
+      # inverse active "keep" inequalities
+      i=grep("^keep ", names(which((ui%*%res$par-ci)[,1]<=1.e-10)), v=T)
+      if (length(i) > 0) {
+         i=str2ind(i, nm_i)
+         ui[i,]=-ui[i,]
+         ci[i]=-ci[i]
+         nm_i[i]=sub(">", "+", nm_i[i])
+         nm_i[i]=sub("<", ">", nm_i[i])
+         nm_i[i]=sub("\\\\+", "<", nm_i[i])
+         rownames(ui)=nm_i
+         names(ci)=nm_i
+      }
+      # enforce new inequalities
+      param=res$par+1.001*ldp(ui, ci-ui%*%res$par)
+      # reoptimize
+      res=opt_wrapper(measvec, fmn);
+   }
    param=res$par;
    names(param)=nm_par;
    obj2kvh(res, "optimization process informations", fkvh);
