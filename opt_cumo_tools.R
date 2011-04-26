@@ -68,7 +68,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
    # from dep,free,constr
    f=numeric(0);
    if (nb_f$nb_fln) {
-      f=c(f, flnx[1:nb_f$nb_fln]);
+      f=c(f, flnx[1:nb_f$nb_fln,1]);
    }
    if (nb_f$nb_ffn) {
       f=c(f, param[1:nb_f$nb_ffn]);
@@ -77,7 +77,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
       f=c(f, fc[1:nb_f$nb_fcn]);
    }
    if (nb_f$nb_flx) {
-      f=c(f, flnx[(nb_f$nb_fln+1):nb_f$nb_fl]);
+      f=c(f, flnx[(nb_f$nb_fln+1):nb_f$nb_fl,1]);
    }
    if (nb_f$nb_ffx) {
       f=c(f, param[(nb_f$nb_ffn+1):nb_f$nb_ff]);
@@ -111,8 +111,8 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, f
       jx_f$fallnx<<-lres$fallnx;
 
       # find simulated scaled measure vector scale*(measmat*x)
-      jx_f$usimcumom<<-measmat%*%c(jx_f$x[imeas],1.);
-      simvec=c(1.,param)[ir2isc]*jx_f$usimcumom;
+      jx_f$usimcumom<<-(measmat%*%c(jx_f$x[imeas],1.))[,1];
+      simvec=jx_f$usimcumom*c(1.,param)[ir2isc];
 
       # diff between simulated and measured
       res=c((simvec-measvec), (jx_f$fallnx[ifmn]-fmn));
