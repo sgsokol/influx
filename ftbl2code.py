@@ -453,6 +453,8 @@ def netan2Rinit(netan, org, f, fullsys):
 
 # get some tools
 source("%(dirx)s/tools_ssg.R");
+source("%(dirx)s/nlsic.R");
+source("%(dirx)s/kvh.R");
 source("%(dirx)s/opt_cumo_tools.R");
 dyn.load("%(dirx)s/cumo.%(so)s");
 if (TIMEIT) {
@@ -497,7 +499,7 @@ initrand=FALSE;
 if (length(which(opts=="--irand"))) {
    initrand=TRUE;
 }
-clownr=1.e-5;
+clownr=0.;
 iopt=which(opts=="--clownr")
 if (length(iopt)) {
    val=as.numeric(opts[iopt+1]);
@@ -527,11 +529,15 @@ if (cupx < 0 || cupx > 1) {
    stop(paste("Option '--cupx N' must have N in the interval [0,1]\n",
       "Instead, the value ", cupx, " si given.", sep=""));
 }
-
 noscale=FALSE;
 iopt=which(opts=="--noscale")
 if (length(iopt)) {
    noscale=TRUE;
+}
+zerocross=FALSE;
+iopt=which(opts=="--zc")
+if (length(iopt)) {
+   zerocross=TRUE;
 }
 
 # minimization method
@@ -554,6 +560,13 @@ if (length(iopt)) {
    } else if(sensitive=="mc") {
       stop("Expecting an integer for number of processes after --np option")
    }
+}
+lsi_fun=lsi
+least_norm=F
+iopt=which(opts=="--ln")
+if (length(iopt)) {
+   lsi_fun=lsi_ln
+   least_norm=T
 }
 
 # end line argument proceeding
@@ -588,19 +601,56 @@ nb_xi=length(xi);
     netan2R_ineq(netan, org, f);
     f.write("""
 nb_sys=list(
-   free.fluxes=%(ff)s,
-   dependent.fluxes=%(depfl)s,
-   full.cumomer=c(%(lncumo)s),
-   reduced.cumomer=c(%(lnrcumo)s)
+   reactions=list(
+      reversible=%(rrev)s,
+      non_reversible=%(rnonrev)s
+   ),
+   fluxes=list(
+      free=%(ff)s,
+      dependent=%(fd)s,
+      constrained=%(fc)s
+   ),
+   metabolites=list(
+      input=%(minp)s,
+      output=%(moutp)s,
+      intra=%(mintra)s
+   ),
+   measurements=list(
+      flux=%(meas_f)s,
+      mass=%(meas_m)s,
+      peak=%(meas_p)s,
+      label=%(meas_l)s
+   ),
+   equations=list(
+      equalities=%(eqe)s,
+      inequalities=%(eqi)s
+   ),
+   cumomer=list(
+      full=c(%(lncumo)s),
+      reduced=c(%(lnrcumo)s)
+   )
 );
 # carbon length of metabolites
 clen=c(%(clen)s);
 names(clen)=c(%(nm_metab)s);
 """%{
+    "rrev": len(netan["reac"])-len(netan["notrev"]),
+    "rnonrev": len(netan["notrev"]),
     "ff": len(netan["flux_free"]["net"])+len(netan["flux_free"]["xch"]),
-    "depfl": len(netan["vflux"]["net"])+len(netan["vflux"]["xch"]),
+    "fd": len(netan["vflux"]["net"])+len(netan["vflux"]["xch"]),
+    "fc": len(netan["vflux_constr"]["net"])+len(netan["vflux_constr"]["xch"]),
+    "minp": len(netan["input"]),
+    "moutp": len(netan["output"]),
+    "mintra": len(netan["metabs"])-len(netan["input"])-len(netan["output"]),
+    "meas_f": len(netan["vflux_meas"]["net"]),
+    "meas_m": len(netan["measures"]["mass"]["vec"]),
+    "meas_p": len(netan["measures"]["peak"]["vec"]),
+    "meas_l": len(netan["measures"]["label"]["vec"]),
+    "eqe": len(netan["flux_equal"]["net"])+len(netan["flux_equal"]["xch"]),
+    "eqi": len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"]),
     "lncumo": ",".join(str(len(a)) for a in netan["cumo_sys"]["A"]),
     "lnrcumo": ",".join(str(len(a)) for a in netan["rcumo_sys"]["A"]),
+    
     "clen": join(",", netan["Clen"].values()),
     "nm_metab": join(",", netan["Clen"].keys(), '"', '"')
     });
@@ -1213,6 +1263,8 @@ def netan2R_ineq(netan, org, f):
 if (TIMEIT) {
    cat("ineq    : ", date(), "\n", sep="");
 }
+fallnx=param2fl(param, nb_f, invAfl, p2bfl, bp, fc)$fallnx
+names(fallnx)=nm_fallnx
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
 # to the inequalities given in ftbl file
@@ -1282,7 +1334,7 @@ if (nb_fx) {
     
     nb_notrev=len(netan["notrev"]);
     f.write("""
-if (clownr!=0) {
+if (clownr!=0.) {
    # add low limits on net >= clownr for not reversible reactions
    nb_tmp=nrow(mi);
    nm_tmp=c(%(nm_notrev)s);
@@ -1293,7 +1345,7 @@ if (clownr!=0) {
 }
 nb_fn=nb_fln+nb_ffn
 if (cupn != 0 && nb_fn) {
-   # add upper limits on [df].net <= 1.e5 for net fluxes
+   # add upper limits on [df].net <= cupn for net fluxes
    nb_tmp=nrow(mi);
    mi=rbind(mi, matrix(0, nrow=nb_fn, ncol=nb_fallnx));
    if (nb_fln)
@@ -1325,7 +1377,7 @@ names(li)=nm_i;
 # constraints such that ui%*%param[1:nb_ff]-ci>=0
 ui=mi%*%(md%*%invAfl%*%p2bfl+mf);
 ci=li-mi%*%(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc);
-
+#browser()
 # remove all zero rows in ui (constrained fluxes with fixed values)
 # find zero indexes
 #print(dim(ui))
