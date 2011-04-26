@@ -66,6 +66,7 @@
 # 2010-10-11 sokol: ftbl_netan(): added "id" field in measures
 # 2010-11-23 sokol: ftbl_netan(): added "nx2dfc" dictionary
 # 2010-12-02 sokol: ftbl_netan(): added growth flux option
+# 2011-04-20 sokol: cumo_infl(),...: not reversible fluxes are replaced by flux_out in cumomer balance
 import numpy as np;
 import re;
 import copy;
@@ -764,13 +765,15 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             # here metabolite is consumed in fwd reaction
             # and produced in the reverse one.
             res[metab]["out"].append("fwd."+reac);
-            if reac not in netan["notrev"]:
+            #if reac not in netan["notrev"]:
+            if reac not in netan["flux_out"]:
                 res[metab]["in"].append("rev."+reac);
         for reac in lr["right"]:
             # here metabolite is consumed in rev reaction
             # and produced in the forward one.
             res[metab]["in"].append("fwd."+reac);
-            if reac not in netan["notrev"]:
+            #if reac not in netan["notrev"]:
+            if reac not in netan["flux_out"]:
                 res[metab]["out"].append("rev."+reac);
 
     # metabolite network
@@ -817,7 +820,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 # 'out' part of this metab
                 fwd_rev=("fwd." if lr=="left" else "rev.");
                 flux=fwd_rev+reac;
-                if (fwd_rev=="fwd." or reac not in netan["notrev"]):
+                #if (fwd_rev=="fwd." or reac not in netan["notrev"]):
+                if (fwd_rev=="fwd." or reac not in netan["flux_out"]):
                     # add this out-flux;
                     # run through all cumomers of metab
                     for icumo in xrange(1,1<<Clen):
@@ -834,7 +838,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 fwd_rev=("rev." if lr=="left" else "fwd.");
                 flux=fwd_rev+reac;
                 in_lr=("left" if lr=="right" else "right");
-                if (fwd_rev=="rev." and reac in netan["notrev"]):
+                #if (fwd_rev=="rev." and reac in netan["notrev"]):
+                if (fwd_rev=="rev." and reac in netan["flux_out"]):
                     # this cannot be by definition
                     continue;
                 # add this in-flux;
@@ -1821,7 +1826,8 @@ def cumo_infl(netan, cumo):
                     in_cumo=in_metab+":"+str(in_icumo);
                     res.append((in_cumo, "fwd."+reac, imetab, iin_metab));
     # run through input reverse fluxes of this metab
-    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
+    #for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
+    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_out"]):
         # get all cstr for given metab
         for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["left"])
             if m==metab):
@@ -1840,7 +1846,8 @@ def infl(metab, netan):
     res=set("fwd."+reac for reac in netan["sto_m_r"][metab]["right"]);
     # run through input reverse fluxes of this metab
     res.update("rev."+reac for reac in
-        set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]));
+        set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_out"]));
+#        set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]));
     return(res);
 
 def t_iso2m(n):
