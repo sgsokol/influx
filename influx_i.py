@@ -122,10 +122,19 @@ ftbl2code.netan2R_ineq(netan, org, f);
 
 f.write("""
 # check if inequalities are satisfied
+#browser()
 if (! all(ui%*%param>=ci)) {
-   cat("The following inequalities are not satisfied. You should change 
-initial values of free fluxes in ftbl file.\\n", file=stderr());
-   cat(nm_i[ui%*%param<ci], sep="\\n", file=stderr());
+   warning(paste("The following inequalities are not satisfied. You should change 
+initial values of free fluxes in ftbl file:\\n",
+      paste(nm_i[ui%*%param<ci], collapse="\\n"), sep=""));
+   dp=ldp(ui, ci-ui%*%param, 1.e10)
+   if (is.null(dp)) {
+      stop("Infeasible inequalities")
+   }
+   i=which(abs(dp)>1.e-10)
+   warning(paste("The following values of free fluxes can fix the problem:\\nname\\told_value\\tnew_value\\n",
+      paste(paste(nm_ff[i], param[i], (param+dp)[i], sep="\\t"), collapse="\\n"),
+      sep=""))
 }
 """);
 f.write("""
@@ -169,9 +178,6 @@ plotx=function(x, plottype, ti, ...) {
 xi=c(%(xi)s);
 nm_xi=c(%(nm_xi)s);
 names(xi)=nm_xi;
-nm2=matrix(unlist(strsplit(nm_xi, ":", fixed=TRUE)), ncol=2, byrow=TRUE);
-o=order(nm2[,1], as.numeric(nm2[,2]));
-xi=xi[o];
 
 ## variables for isotopomer cinetics
 tstart=0.;
@@ -250,6 +256,7 @@ f.write("""
 # time 0 cumomers (are all unlabeled)
 #browser();
 xold=rep(0., sum(nb_cumos)+nb_xi+1);
+xold[1:(nb_xi+1)]=c(1., xi)
 names(xold)=nm_incuf;
 cat("time course cumomers\\n", file=fkvh);
 cat("\\trow_col", nm_incuf[o_acumo], file=fkvh, sep="\\t");
