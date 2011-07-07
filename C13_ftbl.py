@@ -1,5 +1,6 @@
-# - Parse .ftbl (flux defs for C13flux)
-# - Analyse ftbl
+"""- Parse .ftbl
+- Analyse ftbl
+"""
 
 # 2008-01-22 sokol: ftbl_parse(f)
 # 2008-01-25 sokol: ftbl_netan(ftbl)
@@ -67,13 +68,20 @@
 # 2010-11-23 sokol: ftbl_netan(): added "nx2dfc" dictionary
 # 2010-12-02 sokol: ftbl_netan(): added growth flux option
 # 2011-04-20 sokol: cumo_infl(),...: not reversible fluxes are replaced by flux_out in cumomer balance
+# 2011-04-27 sokol: ftbl_neta(): added flux_inout
+# 2011-04-27 sokol: cumo_infl(),...: not reversible fluxes are replaced by flux_inout in cumomer balance
 import numpy as np;
 import re;
 import copy;
-
-from tools_ssg import *;
+import os;
+import sys;
 
 werr=sys.stderr.write;
+me=os.path.realpath(sys.argv[0])
+dirx=os.path.dirname(me);
+sys.path.append(dirx);
+
+from tools_ssg import *;
 
 float_conv=set((
     "VALUE",
@@ -206,41 +214,43 @@ def ftbl_parse(f):
     return ftbl;
 
 def ftbl_netan(ftbl):
-    # analyse ftbl dictionary to find
-    # - network inputs (input)
-    # - network outputs (output)
-    # - substrates (subs)
-    # - products (prods)
-    # - metabolites (metabs)
-    # - reactions (reacs)
-    # - not reversible reactions (subset of reacs) (notrev)
-    # all above items are in named sets
-    # - stocheometric matrix (sto_r_m)
-    # - stocheometric matrix (sto_m_r)
-    # - fwd-rev flux matrix (flux_m_r)
-    # - cumomer balances (cumo_m_r_m)
-    # - carbon length (Clen)
-    # - reaction formula (formula)
-    # - metabolite network (metab_netw)
-    # - carbon transitions (carbotrans)
-    # - free fluxes (flux_free)
-    # - constrained fluxes (flux_constr)
-    # - measured fluxes (flux_measured)
-    # - input isotopomers (iso_input)
-    # - input cumomers (cumo_input)
-    # - flux inequalities (flux_ineqal)
-    # - flux equalities (flux_eqal)
-    # - label measures, H1 (label_meas)
-    # - peak measures, C13 (peak_meas)
-    # - mass measures (mass_meas)
-    # - cumomer ordered lists (vcumo)
-    # - unknown fluxes ordered lists (vflux)
-    # - linear problem on fluxes (Afl, bfl)
-    # - free fluxes ordered lists (vflux_free)
-    # - fw-rv fluxes ordered lists (vflux_fwrv)
-    # - row names ordered lists for Afl (vrowAfl)
-    # - in-out fluxes (flux_in, flux_out)
-
+    """
+    analyse ftbl dictionary to find
+     
+     - network inputs (input)
+     - network outputs (output)
+     - substrates (subs)
+     - products (prods)
+     - metabolites (metabs)
+     - reactions (reacs)
+     - not reversible reactions (subset of reacs) (notrev)
+       all above items are in named sets
+     - stocheometric matrix (sto_r_m)
+     - stocheometric matrix (sto_m_r)
+     - fwd-rev flux matrix (flux_m_r)
+     - cumomer balances (cumo_m_r_m)
+     - carbon length (Clen)
+     - reaction formula (formula)
+     - metabolite network (metab_netw)
+     - carbon transitions (carbotrans)
+     - free fluxes (flux_free)
+     - constrained fluxes (flux_constr)
+     - measured fluxes (flux_measured)
+     - input isotopomers (iso_input)
+     - input cumomers (cumo_input)
+     - flux inequalities (flux_ineqal)
+     - flux equalities (flux_eqal)
+     - label measures, H1 (label_meas)
+     - peak measures, C13 (peak_meas)
+     - mass measures (mass_meas)
+     - cumomer ordered lists (vcumo)
+     - unknown fluxes ordered lists (vflux)
+     - linear problem on fluxes (Afl, bfl)
+     - free fluxes ordered lists (vflux_free)
+     - fw-rv fluxes ordered lists (vflux_fwrv)
+     - row names ordered lists for Afl (vrowAfl)
+     - in-out fluxes (flux_in, flux_out)
+    """
     # init named sets
     netan={
         "input":set(),
@@ -283,6 +293,7 @@ def ftbl_netan(ftbl):
         "vrowAfl":[],
         "flux_in":set(),
         "flux_out":set(),
+        "flux_inout":set(),
         "opt": {},
         "met_pools": {},
         "nx2dfc": {},
@@ -420,6 +431,7 @@ def ftbl_netan(ftbl):
     # input and output flux names
     netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]));
     netan["flux_out"]=set(valval(netan["sto_m_r"][m]["right"] for m in netan["output"]));
+    netan["flux_inout"]=netan["flux_in"] | netan["flux_out"]
     #print "fl in + out="+str(netan["flux_in"])+"+"+str( netan["flux_out"]);##
 
     # analyse reaction reversibility
@@ -435,11 +447,11 @@ def ftbl_netan(ftbl):
         net=flx.get("NET");
 ##        aff("net", net);
     else:
-        werr(sys.argv[0]+": netan[FLUXES][XCH] is not defined");
+        werr(os.path.basename(me)+": netan[FLUXES][XCH] is not defined");
         #return None;
     #print "list reac=", netan["reac"];##
     try:
-        for reac in netan["reac"] | netan["flux_in"] | netan["flux_out"]:
+        for reac in netan["reac"] | netan["flux_inout"]:
             # get xch condition for this reac
             cond=[row for row in xch if row["NAME"]==reac];
             # get net condition for this reac
@@ -450,16 +462,16 @@ def ftbl_netan(ftbl):
             if len(cond) > 1:
                 raise Exception("FluxDef", "Reaction `%s` is over defined in exchange fluxes."%reac);
             if len(cond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
-                werr("in+out fluxes="+str(netan["flux_in"])+"+"+str(netan["flux_out"]));##
+                werr("in+out fluxes="+str(netan["flux_inout"]));##
                 raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in exchange fluxes."%reac);
             if cond:
                 cond=cond[0];
             if len(ncond) > 1:
                 raise Exception("FluxDef", "Reaction `%s` is over defined in net fluxes."%reac);
-            if len(ncond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
+            if len(ncond) == 0 and not (reac in (netan["flux_inout"])):
                 raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in net fluxes."%reac);
             if (len(ncond) == 0 and
-                (reac in (netan["flux_in"] | netan["flux_out"]) and
+                (reac in netan["flux_inout"] and
                 not reac in netan.get("flux_growth", ()))):
                 # input-output fluxes are by definition not reversible
                 netan["notrev"].add(reac);
@@ -477,18 +489,23 @@ def ftbl_netan(ftbl):
             # not reversibles are those reaction having xch flux=0 or
             # input/output fluxes
             try:
-                if (cond and cond["FCD"] == "C") or (reac in netan["flux_in"]) or \
-                        (reac in netan["flux_out"]):
-                    if (reac in (netan["flux_in"] | netan["flux_out"])) or \
+                if (cond and cond["FCD"] == "C") or (reac in netan["flux_inout"]):
+                    if (reac in netan["flux_inout"]) or \
                         (eval(cond["VALUE(F/C)"]) == 0.):
                         netan["notrev"].add(reac);
                         netan["flux_constr"]["xch"][reac]=0.;
                     else:
                         # not null constrained xch
-                        netan["flux_constr"]["xch"][reac]=eval(cond["VALUE(F/C)"]);
+                        val=eval(cond["VALUE(F/C)"])
+                        if val < 0. or val > 1.:
+                            raise Exception("FluxVal", "Constrained exchange flux`%s` must have value in [0; 1] interval.\nInstead, a value %f is given"%(reac, val));
+                        netan["flux_constr"]["xch"][reac]=val;
                 elif (cond and cond["FCD"] == "F"):
                     # free xch
-                    netan["flux_free"]["xch"][reac]=eval(cond["VALUE(F/C)"]);
+                    val=eval(cond["VALUE(F/C)"])
+                    if val < 0. or val > 1.:
+                        raise Exception("FluxVal", "Free exchange flux`%s` must have starting value in [0; 1] interval.\nInstead, a value %f is given"%(reac, val));
+                    netan["flux_free"]["xch"][reac]=val;
                 elif (cond and cond["FCD"] == "D"):
                     # dependent xch
                     netan["flux_dep"]["xch"].add(reac);
@@ -506,10 +523,10 @@ def ftbl_netan(ftbl):
     ##        aff("constr net", netan["flux_free"]["net"]);
     ##        aff("free xch", netan["flux_free"]["xch"]);
             except:
-                werr("Error occured in the following row of ftbl file:\n"+str(cond));
+                werr("Error occured on the row %d of ftbl file:\n"%cond["irow"]);
                 raise;
     except Exception as inst:
-        werr(": ".join(inst));
+        werr(": ".join(inst)+"\n");
     
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
@@ -766,14 +783,14 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             # and produced in the reverse one.
             res[metab]["out"].append("fwd."+reac);
             #if reac not in netan["notrev"]:
-            if reac not in netan["flux_out"]:
+            if reac not in netan["flux_inout"]:
                 res[metab]["in"].append("rev."+reac);
         for reac in lr["right"]:
             # here metabolite is consumed in rev reaction
             # and produced in the forward one.
             res[metab]["in"].append("fwd."+reac);
             #if reac not in netan["notrev"]:
-            if reac not in netan["flux_out"]:
+            if reac not in netan["flux_inout"]:
                 res[metab]["out"].append("rev."+reac);
 
     # metabolite network
@@ -821,7 +838,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 fwd_rev=("fwd." if lr=="left" else "rev.");
                 flux=fwd_rev+reac;
                 #if (fwd_rev=="fwd." or reac not in netan["notrev"]):
-                if (fwd_rev=="fwd." or reac not in netan["flux_out"]):
+                if (fwd_rev=="fwd." or reac not in netan["flux_inout"]):
                     # add this out-flux;
                     # run through all cumomers of metab
                     for icumo in xrange(1,1<<Clen):
@@ -839,7 +856,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 flux=fwd_rev+reac;
                 in_lr=("left" if lr=="right" else "right");
                 #if (fwd_rev=="rev." and reac in netan["notrev"]):
-                if (fwd_rev=="rev." and reac in netan["flux_out"]):
+                if (fwd_rev=="rev." and reac in netan["flux_inout"]):
                     # this cannot be by definition
                     continue;
                 # add this in-flux;
@@ -1179,8 +1196,8 @@ def cumo_path(starts, A, visited=set()):
     return res;
     
 def src_ind(substrate, product, iprod):
-    """src_ind(substrate, product, iprod)
-    For given substrate and product carbon strings (e.g. "abc", "ab")
+    """
+    For a given substrate and product carbon strings (e.g. "abc", "ab")
     calculate substrate index corresponding to product index.
     Return None if no source found.
     Return 0 if iprod==0 and intersection of product and substrate strings
@@ -1569,7 +1586,7 @@ def dom_cmp(A, i, j):
     (i influences j) , -1 if otherwise"""
     return (0 if i in A[j] and j in A[i] else 1 if i in A[j] else -1 if j in A[i] else 0);
 def mat2pbm(A, v, fp):
-    """Write an image map of on-zero entries of matrix A to file pointer fp.
+    """Write an image map of non-zero entries of matrix A to file pointer fp.
     Matrix A is a dictionnary, v is a list ordering keys of A."""
     fp.write("P1\n%d %d\n"% (len(A), len(A)));
     for i in v:
@@ -1827,7 +1844,7 @@ def cumo_infl(netan, cumo):
                     res.append((in_cumo, "fwd."+reac, imetab, iin_metab));
     # run through input reverse fluxes of this metab
     #for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
-    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_out"]):
+    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]):
         # get all cstr for given metab
         for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["left"])
             if m==metab):
@@ -1846,7 +1863,7 @@ def infl(metab, netan):
     res=set("fwd."+reac for reac in netan["sto_m_r"][metab]["right"]);
     # run through input reverse fluxes of this metab
     res.update("rev."+reac for reac in
-        set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_out"]));
+        set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]));
 #        set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]));
     return(res);
 
