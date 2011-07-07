@@ -1,12 +1,12 @@
 #!/bin/sh
 # wrapper script for minimizing static fluxes by R script
-# - generate .f and .R files by ftbl2optR.py
-# - compile .f in .so
+# - compile cumo.f in cumo.so (if needed)
+# - generate .R file by ftbl2optR.py
 # - start generated R script for minimization
 #
 # usage:
 # ./influx_s.sh [...] network[.ftbl]
-# optional extra params [...] are passed as is to R script
+# optional extra params [...] are passed as is to Python and R scripts
 function usage {
    cat <<EOS
 usage: ./influx_s.sh [options] network[.ftbl]
@@ -27,10 +27,10 @@ Options:
     Default is 10
  --cupx N
     upper limit for reverse fluxes. Must be in interval [0; 1].
-    Default is 0.99999
+    Default is 0.999
  --cupn N
     upper limit for net fluxes.
-    Default is 1.e5
+    Default is 1.e3
  --clownr N
     lower limit for not reversible free and dependent fluxes
     Default is 0, i.e. no lower limit
