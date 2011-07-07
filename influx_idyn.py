@@ -214,7 +214,7 @@ def OnExit(evt):
     under the 'File' menu or close the window.  We ask the user if he *really*
     want to exit, then close everything down if he does.
     """
-    dlg = wx.MessageDialog(None, 'Exit such a beautifull program?', 'I Need To Know!',
+    dlg = wx.MessageDialog(None, 'Exit now?', 'Need confirm',
                           wx.YES_NO | wx.ICON_QUESTION);
     if dlg.ShowModal() == wx.ID_YES:
         dlg.Destroy();
