@@ -1,186 +1,194 @@
 #!/usr/bin/env python
-#
-# Transform an ftbl to R code which will solve an optimization of flux analysis
-# problem min(S) over \Theta, where S=||Predicted-Observed||^2_\Sigma^2
-# and \Theta is a vector of free fluxes (net+xch) and scaling parameters.
-# Predicted vector is obtained from cumomer vector x (calculated from
-# free fluxes and divided in chunks according to the cumo weight) by
-# multiplying it by the measure matrices and scale factor, boths coming
-# from ftbl file. Observed values vector xo is extracted from ftbl file.
-# it is composed of flux and cumomer measures.
-# \Sigma^2, covariance diagonal matrices sigma[flux|mass|label|peak]
-# are orginated from ftbl
 
-# usage: ./ftbl2optR.py organism
-# where organism is the ftbl informative part of file name
-# (before .ftbl), e.g. organism.ftbl
-# after execution a file organism.R will be created.
-# If it already exists, it will be silently overwritten.
-# The system Afl*flnx=bfl is created from ftbl file.
-# 2008-07-11 sokol: initial version
-# 2009-03-18 sokol: interface homogenization for influx_sim package
-# 2010-10-16 sokol: fortran code is no more generated, R Matrix package is used
-#   for sparse matrices.
-
-# Important python variables:
-# Collections:
-#    netan - (dict) ftbl structured content;
-#    tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
-#    collection;
-#    measures - (dict) exp data;
-#    rAb - (list) reduced linear systems A*x_cumo=b by weight;
-#    scale - unique scale names;
-#    nrow - counts scale names;
-#    o_sc - ordered scale names;
-#    o_meas - ordered measure types;
-# org - (str) prefix of .ftbl  file like "PPP"
-# File names (str):
-#    n_ftbl (descriptor f_ftbl);
-#    n_R (R code) (f);
-#    n_fort (fortran code) (ff);
-# Counts: nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total),
-#         nb_ffn, nb_ffx (free fluxes)
-# Index translators:
-#    fwrv2i - flux names to index in R:fwrv;
-#    cumo2i - cumomer names to index in R:x;
-#    ir2isc - mapping measure rows indexes on scale index isc[meas]=ir2isc[meas][ir]
-# Vector names:
-#    cumos (list) - names of R:x;
-#    o_mcumos - cumomers involved in measures;
-
-# Important R variables:
-# Scalars:
-#    nb_w, nb_cumos, nb_fln, nb_flx, nb_fl (dependent or unknown fluxes),
-#    nb_ffn, nb_ffx, nb_ff (free fluxes),
-#    nb_fcn, nb_fcx, nb_fc (constrained fluxes),
-#    nb_ineq, nb_param, nb_fmn
-# Name vectors:
-#    nm_cumo, nm_fwrv, nm_fallnx, nm_fln, nm_flx, nm_fl, nm_par,
-#    nm_ffn, nm_ffx,
-#    nm_fcn, nm_fcx,
-#    nm_mcumo, nm_fmn
-# Numeric vectors:
-#    fwrv - all fluxes (fwd+rev);
-#    x - all cumomers (weight1+weight2+...);
-#    param - free flux net, free flux xch, scale label, scale mass, scale peak
-#    fcn, fcx, fc,
-#    bp - helps to construct the rhs of flux system
-#    xi -cumomer input vector
-#    fallnx - complete flux vector (constr+net+xch)
-#    bc - helps to construct fallnx
-#    li - inequality vector (mi%*%fallnx>=li)
-#    ir2isc - measur row to scale vector replicator
-#    ci - inequalities for param use (ui%*%param-ci>=0)
-#    measvec,
-#    measinvvar,
-#    imeas,
-#    fmn
-# Matrices:
-#    Afl, qrAfl, invAfl,
-#    p2bfl - helps to construct the rhs of flux system
-#    mf, md - help to construct fallnx
-#    mi - inequality matrix (ftbl content)
-#    ui - inequality matrix (ready for param use)
-#    measmat - measmat*(x[imeas];1)=vec of simulated not-yet-scaled measures
-# Functions:
-#    param2fl_x - translate param to flux and cumomer vector (initial approximation)
-#    cumo_cost - cost function (khi2)
-#    cumo_grad - finite difference gradient
-#    cumo_gradj - implicit derivative gradient
-
-import sys;
-import os;
-import time;
-import copy;
-import getopt;
-
-#sys.path.append("/home/sokol/dev/python");
-from tools_ssg import *;
-import C13_ftbl;
-try:
-    import psyco;
-    psyco.full();
-    #psyco.log();
-    #psyco.profile();
-except ImportError:
-    #print 'Psyco not installed, the program will just run slower'
-    pass;
-
-me=os.path.basename(sys.argv[0]);
-def usage():
-    sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--DEBUG] network_name[.ftbl]\n");
-
-#<--skip in interactive session
-try:
-    opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "DEBUG"]);
-except getopt.GetoptError, err:
-    #pass;
-    sys.stderr.write(str(err)+"\n");
-    usage();
-    #sys.exit(1);
-
-fullsys=False;
-DEBUG=False;
-for o,a in opts:
-    if o in ("-h", "--help"):
-        usage();
-        sys.exit(0);
-    elif o=="--cost":
-        cost=True;
-    elif o=="--fullsys":
-        fullsys=True;
-    elif o=="--DEBUG":
-        DEBUG=True;
-    else:
-        #assert False, "unhandled option";
-        # unknown options can come from shell
-        # which passes all options both to python and R scripts
-        # so just ignore unknown options
-        pass;
-#aff("args", args);##
-if len(args) != 1:
-    usage();
-    exit(1);
-org=args[0];
-
-# cut .ftbl if any
-if org[-5:]==".ftbl":
-    org=org[:-5];
-
-#-->
-#DEBUG=True;
-import ftbl2code;
-ftbl2code.DEBUG=DEBUG;
-#org="ex3";
-#org="PPP_exact";
-#DEBUG=True;
-if DEBUG:
-    import pdb;
-
-
-n_ftbl=org+".ftbl";
-n_R=org+".R";
-#n_fort=org+".f";
-f_ftbl=open(n_ftbl, "r");
-os.system("chmod u+w '%s' 2>/dev/null"%n_R);
-#os.system("chmod u+w '%s' 2>/dev/null"%n_fort);
-f=open(n_R, "w");
-#ff=open(n_fort, "w");
-
-# parse ftbl
-ftbl=C13_ftbl.ftbl_parse(f_ftbl);
-f_ftbl.close();
-
-# analyse network
-# reload(C13_ftbl);
-
-netan=C13_ftbl.ftbl_netan(ftbl);
-
-# write initialization part of R code
-ftbl2code.netan2Rinit(netan, org, f, fullsys);
-
-#f.write(
 """
+Transform an ftbl to R code which will solve an optimization of flux analysis
+problem min(S) over \Theta, where S=||Predicted-Observed||^2_\Sigma^2
+and \Theta is a vector of free fluxes (net+xch) and scaling parameters.
+Predicted vector is obtained from cumomer vector x (calculated from
+free fluxes and divided in chunks according to the cumo weight) by
+multiplying it by the measure matrices and scale factor, boths coming
+from ftbl file. Observed values vector xo is extracted from ftbl file.
+it is composed of flux and cumomer measures.
+\Sigma^2, covariance diagonal matrices sigma[flux|mass|label|peak]
+are orginated from ftbl
+
+usage: ./ftbl2optR.py organism
+where organism is the ftbl informative part of file name
+(before .ftbl), e.g. organism.ftbl
+after execution a file organism.R will be created.
+If it already exists, it will be silently overwritten.
+The system Afl*flnx=bfl is created from ftbl file.
+2008-07-11 sokol: initial version
+2009-03-18 sokol: interface homogenization for influx_sim package
+2010-10-16 sokol: fortran code is no more generated, R Matrix package is used
+  for sparse matrices.
+
+Important python variables:
+Collections:
+   netan - (dict) ftbl structured content;
+   tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
+   collection;
+   measures - (dict) exp data;
+   rAb - (list) reduced linear systems A*x_cumo=b by weight;
+   scale - unique scale names;
+   nrow - counts scale names;
+   o_sc - ordered scale names;
+   o_meas - ordered measure types;
+org - (str) prefix of .ftbl  file like "PPP"
+File names (str):
+   n_ftbl (descriptor f_ftbl);
+   n_R (R code) (f);
+   n_fort (fortran code) (ff);
+Counts: nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total),
+        nb_ffn, nb_ffx (free fluxes)
+Index translators:
+   fwrv2i - flux names to index in R:fwrv;
+   cumo2i - cumomer names to index in R:x;
+   ir2isc - mapping measure rows indexes on scale index isc[meas]=ir2isc[meas][ir]
+Vector names:
+   cumos (list) - names of R:x;
+   o_mcumos - cumomers involved in measures;
+
+Important R variables:
+Scalars:
+   nb_w, nb_cumos, nb_fln, nb_flx, nb_fl (dependent or unknown fluxes),
+   nb_ffn, nb_ffx, nb_ff (free fluxes),
+   nb_fcn, nb_fcx, nb_fc (constrained fluxes),
+   nb_ineq, nb_param, nb_fmn
+Name vectors:
+   nm_cumo, nm_fwrv, nm_fallnx, nm_fln, nm_flx, nm_fl, nm_par,
+   nm_ffn, nm_ffx,
+   nm_fcn, nm_fcx,
+   nm_mcumo, nm_fmn
+Numeric vectors:
+   fwrv - all fluxes (fwd+rev);
+   x - all cumomers (weight1+weight2+...);
+   param - free flux net, free flux xch, scale label, scale mass, scale peak
+   fcn, fcx, fc,
+   bp - helps to construct the rhs of flux system
+   xi -cumomer input vector
+   fallnx - complete flux vector (constr+net+xch)
+   bc - helps to construct fallnx
+   li - inequality vector (mi%*%fallnx>=li)
+   ir2isc - measur row to scale vector replicator
+   ci - inequalities for param use (ui%*%param-ci>=0)
+   measvec,
+   measinvvar,
+   imeas,
+   fmn
+Matrices:
+   Afl, qrAfl, invAfl,
+   p2bfl - helps to construct the rhs of flux system
+   mf, md - help to construct fallnx
+   mi - inequality matrix (ftbl content)
+   ui - inequality matrix (ready for param use)
+   measmat - measmat*(x[imeas];1)=vec of simulated not-yet-scaled measures
+Functions:
+   param2fl_x - translate param to flux and cumomer vector (initial approximation)
+   cumo_cost - cost function (khi2)
+   cumo_grad - finite difference gradient
+   cumo_gradj - implicit derivative gradient
+"""
+
+if __name__ == "__main__":
+    import sys;
+    import os;
+    import stat;
+    import time;
+    import copy;
+    import getopt;
+
+    me=os.path.realpath(sys.argv[0])
+    sys.path.append(os.path.dirname(me));
+    me=os.path.basename(me);
+
+    from tools_ssg import *;
+    import C13_ftbl;
+
+    try:
+        import psyco;
+        psyco.full();
+        #psyco.log();
+        #psyco.profile();
+    except ImportError:
+        #print 'Psyco not installed, the program will just run slower'
+        pass;
+
+    def usage():
+        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--DEBUG] network_name[.ftbl]\n");
+
+    #<--skip in interactive session
+    try:
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "DEBUG"]);
+    except getopt.GetoptError, err:
+        #pass;
+        sys.stderr.write(str(err)+"\n");
+        usage();
+        #sys.exit(1);
+
+    fullsys=False;
+    DEBUG=False;
+    for o,a in opts:
+        if o in ("-h", "--help"):
+            usage();
+            sys.exit(0);
+        elif o=="--cost":
+            cost=True;
+        elif o=="--fullsys":
+            fullsys=True;
+        elif o=="--DEBUG":
+            DEBUG=True;
+        else:
+            #assert False, "unhandled option";
+            # unknown options can come from shell
+            # which passes all options both to python and R scripts
+            # so just ignore unknown options
+            pass;
+    #aff("args", args);##
+    if len(args) != 1:
+        usage();
+        exit(1);
+    org=args[0];
+
+    # cut .ftbl if any
+    if org[-5:]==".ftbl":
+        org=org[:-5];
+
+    #-->
+    #DEBUG=True;
+    import ftbl2code;
+    ftbl2code.DEBUG=DEBUG;
+    #org="ex3";
+    #org="PPP_exact";
+    #DEBUG=True;
+    if DEBUG:
+        import pdb;
+
+
+    n_ftbl=org+".ftbl";
+    n_R=org+".R";
+    #n_fort=org+".f";
+    f_ftbl=open(n_ftbl, "r");
+    try:
+        os.chmod(n_R, stat.S_IWRITE);
+    except:
+        pass;
+    f=open(n_R, "w");
+
+    # parse ftbl
+    ftbl=C13_ftbl.ftbl_parse(f_ftbl);
+    f_ftbl.close();
+
+    # analyse network
+    # reload(C13_ftbl);
+
+    netan=C13_ftbl.ftbl_netan(ftbl);
+
+    # write initialization part of R code
+    ftbl2code.netan2Rinit(netan, org, f, fullsys);
+
+#    f.write(
+    """
 # output flux repartition
 cat("Dependent fluxes:\\n");
 if (nb_fln) {
@@ -204,7 +212,7 @@ if (nb_fcx) {
    print(paste(nm_fcx,"xch",sep="_"));
 }
 """
-f.write("""
+    f.write("""
 if (TIMEIT) {
    cat("preopt  : ", date(), "\n", sep="");
 }
@@ -214,16 +222,20 @@ ineq=ui%*%param-ci;
 if (any(ineq < 0.)) {
    cat("The following ", sum(ineq<0.), " ineqalities are not respected:\\n", sep="");
    print(ineq[ineq<0.,1]);
-   cat("Starting values are put in feasible domain:\\n", sep="");
-   #stop("Inequalities violated, cf. log file.");
    # put them inside
    dp=ldp(ui, -ineq);
-   names(param)=nm_par;
-   tmp=cbind(param[1:nb_ff], param[1:nb_ff]+1.001*dp[1:nb_ff]);
-   dimnames(tmp)=list(nm_par[1:nb_ff], c("old", "new"));
-   obj2kvh(tmp, "starting free fluxes");
-   # move starting point slightly inside of feasible domain
-   param=param+1.001*dp;
+   if (!is.null(dp)) {
+      cat("Starting values are put in feasible domain:\\n", sep="");
+      #stop("Inequalities violated, cf. log file.");
+      names(param)=nm_par;
+      tmp=cbind(param[1:nb_ff], param[1:nb_ff]+1.001*dp[1:nb_ff]);
+      dimnames(tmp)=list(nm_par[1:nb_ff], c("old", "new"));
+      obj2kvh(tmp, "starting free fluxes");
+      # move starting point slightly inside of feasible domain
+      param=param+1.001*dp;
+   } else {
+      stop("Infeasible inequalities.");
+   }
 }
 # inequalities to keep sens of net flux on first call to opt_wwrapper()
 # if active they are removed on the second call to opt_wrapper()
@@ -256,7 +268,7 @@ if (nb_fn && zerocross) {
 
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
 # for corresponding measures
-vr=param2fl_x(param, cjac=FALSE, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAb);
+vr=param2fl_x(param, cjac=FALSE, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAb);
 if (!is.null(vr$err) && vr$err) {
    stop(vr$mes);
 }
@@ -293,17 +305,19 @@ if (any(abs(ineq)<=1.e-10)) {
 }
 """);
 
-f.write("""
+    f.write("""
 # formated output in kvh file
 fkvh=file("%(org)s_res.kvh", "w");
 """%{
     "org": org,
 });
-# main part: call optimization
-f.write("""
+    # main part: call optimization
+    f.write("""
+cat("influx\\n", file=fkvh);
+cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="");
 # save options of command line
-cat("command line\\n", file=fkvh);
-obj2kvh(opts, "opts", fkvh, indent=1);
+cat("\\tR command line\\n", file=fkvh);
+obj2kvh(opts, "opts", fkvh, indent=2);
 
 # resume system sizes
 obj2kvh(nb_sys, "system sizes", fkvh);
@@ -342,11 +356,11 @@ n=length(f);
 names(f)=nm_fallnx;
 obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1);
 
-rres=cumo_resid(param, cjac=TRUE, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+rres=cumo_resid(param, cjac=TRUE, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1);
 
-rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+rcost=cumo_cost(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
 obj2kvh(rcost, "starting cost value", fkvh, indent=1);
 
 obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1);
@@ -361,56 +375,57 @@ obj2kvh(measvec, "measure vector", fkvh, indent=1);
 
 names(param)=nm_par;
 """);
-f.write("""
+    f.write("""
 control_ftbl=list(%(ctrl_ftbl)s);
 """%{
     "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].iteritems() if k.startswith("optctrl_"))),
 })
-f.write("""
-opt_wrapper=function(measvec, fmn) {
+    f.write("""
+opt_wrapper=function(measvec, fmn, trace=1) {
    if (method == "BFGS") {
-      control=list(maxit=500, trace=1);
+      control=list(maxit=500, trace=trace);
       control[names(control_ftbl)]=control_ftbl;
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-5, control,
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
-         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spAb);
    } else if (method == "Nelder-Mead") {
-      control=list(maxit=1000, trace=1);
+      control=list(maxit=1000, trace=trace);
       control[names(control_ftbl)]=control_ftbl;
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
-         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spAb);
    } else if (method == "SANN") {
-      control=list(maxit=1000, trace=1);
+      control=list(maxit=1000, trace=trace);
       control[names(control_ftbl)]=control_ftbl;
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="SANN", outer.iterations=100, outer.eps=1e-07,
-         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spAb);
    } else if (method == "nlsic") {
-      control=list(trace=1, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5);
+      control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
+         ci=list(report=F));
       control[names(control_ftbl)]=control_ftbl;
       res=nlsic(param, cumo_resid, 
          ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
-         nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
          spAb);
       if (res$err || is.null(res$par)) {
          # store res in kvh
          obj2kvh(res, "optimization aborted here", fkvh);
-         cat(res$mes, "\n", file=stderr(), sep="");
+         warning(res$mes);
          res$par=rep(NA, length(param))
          res$cost=NA
       } else if (nchar(res$mes)) {
-         cat(res$mes, "\n", file=stderr(), sep="");
+         warning(res$mes);
       }
    } else {
       stop(paste("Unknown minimization method '", method, "'", sep=""));
@@ -435,7 +450,7 @@ if (optimize) {
    if (TIMEIT) {
       cat("optim   : ", date(), "\n", sep="");
    }
-   # pass control to the true method
+   # pass control to the chosen optimization method
    res=opt_wrapper(measvec, fmn);
 #browser()
    if (zerocross && !is.null(mi_keep)) {
@@ -472,8 +487,8 @@ if (any(ine)) {
    obj2kvh(nm_i[ine], "active inequality constraints", fkvh);
 }
 #browser();
-rcost=cumo_cost(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
-rres=cumo_resid(param, cjac=T, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+rcost=cumo_cost(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
 obj2kvh(rcost, "final cost", fkvh);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "(simulated-measured)/sd_exp", fkvh);
@@ -483,9 +498,9 @@ obj2kvh(gr, "gradient vector", fkvh);
 obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh);
 
 if (fullsys) {
-   v=param2fl_x(param, cjac=F, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb_f);
+   v=param2fl_x(param, cjac=F, nb_f, nm_list, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb_f);
 } else {
-   v=param2fl_x(param, cjac=F, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAb);
+   v=param2fl_x(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAb);
 }
 x=v$x;
 if (fullsys) {
@@ -526,7 +541,7 @@ if (sensitive=="mc") {
       cat("monte-ca: ", date(), "\n", sep="");
    }
    # Monte-Carlo simulation in parallel way
-   library(multicore, warn.conflicts=F, verbose=F);
+   mc_inst=library(multicore, warn.conflicts=F, verbose=F, logical.return=T);
    invar=c(measinvvar, invfmnvar);
    simcumom=c(1.,param)[ir2isc]*jx_f$usimcumom;
    simfmn=f[nm_fmn];
@@ -542,21 +557,32 @@ if (sensitive=="mc") {
       } else {
          fmn_mc=c();
       }
-      cat("imc=", i, "\n", sep="");
+      #cat("imc=", i, "\\n", sep="");
       # minimization
-      res=opt_wrapper(meas_mc, fmn_mc);
+      res=opt_wrapper(meas_mc, fmn_mc, trace=0);
       # return the solution
       return(list(cost=sum(jx_f$res*jx_f$res), par=res$par));
    }
    # parallel execution
-   mc_res=mclapply(1:nmc, mc_sim);
-   free_mc=matrix(unlist(mc_res), ncol=nmc);
+   if (mc_inst) {
+      mc_res=mclapply(1:nmc, mc_sim);
+   } else {
+      mc_res=lapply(1:nmc, mc_sim);
+   }
+   # strip failed mc iterations
+   free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost)) { ret=rep(NA, nb_param+1) } else { ret=c(l$cost, l$par) }; ret });
+   if (length(free_mc)==0) {
+      warning("Parallel exectution of Monte-Carlo simulations has failed.")
+      free_mc=matrix(NA, nb_param+1, 0)
+   }
    cost_mc=free_mc[1,];
    free_mc=free_mc[-1,,drop=F];
    # remove failed m-c iterations
    ifa=which(is.na(free_mc[1,]))
    if (length(ifa)) {
-      warning("Some Monte-Carlo iterations failed.")
+      if (ncol(free_mc)>length(ifa)) {
+         warning("Some Monte-Carlo iterations failed.")
+      }
       free_mc=free_mc[,-ifa,drop=F]
       cost_mc=cost_mc[-ifa]
       nmc=length(cost_mc)
@@ -566,6 +592,10 @@ if (sensitive=="mc") {
    cat("monte-carlo\n", file=fkvh);
    indent=1;
    obj2kvh(nmc, "sample number", fkvh, indent);
+   avaco=multicore:::detectCores(all.tests=(.Platform$OS.type != "windows"))
+   obj2kvh(avaco, "available cores", fkvh, indent);
+   obj2kvh(min(avaco, options("cores")$cores, na.rm=T), "used cores", fkvh, indent);
+   # cost section in kvh
    cat("\tcost\n", file=fkvh);
    indent=2;
    obj2kvh(mean(cost_mc), "mean", fkvh, indent);
@@ -573,6 +603,7 @@ if (sensitive=="mc") {
    obj2kvh(sd(cost_mc), "sd", fkvh, indent);
    obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent);
    obj2kvh(quantile(cost_mc, c(0.025, 0.975)), "ci", fkvh, indent);
+   # free parameters section in kvh
    cat("\tfree parameters\n", file=fkvh);
    indent=2;
    # param stats
@@ -597,55 +628,57 @@ if (sensitive=="mc") {
       "relative 95% confidence intervals (%)", fkvh, indent);
    
    # net-xch01 stats
-   fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, invAfl, p2bfl, bp, fc)$fallnx);
-   fallnx=param2fl(param, nb_f, invAfl, p2bfl, bp, fc)$fallnx;
-   dimnames(fallnx_mc)[[1]]=nm_fallnx;
-   cat("\tall net-xch01 fluxes\n", file=fkvh);
-   # mean
-   obj2kvh(apply(fallnx_mc, 1, mean), "mean", fkvh, indent);
-   # meadian
-   parmed=apply(fallnx_mc, 1, median);
-   obj2kvh(parmed, "median", fkvh, indent);
-   # covariance matrix
-   covmc=cov(t(fallnx_mc));
-   obj2kvh(covmc, "covariance", fkvh, indent);
-   # sd
-   sdmc=sqrt(diag(covmc));
-   obj2kvh(sdmc, "sd", fkvh, indent);
-   obj2kvh(sdmc*100/abs(fallnx), "rsd (%)", fkvh, indent);
-   # confidence intervals
-   ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)));
-   ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
-   dimnames(ci_mc)[[2]][3]="length";
-   obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
-   obj2kvh((ci_mc-cbind(fallnx, fallnx, 0))*100/abs(fallnx),
-      "relative 95% confidence intervals (%)", fkvh, indent);
+   fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx);
+   fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx;
+   if (length(fallnx_mc)) {
+      dimnames(fallnx_mc)[[1]]=nm_fallnx;
+      cat("\\tall net-xch01 fluxes\n", file=fkvh);
+      # mean
+      obj2kvh(apply(fallnx_mc, 1, mean), "mean", fkvh, indent);
+      # meadian
+      parmed=apply(fallnx_mc, 1, median);
+      obj2kvh(parmed, "median", fkvh, indent);
+      # covariance matrix
+      covmc=cov(t(fallnx_mc));
+      obj2kvh(covmc, "covariance", fkvh, indent);
+      # sd
+      sdmc=sqrt(diag(covmc));
+      obj2kvh(sdmc, "sd", fkvh, indent);
+      obj2kvh(sdmc*100/abs(fallnx), "rsd (%)", fkvh, indent);
+      # confidence intervals
+      ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)));
+      ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
+      dimnames(ci_mc)[[2]][3]="length";
+      obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
+      obj2kvh((ci_mc-cbind(fallnx, fallnx, 0))*100/abs(fallnx),
+         "relative 95% confidence intervals (%)", fkvh, indent);
 
-   # fwd-rev stats
-   fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, invAfl, p2bfl, bp, fc)$fwrv);
-   dimnames(fwrv_mc)[[1]]=nm_fwrv;
-   cat("\tforward-reverse fluxes\n", file=fkvh);
-   # mean
-   obj2kvh(apply(fwrv_mc, 1, mean), "mean", fkvh, indent);
-   # meadian
-   parmed=apply(fwrv_mc, 1, median);
-   obj2kvh(parmed, "median", fkvh, indent);
-   # covariance matrix
-   covmc=cov(t(fwrv_mc));
-   obj2kvh(covmc, "covariance", fkvh, indent);
-   # sd
-   sdmc=sqrt(diag(covmc));
-   obj2kvh(sdmc, "sd", fkvh, indent);
-   obj2kvh(sdmc*100/abs(fwrv), "rsd (%)", fkvh, indent);
-   # confidence intervals
-   ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)));
-   ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
-   dimnames(ci_mc)[[2]][3]="length";
-   obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
-   obj2kvh((ci_mc-cbind(fwrv, fwrv, 0))*100/abs(fwrv),
-      "relative 95% confidence intervals (%)", fkvh, indent);
+      # fwd-rev stats
+      fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fwrv);
+      dimnames(fwrv_mc)[[1]]=nm_fwrv;
+      cat("\tforward-reverse fluxes\n", file=fkvh);
+      # mean
+      obj2kvh(apply(fwrv_mc, 1, mean), "mean", fkvh, indent);
+      # meadian
+      parmed=apply(fwrv_mc, 1, median);
+      obj2kvh(parmed, "median", fkvh, indent);
+      # covariance matrix
+      covmc=cov(t(fwrv_mc));
+      obj2kvh(covmc, "covariance", fkvh, indent);
+      # sd
+      sdmc=sqrt(diag(covmc));
+      obj2kvh(sdmc, "sd", fkvh, indent);
+      obj2kvh(sdmc*100/abs(fwrv), "rsd (%)", fkvh, indent);
+      # confidence intervals
+      ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)));
+      ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
+      dimnames(ci_mc)[[2]][3]="length";
+      obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
+      obj2kvh((ci_mc-cbind(fwrv, fwrv, 0))*100/abs(fwrv),
+         "relative 95% confidence intervals (%)", fkvh, indent);
+   }
 } else if (length(sensitive) && nchar(sensitive)) {
-   stop(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""));
+   warning(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""));
 }
 
 if (TIMEIT) {
@@ -653,8 +686,8 @@ if (TIMEIT) {
 }
 # Linear method based on jacobian x_f
 # reset fluxes and jacobians according to param
-rres=cumo_resid(param, cjac=T, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
-#grj=cumo_gradj(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+#grj=cumo_gradj(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
 if (DEBUG) {
    library(numDeriv); # for numerical jacobian
    # numerical simulation
@@ -663,12 +696,12 @@ if (DEBUG) {
       c(r$res);
    }
    #dr_dpn=jacobian(rj, param, method="Richardson", method.args=list(),
-   #   nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
-   dx_dfn=num_jacob(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
-   dr_dp=num_fjacob(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+   #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+   dx_dfn=num_jacob(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
+   dr_dp=num_fjacob(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
    # to compare with jx_f$dr_dp
-   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
-   grn=cumo_grad(param, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+   grn=cumo_grad(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
 #browser();
 }
 
@@ -679,9 +712,9 @@ if (inherits(covff, "try-error")) {
    # matrix seems to be singular
    svi=svd(invcov);
    i=svi$d/svi$d[1]<1.e-14;
-   ibad=apply(svi$u[, i, drop=F], 2, which.max);
-   cat("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-      paste(nm_ff[ibad], collapse="\\n"), "\\n", sep="", file=stderr());
+   ibad=apply(abs(svi$v[, i, drop=F]), 2, which.max);
+   warning(paste("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
+      paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see '/linear stats/val, sd, rsd free fluxes (sorted by name)' field in the result file.\\nRegularized covariance matrix is used.", sep=""));
    # regularize and inverse
    covff=solve(invcov+diag(1.e-14*svi$d[1], nrow(invcov)));
 }
@@ -691,8 +724,8 @@ sdff=sqrt(diag(covff));
 cat("linear stats\\n", file=fkvh);
 mtmp=cbind(param[1:nb_ff], sdff, sdff/abs(param[1:nb_ff]));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
-o=order(mtmp[,"rsd"]);
-obj2kvh(mtmp[o,], "val, sd, rsd free fluxes (sorted by rsd)", fkvh, indent=1);
+o=order(nm_ff);
+obj2kvh(mtmp[o,], "val, sd, rsd free fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covff, "covariance free fluxes", fkvh, indent=1);
 
 # sd dependent net-xch01 fluxes
@@ -700,9 +733,8 @@ covfl=dfl_dff%*%covff%*%t(dfl_dff);
 sdfl=sqrt(diag(covfl));
 mtmp=cbind(flnx, sdfl, sdfl/abs(flnx));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
-o=order(mtmp[,"rsd"]);
-obj2kvh(mtmp[o,], "val, sd, rsd dependent net-xch01 fluxes (sorted by rsd)", fkvh, indent=1);
-obj2kvh(sdfl, "sd net-xch01 fluxes", fkvh, indent=1);
+o=order(nm_fl);
+obj2kvh(mtmp[o,], "val, sd, rsd dependent net-xch01 fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covfl, "covariance net-xch01 fluxes", fkvh, indent=1);
 
 # sd of all fwd-rev
@@ -710,9 +742,8 @@ covf=jx_f$df_dff%*%covff%*%t(jx_f$df_dff);
 sdf=sqrt(diag(covf));
 mtmp=cbind(fwrv, sdf, sdf/abs(fwrv));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
-o=order(mtmp[,"rsd"]);
-obj2kvh(mtmp[o,], "val, sd, rsd fwd-rev fluxes", fkvh, indent=1);
-obj2kvh(sdf, "sd fwd-rev fluxes", fkvh, indent=1);
+o=order(nm_fwrv);
+obj2kvh(mtmp[o,], "val, sd, rsd fwd-rev fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1);
 
 # select best defined flux combinations
@@ -748,8 +779,6 @@ if (TIMEIT) {
 }
 """);
 
-f.close();
-#ff.close();
-# make output files just readable to avoid later casual edition
-os.system("chmod a-w '%s'"%n_R);
-#os.system("chmod a-w '%s'"%n_fort);
+    f.close();
+    # make output files just readable to avoid later casual edition
+    os.chmod(n_R, stat.S_IREAD);
