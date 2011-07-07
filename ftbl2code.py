@@ -6,19 +6,21 @@
 # 2008-12-08 sokol@insa-toulouse.fr : added netan2Rinit()
 # 2008-11-25 sokol@insa-toulouse.fr : adapted for reduced cumomer list
 # 2008-09-19 sokol@insa-toulouse.fr : initial release
-# Copyright 2008 INSA/INRA UMR792, MetaSys
+# Copyright 2011, INRA
 import time;
-from tools_ssg import *;
-import C13_ftbl;
 import copy;
 import os;
 import sys;
-import platform;
 from operator import itemgetter;
 from itertools import groupby;
 
 global DEBUG;
-dirx=os.path.dirname(sys.argv[0]);
+me=os.path.realpath(sys.argv[0]);
+dirx=os.path.dirname(me);
+sys.path.append(dirx);
+
+from tools_ssg import *;
+import C13_ftbl;
 
 def fwrap(text, comment=False):
     """Wraps the text in fortran style, i.e. last char at colomn 72 and
@@ -341,7 +343,6 @@ nb_c=%(nbc)d;
         ncucumo+=ncumo;
 
 def netan2Rinit(netan, org, f, fullsys):
-    global DEBUG;
     """netan2Rinit(netan, org, f, fullsys)
     Write R code for initialization of all variables before
     cumomer system resolution by khi2 minimization.
@@ -355,6 +356,7 @@ def netan2Rinit(netan, org, f, fullsys):
         "cumo2i": cumo2i,
         ...
     """
+    global DEBUG;
     # Important python variables:
     # Collections:
     #    netan - (dict) ftbl structured content;
@@ -451,33 +453,66 @@ def netan2Rinit(netan, org, f, fullsys):
     res={};
     f.write("""
 
-# get some tools
+# get some common tools
 source("%(dirx)s/tools_ssg.R");
 source("%(dirx)s/nlsic.R");
 source("%(dirx)s/kvh.R");
-source("%(dirx)s/opt_cumo_tools.R");
-dyn.load("%(dirx)s/cumo.%(so)s");
-if (TIMEIT) {
-   cat("rinit   : ", date(), "\n", sep="");
-}
-# get runtime arguments if not already set
-# opts=strsplit("--sens mc=10", " ")[[1]];
-if (length(find("opts"))==0) {
-   opts=commandArgs();
-}
-# profile or not profile?
-prof=(length(which(opts=="--prof")) > 0);
 
-# is there a method for sensitivity matrix calculation?
-sensitive=which(opts=="--sens");
-if (length(sensitive)) {
-   sensitive=opts[sensitive[1]+1];
-} else {
-   sensitive=""; # no sensitivity matrix calculation
+# get runtime arguments
+# argument proceeding by optparse package
+suppressPackageStartupMessages(library("optparse"))
+
+# specify our desired options in a list
+# by default OptionParser will add an help option equivalent to 
+# make_option(c("-h", "--help"), action="store_true", default=FALSE, 
+#               help="Show this help message and exit")
+option_list <- list(
+   make_option("--version", default=F, action="store_true", dest="myver",
+       help="show program's version number and exit"),
+   make_option("--noopt", default=T, action="store_false", dest="optimize",
+       help="no optimization, just use free fluxes as is, to calculate dependent fluxes, cumomers, stats and so on"),
+   make_option("--noscale", default=F, action="store_true",
+       help="no scaling factors to optimize => all scaling factors are 1"),
+   make_option("--meth", default="nlsic", dest="method",
+       help="method for optimization, one of BFGS|Nelder-Mead|nlsic. Default: %%default"),
+   make_option("--fullsys", default=F, action="store_true",
+       help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)"),
+   make_option("--irand", default=F, action="store_true", dest="initrand",
+       help="ignore initial approximation from FTBL file and use random values instead"),
+   make_option("--sens", default="", metavar="mc=N", dest="sensitive",
+       help="sensitivity method: mc=N, mc stands for Monte-Carlo. N is the number of Monte-Carlo simulations. Default: 10"),
+   make_option("--cupx", default=0.999, type="double",
+       help="upper limit for reverse fluxes. Must be in interval [0, 1]"),
+   make_option("--cupn", default=1.e3, type="double",
+       help="upper limit for net fluxes"),
+   make_option("--clownr", default=0, type="double",
+       help="lower limit for not reversible free and dependent fluxes. Zero value means no lower limit"),
+   make_option("--np", default=0, type="integer",
+       help="Number of parallel process used in Monte-Carlo simulations
+       Without this option or for NP=0 all available cores in a given node are used"),
+   make_option("--ln", default=F, action="store_true", dest="least_norm",
+       help="Least norm solution is proposed when Jacobian is rank deficient"),
+   make_option("--zc", default=F, action="store_true", dest="zerocross",
+       help="Apply zero crossing strategy for net fluxes"),
+   make_option("--DEBUG", default=F, action="store_true",
+       help="developer option"),
+   make_option("--TIMEIT", default=F, action="store_true",
+       help="developer option"),
+   make_option("--prof", default=F, action="store_true",
+       help="developer option")
+)
+#opt <- parse_args(OptionParser(option_list=option_list), args=strsplit("--sens mc=10", " ")[[1]])
+if (!length(find("opt"))) {
+   opt <- parse_args(OptionParser(option_list=option_list))
 }
-if (is.na(sensitive)) {
-   sensitive=""; # no sensitivity matrix calculation
+#print(opt)
+attach(opt, warn=F)
+vernum="%(vernum)s"
+if (myver) {
+   cat("%(prog)s %(vernum)s\\n")
+   q("no")
 }
+# sanity check for command line parameters
 if (substring(sensitive, 1, 3)=="mc=") {
    # read the mc iteration number
    nmc=as.integer(substring(sensitive, 4));
@@ -485,91 +520,34 @@ if (substring(sensitive, 1, 3)=="mc=") {
 } else if (sensitive=="mc") {
    nmc=10;
 }
-#cat("sens=", sensitive, "\\n");
-optimize=TRUE;
-argopt=which(opts=="--noopt");
-if (length(argopt)) {
-   optimize=FALSE;
-}
-fullsys=FALSE;
-if (length(which(opts=="--fullsys"))) {
-   fullsys=TRUE;
-}
-initrand=FALSE;
-if (length(which(opts=="--irand"))) {
-   initrand=TRUE;
-}
-clownr=0.;
-iopt=which(opts=="--clownr")
-if (length(iopt)) {
-   val=as.numeric(opts[iopt+1]);
-   if (!is.na(val)) {
-      clownr=val;
-   }
-}
-cupn=1.e5;
-iopt=which(opts=="--cupn")
-if (length(iopt)) {
-   val=as.numeric(opts[iopt+1]);
-   if (!is.na(val)) {
-      cupn=val;
-   }
-}
-cupx=1-1.e-5;
-iopt=which(opts=="--cupx")
-if (length(iopt)) {
-   val=as.numeric(opts[iopt+1]);
-   if (!is.na(val)) {
-      cupx=val;
-   }
-}
 # cupx==0 means no upper limit => cupx=1
 cupx=ifelse(cupx, cupx, 1);
 if (cupx < 0 || cupx > 1) {
    stop(paste("Option '--cupx N' must have N in the interval [0,1]\n",
       "Instead, the value ", cupx, " si given.", sep=""));
 }
-noscale=FALSE;
-iopt=which(opts=="--noscale")
-if (length(iopt)) {
-   noscale=TRUE;
-}
-zerocross=FALSE;
-iopt=which(opts=="--zc")
-if (length(iopt)) {
-   zerocross=TRUE;
-}
-
 # minimization method
 validmethods=list("BFGS", "Nelder-Mead", "SANN", "nlsic");
-method=which(opts=="--meth");
-if (length(method)) {
-   method=opts[method[1]+1];
-   if (! method %%in%% validmethods) {
-      warning(paste("method", method, "is not known."));
-      method="nlsic";
-   }
-} else {
+if (! method %%in%% validmethods) {
+   warning(paste("method", method, "is not known. 'nlsic' is used instead."));
    method="nlsic";
 }
-iopt=which(opts=="--np")
-if (length(iopt)) {
-   val=as.numeric(opts[iopt+1]);
-   if (!is.na(val)) {
-      options(cores=val);
-   } else if(sensitive=="mc") {
-      stop("Expecting an integer for number of processes after --np option")
-   }
+if (np) {
+   options(cores=np);
 }
 lsi_fun=lsi
-least_norm=F
-iopt=which(opts=="--ln")
-if (length(iopt)) {
+if (least_norm) {
    lsi_fun=lsi_ln
-   least_norm=T
 }
+opts=commandArgs()
+# end command line argument proceeding
 
-# end line argument proceeding
+# get some cumomer tools
+source("%(dirx)s/opt_cumo_tools.R");
+dyn.load("%(dirx)s/cumo.%(so)s");
+if (TIMEIT) {
+   cat("rinit   : ", date(), "\n", sep="");
+}
 
 # R profiling
 if (prof) {
@@ -585,9 +563,11 @@ nb_xi=length(xi);
     "nm_xi": join(", ", netan["cumo_input"].keys(), '"', '"'),
 #        "sofile": escape(os.path.basename(ff.name)[:-1]+
 #            ("dll" if platform.system() == "windows" else "so"), "\\"),
-        "dirx": escape(dirx, "\\"),
-        "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
-        "so": ("dll" if platform.system() == "windows" else "so"),
+    "dirx": escape(dirx, "\\"),
+    "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
+    "so": ("dll" if sys.platform in ("win32","cygwin") else "dylib" if sys.platform == "darwin" else "so"),
+    "prog": os.path.basename(f.name),
+    "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
 });
     netan2R_fl(netan, org, f);
     d=netan2R_rcumo(netan, org, f);
@@ -761,6 +741,8 @@ nm_flx=c(%(nm_flx)s);
 nb_flx=length(nm_flx);
 nm_fl=c(nm_fln, nm_flx);
 nb_fl=nb_fln+nb_flx;
+# gather flux names in a list
+nm_list=list(flnx=nm_fl, fallnx=nm_fallnx, fwrv=nm_fwrv);
 # flux matrix
 nb_flr=%(nb_flr)d;
 if (nb_fl) {
@@ -789,37 +771,6 @@ if (DEBUG) {
    library(MASS);
    write.matrix(Afl, file="dbg_Afl.txt", sep="\\t");
 }
-if (nrow(Afl) != ncol(Afl)) {
-   write.table(Afl);
-   if (nrow(Afl) < ncol(Afl)) {
-      q=qr(Afl);
-      mes=paste("Candidates for free fluxe(s):\\n",
-         paste(colnames(Afl)[q$pivot[-(1:q$rank)]], collapse="\\n"),
-         sep="");
-   } else {
-      mes=paste("There is (are) probably ", nrow(Afl)-ncol(Afl),
-         " extra free flux(es).", sep="");
-   }
-   stop(paste("Flux matrix is not square: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
-      "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
-      mes, sep=""));
-}
-
-qrAfl=qr(Afl);
-
-# make sure that free params choice leads to not singular matrix
-if (qrAfl$rank != nb_fl) {
-   write.table(Afl);
-   stop(paste("Flux matrix is singular.\\n",
-      "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
-      "Can not resolve fluxe(s):\\n",
-      paste(colnames(Afl)[-qrAfl$pivot[(1:qrAfl$rank)]], collapse="\\n"),
-      sep=""));
-}
-
-# inverse flux matrix
-invAfl=solve(qrAfl);
-
 # prepare param (\Theta) vector
 # order: free flux net, free flux xch, scale label, scale mass, scale peak
 param=numeric(0);
@@ -870,9 +821,7 @@ nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
    nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,
    nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,
    nb_fallnx=nb_fallnx);
-
-""" % {
-    "n_ftbl": escape(org+".ftbl", "\\"),
+"""%{
     "nm_rows": join(", ", netan["vrowAfl"], '"', '"'),
     "nb_ffn": nb_ffn,
     "nb_ffx": nb_ffx,
@@ -890,7 +839,7 @@ nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
         for fl in netan["vflux_constr"]["net"]]),
     "fcx": join(", ", [netan["flux_constr"]["xch"][fl]
         for fl in netan["vflux_constr"]["xch"]]),
-    });
+});
     f.write("""
 # prepare p2bfl, c2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
 # c2bfl%*%fc+cnst2bfl=bfl
@@ -919,9 +868,89 @@ cnst2bfl[%(i)d]=%(rowcnst)s;\n\
         });
     f.write("""
 bp=c2bfl%*%fc+cnst2bfl;
+""");
 
+    f.write("""
+qrAfl=qr(Afl, LAPACK=T);
+d=diag(qrAfl$qr);
+qrAfl$rank=sum(abs(d)>=abs(d[1]*1.e-10))
+#browser()
+if (nrow(Afl) != ncol(Afl)) {
+   #write.table(Afl);
+   if (nrow(Afl) < ncol(Afl)) {
+      mes=paste("Candidate(s) for free flux(es):\\n",
+         paste(colnames(Afl)[-qrAfl$pivot[1:nrow(Afl)]], collapse="\\n"), sep="");
+   } else {
+      nextra=nrow(Afl)-ncol(Afl)
+      comb=combn(nb_ffn, nextra)
+      i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, p2bfl[i]))))[1]
+      ka=kappa(cbind(Afl, p2bfl[i]))
+      if (ka!=Inf) {
+         prop=paste("Proposal to delcare dependent flux(es) is:\\n",
+            paste(nm_ffn[i], collapse="\\n"), sep="")
+      } else {
+         # test constraint candidate
+         comb=combn(nb_fcn, nextra)
+         i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, c2bfl[i]))))[1]
+         ka=kappa(cbind(Afl, c2bfl[i]))
+         if (ka!=Inf) {
+            prop=paste("Proposal to delcare dependent flux(es) is:\\n",
+            paste(nm_fcn[i], collapse="\\n"), sep="")
+         } else {
+            prop="No proposal for dependent fluxes could be made."
+         }
+      }
+      mes=paste("There is (are) probably ", nextra,
+         " extra free flux(es) among the following:\\n",
+         paste(nm_ffn, collapse="\\n"), "\\n",
+         prop,
+         "\\nAnother option could be an elimination of some equalities.",
+         sep="");
+   }
+   stop(paste("Flux matrix is not square: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
+      "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
+      mes, sep=""));
+}
+
+# make sure that free params choice leads to not singular matrix
+if (qrAfl$rank != nb_fl) {
+   #write.table(Afl);
+   # make a suggestion of new free fluxes
+   A=cbind(Afl, -p2bfl, -c2bfl)
+   colnames(A)=c(colnames(Afl), nm_ff, nm_fc)
+   qa=qr(A, LAPACK=T)
+   d=diag(qa$qr);
+   qa$rank=sum(abs(d)>=abs(d[1]*1.e-10))
+   
+   mes=paste("Dependent flux matrix is singular.\\n",
+      "Change your partition on free/dependent/constrained fluxes in the '%(n_ftbl)s' file.\\n",
+      "Can not resolve dependent fluxe(s):\\n",
+      paste(colnames(Afl)[-qrAfl$pivot[(1:qrAfl$rank)]], collapse="\\n"),
+      sep="")
+   if (qa$rank==nb_fl) {
+      mes=paste(mes,
+      "\\n\\nSuggested dependent fluxes:\\n",
+      paste(colnames(A)[qa$pivot[(1:qa$rank)]], collapse="\\n"),
+      "\\n\\nWhich would give the following free and constrained fluxes:\\n",
+      paste(colnames(A)[-qa$pivot[(1:qa$rank)]], collapse="\\n"), "\\n",
+      sep="");
+   } else {
+      mes=paste(mes, "\\nNo suggested free fluxes could be found", sep="")
+   }
+   cat(mes);
+   stop(mes);
+}
+
+# inverse flux matrix
+invAfl=solve(qrAfl);
+
+""" % {
+    "n_ftbl": escape(org+".ftbl", "\\"),
+    });
+    f.write("""
 # intermediate jacobian
-dfl_dff = invAfl %*% p2bfl
+dfl_dff=invAfl %*% p2bfl
+dimnames(dfl_dff)=list(nm_fl, nm_ff)
 
 # prepare mf, md matrices and bd vector
 # such that mf%*%ff+md%*%fl+mc%*%fc gives fallnx
@@ -1263,8 +1292,7 @@ def netan2R_ineq(netan, org, f):
 if (TIMEIT) {
    cat("ineq    : ", date(), "\n", sep="");
 }
-fallnx=param2fl(param, nb_f, invAfl, p2bfl, bp, fc)$fallnx
-names(fallnx)=nm_fallnx
+fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
 # to the inequalities given in ftbl file
@@ -1334,6 +1362,15 @@ if (nb_fx) {
     
     nb_notrev=len(netan["notrev"]);
     f.write("""
+if (%(nb_inout)d > 0) {
+   # add 0 low limits on inout net fluxes
+   nb_tmp=nrow(mi);
+   nm_tmp=c(%(nm_inout)s);
+   mi=rbind(mi, matrix(0, nrow=%(nb_inout)d, ncol=nb_fallnx));
+   nm_i=c(nm_i, paste("inout ", nm_tmp, ">=0", sep=""));
+   mi[nb_tmp+(1:%(nb_inout)d), nm_tmp]=diag(1., %(nb_inout)d);
+   li=c(li, rep(0., %(nb_inout)d));
+}
 if (clownr!=0.) {
    # add low limits on net >= clownr for not reversible reactions
    nb_tmp=nrow(mi);
@@ -1362,6 +1399,12 @@ if (cupn != 0 && nb_fn) {
    "nm_notrev": join(", ", (t+"."+nxi+"."+fli
       for (fli,t,nxi) in tfallnx
       if nxi=="n" and t!="c" and fli in netan["notrev"]),
+      p='"', s='"'),
+   "nb_inout": len([fli for (fli,t,nxi) in tfallnx
+      if nxi=="n" and t!="c" and fli in netan["flux_inout"]]),
+   "nm_inout": join(", ", (t+"."+nxi+"."+fli
+      for (fli,t,nxi) in tfallnx
+      if nxi=="n" and t!="c" and fli in netan["flux_inout"]),
       p='"', s='"'),
 });
 
@@ -1393,7 +1436,7 @@ if (all(ci[zi]<=1.e-14)) {
 } else {
    cat("The following constant inequalities are not satisfied:\\n", file=stderr());
    cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=stderr());
-   stop();
+   stop("see above.");
 }
 # complete ui by zero columns corresponding to scale params
 ui=cbind(ui, matrix(0., NROW(ui), nb_param-nb_ff));
