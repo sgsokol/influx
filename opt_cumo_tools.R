@@ -1,5 +1,5 @@
-DEBUG=0; # 1 to enable debugging information, 0=disable
-TIMEIT=0; # 1 to enable time printing at some stages
+#DEBUG=0; # 1 to enable debugging information, 0=disable
+#TIMEIT=0; # 1 to enable time printing at some stages
 if (TIMEIT) {
    cat("load    : ", date(), "\n", sep="");
 }
@@ -41,7 +41,10 @@ trisparse_solv=function(A, b, w, method="dense") {
       #require(Matrix);
       #A=Matrix(A, sparse=T);
 #browser();
-      x=solve(A,b); # As has also its factorized form
+      x=try(solve(A,b)); # A has its factorized form
+      if (inherits(x, "try-error")) {
+         stop("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3.")
+      }
       if (DEBUG) {
          cat("A=", str(A), "\n", sep="");
       }
@@ -68,7 +71,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
    # from dep,free,constr
    f=numeric(0);
    if (nb_f$nb_fln) {
-      f=c(f, flnx[1:nb_f$nb_fln,1]);
+      f=c(f, flnx[1:nb_f$nb_fln]);
    }
    if (nb_f$nb_ffn) {
       f=c(f, param[1:nb_f$nb_ffn]);
@@ -77,7 +80,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
       f=c(f, fc[1:nb_f$nb_fcn]);
    }
    if (nb_f$nb_flx) {
-      f=c(f, flnx[(nb_f$nb_fln+1):nb_f$nb_fl,1]);
+      f=c(f, flnx[(nb_f$nb_fln+1):nb_f$nb_fl]);
    }
    if (nb_f$nb_ffx) {
       f=c(f, param[(nb_f$nb_ffn+1):nb_f$nb_ff]);
@@ -88,7 +91,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
    return(f);
 }
 
-cumo_resid=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb) {
+cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb) {
    if (length(measinvvar)) {
       sqm=sqrt(measinvvar);
    } else {
@@ -102,7 +105,7 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, f
    # find x for all weights
    if (!identical(param, jx_f$param) ||
          (cjac && is.null(jx_f$x_f))) {
-      lres=param2fl_x(param, cjac, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb);
+      lres=param2fl_x(param, cjac, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb);
       if (!is.null(lres$err) && lres$err) {
          return(list(err=1, mes=lres$mes));
       }
@@ -125,7 +128,7 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, f
    if (cjac) {
       if (!identical(param, jx_f$param) || is.null(jx_f$jacobian)) {
          # recalculate it
-         cumo_jacob(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl,
+         cumo_jacob(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
             bp, fc, xi, imeas, measmat, measvec, ir2isc);
          jacobian=jx_f$udr_dp*c(sqm,sqf);
          jx_f$jacobian<<-jacobian;
@@ -139,8 +142,8 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, f
    return(list(res=jx_f$res, fallnx=jx_f$fallnx,
       jacobian=jacobian));
 }
-cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
-   resl=cumo_resid(param, cjac=FALSE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+cumo_cost=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
+   resl=cumo_resid(param, cjac=FALSE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
    if (!is.null(resl$err) && resl$err) {
       return(NULL);
    }
@@ -151,14 +154,14 @@ cumo_cost=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas
    }
    return(fn);
 }
-cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
+cumo_grad=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
    # calculate gradient of cost function for cumomer minimization problem
    # method: forward finite differences f(x+h)-f(x)/h
    # x+h is taken as (1+fact)*x
    fact=1.e-7;
    grad=param; # make place for gradient
    # f(x)
-   f=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+   f=cumo_cost(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
    for (i in 1:length(param)) {
       x=param[i];
       h=x*fact;
@@ -167,7 +170,7 @@ cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas
          # we are too close to zero here
          param[i]=fact;
       }
-      fh=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+      fh=cumo_cost(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
       # restore modified param
       param[i]=x;
       grad[i]=(fh-f)/h;
@@ -175,11 +178,14 @@ cumo_grad=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas
    return(grad);
 }
 
-param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
+param2fl=function(param, nb_f, nm, invAfl, p2bfl, bp, fc) {
    # claculate all fluxes from free fluxes
-   flnx=invAfl%*%(p2bfl%*%param[1:nb_f$nb_ff]+c(bp));
-   fallnx=dfc2fallnx(nb_f, flnx, param, fc);
-   fwrv=fallnx2fwrv(fallnx);
+   flnx=c(invAfl%*%(p2bfl%*%param[1:nb_f$nb_ff]+c(bp)));
+   names(flnx)=nm$flnx;
+   fallnx=c(dfc2fallnx(nb_f, flnx, param, fc));
+   names(fallnx)=nm$fallnx;
+   fwrv=c(fallnx2fwrv(fallnx));
+   names(fwrv)=nm$fwrv;
    if (DEBUG) {
       write.matrix(p2bfl%*%param[1:nb_f$nb_ff]+bp, file="dbg_bfl.txt", sep="\t");
       n=length(fwrv);
@@ -190,12 +196,12 @@ param2fl=function(param, nb_f, invAfl, p2bfl, bp, fc) {
    return(list(fallnx=fallnx, fwrv=fwrv, flnx=flnx));
 }
 
-p2f=function(param, nb_f, invAfl, p2bfl, bp, fc, xi) {
+p2f=function(param, nb_f, nm, invAfl, p2bfl, bp, fc, xi) {
    # translate param to fwd-rev fluxes (for num deriv purpose only)
-   return(param2fl(param, nb_f, invAfl, p2bfl, bp, fc, xi)$fwrv);
+   return(param2fl(param, nb_f, nm, invAfl, p2bfl, bp, fc, xi)$fwrv);
 }
 
-param2fl_x=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb) {
+param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb) {
    # translate free params (fluxes+scales) to fluxes and cumomers
    nbw=length(spAb);
    if (!is.null(jx_f$param) && identical(param, jx_f$param) &&
@@ -210,7 +216,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, f
       }
    }
    # calculate all fluxes from free fluxes
-   lf=param2fl(param, nb_f, invAfl, p2bfl, bp, fc);
+   lf=param2fl(param, nb_f, nm, invAfl, p2bfl, bp, fc);
    jx_f$fallnx<<-lf$fallnx;
    jx_f$fwrv<<-lf$fwrv
    jx_f$flnx<<-lf$flnx
@@ -313,13 +319,13 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, f
    jx_f$x_f<<-x_f;
    return(append(list(x=x[(2+nb_xi):length(x)], x_f=x_f), lf));
 }
-num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
+num_jacob=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, fortfun="fwrv2rAbcumo") {
    # numerical calculation of jacobian dx_df
    # we variate fvrw one by one and recalculate the whole x
    # for each variation. The result is returned as matix.
    
    # calculate all fluxes from free fluxes
-   lf=param2fl(param, nb_f, invAfl, p2bfl, bp, fc);
+   lf=param2fl(param, nb_f, nm, invAfl, p2bfl, bp, fc);
    f0=lf$fwrv;
    dfl=0.00001;
    x_f=matrix(0., ncol=0, nrow=sum(nb_cumos));
@@ -366,7 +372,7 @@ num_jacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas
    }
    return(x_f);
 }
-num_fjacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb) {
+num_fjacob=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb) {
    # numerical calculation of full jacobian dres_dparam
    # we variate param one by one and recalculate the whole residual
    # for each variation. The result is returned as matix.
@@ -378,7 +384,7 @@ num_fjacob=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imea
       if (i>0) {
          p1[i]=p0[i]+dp;
       }
-      rres=cumo_resid(p1, cjac=F, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
+      rres=cumo_resid(p1, cjac=F, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
       if (i > 0) {
          dr_dp=cbind(dr_dp, (rres$res-r0)/dp);
       } else {
@@ -521,7 +527,7 @@ cumo2lab=function(x) {
    }
    return(res);
 }
-cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
+cumo_gradj=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: mult jacobian by residual 2*jac*resid*invvar
 
@@ -534,14 +540,14 @@ cumo_gradj=function(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imea
 }
 # cost function for donlp2 solver
 cumo_fn=function(p) {
-   return(cumo_cost(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb))
+   return(cumo_cost(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb))
 }
 cumo_dfn=function(p) {
-   return(cumo_gradj(p, nb_f, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb));
+   return(cumo_gradj(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb));
 }
 attr(cumo_fn, "gr")=cumo_dfn;
 #cumo_fn@gr=cumo_dfn;
-cumo_jacob=function(param, nb_f, nb_w, nb_cumos,
+cumo_jacob=function(param, nb_f, nm, nb_w, nb_cumos,
    invAfl, p2bfl, bp, fc, xi,
    imeas, measmat, measvec, ir2isc) {
    # calculate jacobian dmeas_dparam and some annexe matricies
@@ -552,7 +558,7 @@ cumo_jacob=function(param, nb_f, nb_w, nb_cumos,
       # called by this moment.
       # But for some strange reason it didn't happen.
       # So let recalculate the cost and some matricies
-      #res=cumo_cost(param, nb_f, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
+      #res=cumo_cost(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb);
       stopifnot(identical(param, jx_f$param));
    }
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
@@ -570,12 +576,12 @@ cumo_jacob=function(param, nb_f, nb_w, nb_cumos,
 #browser();
    # derivation by dependent fluxes
    # net part
-   net=jx_f$flnx[nm_fln,];
+   net=jx_f$flnx[nm_fln];
    hnet=Heaviside(net);
    i=abs(net)<ah;
    hnet[i]=net[i]/ah;
    # xch part
-   xch=jx_f$flnx[nm_flx,];
+   xch=jx_f$flnx[nm_flx];
    xch=1./(1.-xch)**2;
    
    # forward fluxes
@@ -625,7 +631,7 @@ cumo_jacob=function(param, nb_f, nb_w, nb_cumos,
       jx_f$dfm_dp<<-jx_f$dfm_dff;
    }
    
-   dmx_df=measmat[,-dim(measmat)[2]]%*%jx_f$x_f[imeas,];
+   dmx_df=measmat[,-dim(measmat)[2],drop=F]%*%jx_f$x_f[imeas,];
    drc_dff=c(1.,param)[ir2isc]*(dmx_df%*%df_dff);
    
    # store isotope part of jacobian for sensitivity matrix
