@@ -116,7 +116,7 @@ for metab in sorted(netan["sto_m_r"].keys()):
         try:
            verdict="OK" if abs(eval(infl)-eval(outfl)) < 1.e-14 else "bad";
         except:
-           verdict="No decision";
+           verdict="No check status";
         f.write("\t%(in)s=%(out)s\t%(verdict)s\n"%{
             "in": infl,
             "out": outfl,
