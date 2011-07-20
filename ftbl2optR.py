@@ -18,10 +18,6 @@ where organism is the ftbl informative part of file name
 after execution a file organism.R will be created.
 If it already exists, it will be silently overwritten.
 The system Afl*flnx=bfl is created from ftbl file.
-2008-07-11 sokol: initial version
-2009-03-18 sokol: interface homogenization for influx_sim package
-2010-10-16 sokol: fortran code is no more generated, R Matrix package is used
-  for sparse matrices.
 
 Important python variables:
 Collections:
@@ -39,8 +35,8 @@ File names (str):
    n_ftbl (descriptor f_ftbl);
    n_R (R code) (f);
    n_fort (fortran code) (ff);
-Counts: nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total),
-        nb_ffn, nb_ffx (free fluxes)
+Counts:
+   nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total), nb_ffn, nb_ffx (free fluxes)
 Index translators:
    fwrv2i - flux names to index in R:fwrv;
    cumo2i - cumomer names to index in R:x;
@@ -89,6 +85,10 @@ Functions:
    cumo_grad - finite difference gradient
    cumo_gradj - implicit derivative gradient
 """
+
+# 2008-07-11 sokol: initial version
+# 2009-03-18 sokol: interface homogenization for influx_sim package
+# 2010-10-16 sokol: fortran code is no more generated, R Matrix package is used for sparse matrices.
 
 if __name__ == "__main__":
     import sys;
@@ -710,15 +710,26 @@ invcov=t(jx_f$dr_dff)%*%(jx_f$dr_dff*c(measinvvar, invfmnvar));
 covff=try(solve(invcov));
 if (inherits(covff, "try-error")) {
    # matrix seems to be singular
-   svi=svd(invcov);
-   i=svi$d/svi$d[1]<1.e-14;
-   ibad=apply(abs(svi$v[, i, drop=F]), 2, which.max);
-   warning(paste("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-      paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see '/linear stats/val, sd, rsd free fluxes (sorted by name)' field in the result file.\\nRegularized covariance matrix is used.", sep=""));
+   #svi=svd(invcov);
+   #i=svi$d/svi$d[1]<1.e-14;
+   #ibad=apply(abs(svi$v[, i, drop=F]), 2, which.max);
+   #warning(paste("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
+   #   paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see '/linear stats/val, sd, rsd free fluxes (sorted by name)' field in the result file.\\nRegularized covariance matrix is used.", sep=""));
    # regularize and inverse
-   covff=solve(invcov+diag(1.e-14*svi$d[1], nrow(invcov)));
+   #covff=solve(invcov+diag(1.e-14*svi$d[1], nrow(invcov)));
+   #covff=svi$u%*%diag(1./pmax(svi$d, svi$d[1]*1.e-14))%*%t(svi$v)
+   svj=svd(jx_f$dr_dff)
+   i=svj$d/svj$d[1]<1.e-14;
+   ibad=apply(svj$v[, i, drop=F], 2, which.contrib);
+   ibad=unique(unlist(ibad))
+   warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
+      paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see the fields '/linear stats/val, sd, rsd free fluxes (sorted by name)'\\nand '/linear stats/val, sd, rsd dependent net-xch01 fluxes (sorted by name)' in the result file.", sep=""));
+   # "square root" of covariance matrix (to preserve numerical positive definitness)
+   rtcov=(svj$u/sqrt(c(measinvvar, invfmnvar)))%*%(t(svj$v)/svj$d)
+   covff=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(measinvvar, invfmnvar))%*%(t(svj$v)/svj$d)
+} else {
+   rtcov=chol(covff)
 }
-
 # standart deviations of free fluxes
 sdff=sqrt(diag(covff));
 cat("linear stats\\n", file=fkvh);
@@ -729,7 +740,7 @@ obj2kvh(mtmp[o,], "val, sd, rsd free fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covff, "covariance free fluxes", fkvh, indent=1);
 
 # sd dependent net-xch01 fluxes
-covfl=dfl_dff%*%covff%*%t(dfl_dff);
+covfl=crossprod(rtcov%*%t(dfl_dff));
 sdfl=sqrt(diag(covfl));
 mtmp=cbind(flnx, sdfl, sdfl/abs(flnx));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
@@ -738,7 +749,7 @@ obj2kvh(mtmp[o,], "val, sd, rsd dependent net-xch01 fluxes (sorted by name)", fk
 obj2kvh(covfl, "covariance net-xch01 fluxes", fkvh, indent=1);
 
 # sd of all fwd-rev
-covf=jx_f$df_dff%*%covff%*%t(jx_f$df_dff);
+covf=crossprod(rtcov%*%t(jx_f$df_dff));
 sdf=sqrt(diag(covf));
 mtmp=cbind(fwrv, sdf, sdf/abs(fwrv));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
