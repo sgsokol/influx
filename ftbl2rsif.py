@@ -8,9 +8,6 @@ usage: ./ftbl2rsif.py < fnetw.ftbl > fnetw.sif
 or: ./ftbl2rsif.py fnetw.ftbl (in this case node.<attribute>.fnetw are silently
 rewritten)
 
-2008-01-23 sokol: initial release
-2010-05-31 non blocking on ftbl parse errors
-
 usage: ./ftbl2rsif [-h|--help|--DEBUG] network[.ftbl]
 Take an ftbl file and produce a .cif and attribute files for
 cytoscape visualisation of the network defined in the ftbl.
@@ -37,6 +34,10 @@ NB
 Base name of ftbl file ('network' in this example)
 is used to create or silently overwrite all result files.
 """
+
+# 2008-01-23 sokol: initial release
+# 2010-05-31 non blocking on ftbl parse errors
+
 if __name__ == "__main__":
     import sys;
     import os;
