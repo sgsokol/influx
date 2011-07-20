@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# Module for translation of .ftbl file to R or Fortran code
+
+"""Module for translation of .ftbl file to R code"""
 
 # 2009-09-14 sokol@insa-toulouse.fr : flux.[net|xch] -> [dfc].[nx].flux
 #                                     flux.[fwd|rev] -> [fwd|rev].flux
@@ -7,6 +8,7 @@
 # 2008-11-25 sokol@insa-toulouse.fr : adapted for reduced cumomer list
 # 2008-09-19 sokol@insa-toulouse.fr : initial release
 # Copyright 2011, INRA
+
 import time;
 import copy;
 import os;
@@ -40,10 +42,10 @@ def netan2Abcumo_f(Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1, fortfun="fwrv2A
     to a Fortran subroutine code calculating matrix A and vector b
     in A*x=b for a given weight iw (input Fortran parameter)
     Flux vector fl of all fwd. and rev. fluxes is known from
-    Fortran parameter list
+    Fortran parameter list"""
 
-    2008-08-26 sokol
-    """
+    #2008-08-26 sokol
+    
     f.write("""
 C************************************************************************
 C Define subroutine for cumomer matrix A for a given weight iw
@@ -174,9 +176,9 @@ def netan2Abcumo_sp(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
     cumomer vector incu=c(1, xi, xl), xi - input, xl - lighter cumomers.
     
     incu2i_b1 gives i in incu from cumomer name. i=1 corresponds to the constant 1.
-    
-    2010-10-15 sokol
     """
+    #2010-10-15 sokol
+    
     nb_cumu=cumsum(len(l) for l in vcumol);
     f.write(
     """
@@ -1481,9 +1483,9 @@ def netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, incu2i_b1, fortfun=
     the Jacobian dx_df (or x_f) derived from cumomer balances
     for a given weight iw (input Fortran parameter)
     Flux vector fl is known from Fortran parameter list
-
-    2009-07-24 sokol
     """
+    # 2009-07-24 sokol
+    
     f.write("""
 C************************************************************************
 C Define subroutine for jacobian rhs calculation for a given weight iw
