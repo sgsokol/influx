@@ -33,9 +33,11 @@ C n column number in fi
 C fwrv is a flux vector
 C x is the resulting slot in A@x
       IMPLICIT NONE
-      integer i, rep, nrep, ii, bai, fi(2, n), islot(1), n, nx
+      integer i, rep, nrep, ii, fi(2, n), islot(1), n, nx
       double precision fwrv(1), x(nx)
 C     counter in i-slot
+C     dummy islot usage
+      ii=islot(1)
       ii=0
       i=1
 C      write(0,*) "fi,islot,n,nx,fwrv,x=",fi,"; ",islot,n,nx,fwrv,x
@@ -66,6 +68,8 @@ C x is the resulting slot in a_fx@x
       double precision x0(1), x(nx)
 C      write(0,*) "xi,n,islot,x0,x=",xi,"; ",n,islot,x0,x
       i=1
+C     dummy islot usage
+      ii=islot(1)
       ii=0
       do while (i .le. n)
          ii=ii+1
@@ -90,9 +94,11 @@ C islot is b_f@i
 C incu is c(1, xinp, xcumo)
 C x is the resulting slot in b_f@x
       IMPLICIT NONE
-      integer i, ifl, xi(2, n), n, islot(1), nx
+      integer i, xi(2, n), n, islot(1), nx
       double precision incu(1), x(nx)
       if (n .ne. nx) stop "x2b_f: n!=nx"
+C     dummy islot usage
+      i=islot(1)
       do 1 i=1,n
          x(i)=x(i)-incu(xi(1,i))*incu(xi(2,i))
     1 continue
@@ -110,6 +116,8 @@ C x is the resulting slot in b_x@x
       integer i, ii, rep, nrep, fxi(3, n), n, islot(1), nx
       double precision fwrv(1), incu(1), x(nx)
       i=1
+C     dummy islot usage
+      ii=islot(1)
       ii=0
       do while (i .le. n)
          ii=ii+1
