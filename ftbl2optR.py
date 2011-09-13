@@ -309,7 +309,7 @@ if (any(abs(ineq)<=1.e-10)) {
 # formated output in kvh file
 fkvh=file("%(org)s_res.kvh", "w");
 """%{
-    "org": org,
+    "org": escape(org, "\\"),
 });
     # main part: call optimization
     f.write("""
@@ -589,14 +589,15 @@ if (sensitive=="mc") {
    }
 #browser();
    dimnames(free_mc)[[1]]=nm_par;
-   cat("monte-carlo\n", file=fkvh);
+   cat("monte-carlo\\n", file=fkvh);
    indent=1;
    obj2kvh(nmc, "sample number", fkvh, indent);
-   avaco=multicore:::detectCores(all.tests=(.Platform$OS.type != "windows"))
-   obj2kvh(avaco, "available cores", fkvh, indent);
+   avaco=multicore:::detectCores()
+   obj2kvh(avaco, "detected cores", fkvh, indent);
+   avaco=max(1, avaco, na.rm=T)
    obj2kvh(min(avaco, options("cores")$cores, na.rm=T), "used cores", fkvh, indent);
    # cost section in kvh
-   cat("\tcost\n", file=fkvh);
+   cat("\\tcost\\n", file=fkvh);
    indent=2;
    obj2kvh(mean(cost_mc), "mean", fkvh, indent);
    obj2kvh(median(cost_mc), "median", fkvh, indent);
@@ -604,7 +605,7 @@ if (sensitive=="mc") {
    obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent);
    obj2kvh(quantile(cost_mc, c(0.025, 0.975)), "ci", fkvh, indent);
    # free parameters section in kvh
-   cat("\tfree parameters\n", file=fkvh);
+   cat("\\tfree parameters\\n", file=fkvh);
    indent=2;
    # param stats
    # mean
@@ -656,7 +657,7 @@ if (sensitive=="mc") {
       # fwd-rev stats
       fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fwrv);
       dimnames(fwrv_mc)[[1]]=nm_fwrv;
-      cat("\tforward-reverse fluxes\n", file=fkvh);
+      cat("\\tforward-reverse fluxes\\n", file=fkvh);
       # mean
       obj2kvh(apply(fwrv_mc, 1, mean), "mean", fkvh, indent);
       # meadian
@@ -682,7 +683,7 @@ if (sensitive=="mc") {
 }
 
 if (TIMEIT) {
-   cat("linstats: ", date(), "\n", sep="");
+   cat("linstats: ", date(), "\\n", sep="");
 }
 # Linear method based on jacobian x_f
 # reset fluxes and jacobians according to param
