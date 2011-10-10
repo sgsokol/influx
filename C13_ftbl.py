@@ -1,5 +1,7 @@
 """- Parse .ftbl
 - Analyse ftbl
+Restrictions:
+ - metabolite name cannot have ":" (it's a separator in measure id)
 """
 
 # 2008-01-22 sokol: ftbl_parse(f)
@@ -568,10 +570,16 @@ def ftbl_netan(ftbl):
     # net fluxes
     for row in ftbl.get("INEQUALITIES",{}).get("NET",[]):
         #print row;##
+        dicf=formula2dict(row["FORMULA"])
+        fl=dicf.keys()[0];
+        if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
+            werr("Inequalities: in NET section, the formula '"+
+                row["VALUE"]+row["COMP"]+row["FORMULA"]+"' implies a constrained flux\n"+
+                " having a value "+str(netan["flux_constr"]["net"][fl])+".\n The inequality is ignored as meaningless.\n")
         netan["flux_inequal"]["net"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
-                formula2dict(row["FORMULA"])));
+                dicf));
     # xch fluxes
     for row in ftbl.get("INEQUALITIES",{}).get("XCH",[]):
         #print row;##
@@ -718,6 +726,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in PEAK_MEASU
     for row in ftbl.get("MASS_SPECTROMETRY",[]):
         #print row;##
         metab=row["META_NAME"] or metab;
+        if row["META_NAME"]:
+            irow=str(row["irow"])
         clen=netan["Clen"][metab];
         # test the validity
         if not metab in netan["metabs"]:
@@ -726,6 +736,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in PEAK_MEASU
             raise Exception("""Measured metabolites have to be internal to network.
 You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).");
         frag=row["FRAGMENT"] or frag;
+        m_id=":".join(["m", metab, frag, irow])
         if row["FRAGMENT"]:
             # recalculate fragment mask
             mask=0;
@@ -753,12 +764,13 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             raise Exception("Weight "+str(weight)+" is higher than fragment length "+frag+" in MASS_SPECTROMETRY\nrow="+str(row));
         if clen < sumbit(mask):
             raise Exception("Fragment "+frag+" is longer than metabolite length "+str(clen)+" in MASS_SPECTROMETRY\nrow="+str(row));
-        netan["mass_meas"].setdefault(metab, {});
-        netan["mass_meas"][metab].setdefault(mask, {});
-        netan["mass_meas"][metab][mask][weight]={
+        netan["mass_meas"].setdefault(m_id, {});
+        netan["mass_meas"][m_id].setdefault(mask, {});
+        netan["mass_meas"][m_id][mask][weight]={
                 "val":eval(row["VALUE"]),
                 "dev":eval(row["DEVIATION"]),
                 "id":":".join(["m", metab, frag, row["WEIGHT"], str(row["irow"])]),
+                "irow":str(row["irow"]),
         }
     
     # discard empty entries
@@ -1432,20 +1444,23 @@ def mass_meas2matrix_vec_dev(netan):
     mat=[];
     vec=[];
     dev=[];
-    for (metab,frag_masks) in netan.get("mass_meas",{}).iteritems():
+    for (m_id,frag_masks) in netan.get("mass_meas",{}).iteritems():
         #print "mass matx calc for ", metab;##
+        (l, metab, frag, m_irow)=m_id.split(":");
         n=netan["Clen"][metab];
         str0="0"*n;
         strx="x"*n;
+        str1="1"*n;
         for (fmask,weights) in frag_masks.iteritems():
             onepos=[b_no for (b_no,b) in iternumbit(fmask) if b];
             fmask0x=setcharbit(strx,"0",fmask);
+            fmask01=setcharbit(str0,"1",fmask);
             nmask=sumbit(fmask);
 #            aff("weights for met,fmask "+", ".join((metab,strbit(fmask))), weights);##
             for (weight,row) in weights.iteritems():
                 vec.append(row["val"]);
                 dev.append(row["dev"]);
-                mat.append({"id": row["id"], "scale": metab+";"+strbit(fmask), "coefs":{},
+                mat.append({"id": row["id"], "scale": metab+";"+fmask01+";"+m_irow, "coefs":{},
                     "bcumos": None, "metab": metab});
                 res=mat[-1]["coefs"];
                 # for a given weight construct bcumo sum: #x10x+#x01x+...
