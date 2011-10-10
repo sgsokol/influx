@@ -489,13 +489,15 @@ option_list <- list(
        help="upper limit for net fluxes"),
    make_option("--clownr", default=0, type="double",
        help="lower limit for not reversible free and dependent fluxes. Zero value means no lower limit"),
+   make_option("--cinout", default=0, type="double",
+       help="lower limit for input/output free and dependent fluxes. Must be non negative"),
    make_option("--np", default=0, type="integer",
        help="Number of parallel process used in Monte-Carlo simulations
        Without this option or for NP=0 all available cores in a given node are used"),
    make_option("--ln", default=F, action="store_true", dest="least_norm",
        help="Least norm solution is proposed when Jacobian is rank deficient"),
-   make_option("--zc", default=F, action="store_true", dest="zerocross",
-       help="Apply zero crossing strategy for net fluxes"),
+   make_option("--zc", default=-.Machine$double.xmax, type="double",
+       help="Apply zero crossing strategy with non negative threshold for net fluxes"),
    make_option("--DEBUG", default=F, action="store_true",
        help="developer option"),
    make_option("--TIMEIT", default=F, action="store_true",
@@ -503,7 +505,7 @@ option_list <- list(
    make_option("--prof", default=F, action="store_true",
        help="developer option")
 )
-#opt <- parse_args(OptionParser(option_list=option_list), args=strsplit("--sens mc=10", " ")[[1]])
+#opt=parse_args(OptionParser(option_list=option_list), args=strsplit("--sens mc=10", " ")[[1]])
 if (!length(find("opt"))) {
    opt <- parse_args(OptionParser(option_list=option_list))
 }
@@ -528,6 +530,10 @@ if (cupx < 0 || cupx > 1) {
    stop(paste("Option '--cupx N' must have N in the interval [0,1]\n",
       "Instead, the value ", cupx, " si given.", sep=""));
 }
+if (cinout < 0) {
+   stop(paste("Option '--cinout N' must have N non negative\n",
+      "Instead, the value ", cinout, " si given.", sep=""));
+}
 # minimization method
 validmethods=list("BFGS", "Nelder-Mead", "SANN", "nlsic");
 if (! method %%in%% validmethods) {
@@ -540,6 +546,15 @@ if (np) {
 lsi_fun=lsi
 if (least_norm) {
    lsi_fun=lsi_ln
+}
+if (zc==-.Machine$double.xmax) {
+   # no zero scrossing to apply
+   zerocross=F
+} else {
+   if (zc < 0.) {
+      stop(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""))
+   }
+   zerocross=T
 }
 opts=commandArgs()
 # end command line argument proceeding
@@ -1225,6 +1240,7 @@ nb_rw=%(nb_rw)d;
 nb_rcumos=c(%(nb_rc)s);
 # cumo names
 nm_rcumo=c(%(nm_rcumo)s);
+nm_list[["rcumo"]]=nm_rcumo;
 # composite cumomer vector incu c(1, xi, xc) names
 nm_incu=c("one", nm_xi, nm_rcumo); # the constant 1 has name "one"
 """%{
@@ -1364,14 +1380,15 @@ if (nb_fx) {
     
     nb_notrev=len(netan["notrev"]);
     f.write("""
-if (%(nb_inout)d > 0) {
-   # add 0 low limits on inout net fluxes
+nb_inout=%(nb_inout)d
+if (nb_inout > 0) {
+   # add cinout low limits on inout net fluxes
    nb_tmp=nrow(mi);
-   nm_tmp=c(%(nm_inout)s);
-   mi=rbind(mi, matrix(0, nrow=%(nb_inout)d, ncol=nb_fallnx));
-   nm_i=c(nm_i, paste("inout ", nm_tmp, ">=0", sep=""));
-   mi[nb_tmp+(1:%(nb_inout)d), nm_tmp]=diag(1., %(nb_inout)d);
-   li=c(li, rep(0., %(nb_inout)d));
+   nm_inout=c(%(nm_inout)s);
+   mi=rbind(mi, matrix(0, nrow=nb_inout, ncol=nb_fallnx));
+   nm_i=c(nm_i, paste("inout ", nm_inout, ">=", cinout, sep=""));
+   mi[nb_tmp+(1:nb_inout), nm_inout]=diag(1., nb_inout);
+   li=c(li, rep(cinout, nb_inout));
 }
 if (clownr!=0.) {
    # add low limits on net >= clownr for not reversible reactions
@@ -1421,7 +1438,8 @@ names(li)=nm_i;
 
 # constraints such that ui%*%param[1:nb_ff]-ci>=0
 ui=mi%*%(md%*%invAfl%*%p2bfl+mf);
-ci=li-mi%*%(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc);
+mic=(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc)
+ci=li-mi%*%mic;
 #browser()
 # remove all zero rows in ui (constrained fluxes with fixed values)
 # find zero indexes
@@ -1431,6 +1449,7 @@ if (ncol(ui)) {
 } else {
    zi=rep(FALSE, nrow(ui))
 }
+
 if (all(ci[zi]<=1.e-14)) {
    ui=ui[!zi,];
    ci=ci[!zi];
@@ -1440,9 +1459,9 @@ if (all(ci[zi]<=1.e-14)) {
    cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=stderr());
    stop("see above.");
 }
+
 # complete ui by zero columns corresponding to scale params
 ui=cbind(ui, matrix(0., NROW(ui), nb_param-nb_ff));
-
 if (nb_param>nb_ff) {
    # complete ui by scales >=0
    ui=rbind(ui, cbind(matrix(0, nb_param-nb_ff, nb_ff), diag(1, nb_param-nb_ff)));
