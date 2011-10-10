@@ -217,53 +217,88 @@ if (TIMEIT) {
    cat("preopt  : ", date(), "\n", sep="");
 }
 #browser()
+
 # check if initial approximation is feasible
 ineq=ui%*%param-ci;
-if (any(ineq < 0.)) {
-   cat("The following ", sum(ineq<0.), " ineqalities are not respected:\\n", sep="");
-   print(ineq[ineq<0.,1]);
+param_old=param
+if (any(ineq <= -1.e-10)) {
+   cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point:\\n", sep="");
+   print(ineq[ineq<= -1.e-10,1]);
    # put them inside
-   dp=ldp(ui, -ineq);
-   if (!is.null(dp)) {
-      cat("Starting values are put in feasible domain:\\n", sep="");
-      #stop("Inequalities violated, cf. log file.");
-      names(param)=nm_par;
-      tmp=cbind(param[1:nb_ff], param[1:nb_ff]+1.001*dp[1:nb_ff]);
-      dimnames(tmp)=list(nm_par[1:nb_ff], c("old", "new"));
-      obj2kvh(tmp, "starting free fluxes");
-      # move starting point slightly inside of feasible domain
-      param=param+1.001*dp;
-   } else {
-      stop("Infeasible inequalities.");
+   param=put_inside(param, ui, ci)
+   if (any(is.na(param))) {
+      if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
+         # fatal error occurd
+         stop(paste("put_inside: ", attr(param, "mes"), collapse=""))
+      }
+   } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
+      # non fatal problem
+      warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
    }
 }
+
+# zero crossing strategy
 # inequalities to keep sens of net flux on first call to opt_wwrapper()
 # if active they are removed on the second call to opt_wrapper()
-mi_keep=NULL
-li_keep=NULL
+mi_zc=NULL
+li_zc=NULL
 if (nb_fn && zerocross) {
-   # add lower limits on [df].net >= 0 for positive net fluxes
-   # and upper limits on [df].net <= 0 for negative net fluxes
-   nm_ikeep=c()
-   ipos=names(which(fallnx[grep("[df].n.", nm_fallnx)]>0.))
+   # add lower limits on [df].net >= zc for positive net fluxes
+   # and upper limits on [df].net <= -zc for negative net fluxes
+   nm_izc=c()
+   ipos=names(which(fallnx[grep("[df].n.", nm_fallnx)]>=0.))
    ineg=names(which(fallnx[grep("[df].n.", nm_fallnx)]<0.))
-   mi_keep=matrix(0, nrow=length(ipos)+length(ineg), ncol=nb_fallnx);
-   colnames(mi_keep)=nm_fallnx
+   mi_zc=matrix(0, nrow=length(ipos)+length(ineg), ncol=nb_fallnx);
+   colnames(mi_zc)=nm_fallnx
    if (length(ipos)) {
-      nm_ikeep=c(nm_ikeep, paste("keep ", ipos, ">=", 0., sep=""));
-      mi_keep[(1:length(ipos)),ipos]=diag(1., length(ipos));
+      nm_izc=c(nm_izc, paste("zc ", ipos, ">=", zc, sep=""));
+      mi_zc[(1:length(ipos)),ipos]=diag(1., length(ipos));
    }
    if (length(ineg)) {
-      nm_ikeep=c(nm_ikeep, paste("keep ", ineg, "<=", 0., sep=""));
-      mi_keep[length(ipos)+(1:length(ineg)),ineg]=diag(-1., length(ineg));
+      nm_izc=c(nm_izc, paste("zc ", ineg, "<=", -zc, sep=""));
+      mi_zc[length(ipos)+(1:length(ineg)),ineg]=diag(-1., length(ineg));
    }
-   rownames(mi_keep)=nm_ikeep
-   li_keep=rep(0., length(nm_ikeep));
-   ui=rbind(ui, cbind(mi_keep%*%(md%*%invAfl%*%p2bfl+mf),
-      matrix(0., nrow=nrow(mi_keep), ncol=nb_sc)));
-   ci=c(ci, li_keep-mi_keep%*%(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc));
-   nm_i=c(nm_i, nm_ikeep)
-   names(ci)=nm_i
+   rownames(mi_zc)=nm_izc
+   li_zc=rep(zc, length(nm_izc));
+   ui_zc=cbind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
+      matrix(0., nrow=nrow(mi_zc), ncol=nb_sc));
+   ci_zc=li_zc-mi_zc%*%mic;
+   # remove redundant/contradictory inequalities
+   nb_zc=nrow(ui_zc);
+   nb_i=nrow(ui);
+   ired=c();
+   if (nb_zc > 0) {
+      for (i in 1:nb_zc) {
+         nmqry=nm_izc[i];
+         for (j in 1:nb_i) {
+            if ((isTRUE(all.equal(ui[j,],ui_zc[i,])) ||
+               isTRUE(all.equal(ui[j,],-ui_zc[i,]))) &&
+               abs(abs(ci[j])-abs(ci_zc[i]))<=1.e-2) {
+#browser()
+               # redundancy
+               cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\n", sep="");
+               ired=c(ired, i);
+               break;
+            }
+         }
+      }
+   }
+   if (!is.null(ired)) {
+      # remove all ired inequalities
+      ui_zc=ui_zc[-ired,,drop=F];
+      ci_zc=ci_zc[-ired];
+      nm_izc=nm_izc[-ired];
+      mi_zc=mi_zc[-ired,,drop=F];
+   }
+   if (nrow(ui_zc)) {
+      # add zc inequalities
+      ui=rbind(ui, ui_zc)
+      ci=c(ci, ci_zc)
+      nm_i=c(nm_i, nm_izc)
+      mi=rbind(mi, mi_zc)
+   }
+#print(ui)
+#print(ci)
 }
 
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
@@ -434,11 +469,11 @@ opt_wrapper=function(measvec, fmn, trace=1) {
 }
 if (optimize) {
    # check if at starting position all fluxes can be resolved
-   #browser();
+#browser();
    qrj=qr(jx_f$dr_dff);
    d=diag(qrj$qr)
    qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
-   if (qrj$rank < nb_ff && !least_norm) {
+   if (qrj$rank < nb_ff && !(least_norm || method!="nlsic")) {
       # Too bad. The jacobian of free fluxes is not of full rank.
       dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx);
       write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t");
@@ -452,31 +487,63 @@ if (optimize) {
    }
    # pass control to the chosen optimization method
    res=opt_wrapper(measvec, fmn);
+   if (any(is.na(res$par))) {
+      obj2kvh(res, "optimization process informations", fkvh);
+      stop("Optimization failed")
+   }
 #browser()
-   if (zerocross && !is.null(mi_keep)) {
-      # inverse active "keep" inequalities
-      i=grep("^keep ", names(which((ui%*%res$par-ci)[,1]<=1.e-10)), v=T)
+   if (zerocross && !is.null(mi_zc)) {
+      # inverse active "zc" inequalities
+      nm_inv=names(which((ui%*%res$par-ci)[,1]<=1.e-10))
+      i=grep("^zc ", nm_inv, v=T)
       if (length(i) > 0) {
          i=str2ind(i, nm_i)
+         cat("The following inequalities are active after first stage
+of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
+         ipos=grep(">=", nm_i[i], v=T)
+         ineg=grep("<=", nm_i[i], v=T)
          ui[i,]=-ui[i,]
-         ci[i]=-ci[i]
-         nm_i[i]=sub(">", "+", nm_i[i])
-         nm_i[i]=sub("<", ">", nm_i[i])
-         nm_i[i]=sub("\\\\+", "<", nm_i[i])
+         if (length(ipos)) {
+            ipzc=str2ind(ipos, nm_izc)
+            ipos=str2ind(ipos, nm_i)
+            ci[ipos]=zc+mi_zc[ipzc,,drop=F]%*%mic
+            nm_i[ipos]=sub(">=", "<=-", nm_i[ipos])
+         }
+         if (length(ineg)) {
+            inzc=str2ind(ineg, nm_izc)
+            ineg=str2ind(ineg, nm_i)
+            ci[ineg]=zc+mi_zc[inzc,,drop=F]%*%mic
+            nm_i[ineg]=sub("<=-", ">=", nm_i[ineg])
+         }
          rownames(ui)=nm_i
          names(ci)=nm_i
       }
       # enforce new inequalities
-      param=res$par+1.001*ldp(ui, ci-ui%*%res$par)
+      reopt=TRUE
+      param=put_inside(res$par, ui, ci)
+      if (any(is.na(param))) {
+         if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
+            # fatal error occurd, don't reoptimize
+            warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+            param=res$param
+            reopt=FALSE
+         }
+      } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
+         # non fatal problem
+         warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+      }
       # reoptimize
-      res=opt_wrapper(measvec, fmn);
+      if (reopt) {
+         res=opt_wrapper(measvec, fmn);
+         if (any(is.na(res$par))) {
+            obj2kvh(res, "optimization process informations", fkvh);
+            stop("Second optimization failed")
+         }
+      }
    }
    param=res$par;
    names(param)=nm_par;
    obj2kvh(res, "optimization process informations", fkvh);
-   if (any(is.na(res$par))) {
-      stop("Optimization failed")
-   }
 }
 if (TIMEIT) {
    cat("postopt : ", date(), "\n", sep="");
@@ -492,7 +559,7 @@ rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, b
 obj2kvh(rcost, "final cost", fkvh);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "(simulated-measured)/sd_exp", fkvh);
-gr=2*c((t(jx_f$ures*c(measinvvar, invfmnvar))%*%jx_f$udr_dp));
+gr=2*c(((jx_f$ures*c(measinvvar, invfmnvar))%tmm%jx_f$udr_dp));
 names(gr)=nm_par;
 obj2kvh(gr, "gradient vector", fkvh);
 obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh);
@@ -531,7 +598,7 @@ obj2kvh(fwrv, "fwd-rev flux vector", fkvh);
 
 f=v$fallnx;
 names(f)=nm_fallnx;
-obj2kvh(f, "net-xch01 flux vector", fkvh);
+#obj2kvh(f, "net-xch01 flux vector", fkvh);
 
 flnx=v$flnx;
 names(flnx)=c(nm_fln, nm_flx);
@@ -707,7 +774,7 @@ if (DEBUG) {
 }
 
 # covariance matrix of free fluxes
-invcov=t(jx_f$dr_dff)%*%(jx_f$dr_dff*c(measinvvar, invfmnvar));
+invcov=(jx_f$dr_dff)%tmm%(jx_f$dr_dff*c(measinvvar, invfmnvar));
 covff=try(solve(invcov));
 if (inherits(covff, "try-error")) {
    # matrix seems to be singular
@@ -741,7 +808,7 @@ obj2kvh(mtmp[o,], "val, sd, rsd free fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covff, "covariance free fluxes", fkvh, indent=1);
 
 # sd dependent net-xch01 fluxes
-covfl=crossprod(rtcov%*%t(dfl_dff));
+covfl=crossprod(rtcov%mmt%(dfl_dff));
 sdfl=sqrt(diag(covfl));
 mtmp=cbind(flnx, sdfl, sdfl/abs(flnx));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
@@ -750,7 +817,7 @@ obj2kvh(mtmp[o,], "val, sd, rsd dependent net-xch01 fluxes (sorted by name)", fk
 obj2kvh(covfl, "covariance net-xch01 fluxes", fkvh, indent=1);
 
 # sd of all fwd-rev
-covf=crossprod(rtcov%*%t(jx_f$df_dff));
+covf=crossprod(rtcov%mmt%(jx_f$df_dff));
 sdf=sqrt(diag(covf));
 mtmp=cbind(fwrv, sdf, sdf/abs(fwrv));
 dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
@@ -777,7 +844,7 @@ for (j in 1:nb_fl) {
    comb[j]=paste(cva, nm_fl[iord[[j]]], sep="", collapse="");
 }
 # from best to worst defined sd
-sta=sqrt(abs(diag(l%*%covfl%*%t(l))));
+sta=sqrt(abs(diag(l%*%covfl%mmt%(l))));
 names(sta)=comb;
 o=order(sta);
 sta=sta[o];
