@@ -43,7 +43,16 @@ trisparse_solv=function(A, b, w, method="dense") {
 #browser();
       x=try(solve(A,b)); # A has its factorized form
       if (inherits(x, "try-error")) {
-         stop("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3.")
+         # find 0 rows if any
+         izc=apply(A, 1, function(v)sum(abs(v))<=1.e-10)
+         izf=grep("^.\\.n\\.*", names(which(abs(jx_f$fallnx)<1.e-7)), v=T)
+         mes=paste("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3.\n",
+            "Zero row(s) in cumomer matrix A at weight ", w, ":\n",
+            paste(rownames(A)[izc], collapse="\n"), "\n",
+            "Zero net flux(es) are:\n",
+            paste(izf, collapse="\n"), "\n",
+            sep="")
+         stop(mes)
       }
       if (DEBUG) {
          cat("A=", str(A), "\n", sep="");
@@ -215,6 +224,8 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
          return(list(x=jx_f$x, x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx));
       }
    }
+   # cumulated sum
+   nbc_cumos=c(0, cumsum(nb_cumos))
    # calculate all fluxes from free fluxes
    lf=param2fl(param, nb_f, nm, invAfl, p2bfl, bp, fc);
    jx_f$fallnx<<-lf$fallnx;
@@ -249,7 +260,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
       #A=matrix(0.,ncumow,ncumow);
       #b=double(ncumow);
       #res<-.Fortran(fortfun, fl=as.double(lf$fwrv), nf=nb_fwrv, x=as.double(x[]), iw=as.integer(iw), n=as.integer(ncumow), A=as.matrix(A), b=as.double(b), calcA=as.integer(TRUE), calcb=as.integer(TRUE), NAOK=TRUE, DUP=FALSE);
-      lAb=fwrv2Ab(lf$fwrv, spAb[[iw]], x);
+      lAb=fwrv2Ab(lf$fwrv, spAb[[iw]], x, nm$rcumo[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]);
       A=lAb$A;
       b=lAb$b;
       if (DEBUG) {
@@ -654,7 +665,7 @@ cumo_jacob=function(param, nb_f, nm, nb_w, nb_cumos,
    #dimnames(jx_f$udr_dp)=list(names(jx_f$res), nm_par);
    return(NULL);
 }
-fwrv2Ab=function(fwrv, spAb, incu) {
+fwrv2Ab=function(fwrv, spAb, incu, nm_rcumo) {
    # calculate sparse A and its rhs b from fields of the list spAb
    # according to conventions explained in comments to python function
    # netan2Abcumo_sp() generating spAb
@@ -688,7 +699,11 @@ fwrv2Ab=function(fwrv, spAb, incu) {
       DUP=FALSE
    );
    diag(a)=-apply(a, 2, sum)-fb;
-   return(list(A=-t(a), b=-b));
+   A=-t(a)
+   dimnames(A)=list(nm_rcumo, nm_rcumo);
+   b=-b
+   names(b)=nm_rcumo;
+   return(list(A=A, b=b));
 }
 fx2j=function(fwrv, spAb, incu) {
    # calculate sparse j_rhs and b_x from fields of the list spAb
@@ -736,4 +751,65 @@ fx2j=function(fwrv, spAb, incu) {
       DUP=FALSE
    );
    return(list(j_rhsw=-t(b_f-a_fx), b_x=-t(b_x)));
+}
+put_inside=function(param, ui, ci) {
+   # put param inside of feasible domain delimited by u%*%param >= ci
+   mes=""
+   ineq=ui%*%param-ci;
+   if (all(ineq>1.e-10)) {
+      # nothing to do, already inside and well inside
+      return(param)
+   }
+   dp=ldp(ui, -ineq);
+   if (!is.null(dp)) {
+      # get new active inequalities
+      ineqd=ui%*%(param+dp)-ci
+      # check that we are at least at the border and not outside
+      if (any(ineqd < -1.e-7)) {
+         param=NA
+         attr(param, "mes")="Inequality system is ill-conditionned. Failed to solve."
+         attr(param, "err")=1
+         return(param)
+      }
+      iact=ineqd<=1.e-10
+#print(ineqd[iact])
+      # solve an ldp pb to find non decrising direction
+      # for active inequalities
+      ma=ui[iact,,drop=F]
+      na=sum(iact)
+      # find closest vector to c(1,1,...) making the direction increasing
+      tma=tcrossprod(ma)
+      bet=ldp(tma, 1.e-3 - apply(tma, 1, sum))
+      if (is.null(bet)) {
+         param=param+dp
+         attr(param, "mes")="Infeasible constraints for inside direction."
+         attr(param, "err")=0
+         return(param)
+      }
+      vn=ma%tmm%(1.+bet)
+      vn=vn/norm(vn)
+      decr=(ui%*%vn)<0.
+      alpha=((-ineqd)/(ui%*%vn))[decr]
+      alpha=alpha[alpha>0]
+      alpha=0.5*min(0.001, alpha)
+      dpn=dp+alpha*vn
+      # check that new dp is still inside
+      if (any(ui%*%(param+dpn)-ci < 0.)) {
+         attr(param, "err")=0 # just a warning
+         attr(param, "mes")="Failed to put free parameters strictly inside of the feasible domain. They are left on the border."
+         dpn=dp
+      }
+      names(param)=nm_par;
+      tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dpn[1:nb_ff], dpn[1:nb_ff]);
+      i=abs(dpn[1:nb_ff])>=1.e-10
+      dimnames(tmp)=list(nm_par[1:nb_ff], c("outside", "inside", "delta"));
+      obj2kvh(tmp[i,,drop=F], "Free parameters put inside of feasible domain");
+      # move starting point slightly inside of feasible domain
+      param=param+c(dpn);
+   } else {
+      param=NA
+      attr(param, "mes")="Infeasible inequalities.";
+      attr(param, "err")=1
+   }
+   return(param)
 }
