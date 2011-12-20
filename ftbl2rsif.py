@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
         if not len(reac): continue    # skip carbon section
 
-        path=re.sub(r'[0-9]+$', '', reac);
+        #path=re.sub(r'[0-9]+$', '', reac);
 
         # collect substrates and products
         subs=[str(flux['EDUCT_1'])];
@@ -180,11 +180,11 @@ if __name__ == "__main__":
         else:
             # 2-to-1, 1-to-2 or 2-to-2 reactions
             for s in subs:
-                fout.write("%s %s %s\n" % (s, path, reac));
-                edges.append(s+" ("+path+") "+reac);
+                fout.write("%s %s %s\n" % (s, reac, reac));
+                edges.append(s+" ("+reac+") "+reac);
             for p in prods:
-                fout.write("%s %s %s\n" % (reac, path, p));
-                edges.append(reac+" ("+path+") "+p);
+                fout.write("%s %s %s\n" % (reac, reac, p));
+                edges.append(reac+" ("+reac+") "+p);
         revers="r" if reac not in netan['notrev'] else "nr";
         net_dfc=("c" if reac in netan["flux_constr"]["net"] else
                  "f" if reac in netan["flux_free"]["net"] else
