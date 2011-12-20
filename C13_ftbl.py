@@ -191,7 +191,12 @@ def ftbl_parse(f):
                 fl_name=str(stock[data_count-1][col_names[0]]);
                 for i in range(len(col_names)):
                     try:
-                        dic[col_names[i]]=data[i].strip();
+                        item=data[i].strip();
+                        dic[col_names[i]]=item;
+                        metab=stock[data_count-1][col_names[i]];
+                        if i > 0 and ((len(metab) and not len(item)) or (not len(metab) and len(item))):
+                            print "i=%d, co='%s', m='%s', tr='%s';"%(i, col_names[i], metab, item);
+                            raise Exception("ftbl row %d: in the reaction '%s', metabolites seem to be misaligned with carbon transitions."%(irow, fl_name))
                     except IndexError:
                         pass;
                 ftbl["TRANS"][fl_name]=dic;
