@@ -214,7 +214,7 @@ if (nb_fcx) {
 """
     f.write("""
 if (TIMEIT) {
-   cat("preopt  : ", date(), "\n", sep="");
+   cat("preopt  : ", date(), "\\n", sep="");
 }
 #browser()
 
@@ -276,7 +276,7 @@ if (nb_fn && zerocross) {
                abs(abs(ci[j])-abs(ci_zc[i]))<=1.e-2) {
 #browser()
                # redundancy
-               cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\n", sep="");
+               cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\\n", sep="");
                ired=c(ired, i);
                break;
             }
@@ -483,7 +483,7 @@ if (optimize) {
          "\nJacobian dr_dff is dumped in dbg_dr_dff_singular.txt", sep=""));
    }
    if (TIMEIT) {
-      cat("optim   : ", date(), "\n", sep="");
+      cat("optim   : ", date(), "\\n", sep="");
    }
    # pass control to the chosen optimization method
    res=opt_wrapper(measvec, fmn);
@@ -546,7 +546,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    obj2kvh(res, "optimization process informations", fkvh);
 }
 if (TIMEIT) {
-   cat("postopt : ", date(), "\n", sep="");
+   cat("postopt : ", date(), "\\n", sep="");
 }
 # active constraints
 ine=abs(ui%*%param-ci)<1.e-10;
@@ -594,18 +594,17 @@ obj2kvh(x[o], "cumomer vector", fkvh);
 
 fwrv=v$fwrv;
 names(fwrv)=nm_fwrv;
-obj2kvh(fwrv, "fwd-rev flux vector", fkvh);
+#obj2kvh(fwrv, "fwd-rev flux vector", fkvh);
 
-f=v$fallnx;
-names(f)=nm_fallnx;
-#obj2kvh(f, "net-xch01 flux vector", fkvh);
+fallnx=v$fallnx;
+names(fallnx)=nm_fallnx;
 
 flnx=v$flnx;
-names(flnx)=c(nm_fln, nm_flx);
+names(flnx)=c(nm_fl);
 
 if (sensitive=="mc") {
    if (TIMEIT) {
-      cat("monte-ca: ", date(), "\n", sep="");
+      cat("monte-ca: ", date(), "\\n", sep="");
    }
    # Monte-Carlo simulation in parallel way
    mc_inst=library(multicore, warn.conflicts=F, verbose=F, logical.return=T);
@@ -677,7 +676,7 @@ if (sensitive=="mc") {
    # param stats
    # mean
    obj2kvh(apply(free_mc, 1, mean), "mean", fkvh, indent);
-   # meadian
+   # median
    parmed=apply(free_mc, 1, median);
    obj2kvh(parmed, "median", fkvh, indent);
    # covariance matrix
@@ -700,50 +699,74 @@ if (sensitive=="mc") {
    fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx;
    if (length(fallnx_mc)) {
       dimnames(fallnx_mc)[[1]]=nm_fallnx;
-      cat("\\tall net-xch01 fluxes\n", file=fkvh);
+      # form a matrix output
+      fallout=matrix(0, nrow=nrow(fallnx_mc), ncol=0);
+      #cat("\\tall net-xch01 fluxes\\n", file=fkvh);
       # mean
-      obj2kvh(apply(fallnx_mc, 1, mean), "mean", fkvh, indent);
-      # meadian
+#browser()
+      fallout=cbind(fallout, mean=apply(fallnx_mc, 1, mean));
+      #obj2kvh(apply(fallnx_mc, 1, mean), "mean", fkvh, indent);
+      # median
       parmed=apply(fallnx_mc, 1, median);
-      obj2kvh(parmed, "median", fkvh, indent);
+      fallout=cbind(fallout, median=parmed);
+      #obj2kvh(parmed, "median", fkvh, indent);
       # covariance matrix
       covmc=cov(t(fallnx_mc));
-      obj2kvh(covmc, "covariance", fkvh, indent);
+      dimnames(covmc)=list(nm_fallnx, nm_fallnx);
+      #obj2kvh(covmc, "covariance", fkvh, indent);
       # sd
       sdmc=sqrt(diag(covmc));
-      obj2kvh(sdmc, "sd", fkvh, indent);
-      obj2kvh(sdmc*100/abs(fallnx), "rsd (%)", fkvh, indent);
+      fallout=cbind(fallout, sd=sdmc);
+      #obj2kvh(sdmc, "sd", fkvh, indent);
+      fallout=cbind(fallout, "rsd (%)"=sdmc*100/abs(fallnx));
+      #obj2kvh(sdmc*100/abs(fallnx), "rsd (%)", fkvh, indent);
       # confidence intervals
       ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)));
       ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
-      dimnames(ci_mc)[[2]][3]="length";
-      obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
-      obj2kvh((ci_mc-cbind(fallnx, fallnx, 0))*100/abs(fallnx),
-         "relative 95% confidence intervals (%)", fkvh, indent);
-
+      ci_mc=cbind(ci_mc, (ci_mc-cbind(fallnx, fallnx, 0))*100/abs(fallnx));
+      dimnames(ci_mc)[[2]]=c("ci 2.5%", "ci 97.5%", "ci 95% length", "rci 2.5% (%)", "rci 97.5% (%)", "rci 95% length (%)");
+      #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
+      fallout=cbind(fallout, ci_mc);
+      #obj2kvh((ci_mc-cbind(fallnx, fallnx, 0))*100/abs(fallnx),
+      #   "relative 95% confidence intervals (%)", fkvh, indent);
+      o=order(nm_fallnx);
+      obj2kvh(fallout[o,,drop=F], "all net-xch01 fluxes", fkvh, indent);
+      obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent);
+      
       # fwd-rev stats
       fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fwrv);
       dimnames(fwrv_mc)[[1]]=nm_fwrv;
-      cat("\\tforward-reverse fluxes\\n", file=fkvh);
+      fallout=matrix(0, nrow=nrow(fwrv_mc), ncol=0);
+      #cat("\\tforward-reverse fluxes\\n", file=fkvh);
       # mean
-      obj2kvh(apply(fwrv_mc, 1, mean), "mean", fkvh, indent);
-      # meadian
+      fallout=cbind(fallout, mean=apply(fwrv_mc, 1, mean))
+      #obj2kvh(apply(fwrv_mc, 1, mean), "mean", fkvh, indent);
+      # median
       parmed=apply(fwrv_mc, 1, median);
-      obj2kvh(parmed, "median", fkvh, indent);
+      fallout=cbind(fallout, median=parmed)
+      #obj2kvh(parmed, "median", fkvh, indent);
       # covariance matrix
       covmc=cov(t(fwrv_mc));
-      obj2kvh(covmc, "covariance", fkvh, indent);
+      dimnames(covmc)=list(nm_fwrv, nm_fwrv);
+      #obj2kvh(covmc, "covariance", fkvh, indent);
       # sd
       sdmc=sqrt(diag(covmc));
-      obj2kvh(sdmc, "sd", fkvh, indent);
-      obj2kvh(sdmc*100/abs(fwrv), "rsd (%)", fkvh, indent);
+      fallout=cbind(fallout, sd=sdmc);
+      #obj2kvh(sdmc, "sd", fkvh, indent);
+      fallout=cbind(fallout, "rsd (%)"=sdmc*100/abs(fwrv));
+      #obj2kvh(sdmc*100/abs(fwrv), "rsd (%)", fkvh, indent);
       # confidence intervals
       ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)));
       ci_mc=cbind(ci_mc, t(diff(t(ci_mc))));
-      dimnames(ci_mc)[[2]][3]="length";
-      obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
-      obj2kvh((ci_mc-cbind(fwrv, fwrv, 0))*100/abs(fwrv),
-         "relative 95% confidence intervals (%)", fkvh, indent);
+      ci_mc=cbind(ci_mc, (ci_mc-cbind(fwrv, fwrv, 0))*100/abs(fwrv))
+      dimnames(ci_mc)[[2]]=c("ci 2.5%", "ci 97.5%", "ci 95% length", "rci 2.5% (%)", "rci 97.5% (%)", "rci 95% length (%)");
+      #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent);
+      #obj2kvh((ci_mc-cbind(fwrv, fwrv, 0))*100/abs(fwrv),
+      #   "relative 95% confidence intervals (%)", fkvh, indent);
+      fallout=cbind(fallout, ci_mc);
+      o=order(nm_fwrv);
+      obj2kvh(fallout[o,,drop=F], "forward-reverse fluxes", fkvh, indent);
+      obj2kvh(covmc[o,o], "covariance of forward-reverse fluxes", fkvh, indent);
    }
 } else if (length(sensitive) && nchar(sensitive)) {
    warning(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""));
@@ -782,16 +805,20 @@ if (inherits(covff, "try-error")) {
    #i=svi$d/svi$d[1]<1.e-14;
    #ibad=apply(abs(svi$v[, i, drop=F]), 2, which.max);
    #warning(paste("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-   #   paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see '/linear stats/val, sd, rsd free fluxes (sorted by name)' field in the result file.\\nRegularized covariance matrix is used.", sep=""));
+   #   paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see '/linear stats/net-xch01 fluxes (sorted by name)' field in the result file.", sep=""));
    # regularize and inverse
    #covff=solve(invcov+diag(1.e-14*svi$d[1], nrow(invcov)));
    #covff=svi$u%*%diag(1./pmax(svi$d, svi$d[1]*1.e-14))%*%t(svi$v)
    svj=svd(jx_f$dr_dff)
    i=svj$d/svj$d[1]<1.e-14;
+   if (all(!i)) {
+      # we could not find very small d, take just the last
+      i[length(i)]=T
+   }
    ibad=apply(svj$v[, i, drop=F], 2, which.contrib);
    ibad=unique(unlist(ibad))
    warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-      paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see the fields '/linear stats/val, sd, rsd free fluxes (sorted by name)'\\nand '/linear stats/val, sd, rsd dependent net-xch01 fluxes (sorted by name)' in the result file.", sep=""));
+      paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see the field '/linear stats/net-xch01 fluxes (sorted by name)'\\nin the result file.", sep=""));
    # "square root" of covariance matrix (to preserve numerical positive definitness)
    rtcov=(svj$u/sqrt(c(measinvvar, invfmnvar)))%*%(t(svj$v)/svj$d)
    covff=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(measinvvar, invfmnvar))%*%(t(svj$v)/svj$d)
@@ -799,30 +826,33 @@ if (inherits(covff, "try-error")) {
    rtcov=chol(covff)
 }
 # standart deviations of free fluxes
-sdff=sqrt(diag(covff));
+#sdff=sqrt(diag(covff));
 cat("linear stats\\n", file=fkvh);
-mtmp=cbind(param[1:nb_ff], sdff, sdff/abs(param[1:nb_ff]));
-dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
-o=order(nm_ff);
-obj2kvh(mtmp[o,], "val, sd, rsd free fluxes (sorted by name)", fkvh, indent=1);
-obj2kvh(covff, "covariance free fluxes", fkvh, indent=1);
+#mtmp=cbind(param[1:nb_ff], sdff, sdff/abs(param[1:nb_ff]));
+#dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
+#o=order(nm_ff);
+#obj2kvh(mtmp[o,,drop=F], "val, sd, rsd free fluxes (sorted by name)", fkvh, indent=1);
+#obj2kvh(covff, "covariance free fluxes", fkvh, indent=1);
 
-# sd dependent net-xch01 fluxes
-covfl=crossprod(rtcov%mmt%(dfl_dff));
+# sd free+dependent net-xch01 fluxes
+fl=c(param[1:nb_ff], flnx);
+nm_flfd=c(nm_ff, nm_fl);
+covfl=crossprod(rtcov%mmt%(rbind(diag(1., nb_ff), dfl_dff)));
+dimnames(covfl)=list(nm_flfd, nm_flfd)
 sdfl=sqrt(diag(covfl));
-mtmp=cbind(flnx, sdfl, sdfl/abs(flnx));
-dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
-o=order(nm_fl);
-obj2kvh(mtmp[o,], "val, sd, rsd dependent net-xch01 fluxes (sorted by name)", fkvh, indent=1);
-obj2kvh(covfl, "covariance net-xch01 fluxes", fkvh, indent=1);
+mtmp=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl));
+rownames(mtmp)=nm_flfd;
+o=order(nm_flfd);
+obj2kvh(mtmp[o,,drop=F], "net-xch01 fluxes (sorted by name)", fkvh, indent=1);
+obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1);
 
 # sd of all fwd-rev
 covf=crossprod(rtcov%mmt%(jx_f$df_dff));
 sdf=sqrt(diag(covf));
 mtmp=cbind(fwrv, sdf, sdf/abs(fwrv));
-dimnames(mtmp)[[2]]=c("val", "sd", "rsd");
+dimnames(mtmp)[[2]]=c("value", "sd", "rsd");
 o=order(nm_fwrv);
-obj2kvh(mtmp[o,], "val, sd, rsd fwd-rev fluxes (sorted by name)", fkvh, indent=1);
+obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1);
 
 # select best defined flux combinations
@@ -853,10 +883,19 @@ if (prof) {
    Rprof(NULL);
 }
 close(fkvh);
-if (TIMEIT) {
-   cat("rend    : ", date(), "\n", sep="");
-}
 """);
+    f.write("""
+# write edge.netflux property
+fedge=file("edge.netflux.%(org)s", "w");
+cat("netflux (class=Double)\\n", sep="", file=fedge);
+nm_edge=names(edge2fl)
+cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge);
+if (TIMEIT) {
+   cat("rend    : ", date(), "\\n", sep="");
+}
+"""%{
+    "org": escape(org, "\\"),
+});
 
     f.close();
     # make output files just readable to avoid later casual edition
