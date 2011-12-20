@@ -4,12 +4,12 @@ if (TIMEIT) {
    cat("load    : ", date(), "\n", sep="");
 }
 jx_f=list();
-library(bitops);
-library(MASS); # for generalized inverse
-library(fUtilities); # for Heaviside function
-library(nnls); # for non negative least square
-library(lattice); # to keep Matrix silent
-library(Matrix, warn=F, verbose=F); # for sparse matrices
+suppressPackageStartupMessages(library(bitops));
+suppressPackageStartupMessages(library(MASS)); # for generalized inverse
+suppressPackageStartupMessages(library(fUtilities)); # for Heaviside function
+suppressPackageStartupMessages(library(nnls)); # for non negative least square
+#suppressPackageStartupMessages(library(lattice)); # to keep Matrix silent
+suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 #library(inline); # for inline fortran compilation
 
 trisparse_solv=function(A, b, w, method="dense") {
@@ -46,7 +46,7 @@ trisparse_solv=function(A, b, w, method="dense") {
          # find 0 rows if any
          izc=apply(A, 1, function(v)sum(abs(v))<=1.e-10)
          izf=grep("^.\\.n\\.*", names(which(abs(jx_f$fallnx)<1.e-7)), v=T)
-         mes=paste("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3.\n",
+         mes=paste("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3\nor constrain the flux(es) (see below) to be non zero\n",
             "Zero row(s) in cumomer matrix A at weight ", w, ":\n",
             paste(rownames(A)[izc], collapse="\n"), "\n",
             "Zero net flux(es) are:\n",
