@@ -1,3 +1,0 @@
-cumomers	Xul5P.Rib5P:1023	Sed7P.GA3P:1023	b
-Xul5P.Rib5P:1023	ppp5.f.rev+ppp5.s.fwd	0	ppp5.s.rev*(GA3P:7*Sed7P:127)+ppp5.f.fwd*(Xul5P:31*Rib5P:31)
-Sed7P.GA3P:1023	0	ppp6.s.fwd+ppp6.f.rev	ppp6.s.rev*(Ery4P:15*Fru6P:63)+ppp6.f.fwd*(GA3P:7*Sed7P:127)
