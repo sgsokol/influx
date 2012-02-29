@@ -1,6 +1,6 @@
 #DEBUG=0; # 1 to enable debugging information, 0=disable
 #TIMEIT=0; # 1 to enable time printing at some stages
-if (TIMEIT) {
+if (length(find("TIMEIT")) && TIMEIT) {
    cat("load    : ", date(), "\n", sep="");
 }
 jx_f=list();
@@ -45,13 +45,18 @@ trisparse_solv=function(A, b, w, method="dense") {
       if (inherits(x, "try-error")) {
          # find 0 rows if any
          izc=apply(A, 1, function(v)sum(abs(v))<=1.e-10)
-         izf=grep("^.\\.n\\.*", names(which(abs(jx_f$fallnx)<1.e-7)), v=T)
-         mes=paste("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3\nor constrain the flux(es) (see below) to be non zero\n",
-            "Zero row(s) in cumomer matrix A at weight ", w, ":\n",
-            paste(rownames(A)[izc], collapse="\n"), "\n",
-            "Zero net flux(es) are:\n",
-            paste(izf, collapse="\n"), "\n",
-            sep="")
+         izf=names(which(abs(jx_f$fwrv)<1.e-7))
+         if (sum(izc) || length(izf)) {
+            mes=paste("Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3\nor constrain the flux(es) (see below) to be non zero\n",
+               "Zero rows in cumomer matrix A at weight ", w, ":\n",
+               paste(rownames(A)[izc], collapse="\n"), "\n",
+               "Zero fluxes are:\n",
+               paste(izf, collapse="\n"), "\n",
+               sep="")
+         } else {
+            mes="Cumomer matrix is singular. Try '--clownr N' option with small N, say 1.e-3."
+         }
+#browser()
          stop(mes)
       }
       if (DEBUG) {
@@ -244,11 +249,11 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
    }
    if (DEBUG) {
       tmp=lf$fwrv;
-      names(tmp)=nm_fwrv;
+      names(tmp)=nm$fwrv;
       conct=file("dbg_fwrv.txt", "wb");
       obj2kvh(tmp, "fwrv", conct);
       tmp=lf$fallnx;
-      names(tmp)=nm_fallnx
+      names(tmp)=nm$fallnx
       obj2kvh(tmp, "net-xch", conct);
    }
 #browser();
@@ -260,9 +265,14 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
       #A=matrix(0.,ncumow,ncumow);
       #b=double(ncumow);
       #res<-.Fortran(fortfun, fl=as.double(lf$fwrv), nf=nb_fwrv, x=as.double(x[]), iw=as.integer(iw), n=as.integer(ncumow), A=as.matrix(A), b=as.double(b), calcA=as.integer(TRUE), calcb=as.integer(TRUE), NAOK=TRUE, DUP=FALSE);
-      lAb=fwrv2Ab(lf$fwrv, spAb[[iw]], x, nm$rcumo[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]);
+      # old usage of cumo.f (for tests only)
+      #lAb=fwrv2Ab(lf$fwrv, spAb[[iw]], x, nm$rcumo[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]);
+      lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], x, nm$rcumo[(nbc_cumos[iw]+1):nbc_cumos[iw+1]]);
       A=lAb$A;
       b=lAb$b;
+      #if (any(A != lAbr$A) || any(b != lAbr$b)) {
+      #   browser()
+      #}
       if (DEBUG) {
          write.matrix(cbind(as.matrix(A), b=b), file=paste("dbg_cumoAb_",iw,".txt", sep=""), sep="\t");
          if (iw==1) {
@@ -293,7 +303,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
          # bind cumomer vector
 #browser();
          x=c(x,xw);
-         j_b_x=fx2j(lf$fwrv, spAb[[iw]], x);
+         j_b_x=fx2jr(lf$fwrv, spAb[[iw]], x);
          j_rhsw=j_b_x$j_rhsw;
          b_x=j_b_x$b_x;
          if (DEBUG) {
@@ -346,7 +356,7 @@ num_jacob=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, i
       if (i > 0) {
          f1[i]=f0[i]+dfl;
       }
-      # take the system A*x=b from the global variablesjx_f$wA jx_f$wb
+      # take the system A*x=b from the global variables jx_f$wA jx_f$wb
       # and find x for every weight
       # if fj_rhs is not NULL, calculate jacobian x_f
       x=c(1, xi);
@@ -545,7 +555,7 @@ cumo_gradj=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, 
    # grad=c(2*t(dr_df%*%df_dff)*(measinvvar*rescumo)+
    #    t(drf_dff)*(invfmnvar*resfl), 2*(t(dr_dw)%*%rescumo))
 
-   # part of gradient due to free fluxes
+   # gradient
    grad=2*t(jx_f$ures*c(measinvvar, invfmnvar))%*%jx_f$udr_dp;
    return(c(grad));
 }
@@ -705,6 +715,44 @@ fwrv2Ab=function(fwrv, spAb, incu, nm_rcumo) {
    names(b)=nm_rcumo;
    return(list(A=A, b=b));
 }
+fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T) {
+   # calculate sparse A and b (in A*x=b where x is cumomer vector)
+   # from fields of the list spAbr
+   # according to conventions explained in comments to python function
+   # netan2Abcumo_spr() generating spAbr
+   # return a list A, b
+   # 2012-02-21 sokol
+   
+   # construct off-diagonal terms of a
+   a_pre=spAbr$a_pre
+   a_pre@x=fwrv[spAbr$ind_fa]
+   a=spAbr$tA;
+   a@x=apply(a_pre, 2, sum)
+   
+   # get fluxes in b
+   b_pre=spAbr$b_pre;
+   b_pre@x=fwrv[spAbr$ind_fb]
+   b=spAbr$b
+   b@x=apply(b_pre, 2, sum)
+   
+   # sum off-diagonal terms
+   # and add fluxes from b
+   diag(a)=as.numeric(-apply(a, 2, sum))-as.numeric(b);
+   A=t(a)
+   dimnames(A)=list(nm_rcumo, nm_rcumo);
+   
+   # construct a complete b vector
+   if (getb) {
+      b_pre@x=b_pre@x*incu[spAbr$ind_x1]*incu[spAbr$ind_x2]
+      b@x=-apply(b_pre, 2, sum)
+
+      b=as.numeric(b)
+      names(b)=nm_rcumo;
+      return(list(A=A, b=b));
+   } else {
+      return(list(A=A, b=NULL));
+   }
+}
 fx2j=function(fwrv, spAb, incu) {
    # calculate sparse j_rhs and b_x from fields of the list spAb
    # according to conventions explained in comments
@@ -752,6 +800,47 @@ fx2j=function(fwrv, spAb, incu) {
    );
    return(list(j_rhsw=-t(b_f-a_fx), b_x=-t(b_x)));
 }
+
+fx2jr=function(fwrv, spAbr, incu) {
+   # calculate sparse j_rhs and b_x from fields of the list spAbr
+   # according to conventions explained in comments
+   # to python function netan2Abcumo_spr() generating spAbr
+   # Return a list j_rhs, b_x
+   # 2012-02-22 sokol
+   
+   x0=c(0., incu)
+   a_fx=spAbr$ta_fx
+   # form a_fx_pre
+   x2ta_fx=spAbr$x2ta_fx
+   a_fx_pre=Matrix(0, ncol=length(a_fx@i), nrow=max(x2ta_fx[,1])+1)
+   a_fx_pre@i=as.integer(x2ta_fx[,1])
+   inz=which(diff(c(a_fx_pre@i, 0))<=0)
+   a_fx_pre@p=as.integer(c(0, cumsum(a_fx_pre@i[inz]+1)))
+   a_fx_pre@x=x0[x2ta_fx[,2]]-x0[x2ta_fx[,3]]
+   # calculate @x slot of a_fx
+   a_fx@x=apply(a_fx_pre, 2, sum)
+   
+   # prepare b_f
+   b_f=spAbr$tb_f
+   x2tb_f=spAbr$x2tb_f
+   b_f@x=incu[x2tb_f[,1]]*incu[x2tb_f[,2]]
+   
+   # prepare b_x
+   b_x=spAbr$tb_x
+   fx2tb_x=spAbr$fx2tb_x
+   if (nrow(b_x) > 0 && all(dim(fx2tb_x) > 0)) {
+      # form b_x_pre
+      b_x_pre=Matrix(0, ncol=length(b_x@i), nrow=max(fx2tb_x[,1])+1)
+      b_x_pre@i=as.integer(fx2tb_x[,1])
+      inz=which(diff(c(b_x_pre@i, 0))<=0)
+      b_x_pre@p=as.integer(c(0, cumsum(b_x_pre@i[inz]+1)))
+      b_x_pre@x=fwrv[fx2tb_x[,2]]*incu[fx2tb_x[,3]]
+      # calculate @x slot of b_x
+      b_x@x=apply(b_x_pre, 2, sum)
+   }
+   return(list(j_rhsw=-t(b_f+a_fx), b_x=-t(b_x)))
+}
+
 put_inside=function(param, ui, ci) {
    # put param inside of feasible domain delimited by u%*%param >= ci
    mes=""
