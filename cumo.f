@@ -106,7 +106,7 @@ C     dummy islot usage
       end subroutine x2b_f
 
       subroutine fx2b_x(fxi, n, islot, fwrv, incu, x, nx)
-C Calculate db_df (@x slot)
+C Calculate db_dx (@x slot)
 C fxi is 3-row index matrix: rep, ifl, icof
 C n column number in fxi
 C islot is b_x@i
