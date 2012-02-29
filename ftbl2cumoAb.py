@@ -159,15 +159,18 @@ for meas in o_meas:
 
 if reduced:
     Ab=C13_ftbl.rcumo_sys(netan);
+    vcumo=netan["vrcumo"];
     f.write("\n# reduced to measurable cumomers system\n");
 else:
     Ab=netan["cumo_sys"];
+    vcumo=netan["vcumo"];
     f.write("\n# full (not reduced to measures) system\n");
 #aff("A3", Ab["A"][2]);##
 #aff("\nb3", Ab["b"][2]);##
 for (w,A) in enumerate(Ab["A"]):
     f.write("\n# weight %d\n"%(w+1));
-    for r_cumo in sorted(A.keys()):
+    #for r_cumo in sorted(A.keys()):
+    for r_cumo in vcumo[w]:
         # output term
         f.write("%(c)s*(%(f)s)" % ({
                 "c": r_cumo,
@@ -177,7 +180,8 @@ for (w,A) in enumerate(Ab["A"]):
         term=join("+",("%(c)s*(%(f)s)" % ({
               "c": c_cumo,
               "f": join("+", A[r_cumo][c_cumo]),
-            }) for c_cumo in sorted(A[r_cumo].keys()) if c_cumo != r_cumo));
+            }) for c_cumo in vcumo[w] if c_cumo in A[r_cumo] and c_cumo != r_cumo));
+            #}) for c_cumo in sorted(A[r_cumo].keys()) if c_cumo != r_cumo));
         if term:
             f.write("-("+term+")");
         # rhs
