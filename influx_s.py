@@ -32,7 +32,7 @@ parser.add_option("--noopt", action="store_true",
 parser.add_option("--noscale", action="store_true",
     help="no scaling factors to optimize => all scaling factors are assumed to be 1")
 parser.add_option("--meth", type="choice",
-    choices=["BFGS", "Nelder-Mead", "nlsic"],
+    choices=["BFGS", "Nelder-Mead", "ipopt", "nlsic"],
     help="method for optimization, one of nlsic|BFGS|Nelder-Mead. Default: nlsic")
 parser.add_option("--fullsys", action="store_true",
     help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)") 
