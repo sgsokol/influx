@@ -177,6 +177,8 @@ def ftbl_parse(f):
         if reading=="col_names" and len(flds)>2:
             # read column names;
             col_names=l[skiptab:].split("\t");
+            if len([ item for item in col_names if re.match("^\s*$", item) ]):
+                raise Exception("Row %d has empty column names:\n%s"%(irow,l))
             reading="data";
             #print "col_names=", col_names;##
             continue;
@@ -453,6 +455,14 @@ def ftbl_netan(ftbl):
         xch=flx.get("XCH");
         net=flx.get("NET");
 ##        aff("net", net);
+        # check that all fluxes are defined in network section
+        allreac=netan["reac"] | netan["flux_inout"]
+        unk=[ row["NAME"] for row in net if row["NAME"] not in allreac ]
+        if len(unk):
+            raise Exception("FluxDef", "The flux name '%s' in the FLUX/NET section is not defined in the NETWORK section."%(unk[0]))
+        unk=[ row["NAME"] for row in xch if row["NAME"] not in allreac ]
+        if len(unk):
+            raise Exception("FluxDef", "The flux name '%s' in the FLUX/XCH section is not defined in the NETWORK section."%(unk[0]))
     else:
         werr(os.path.basename(me)+": netan[FLUXES][XCH] is not defined");
         #return None;
@@ -720,7 +730,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in PEAK_MEASU
             netan["peak_meas"][metab][row["irow"]][suff]={
                "val": val,
                "dev": dev,
-               "id": ":".join(["p", metab, suff, str(row["irow"])]),
+               "id": ":".join(["p", metab, row["PEAK_NO"], suff, str(row["irow"])]),
                "irow": str(row["irow"]),
                "c_no": c_no,
             };
