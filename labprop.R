@@ -7,6 +7,7 @@
 # License: GPL2 + citation of a possible corresponding paper.
 source("/home/sokol/sysbio/dev/ftbl2sys/opt_cumo_tools.R")
 source("/home/sokol/R/Rtools/tools_ssg.R")
+#library(expm)
 lab_chain=function(ti, lambda, crodi=outer(lambda, lambda, "-")) {
    # return vector of the same length as time vector ti
    # with n labeled metabolites where n is the lentgh of
@@ -319,41 +320,155 @@ lab_cubs=function(ti, spAbr, li_m2x, xinp, xinpp, f, m, nm_incu, measmat=NULL) {
       })
       sd=matrix(0., nrow=nb_xw, ncol=nb_ti)
       sd[sp$b@i+1,]=t(s_pre)
-      # decompose the matrix a
-      eva=eigen(a)
-      u=eva$vectors
-      uinv=solve(u)
-      lam=eva$values
+      # Schur decomposition of the matrix a=uTt(u) where T is upper triangular
+      sa=Schur(a)
+      u=as.matrix(sa@Q)
+      #uinv=t(u)
+      ta=sa@T
+      lam=diag(ta)
       # go to eigen cumomers
-      s=uinv%*%s
-      sd=uinv%*%sd
-      # auxiliary terms for integration
-      tmp1=6*(s[,-1,drop=F]-s[,-nb_ti,drop=F])
-      tmp2=sd[,-1,drop=F]+sd[,-nb_ti,drop=F]
-      explam=exp(outer(lam, dt, "*"))
+      s=u%tmm%s
+      sd=u%tmm%sd
+      # solve eigne cumomer strating with n-th
+      # then go to cumomer 1 updating s, sd terms with higher cumomer number
+      # previously found
       xw=matrix(0., nrow=nb_xw, ncol=nb_ti)
-      linv=1./lam
-      ltinv=outer(linv, dt, "/")
-      # second derivative*dt**2 on the left at t=0
-      sddl=tmp1-(tmp2+sd[,-nb_ti,drop=F])%mrv%(2*dt)
-      # second derivative*dt**2 on the right
-      sddr=-tmp1+(tmp2+sd[,-1,drop=F])%mrv%(2*dt)
-      # third derivative*dt**3
-      sddd=-2*tmp1+tmp2%mrv%(6*dt)
-      # term t0
-      tmp1=s[,-nb_ti,drop=F]+linv*sd[,-nb_ti,drop=F]+ltinv*ltinv*(sddl+ltinv*sddd)
-      # term t1
-      tmp2=s[,-1,drop=F]+linv*sd[,-1,drop=F]+ltinv*ltinv*(sddr+ltinv*sddd)
-      # main part: integration of ode
-      dx=-linv*(tmp2-tmp1*explam)
-      for (i in 2:length(ti)) {
-         xw[,i]=xw[,i-1,drop=F]*explam[,i-1,drop=F]+dx[,i-1,drop=F]
+      xwp=matrix(0., nrow=nb_xw, ncol=nb_ti)
+      for (icumo in nb_xw:1) {
+         # auxiliary terms for integration
+         tmp1=6*(s[icumo,-1]-s[icumo,-nb_ti])
+         tmp2=(sd[icumo,-1]+sd[icumo,-nb_ti])*(2*dt)
+         explam=exp(lam[icumo]*dt)
+         linv=1./lam[icumo]
+         ltinv=linv/dt
+         # second derivative*dt**2 on the left at t=0
+         sddl=tmp1-tmp2; #+sd[icumo,-nb_ti,drop=F])*(2*dt)
+         # second derivative*dt**2 on the right
+         sddr=-sddl+sd[icumo,-1]*(2*dt)
+         sddl=sddl-sd[icumo,-nb_ti]*(2*dt)
+         # third derivative*dt**3
+         sddd=-2*tmp1+tmp2*3
+         # term t0
+         tmp1=s[icumo,-nb_ti]+linv*sd[icumo,-nb_ti]+ltinv*ltinv*(sddl+ltinv*sddd)
+         # term t1
+         tmp2=s[icumo,-1,drop=F]+linv*sd[icumo,-1,drop=F]+ltinv*ltinv*(sddr+ltinv*sddd)
+         # main part: integration of ode
+         dx=-linv*(tmp2-tmp1*explam)
+         for (i in 2:length(ti)) {
+            xw[icumo,i]=xw[icumo,i-1]*explam[i-1]+dx[i-1]
+         }
+         # eigen derivatives
+         xwp[icumo,]=lam[icumo]*xw[icumo,]+s[icumo,]
+         # update s, sd for next cumomer
+         if (icumo > 1 && any(ta[icumo-1,]!=0.)) {
+            iready=icumo:nb_xw
+            s[icumo-1,]=s[icumo-1,]+ta[icumo-1,iready]%*%xw[iready,,drop=F]
+            sd[icumo-1,]=sd[icumo-1,]+ta[icumo-1,iready]%*%xwp[iready,,drop=F]
+         }
       }
       # go back to natural cumomers
-      xw=Re(u%*%xw)
+      xw=u%*%xw
       rownames(xw)=nm_cuw
       # calculate derivatives
-      xwp=as.matrix(a%*%xw)+s
+      xwp=as.matrix(a%*%xw)+s # coherence test: must be equal to u%*%xwp
+      # extend x and xp matrices by xw, xwp
+      x=rbind(x, xw)
+      xp=rbind(xp, xwp)
+   }
+   if (is.null(measmat)) {
+      return(t(x[-1,,drop=F]))
+   } else {
+      return(t(measmat%*%x))
+   }
+}
+lab_cubs_mat=function(ti, spAbr, li_m2x, xinp, xinpp, f, m, nm_incu, measmat=NULL) {
+   # derived from lab_cubs()
+   # here using exp(a*dt) instead of Schur decomposition
+   # 2012-03-02 sokol
+   
+   if (length(ti) < 2) {
+      warning("Length ot time vector is less than 2.")
+      return(NULL)
+   }
+   weights=1:length(spAbr)
+#   muamp_xinp$amp=as.matrix(muamp_xinp$amp)
+#   x=t(cbind(1., muamp2ti(ti, muamp_xinp)))
+#   muamp_xinp$amp=t(t(muamp_xinp$amp)*muamp_xinp$mu)
+#   xp=t(cbind(0., muamp2ti(ti, muamp_xinp)))
+   x=rbind(1., xinp)
+   xp=rbind(0., xinpp)
+   # cumomer number in a cumomer weigth
+   nb_xw=0
+   # cumomer number in all lighter weights
+   nb_xl=nrow(x)
+   rownames(x)=nm_incu[1:nb_xl]
+   
+   nb_ti=length(ti)
+   dt=diff(ti)
+   for (w in weights) {
+      invm=(1./m)[li_m2x[[w]]] # result has length of xw
+      sp=spAbr[[w]]
+      nb_xl=nb_xl+nb_xw # add precedet weights to get ligther cumo size
+      nb_xw=dim(sp$tA)[1]
+      nm_cuw=nm_incu[nb_xl+(1:nb_xw)]
+      
+      # construct the matrix a of this weight
+      a=fwrv2Abr(f, sp, NULL, nm_incu[nb_xl+(1:nb_xw)], getb=F)$A*invm
+
+      # construct the sources s and its derivatives for this weight
+      s_pre=f[sp$ind_fb]*x[sp$ind_x1,,drop=F]*x[sp$ind_x2,,drop=F]
+      p=sp$b_pre@p
+      # sum up what should be summed to give the non zero part of b
+      s_pre=apply(t(1:dim(sp$b_pre)[2]), 2, function(i) {
+         if (p[i+1]==p[i]+1) {return(s_pre[p[i+1],])}
+         return(apply(s_pre[(p[i]+1):p[i+1],], 2, sum))
+      })
+      s=matrix(0., nrow=nb_xw, ncol=nb_ti)
+      s[sp$b@i+1,]=t(s_pre)
+      s=s*invm
+      s_pre=f[sp$ind_fb]*(xp[sp$ind_x1,,drop=F]*x[sp$ind_x2,,drop=F]+x[sp$ind_x1,,drop=F]*xp[sp$ind_x2,,drop=F])
+      # sum up what should be summed to give the non zero part of b
+      s_pre=apply(t(1:dim(sp$b_pre)[2]), 2, function(i) {
+         if (p[i+1]==p[i]+1) {return(s_pre[p[i+1],])}
+         return(apply(s_pre[(p[i]+1):p[i+1],], 2, sum))
+      })
+      sd=matrix(0., nrow=nb_xw, ncol=nb_ti)
+      sd[sp$b@i+1,]=t(s_pre)
+      sd=sd*invm
+      xw=matrix(0., nrow=nb_xw, ncol=nb_ti)
+      # auxiliary terms for integration
+      tmp1=6*(s[,-1,drop=F]-s[,-nb_ti,drop=F])
+      tmp2=(sd[,-1,drop=F]+sd[,-nb_ti,drop=F])*(2*dt)
+      # calculate exp(a*dt) only once by unique dt value
+      dtu=as.numeric(names(table(dt)))
+      expall=array(apply(t(dtu), 2, function(dti){
+         as.matrix(Matrix::expm(a*dti))
+      }), dim=c(nb_xw, nb_xw, length(dtu)))
+      # second derivative*dt**2 on the left at t=0
+      sddl=tmp1-tmp2; #+sd[,-nb_ti,drop=F])*(2*dt)
+      # second derivative*dt**2 on the right
+      sddr=(-sddl+sd[,-1,drop=F]*(2*dt))/dt/dt
+      sddl=(sddl-sd[,-nb_ti,drop=F]*(2*dt))/dt/dt
+      # third derivative*dt**3
+      sddd=(-2*tmp1+tmp2*3)/dt/dt/dt
+      tmp=solve(a, sddd)
+      # term t0
+      tmp1=s[,-nb_ti,drop=F]+solve(a, sd[,-nb_ti,drop=F]+solve(a, sddl+tmp))
+      # term t1
+      tmp2=s[,-1,drop=F]+solve(a, sd[,-1,drop=F]+solve(a, sddr+tmp))
+      # main part: integration of ode
+      for (i in 2:length(ti)) {
+         # get exp(a*dt) for this step
+         dti=dt[i-1]
+         ie=which.min(abs(dti-dtu))
+         expa=as.matrix(expall[,,ie])
+         # increment
+         dx=as.numeric(-solve(a, tmp2[,i-1,drop=F]-expa%*%tmp1[,i-1,drop=F]))
+         xw[,i]=expa%*%xw[,i-1,drop=F]+dx
+      }
+      # derivatives
+      xwp=matrix(a%*%xw, nrow=nb_xw)+s
+      rownames(xw)=nm_cuw
       # extend x and xp matrices by xw, xwp
       x=rbind(x, xw)
       xp=rbind(xp, xwp)
@@ -442,7 +557,7 @@ abc2trid=function(a,b,c) {
 }
 plot_tilab=function(ti, lab) {
    ncurv=ncol(lab)
-   matplot(ti, lab, t="l", ylab="Labeling", xlab="Time")
+   matplot(ti, lab, t="l", ylab="Labeling", xlab="Time", lty=1:ncurv, col=1:ncurv)
    nm_lab=colnames(lab)
    if (is.null(nm_lab)) {
       nm_lab=as.character(1:ncol(lab))
@@ -708,7 +823,8 @@ xinp=t(muamp2ti(ti, muamp_xinp))
 # xinp derivative
 muamp_xinp$amp=t(t(muamp_xinp$amp)*muamp_xinp$mu)
 xinpp=t(muamp2ti(ti, muamp_xinp))
-x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+#x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+x=lab_cubs_mat(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
 plot_tilab(ti, x)
 # check diff with exacte solution. Must be 0
 range(x[,-1]-lab_chain(ti, 1./m))
@@ -742,17 +858,18 @@ xinp=Re(t(muamp2ti(ti, muamp_xinp)))
 muamp_xinpp=muamp_xinp
 muamp_xinpp$amp=t(t(muamp_xinp$amp)*muamp_xinp$mu)
 xinpp=Re(t(muamp2ti(ti, muamp_xinpp)))
-x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+#x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+x=lab_cubs_mat(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
 plot_tilab(ti, x)
 # check diff with exacte solution. Must be 0
 check=Re(muamp2ti(ti,lab_cumo(spAbr, li_m2x, muamp_xinp, fwrv, m, nm_incu)))
-range(x-check)
+range(x[,colnames(check)]-check)
 
 #------------
 #setwd("algomics")
 # semi-analyticalreal world problem (chlamy_i.ftbl)
-nti=10;
-ti=seq(0, 6., len=nti)
+nti=5000;
+ti=seq(0., 1000., len=nti)
 # read spAbr
 # save(spAbr, fwrv, nm_xi, nm_incu, nb_rw, nb_rcumos, file="chlamy.Rdata")
 load("chlamy.Rdata") # creates spAbr, fwrv, nm_xi, nm_incu, nb_rw, nb_rcumos for one box
@@ -787,16 +904,24 @@ xinp=t(muamp2ti(ti, muamp_xinp))
 # xinp derivative
 muamp_xinp$amp=t(t(muamp_xinp$amp)*muamp_xinp$mu)
 xinpp=t(muamp2ti(ti, muamp_xinp))
-x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
-plot_tilab(ti, x)
+#x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+x=lab_cubs_mat(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+#plot_tilab(ti, x)
+nm_x=colnames(x)
+plot_tilab(ti, x[,grep("HCO3:|CO2:", nm_x),drop=F])
+# weight 1 cumomers
+plot_tilab(ti, x[,1+(1:nb_rcumos[1]),drop=F])
+# weight i>1 cumomers
+i=2
+plot_tilab(ti, x[,1+cumsum(nb_rcumos)[i-1]+(1:nb_rcumos[i]),drop=F])
 
 #------------
 # cubic simulation for split+derivative (ex_i_split_deriv.ftbl)
 nti=10;
-ti=seq(0, 5., len=nti)
+ti=seq(0., 8., len=nti)
 # read spAbr
-# save(spAbr, fwrv, nm_xi, nm_incu, nb_rw, file="split.Rdata")
-load("split.Rdata") # creates spAbr, fwrv, nm_xi, nm_incu, nb_rw for two box
+# save(spAbr, fwrv, nm_xi, nm_incu, nb_rw, nb_rcumos, file="split.Rdata")
+load("split.Rdata") # creates spAbr, fwrv, nm_xi, nm_incu, nb_rw, nb_rcumos for two box
 nb_xi=length(nm_xi)
 
 # vector of metabolite pools
@@ -824,7 +949,11 @@ li_m2x=lapply(1:nb_rw, function(i) {
 })
 # input muamp
 # all are just at 1 (step pulse)
-muamp_xinp=list(mu=0., amp=matrix(1., nrow=nb_xi, ncol=1))
+muamp_xinp=list(mu=0., amp=matrix(0., nrow=nb_xi, ncol=1))
+rownames(muamp_xinp$amp)=nm_incu[1+(1:nb_xi)]
+muamp_xinp$amp["A:1",]=0.
+muamp_xinp$amp["A:2",]=1.
+muamp_xinp$amp["A:3",]=0.
 # sinusoidal wave
 # sinusoidal wave 0.5*(1+exp(i*t))
 #muamp_xinp=list(mu=c(0., 1i), amp=matrix(c(1.-0.5, 0.5), nrow=nb_xi, ncol=2))
@@ -833,8 +962,10 @@ xinp=Re(t(muamp2ti(ti, muamp_xinp)))
 muamp_xinpp=muamp_xinp
 muamp_xinpp$amp=t(t(muamp_xinp$amp)*muamp_xinp$mu)
 xinpp=Re(t(muamp2ti(ti, muamp_xinpp)))
-x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+#x=lab_cubs(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
+x=lab_cubs_mat(ti, spAbr, li_m2x, xinp, xinpp, fwrv, m, nm_incu)
 plot_tilab(ti, x)
+plot_tilab(ti, x[,c("A:1", "A:2", "B:1", "B:2", "B:3", "C:1", "C:2")])
 # check diff with exacte solution. Must be 0
-check=Re(muamp2ti(ti,lab_cumo(spAbr, li_m2x, muamp_xinp, fwrv, m, nm_incu)))
-range(x-check)
+#check=Re(muamp2ti(ti,lab_cumo(spAbr, li_m2x, muamp_xinp, fwrv, m, nm_incu)))
+#range(x-check)
