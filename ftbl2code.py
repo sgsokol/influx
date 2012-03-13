@@ -422,8 +422,8 @@ nb_fwrv=%(n)d;
             raise "wrongCumomerNumber";
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
-        nb_maxfa=0; # hwo many fluxes in an off-diagonal term in a
-        nb_maxfb=0; # hwo many fluxes in a term in b
+        nb_maxfa=0; # how many fluxes in an off-diagonal term in a
+        nb_maxfb=0; # how many fluxes in a term in b
         for irow in xrange(ncumo):
             cr=cumos[irow];
             row=A[cr];
