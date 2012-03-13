@@ -89,7 +89,7 @@ for line in open(ft, "rb"):
 #print ("cmd_opts=", cmd_opts)
 if len(args) != 0:
     parser.print_help()
-    parser.error("FTBL_file cannot be given in commandArgs option")
+    parser.error("FTBL_file has to be given in the command line")
 
 # update cmd_opts with runtime options
 cmd_opts._update_loose(dict((k,v) for (k,v) in eval(str(opts)).iteritems() if not v is None))
