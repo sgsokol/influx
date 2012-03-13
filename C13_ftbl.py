@@ -1105,7 +1105,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         # check if this line was already entered before
         for (i,row) in enumerate(res):
             if row==qry:
-                werr("Warning: when trying to add balance for "+metab+
+                werr("Warning: when trying to add a balance equation for "+metab+
                     " got the same equation as for "+netan["vrowAfl"][i]+"\n");
                 werr("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n");
                 werr(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n");
@@ -1128,7 +1128,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
 
     # flux equality part
     res=netan["Afl"];
-    for (nx,nxl) in (("net","n"), ("xch","x")):
+    for (nx, nxl) in (("net", "n"), ("xch", "x")):
         for eq in netan["flux_equal"][nx]:
             qry=[];
             qry.extend(eq[1].get(fl,0) for fl in netan["vflux"][nx]);
