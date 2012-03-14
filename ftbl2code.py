@@ -1090,6 +1090,7 @@ if (nb_ffx) {
    nm_par=c(nm_par, nm_ffx);
 }
 nm_ff=c(nm_ffn, nm_ffx);
+nm_list$ff=nm_ff
 nb_param=length(param);
 if (initrand) {
    param=runif(nb_param);
@@ -1379,6 +1380,7 @@ if (noscale) {
    ir2isc[]=1;
    nb_sc=0;
 }
+nm_list$par=nm_par
 """);
     # get the full dict of non zero cumomers involved in measures
     # cumo=metab:icumo where icumo is in [1;2^Clen]
@@ -1403,6 +1405,7 @@ if (noscale) {
 # all but 0. Coefficients of 0-cumomers (by defenition equal to 1)
 # are all regrouped in the last matrix column.
 nm_meas=c(%(idmeas)s);
+nm_list$meas=nm_meas
 nb_meas=length(nm_meas);
 measmat=matrix(0., nb_meas, %(ncol)d);
 measvec=c(%(vmeas)s);
@@ -1446,7 +1449,9 @@ names(measinvvar)=nm_meas;
     f.write("""
 # prepare flux measures
 nb_fmn=%(nb_fmn)d;
+nb_f$nb_fmn=nb_fmn;
 nm_fmn=c(%(nm_fmn)s);
+nm_list$fmn=nm_fmn;
 
 # measured values
 fmn=c(%(fmn)s);
