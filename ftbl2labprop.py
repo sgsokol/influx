@@ -316,16 +316,10 @@ cfw_fl=crv_fl=cbind(ifl_in_fw, 1:nb_fl)
 cfw_ff=crv_ff=cbind(iff_in_fw, 1:nb_ff)
 crv_fl[,1]=(nb_fwrv/2)+crv_fl[,1]
 crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
-
-# see if there are any active inequalities at starting point
-ineq=ui%*%param-ci
-if (any(abs(ineq)<=1.e-10)) {
-   cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point:\\n",
-      paste(names(ineq[abs(ineq)<=1.e-10,1]), collapse="\\n"), "\\n", sep="")
-}
 """)
 
     f.write("""
+
 ## variables for isotopomer cinetics
 tstart=0.;
 tmax=%(tmax)f;
@@ -339,8 +333,23 @@ names(pool)=nm_pool
 flabcin="%(flabcin)s"
 if (nchar(flabcin)) {
    measvecti=as.matrix(read.table(flabcin, header=T, row.names=1, sep="\t", check=F, comment=""))
+   nm_row=rownames(measvecti)
    # put in the same row order as simulated measurments
-   measvecti=measvecti[nm_meas,,drop=F]
+   # check if nm_meas are all in rownames
+   if (all(nm_meas %%in%% nm_row)) {
+      measvecti=measvecti[nm_meas,,drop=F]
+   } else {
+      # try to strip row number from measure id
+      nm_strip=matrix(unlist(strsplit(nm_meas, ":")), ncol=length(nm_meas))
+      nm_strip[nrow(nm_strip),]=""
+      nm_strip=apply(nm_strip, 2, paste, collapse=":")
+      im=pmatch(nm_strip, nm_row)
+      ina=is.na(im)
+      if (any(ina)) {
+         stop(paste("Cannot match measurements", nm_meas[ina], "in the file", flabcin))
+      }
+      measvecti=measvecti[im,,drop=F]
+   }
    ti=c(tstart, as.numeric(colnames(measvecti)))
 } else {
    measvecti=NULL
@@ -368,28 +377,30 @@ fkvh=file("%(org)s_res.kvh", "w")
 names(param)=nm_par
 # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
 # for corresponding measurements
-vr=icumo_resid(param, cjac=optimize, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, pool, ti)
+# cjac=F because param is not complete here, it lacks scaling params
+vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, pool, ti)
 if (!is.null(vr$err) && vr$err) {
    stop(vr$mes)
 }
 ##save(vr, ti, file="vr.Rdata")
 ##stop("aha")
 # uscaled simulated measurements (usm) [imeas, itime]
-usm=vr$usm
-simvec=vr$simvec
-if (DEBUG) {
-   cat("initial usm:\\n")
-   print(usm)
-}
-if (nb_ff < length(param)) {
+#browser()
+simvec=vr$usm
+if (nb_sc) {
    ms=measvecti*simvec*measinvvar
-   ss=usm*usm*measinvvar
+   ss=simvec*simvec*measinvvar
    for (i in (nb_ff+1):length(param)) {
       im=(ir2isc==(i+1))
       param[i]=sum(ms[im,])/sum(ss[im,])
    }
 }
-
+# see if there are any active inequalities at starting point
+ineq=ui%*%param-ci
+if (any(abs(ineq)<=1.e-10)) {
+   cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point:\\n",
+      paste(names(ineq[abs(ineq)<=1.e-10,1]), collapse="\\n"), "\\n", sep="")
+}
 cat("influx_i\\n", file=fkvh)
 cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="")
 # save options of command line
@@ -522,13 +533,20 @@ opt_wrapper=function(measvecti, fmn, trace=1) {
 if (optimize) {
    # check if at starting position all fluxes can be resolved
 #browser()
+   if (is.null(jx_f$ujac)) {
+      # calculate jacobian here
+      vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, pool, ti)
+      if (!is.null(vr$err) && vr$err) {
+         stop(vr$mes)
+      }
+   }
    qrj=qr(jx_f$dr_dff)
    d=diag(qrj$qr)
    qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
    if (qrj$rank) {
-      nm_uns=nm_par[qrj$pivot[-(1:qrj$rank)]]
+      nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
    } else {
-      nm_uns=nm_par
+      nm_uns=nm_ff
    }
    if (qrj$rank < nb_ff && !(least_norm || method!="nlsic")) {
       # Too bad. The jacobian of free fluxes is not of full rank.
@@ -617,6 +635,11 @@ if (!is.null(measvecti)) {
    obj2kvh(rcost, "final cost", fkvh)
    names(rres$res)=c(nm_meas, nm_fmn)
    obj2kvh(rres$res, "(simulated-measured)/sd_exp", fkvh)
+   # gradient -> kvh
+   gr=2*c(((jx_f$ures*c(measinvvar, invfmnvar))%tmm%jx_f$udr_dp))
+   names(gr)=nm_par
+   obj2kvh(gr, "gradient vector", fkvh)
+   obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
 }
 # simulated measurements -> kvh
 obj2kvh(jx_f$usm, "simulated unscaled labeling measurements", fkvh)
@@ -626,12 +649,6 @@ if (nb_sc > 0) {
 if (nb_fmn) {
    obj2kvh(cbind(value=jx_f$fallnx[nm_fmn], sd=1./sqrt(invfmnvar)), "simulated flux measurements", fkvh)
 }
-
-# gradient -> kvh
-gr=2*c(((jx_f$ures*c(measinvvar, invfmnvar))%tmm%jx_f$udr_dp))
-names(gr)=nm_par
-obj2kvh(gr, "gradient vector", fkvh)
-obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
 
 if (fullsys) {
    nm_flist=nm_list
@@ -852,7 +869,7 @@ if (DEBUG) {
       c(r$res)
    }
    #dr_dpn=jacobian(rj, param, method="Richardson", method.args=list(),
-   #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poll, ti)
+   #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, pool, ti)
    # to compare with jx_f$dr_dp
    gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, pool, ti)
 #browser()
