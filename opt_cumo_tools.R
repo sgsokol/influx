@@ -157,7 +157,7 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
       jacobian=jacobian));
 }
 icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, pool, ti) {
-   # claculates residual vector corresponding to usimvec (if not null) and to param
+   # claculates residual vector of labeling propagation corresponding to param
    if (length(measinvvar)) {
       sqm=sqrt(measinvvar);
    } else {
@@ -179,24 +179,48 @@ icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, 
          return(list(err=1, mes=lres$mes));
       }
 
-      # scale simulated measurements scale*(usm)
-      simvec=jx_f$usm*c(1.,param)[ir2isc];
+      # calculate part of jacobian due to scaling params
+      if (nb_sc) {
+         if (cjac) {
+            dr_dsc=array(0., dim=c(dim(jx_f$usm),nb_sc))
+            apply(t(nb_ff+1+(1:nb_sc)), 2, function(isc) {
+               i=which(isc==ir2isc)
+               dr_dsc[i,,isc-nb_ff-1] <<- jx_f$usm[i,]
+            })
+            dr_dsc=matrix(dr_dsc, ncol=nb_sc)
+         }
+         # scale simulated measurements scale*(usm)
+         simvec=jx_f$usm*c(1.,param)[ir2isc];
+      } else {
+         simvec=jx_f$usm
+      }
       jx_f$simvec <<- simvec
 
       # diff between simulated and measured
-      if (!is.null(measvecti)) {
-         res=c((simvec-measvecti), (jx_f$fallnx[ifmn]-fmn));
-         jx_f$ures <<- res;
-         jx_f$res <<- res*c(sqm, sqf);
-         if (cjac) {
-            # scale jacobian
-            jacobian=c(rep(sqm, nb_ti-1), sqf)*jx_f$ujac
-            jx_f$jacobian <<- jacobian
+      res=c((simvec-measvecti), (jx_f$fallnx[nm$fmn]-fmn));
+      jx_f$ures <<- res;
+      jx_f$res <<- res*c(rep(sqm, nb_ti-1), sqf);
+      if (cjac) {
+         # add scaling factor part of jacobian
+         if (nb_sc) {
+            # first scale ujac by scaling factors but not by sd
+            jx_f$ujac <<- rep(c(1.,param)[ir2isc], nb_ti-1)*jx_f$ujac
+            jx_f$ujac <<- cbind(jx_f$ujac, dr_dsc)
          }
+         # add measured fluxes part of jacobian
+         if (nb_f$nb_fmn) {
+            mdfm_dff=dfm_dff()
+            jx_f$ujac <<- rbind(jx_f$ujac, cbind(mdfm_dff, matrix(0., nrow=nrow(mdfm_dff), ncol=nb_sc)))
+         }
+         # scale jacobian by sd
+         jacobian=c(rep(sqm, nb_ti-1), sqf)*jx_f$ujac
+         colnames(jacobian)=nm$par
+         jx_f$dr_dff <<- jx_f$ujac[,1:nb_ff,drop=F]
+         jx_f$udr_dp <<- jx_f$ujac
+         jx_f$jacobian <<- jacobian
       }
    } # else we have everything in jx_f
-   return(list(res=jx_f$res, usm=jx_f$usm, simvec=jx_f$simvec, fallnx=jx_f$fallnx,
-      jacobian=jx_f$jacobian));
+   return(list(res=jx_f$res, jacobian=jx_f$jacobian, ures=jx_f$ures, usm=jx_f$usm, simvec=jx_f$simvec, fallnx=jx_f$fallnx));
 }
 cumo_cost=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb) {
    resl=cumo_resid(param, cjac=FALSE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
@@ -402,14 +426,16 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
    if (!is.null(jx_f$param) && identical(param, jx_f$param) &&
       (length(jx_f$x)==sum(spAb[[nb_w]]$tb_x))) {
       if (cjac) {
-         if (!is.null(jx_f$jacobian)) {
-            return(list(usm=jx_f$usm, x=jx_f$x, jacobian=jx_f$jacobian, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx));
+         if (!is.null(jx_f$ujac)) {
+            return(list(usm=jx_f$usm, x=jx_f$x, ujac=jx_f$ujac, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx));
          } # else recalculate it here
       } else {
          # just x, fallnx, ... that are already calculated
          return(list(usm=jx_f$usm, x=jx_f$x, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv));
       }
    }
+   # here params are not identical or problem structure has changed
+   # so recalculate all that is requested
    nb_ti=length(ti)
    if (nb_ti < 2) {
       return(list(err=1, mes="Number of time points is less than 2"))
@@ -546,13 +572,12 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       # index run measures at time 1 then 2, ... for first free flux
       # then the same for second free flux and so on
       jacobian=matrix(aperm(jacobian, c(1,3,2)), ncol=nb_ff)
-      rownames(jacobian)=outer(nm_meas, ti[-1], paste, sep=", ti=")
-      colnames(jacobian)=nm_ff
+      rownames(jacobian)=outer(nm$meas, ti[-1], paste, sep=", ti=")
+      colnames(jacobian)=nm$ff
       jx_f$ujac <<- jacobian
-      # temporary
-      jx_f$dr_dff <<- jacobian
-      jx_f$udr_dp <<- jacobian
-      jx_f$jacobian <<- jacobian
+   } else {
+      # invalidate old jacobian as x were recalculated
+      jx_f$ujac <<- NULL
    }
    x=x2[-(1:(nb_xi+1))]
    names(x)=nm$rcumo
@@ -811,20 +836,20 @@ cumo_jacob=function(param, nb_f, nm, nb_w, nb_cumos,
    jx_f$df_dff<<-df_dff(param, jx_f$flnx);
    
    # measured fluxes derivation
-   dfm_dff=matrix(0., length(nm_fmn), length(nm_ff));
-   dimnames(dfm_dff)=list(nm_fmn, nm_ff);
-   for (nm_y in nm_fmn) {
-      nm_arr=strsplit(nm_y, "\\.")[[1]];
-      if (nm_arr[1] == "f") {
-         # measured flux is free => trivial derivation
-         dfm_dff[nm_y, nm_y]=1.;
-      } else if (nm_arr[1] == "d") {
-         # measured flux is dependent flux
-         dfm_dff[nm_y,]=dfl_dff[nm_y,];
-      }
-   }
+   #dfm_dff=matrix(0., length(nm_fmn), length(nm_ff));
+   #dimnames(dfm_dff)=list(nm_fmn, nm_ff);
+   #for (nm_y in nm_fmn) {
+   #   nm_arr=strsplit(nm_y, "\\.")[[1]];
+   #   if (nm_arr[1] == "f") {
+   #      # measured flux is free => trivial derivation
+   #      dfm_dff[nm_y, nm_y]=1.;
+   #   } else if (nm_arr[1] == "d") {
+   #      # measured flux is dependent flux
+   #      dfm_dff[nm_y,]=dfl_dff[nm_y,];
+   #   }
+   #}
    # store flux part of jacobian for sensitivity matrix
-   jx_f$dfm_dff<<-dfm_dff;
+   jx_f$dfm_dff<<-dfm_dff();
    if (nb_sc > 0) {
       # scale factor part is just zero
       jx_f$dfm_dp<<-cbind(jx_f$dfm_dff, matrix(0, nrow=nrow(jx_f$dfm_dff), ncol=nb_sc));
@@ -1041,11 +1066,13 @@ fx2jr=function(fwrv, spAbr, incu, incup=NULL) {
          # calculate @x slot of b_x
          b_xp@x=Matrix::colSums(b_x_pre)
       }
+      j_rhswp=-t(b_fp+a_fxp)
+      b_xp=-t(b_xp)
    } else {
       j_rhswp=NULL
       b_xp=NULL
    }
-   return(list(j_rhsw=-t(b_f+a_fx), b_x=-t(b_x), j_rhswp=-t(b_fp+a_fxp), b_xp=-t(b_xp)))
+   return(list(j_rhsw=-t(b_f+a_fx), b_x=-t(b_x), j_rhswp=j_rhswp, b_xp=b_xp))
 }
 
 put_inside=function(param, ui, ci) {
@@ -1217,4 +1244,26 @@ df_dff=function(param, flnx) {
    res=df_dfl%*%dfl_dff+df_dffd;
    dimnames(res)=list(nm_fwrv, names(param)[c(i_ffn, i_ffx)]);
    return(res)
+}
+dfm_dff=function() {
+   # measured fluxes derivation
+   res=matrix(0., length(nm_fmn), length(nm_ff));
+   dimnames(res)=list(nm_fmn, nm_ff);
+   # derivate free measured fluxes (trivial)
+   i=grep("f.n.", nm_fmn, fixed=T, value=T)
+   res[cbind(i, i)]=1.
+   # derivate dependent measured fluxes
+   i=grep("d.n.", nm_fmn, fixed=T, value=T)
+   res[i,]=dfl_dff[i,];
+   return(res)
+}
+plot_ti=function(ti, x) {
+   # plot time curse curves x[itime, icurve]
+   nm=colnames(x)
+   nb_curve=ncol(x)
+   if (is.null(nm)) {
+      nm=1:nb_curve
+   }
+   matplot(ti, x, t="l", lty=1:nb_curve, col=1:nb_curve, lwd=2)
+   legend("bottomright", legend=nm, lty=1:nb_curve, col=1:nb_curve, lwd=2)
 }
