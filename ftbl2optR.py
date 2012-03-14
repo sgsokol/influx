@@ -513,9 +513,9 @@ if (optimize) {
    d=diag(qrj$qr)
    qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
    if (qrj$rank) {
-      nm_uns=nm_par[qrj$pivot[-(1:qrj$rank)]]
+      nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
    } else {
-      nm_uns=nm_par
+      nm_uns=nm_ff
    }
    if (qrj$rank < nb_ff && !(least_norm || method!="nlsic")) {
       # Too bad. The jacobian of free fluxes is not of full rank.
