@@ -116,6 +116,7 @@ def ftbl_parse(f):
     #print f;##
     reblank=re.compile("^[\t ]*$");
     recomm=re.compile("^[\t ]*//.*$");
+    comm=re.compile("^([^(//)]+|.+)//.*$");
     reading="data";
     irow=0;
     for l in f:
@@ -137,7 +138,7 @@ def ftbl_parse(f):
         if recomm.match(l) or reblank.match(l): continue;
         
         # skip the comments at the end of the row;
-        l=re.sub(r"^(.+)//.*$",r"\1",l).rstrip();
+        l=comm.sub(r"\1",l).rstrip();
         
         # split in fields;
         flds=l.split("\t");
@@ -191,6 +192,8 @@ def ftbl_parse(f):
                 #    "\ndata="+str([l for l in enumerate(data)]), \
                 #    "\nstock="+str(stock);##
                 fl_name=str(stock[data_count-1][col_names[0]]);
+                if fl_name in ftbl["TRANS"]:
+                   raise Exception("ftbl row %d: the reaction '%s' has more than one carbon transitions."%(irow, fl_name))
                 for i in range(len(col_names)):
                     try:
                         item=data[i].strip();
@@ -317,7 +320,8 @@ def ftbl_netan(ftbl):
             netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"];
     for row in ftbl.get("METABOLITE_POOLS",[]):
         netan["met_pools"][row["META_NAME"]]=eval(row["META_SIZE"]);
-
+    # quick not reversible reactions for complete subs and prods accounting
+    revreac=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}) if row["FCD"]=="F" or (if row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
     # analyse networks
     netw=ftbl.get("NETWORK");
     if not netw:
@@ -347,6 +351,9 @@ def ftbl_netan(ftbl):
         netan["subs"].update(es);
         netan["prods"].update(ps);
         netan["metabs"].update(ms);
+        if reac in revreac:
+            netan["subs"].update(ps);
+            netan["prods"].update(es);
         #aff("ms for "+reac, ms);##
 
         # create chemical formula
@@ -375,7 +382,7 @@ def ftbl_netan(ftbl):
                         netan["Clen"][m] != len(carb)-1:
                     raise Exception("CarbonLength", "Metabolite "+m+" has length "+
                             str(netan["Clen"][m])+" but in reaction "+reac+
-                            " it has legth "+str(len(carb)-1));
+                            " it has length "+str(len(carb)-1));
                 netan["Clen"][m]=len(carb)-1; # don't count '#' character
         except KeyError:
             werr("CarbonTrans: No reaction "+reac+" in carbon transitions\n");
@@ -407,15 +414,13 @@ def ftbl_netan(ftbl):
             netan["sto_m_r"][s]["right"].append(reac);
         # end netan["sto_m_r"]
         #aff("sto_m_r"+str(reac), netan["sto_m_r"]);##
+
     # add growth fluxes if requested
     if netan["opt"].get("include_growth_flux"):
         if not netan["opt"].get("mu"):
             raise Exception("Growth parameter mu is not set in OPTIONS section");
         netan["flux_growth"]=set();
         for (m,si) in netan["met_pools"].iteritems():
-            if not m in netan["metabs"]:
-                # unknown metabolite, skip its proceeding
-                continue;
             mgr=m+"_gr";
             reac=mgr;
             if reac in netan["reac"]:
@@ -436,6 +441,20 @@ def ftbl_netan(ftbl):
     # find input and output metabolites
     netan["input"].update(netan["subs"]-netan["prods"]);
     netan["output"].update(netan["prods"]-netan["subs"]);
+    # internal metabs
+    netan["metabint"]=netan["metabs"].copy()
+    netan["metabint"].difference_update(netan["input"] | netan["output"])
+
+    # check metab names in pools and network
+    for m in netan["met_pools"]:
+        if not m in netan["metabint"]:
+            # unknown metabolite
+            raise Exception("Uknown metabolite. Metabolite '"+m+"' defined in the section METABOLITE_POOLS is not internal metabolite in the NETWORK section.");
+    if netan["met_pools"]:
+        for m in netan["metabint"]:
+            if not m in netan["met_pools"]:
+                # unknown metabolite
+                raise Exception("Uknown metabolite. Metabolite '"+m+"' defined as internal in the section NETWORK is not defined in the METABOLITE_POOLS section.");
     
     # input and output flux names
     netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]));
@@ -459,16 +478,18 @@ def ftbl_netan(ftbl):
         allreac=netan["reac"] | netan["flux_inout"]
         unk=[ row["NAME"] for row in net if row["NAME"] not in allreac ]
         if len(unk):
-            raise Exception("FluxDef", "The flux name '%s' in the FLUX/NET section is not defined in the NETWORK section."%(unk[0]))
+            raise Exception("The flux name '%s' in the FLUX/NET section is not defined in the NETWORK section."%(unk[0]))
         unk=[ row["NAME"] for row in xch if row["NAME"] not in allreac ]
         if len(unk):
-            raise Exception("FluxDef", "The flux name '%s' in the FLUX/XCH section is not defined in the NETWORK section."%(unk[0]))
+            raise Exception("The flux name '%s' in the FLUX/XCH section is not defined in the NETWORK section."%(unk[0]))
     else:
         werr(os.path.basename(me)+": netan[FLUXES][XCH] is not defined");
         #return None;
     #print "list reac=", netan["reac"];##
     try:
+        #print( netan["reac"] | netan["flux_inout"])
         for reac in netan["reac"] | netan["flux_inout"]:
+            #print("reac=", reac)
             # get xch condition for this reac
             cond=[row for row in xch if row["NAME"]==reac];
             # get net condition for this reac
@@ -709,6 +730,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in PEAK_MEASU
             if (not val or val=="-"):
                 continue;
             dev=row.get("DEVIATION_"+suff,"") or row.get("DEVIATION_S");
+            if suff in ("DD", "T"):
+               dev=row.get("DEVIATION_DD/T","") or row.get("DEVIATION_S");
             try:
                 val=float(eval(val));
                 dev=float(eval(dev));
