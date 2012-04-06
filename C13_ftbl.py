@@ -321,7 +321,7 @@ def ftbl_netan(ftbl):
     for row in ftbl.get("METABOLITE_POOLS",[]):
         netan["met_pools"][row["META_NAME"]]=eval(row["META_SIZE"]);
     # quick not reversible reactions for complete subs and prods accounting
-    revreac=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}) if row["FCD"]=="F" or (if row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
+    revreac=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
     # analyse networks
     netw=ftbl.get("NETWORK");
     if not netw:
