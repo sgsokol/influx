@@ -1182,19 +1182,23 @@ if (nrow(Afl) != ncol(Afl)) {
    } else {
       nextra=nrow(Afl)-ncol(Afl)
       comb=combn(nb_ffn, nextra)
-      i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, p2bfl[i]))))[1]
-      ka=kappa(cbind(Afl, p2bfl[i]))
+      i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, p2bfl[,i]))))[1]
+      ka=kappa(cbind(Afl, p2bfl[,i]))
       if (ka!=Inf) {
          prop=paste("Proposal to delcare dependent flux(es) is:\\n",
             paste(nm_ffn[i], collapse="\\n"), sep="")
       } else {
          # test constraint candidate
-         comb=combn(nb_fcn, nextra)
-         i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, c2bfl[i]))))[1]
-         ka=kappa(cbind(Afl, c2bfl[i]))
-         if (ka!=Inf) {
-            prop=paste("Proposal to delcare dependent flux(es) is:\\n",
-            paste(nm_fcn[i], collapse="\\n"), sep="")
+         if (nb_fcn > 0) {
+            comb=combn(nb_fcn, nextra)
+            i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, c2bfl[,i]))))[1]
+            ka=kappa(cbind(Afl, c2bfl[,i]))
+            if (ka!=Inf) {
+               prop=paste("Proposal to delcare dependent flux(es) is:\\n",
+               paste(nm_fcn[i], collapse="\\n"), sep="")
+            } else {
+               prop="No proposal for dependent fluxes could be made."
+            }
          } else {
             prop="No proposal for dependent fluxes could be made."
          }
@@ -1374,13 +1378,23 @@ ir2isc[ir2isc<=0]=1;
 if (noscale) {
 #browser();
    # remove scaling params from optimization
-   param=param[1:nb_ff];
-   nm_par=nm_par[1:nb_ff];
+   param=head(param, nb_ff);
+   nm_par=head(nm_par, nb_ff);
    nb_param=length(param);
    ir2isc[]=1;
    nb_sc=0;
 }
 nm_list$par=nm_par
+nb_f$nb_sc=nb_sc
+# prepare indexes of dispatching scale params in jacobian
+if (nb_sc > 0) {
+   ipaire=matrix(0, nrow=0, ncol=2)
+   lapply(1:nb_sc, function(isc) {
+      i=which(ir2isc==isc+1+nb_ff)
+      ipaire <<- rbind(ipaire, cbind(i, isc))
+   })
+   nb_f$is2m=ipaire
+}
 """);
     # get the full dict of non zero cumomers involved in measures
     # cumo=metab:icumo where icumo is in [1;2^Clen]
@@ -1746,10 +1760,10 @@ if (all(ci[zi]<=1.e-14)) {
 
 # complete ui by zero columns corresponding to scale params
 ui=cbind(ui, matrix(0., NROW(ui), nb_param-nb_ff));
-if (nb_param>nb_ff) {
+if (nb_sc) {
    # complete ui by scales >=0
-   ui=rbind(ui, cbind(matrix(0, nb_param-nb_ff, nb_ff), diag(1, nb_param-nb_ff)));
-   ci=c(ci,rep(0., nb_param-nb_ff));
+   ui=rbind(ui, cbind(matrix(0, nb_sc, nb_ff), diag(1, nb_sc)));
+   ci=c(ci,rep(0., nb_sc));
    nm_i=c(nm_i, paste(nm_par[(nb_ff+1):nb_param], ">=0", sep=""));
    dimnames(ui)[[1]]=nm_i;
    names(ci)=nm_i;
