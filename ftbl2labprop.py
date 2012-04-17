@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Transform an ftbl to R code which will solve an optimization of 
+Transform an ftbl to R code which will solve an optimization of
 labeling propagation problem in pulse experiment:
 min(S) over \Theta, where S=||Predicted-Observed||^2_\Sigma^2
 here \Theta is a vector of free fluxes (net+xch), metabolite pools
@@ -47,7 +47,7 @@ Counts:
 Index translators:
    fwrv2i - flux names to index in R:fwrv
    cumo2i - cumomer names to index in R:x
-   isc - list of indexes for each scalable group
+   ir2isc - mapping measurement rows indexes on scale index isc[meas]=ir2isc[meas][ir]
 Vector names:
    cumos (list) - names of R:x
    o_mcumos - cumomers involved in measurements
@@ -66,14 +66,14 @@ Name vectors:
 Numeric vectors:
    fwrv - all fluxes (fwd+rev)
    x - all cumomers (weight1+weight2+...)
-   param - free flux net, free flux xch, free metabolite pools
-   fcn, fcx, fc - constrained fluxes,
+   param - free flux net, free flux xch, scale label, scale mass, scale peak
+   fcn, fcx, fc,
    bp - helps to construct the rhs of flux system
    xi -cumomer input vector
    fallnx - complete flux vector (constr+net+xch)
    bc - helps to construct fallnx
    li - inequality vector (mi%*%fallnx>=li)
-   isc - list of measurement row indexes to scale
+   ir2isc - measur row to scale vector replicator
    ci - inequalities for param use (ui%*%param-ci>=0)
    measvecti,
    measinvvar,
@@ -265,6 +265,8 @@ if (nb_fn && zerocross) {
    }
    rownames(mi_zc)=nm_izc
    li_zc=rep(zc, length(nm_izc))
+   ui_zc=cbind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
+      matrix(0., nrow=nrow(mi_zc), ncol=nb_sc))
    ci_zc=li_zc-mi_zc%*%mic
    # remove redundant/contradictory inequalities
    nb_zc=nrow(ui_zc)
@@ -352,15 +354,21 @@ nm_list$poolf=nm_poolf
 nm_list$poolc=nm_poolc
 nm_list$poolall=nm_poolall
 
-# extend inequalities ui, ci by poolf >= 1.e-7
 if (nb_poolf > 0) {
+   # multiply pool limits by metab_scale
+   clowp=clowp*metab_scale
+   cupp=cupp*metab_scale
+   # extend inequalities ui, ci by cupp >= poolf >= clowp
    nb_row=nrow(ui)
    nb_col=ncol(ui)
    ui=cbind(ui, matrix (0., nrow=nrow(ui), ncol=nb_poolf))
-   ui=rbind(ui, matrix (0., nrow=nb_poolf, ncol=ncol(ui)))
+   ui=rbind(ui, matrix (0., nrow=2*nb_poolf, ncol=ncol(ui)))
    ui[nb_row+1:nb_poolf,nb_col+1:nb_poolf]=diag(1., nb_poolf)
-   ci=c(ci, rep(1.e-7, nb_poolf))
-   nm_i=c(nm_i, paste(nm_poolf, ">=1.e-7", sep=""))
+   ui[nb_row+nb_poolf+1:nb_poolf,nb_col+1:nb_poolf]=diag(-1., nb_poolf)
+   ci=c(ci, rep(clowp, nb_poolf))
+   ci=c(ci, rep(-cupp, nb_poolf))
+   nm_i=c(nm_i, paste(nm_poolf, ">=", clowp, sep=""))
+   nm_i=c(nm_i, paste(nm_poolf, "<=", cupp, sep=""))
    rownames(ui)=nm_i
    names(ci)=nm_i
    colnames(ui)=nm_par
@@ -390,34 +398,6 @@ if (nb_f$nb_poolf > 0) {
    })
    nb_f$iparpf2ix=iparpf2ix
 }
-
-# prepare scaling indexes
-isc=lapply(1:nb_sc, function(i) {
-   which(ir2isc==i+nb_ff+1)
-})
-nb_f$isc=isc
-#browser()
-# remove scaling from param and ui
-if (nb_sc > 0) {
-   i=nb_ff+1:nb_sc
-   param=param[-i]
-   nm_par=nm_par[-i]
-   names(param)=nm_par
-   nm_list$par=nm_par
-   nb_param=length(param)
-   ui=ui[,-i,drop=F]
-   # remove all 0 rows from ui
-   iz=c()
-   sapply(1:nrow(ui), function(i) {
-      if (all(ui[i,]==0.)) {
-         iz <<- c(iz, i)
-      }
-      return(NULL)
-   })
-   ui=ui[-iz,,drop=F]
-   ci=ci[-iz]
-   nm_i=nm_i[-iz]
-}
 # read measvecti from a file specified in ftbl
 flabcin="%(flabcin)s"
 if (nchar(flabcin)) {
@@ -443,16 +423,10 @@ if (nchar(flabcin)) {
       stopifnot(typeof(measvecti)=="double")
    }
    ti=c(tstart, as.numeric(colnames(measvecti)))
+   i=which(ti<=tmax)
+   ti=ti[i]
+   measvecti=measvecti[,i[-1]-1,drop=F]
    stopifnot(all(!is.na(ti)))
-   if (nb_sc > 0) {
-      # scale what has to be scaled
-      lapply(nb_f$isc, function(i) {
-         # for each scaling group normalize to sum=1
-         su=1./colSums(measvecti[i,,drop=F])
-         measvecti[i,] <<- measvecti[i,] %%mrv%% su
-         return(NULL)
-      })
-   }
 } else {
    measvecti=NULL
    ti=seq(tstart, tmax, by=dt)
@@ -481,6 +455,29 @@ fkvh=file("%(org)s_res.kvh", "w")
     f.write("""
 #browser()
 names(param)=nm_par
+if (nb_sc && !is.null(measvecti)) {
+   # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+   # for corresponding measurements
+   # cjac=F because param is not complete here, it lacks scaling params
+   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
+   if (!is.null(vr$err) && vr$err) {
+      stop(vr$mes)
+   }
+   ##save(vr, ti, file="vr.Rdata")
+   ##stop("aha")
+   # uscaled simulated measurements (usm) [imeas, itime]
+   #browser()
+   simvec=vr$usm
+   ms=measvecti*simvec*measinvvar
+   ss=simvec*simvec*measinvvar
+   for (i in nb_ff+1:nb_sc) {
+      im=(ir2isc==(i+1))
+      param[i]=sum(ms[im,])/sum(ss[im,])
+   }
+} else if (nb_sc > 0) {
+   # we dont have measurements yet, just set all scalings to 1.
+   param[nb_ff+1:nb_sc]=1.
+}
 # see if there are any active inequalities at starting point
 ineq=ui%*%param-ci
 if (any(abs(ineq)<=1.e-10)) {
@@ -611,7 +608,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti)
       res$par=res$solution
       names(res$par)=nm_par
-      if(res$status != 0) {
+      if (res$status != 0) {
          # store res in kvh
          obj2kvh(res$par, "optimization aborted here", fkvh)
          warning(res$message)
@@ -624,7 +621,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
 if (optimize) {
    # check if at starting position all fluxes can be resolved
 #browser()
-   if (is.null(jx_f$ujac)) {
+   if (is.null(jx_f$uujac)) {
       # calculate jacobian here
       vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
       if (!is.null(vr$err) && vr$err) {
@@ -722,7 +719,7 @@ ine=abs(ui%*%param-ci)<1.e-10
 if (any(ine)) {
    obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
 }
-#browser()
+browser()
 if (!is.null(measvecti)) {
    if (is.null(jx_f$jacobian)) {
       rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
@@ -754,7 +751,12 @@ if (fullsys) {
 } # else use the last calculated usm
 
 # simulated measurements -> kvh
-obj2kvh(jx_f$usm, "simulated labeling measurements", fkvh)
+obj2kvh(jx_f$usm, "simulated unscaled labeling measurements", fkvh)
+if (nb_sc > 0) {
+   obj2kvh(jx_f$usm*c(1.,param)[ir2isc], "simulated scaled labeling measurements", fkvh)
+} else {
+   obj2kvh(jx_f$usm, "simulated scaled labeling measurements", fkvh)
+}
 if (nb_fmn) {
    obj2kvh(cbind(value=jx_f$fallnx[nm_fmn], sd=1./sqrt(invfmnvar)), "simulated flux measurements", fkvh)
 }
@@ -1068,6 +1070,22 @@ fedge=file("edge.netflux.%(org)s", "w")
 cat("netflux (class=Double)\\n", sep="", file=fedge)
 nm_edge=names(edge2fl)
 cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge)
+close(fedge)
+
+# write edge.xchflux property
+fedge=file("edge.xchflux.%(org)s", "w")
+flxch=paste(".x", substring(edge2fl, 4), sep="")
+ifl=charmatch(flxch, substring(names(fallnx), 2))
+cat("xchflux (class=Double)\\n", sep="", file=fedge)
+cat(paste(nm_edge, fallnx[ifl], sep=" = "), sep="\\n" , file=fedge)
+close(fedge)
+
+# write node.log2pool property
+fnode=file("node.log2pool.%(org)s", "w")
+cat("log2pool (class=Double)\\n", sep="", file=fnode)
+nm_node=substring(names(poolall), 4)
+cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)
+close(fnode)
 if (TIMEIT) {
    cat("rend    : ", date(), "\\n", sep="")
 }
