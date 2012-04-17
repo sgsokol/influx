@@ -743,8 +743,12 @@ option_list <- list(
        help="upper limit for reverse fluxes. Must be in interval [0, 1]"),
    make_option("--cupn", default=1.e3, type="double",
        help="upper limit for net fluxes"),
+   make_option("--cupp", default=1.e5, type="double",
+       help="upper limit for metabolite pool"),
    make_option("--clownr", default=0, type="double",
        help="lower limit for not reversible free and dependent fluxes. Zero value means no lower limit"),
+   make_option("--clowp", default=1.e-7, type="double",
+       help="lower limit for free metabolite pools. Must be positive."),
    make_option("--cinout", default=0, type="double",
        help="lower limit for input/output free and dependent fluxes. Must be non negative"),
    make_option("--np", default=0, type="integer",
@@ -821,7 +825,7 @@ opts=commandArgs()
 
 # get some cumomer tools
 source("%(dirx)s/opt_cumo_tools.R");
-dyn.load("%(dirx)s/cumo.%(so)s");
+#dyn.load("%(dirx)s/cumo.%(so)s");
 if (TIMEIT) {
    cat("rinit   : ", date(), "\n", sep="");
 }
