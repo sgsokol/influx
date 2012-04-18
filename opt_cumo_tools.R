@@ -428,8 +428,12 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
    # translate free params (fluxes+scales) to fluxes and
    # unscaled simulated measurements (usm) for labeling propagation
    #print(jx_f$param-param)
-   if (!is.null(jx_f$param) && identical(param, jx_f$param) &&
-      (length(jx_f$x)==dim(spAb[[nb_w]]$tb_x)[1]+nb_cumos[nb_w])) {
+   
+   # recalculate or not the labeling?
+   calcx=is.null(jx_f$param) ||
+      !identical(param, jx_f$param) ||
+      (length(jx_f$x)!=dim(spAb[[nb_w]]$tb_x)[1]+nb_cumos[nb_w])
+   if (!calcx) {
       if (cjac) {
          if (!is.null(jx_f$ujaclab)) {
             return(list(usm=jx_f$usm, x=jx_f$x, ujaclab=jx_f$ujaclab, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx));
@@ -439,14 +443,15 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          return(list(usm=jx_f$usm, x=jx_f$x, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv));
       }
    }
-   # here params are not identical or problem structure has changed
-   # so recalculate all that is requested
+   # here calcx==T or (calcx==F && cjac==T && is.null(jx_f$ujaclab))
+   # so recalculate all that is not in cache in jx_f
    nb_ti=length(ti)
    if (nb_ti < 2) {
       return(list(err=1, mes="Number of time points is less than 2"))
    }
-   cat("param2fl_usm: recalculate labprop\n")
-   #print(sys.calls())
+   if (calcx) {
+      cat("param2fl_usm: recalculate labprop\n")
+   }
    
    dt=diff(ti)
    # cumulated sum
@@ -472,24 +477,43 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
    invmw=lapply(1:nb_w, function(iw)invm[nbc_cumos[iw]+(1:nb_cumos[iw])])
 #browser()
    # prepare vectors at t1=0 with zero labeling
-   # incu, xi is supposed to be in [0; 1]
-   x1=c(1., xi, rep(0., nbc_cumos[nb_w+1]))
-   # unscaled simulated measurements
-   usm=c()
-   # construct the matrices invm*A in the systems pool*dx_dt=A*x+s from fluxes
-   lwA=lapply(1:nb_w, function(iw) {fwrv2Abr(lf$fwrv, spAb[[iw]], x1, nm$rcumo[(nbc_cumos[iw]+1):nbc_cumos[iw+1]], getb=F)$A*invmw[[iw]]})
-   lwinva=lapply(lwA, Matrix::solve)
-   #lwinva=lapply(lwA, function(a) {
-   #   qa=qr(as.matrix(a), LAPACK=T)
-   #   return(qr.solve(qa, tol=1e-14))
-   #})
-   # s
-   s1=lapply(1:nb_w, function(iw) {as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1)$s)*invmw[[iw]]})
-   # xp first derivative of x
-   xp1=c(rep(0., nb_xi+1), unlist(s1)) # A*x1 is omited as x1==0
-   # sp first derivative of s
-   sp1=lapply(1:nb_w, function(iw) as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1, xp1, gets=F)$sp)*invmw[[iw]])
-
+   if (calcx) {
+      # incu, xi is supposed to be in [0; 1]
+      x1=c(1., xi, rep(0., nbc_cumos[nb_w+1]))
+      # unscaled simulated measurements
+      usm=matrix(0., nrow=nrow(measmat), ncol=nb_ti-1)
+      # construct the matrices invm*A in the systems pool*dx_dt=A*x+s from fluxes
+      lwA=lapply(1:nb_w, function(iw) {fwrv2Abr(lf$fwrv, spAb[[iw]], x1, nm$rcumo[(nbc_cumos[iw]+1):nbc_cumos[iw+1]], getb=F)$A*invmw[[iw]]})
+      lwinva=lapply(lwA, Matrix::solve)
+      #lwinva=lapply(lwA, function(a) {
+      #   qa=qr(as.matrix(a), LAPACK=T)
+      #   return(qr.solve(qa, tol=1e-14))
+      #})
+      # s
+      s1=lapply(1:nb_w, function(iw) {as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1)$s)*invmw[[iw]]})
+      # xp first derivative of x
+      xp1=c(rep(0., nb_xi+1), unlist(s1)) # A*x1 is omited as x1==0
+      # sp first derivative of s
+      sp1=lapply(1:nb_w, function(iw) as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1, xp1, gets=F)$sp)*invmw[[iw]])
+      expadt=list()
+      xsim=matrix(0., nrow=length(x1), ncol=nb_ti)
+      xpsim=matrix(0., nrow=length(xp1), ncol=nb_ti)
+      xsim[,1]=x1
+      xpsim[,1]=xp1
+      spx=list(sp1)
+   } else {
+      xsim=jx_f$xsim
+      xpsim=jx_f$xpsim
+      expadt=jx_f$expadt
+      lwA=jx_f$lwA
+      lwinva=jx_f$lwinva
+      spx=jx_f$spx
+      usm=jx_f$usm
+      
+      x1=xsim[,1]
+      xp1=xpsim[,1]
+      sp1=spx[[1]]
+   }
    if (cjac) {
       # passage matrix from d_fwrv to d_free_fluxes
       cat("param2fl_usm: recalculate jacobian\n")
@@ -539,15 +563,26 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
    sj2=list()
    spf2=list()
    spfp2=list()
-   expadt=list()
+   if (cjac) {
+      xff2=matrix(0., nrow=nbc_cumos[nb_w+1], ncol=nb_ff)
+      xffp2=matrix(0., nrow=nbc_cumos[nb_w+1], ncol=nb_ff)
+      xpf2=matrix(0., nrow=nbc_cumos[nb_w+1], ncol=nb_poolf)
+      xpfp2=matrix(0., nrow=nbc_cumos[nb_w+1], ncol=nb_poolf)
+   } else {
+      xff2=NULL
+      xpf2=NULL
+   }
    # time run from time t1 to time t2
    for (iti in 2:nb_ti) {
-      x2=c(1., xi)
-      xp2=rep(0., nb_xi+1)
-      xff2=matrix(0., nrow=0, ncol=nb_ff)
-      xffp2=matrix(0., nrow=0, ncol=nb_ff)
-      xpf2=matrix(0., nrow=0, ncol=nb_poolf)
-      xpfp2=matrix(0., nrow=0, ncol=nb_poolf)
+      dtr=as.character(round(dt[iti-1], 10))
+      if (calcx) {
+         x2=c(1., xi)
+         xp2=rep(0., nb_xi+1)
+      } else {
+         x2=xsim[,iti]
+         xp2=xpsim[,iti]
+         sp2=spx[[iti]]
+      }
       for (iw in 1:nb_w) {
          # prepare xw1 and xwp1
          icw=nbc_cumos[iw]+(1:nb_cumos[iw])
@@ -555,25 +590,34 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          xw1=x1[ixw]
          xwp1=xp1[ixw]
          # prepare s and sp
-         sw1=s1[[iw]]
-         swp1=sp1[[iw]]
-         ssp=fwrv2sp(lf$fwrv, spAb[[iw]], x2, xp2)
-         sw2=as.double(ssp$s)*invmw[[iw]]
-         s2[[iw]]=sw2
-         swp2=as.double(ssp$sp)*invmw[[iw]]
-         sp2[[iw]]=swp2
-         # prepare expm(a*dt)
-         if (iti==2 || abs(dt[iti-1]-dt[iti-2])>1.e-10) {
-            expadt[[iw]]=expm(lwA[[iw]]*dt[iti-1])
+         if (calcx) {
+            sw1=s1[[iw]]
+            swp1=sp1[[iw]]
+            ssp=fwrv2sp(lf$fwrv, spAb[[iw]], x2, xp2)
+            sw2=as.double(ssp$s)*invmw[[iw]]
+            s2[[iw]]=sw2
+            swp2=as.double(ssp$sp)*invmw[[iw]]
+            sp2[[iw]]=swp2
+
+            # prepare expm(a*dt)
+            if (is.null(expadt[[dtr]])) {
+               expadt[[dtr]]=list()
+            }
+            if (length(expadt[[dtr]]) < iw) {
+               expadt[[dtr]][[iw]]=expm(lwA[[iw]]*dt[iti-1])
+            }
+            # make a time step for xw
+            xw2=as.double(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, swp1, swp2, xw1))
+            # bring to interval [0; 1]
+            xw2[xw2<0.]=0.
+            xw2[xw2>1.]=1.
+            xwp2=as.double(lwA[[iw]]%*%xw2)+sw2
+            x2=c(x2, xw2)
+            xp2=c(xp2, xwp2)
+         } else {
+            xw2=x2[ixw]
+            xwp2=xp2[ixw]
          }
-         # make a time step for xw
-         xw2=as.double(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[iw]], sw1, sw2, swp1, swp2, xw1))
-         # bring to interval [0; 1]
-         xw2[xw2<0.]=0.
-         xw2[xw2>1.]=1.
-         xwp2=as.double(lwA[[iw]]%*%xw2)+sw2
-         x2=c(x2, xw2)
-         xp2=c(xp2, xwp2)
          if (cjac) {
             # prepare source 2 for jacobian ff
             if (nb_ff > 0) {
@@ -582,13 +626,13 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
                sj$jrhsp=(-invmw[[iw]])*(sj$j_rhswp%*%mdf_dff)
                if (iw > 1) {
                   # add lighter cumomers to jacobian source term
-                  sj$jrhs=sj$jrhs-invmw[[iw]]*(sj$b_x%*%xff2)
-                  sj$jrhsp=sj$jrhsp-invmw[[iw]]*(sj$b_xp%*%xff2+sj$b_x%*%xffp2)
+                  sj$jrhs=sj$jrhs-invmw[[iw]]*(sj$b_x%*%xff2[1:nbc_cumos[iw],])
+                  sj$jrhsp=sj$jrhsp-invmw[[iw]]*(sj$b_xp%*%xff2[1:nbc_cumos[iw],]+sj$b_x%*%xffp2[1:nbc_cumos[iw],])
                }
                sj2[[iw]]=sj
                # make a time step for jacobian xff
-               xff2=rbind(xff2, as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[iw]], sj1[[iw]]$jrhs, sj2[[iw]]$jrhs, sj1[[iw]]$jrhsp, sj2[[iw]]$jrhsp, xff1[icw,,drop=F])))
-               xffp2=rbind(xffp2, as.matrix(lwA[[iw]]%*%xff2[icw,,drop=F])+as.matrix(sj2[[iw]]$jrhs))
+               xff2[icw,]=as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sj1[[iw]]$jrhs, sj2[[iw]]$jrhs, sj1[[iw]]$jrhsp, sj2[[iw]]$jrhsp, xff1[icw,,drop=F]))
+               xffp2[icw,]=as.matrix(lwA[[iw]]%*%xff2[icw,,drop=F])+as.matrix(sj2[[iw]]$jrhs)
             }
             # prepare source 2 for jacobian poolf
             if (nb_poolf > 0) {
@@ -603,18 +647,26 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
                spfp[i2x]=(-invmw[[iw]]*xpp)[i2x[,1]]
                if (iw > 1) {
                   # add lighter cumomers to jacobian source term
-                  spf=spf-invmw[[iw]]*(sj$b_x%*%xpf2)
-                  spfp=spfp-invmw[[iw]]*(sj$b_xp%*%xpf2+sj$b_x%*%xpfp2)
+                  spf=spf-invmw[[iw]]*(sj$b_x%*%xpf2[1:nbc_cumos[iw],,drop=F])
+                  spfp=spfp-invmw[[iw]]*(sj$b_xp%*%xpf2[1:nbc_cumos[iw],,drop=F]+sj$b_x%*%xpfp2[1:nbc_cumos[iw],,drop=F])
                }
                spf2[[iw]]=list(s=spf, sp=spfp)
                # make a time step for jacobian xpf
-               xpf2=rbind(xpf2, as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[iw]], spf1[[iw]]$s, spf2[[iw]]$s, spf1[[iw]]$sp, spf2[[iw]]$sp, xpf1[icw,,drop=F])))
-               xpfp2=rbind(xpfp2, as.matrix(lwA[[iw]]%*%xpf2[icw,,drop=F])+as.matrix(spf))
+               xpf2[icw,]=as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], spf1[[iw]]$s, spf2[[iw]]$s, spf1[[iw]]$sp, spf2[[iw]]$sp, xpf1[icw,,drop=F]))
+               xpfp2[icw,]=as.matrix(lwA[[iw]]%*%xpf2[icw,,drop=F])+as.matrix(spf)
             }
          }
       }
-      m2=measmat%*%c(x2[-(1:(nb_xi+1))][irmeas], 1.)
-      usm=cbind(usm, m2)
+      if (calcx) {
+         xsim[,iti]=x2
+         xpsim[,iti]=xp2
+         spx=append(spx, list(sp2))
+         
+         m2=measmat%*%c(x2[-(1:(nb_xi+1))][irmeas], 1.)
+         usm[,iti-1]=m2
+      } else {
+         m2=usm[,iti-1]
+      }
       if (cjac) {
          # scale part of jacobian
          dur_dsc[]=0.
@@ -662,6 +714,12 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
    # store usefull information in global list jx_f
    jx_f$param<<-param;
    jx_f$usm<<-usm;
+   jx_f$xsim<<-xsim;
+   jx_f$xpsim<<-xpsim;
+   jx_f$spx<<-spx;
+   jx_f$expadt<<-expadt;
+   jx_f$lwA<<-lwA;
+   jx_f$lwinva<<-lwinva;
    if (cjac) {
       # unscaled and permuted jacobian
       # index run measures at time 1 then 2, ... for first free flux
@@ -671,7 +729,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       colnames(jacobian)=names(param)
       jx_f$ujaclab <<- jacobian
       jx_f$uujac <<- NULL # invalidate old ujac
-   } else {
+   } else if (calcx) {
       # invalidate old jacobian as x were recalculated
       jx_f$ujaclab <<- NULL
    }
