@@ -709,7 +709,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          }
       }
    }
-   colnames(usm)=ti[-1]
+   dimnames(usm)=list(rownames(measmat), ti[-1])
 #print(x);
    # store usefull information in global list jx_f
    jx_f$param<<-param;
