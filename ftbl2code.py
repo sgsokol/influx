@@ -1687,19 +1687,59 @@ if (nb_inout > 0) {
    # add cinout low limits on inout net fluxes
    nb_tmp=nrow(mi);
    nm_inout=c(%(nm_inout)s);
-   mi=rbind(mi, matrix(0, nrow=nb_inout, ncol=nb_fallnx));
-   nm_i=c(nm_i, paste("inout ", nm_inout, ">=", cinout, sep=""));
-   mi[nb_tmp+(1:nb_inout), nm_inout]=diag(1., nb_inout);
-   li=c(li, rep(cinout, nb_inout));
+   # explicit inequalities take precedence over generic ones
+   # so eliminate inout fluxes which are already in inequalities
+   nm_itmp=paste("n:.+<=", substring(nm_inout, 5), sep="")
+   i=sapply(1:length(nm_itmp), function(k) {
+      j=grep(nm_itmp[k], nm_i)
+      #cat(nm_itmp[k], "->", nm_i[j], "\\n")
+      if (length(j)==0) {
+         return(0)
+      } else {
+         return(k)
+      }
+   })
+   i=i[i!=0]
+   if (length(i) > 0) {
+      nm_tmp=nm_inout[-i]
+   } else {
+      nm_tmp=nm_inout
+   }
+   len_tmp=length(nm_tmp)
+   if (len_tmp > 0) {
+      mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx));
+      nm_i=c(nm_i, paste("inout ", nm_tmp, ">=", cinout, sep=""));
+      mi[nb_tmp+(1:len_tmp), nm_tmp]=diag(1., len_tmp);
+      li=c(li, rep(cinout, len_tmp));
+   }
 }
 if (clownr!=0.) {
    # add low limits on net >= clownr for not reversible reactions
    nb_tmp=nrow(mi);
    nm_tmp=c(%(nm_notrev)s);
-   mi=rbind(mi, matrix(0, nrow=%(nb_notrev)d, ncol=nb_fallnx));
-   nm_i=c(nm_i, paste(nm_tmp, ">=", clownr));
-   mi[nb_tmp+(1:%(nb_notrev)d), nm_tmp]=diag(1., %(nb_notrev)d);
-   li=c(li, rep(clownr, %(nb_notrev)d));
+   # explicit inequalities take precedence over generic ones
+   # so eliminate notrev fluxes which are already in inequalities
+   nm_itmp=paste("n:.+<=", substring(nm_tmp, 5), sep="")
+   i=sapply(1:length(nm_itmp), function(k) {
+      j=grep(nm_itmp[k], nm_i)
+      #cat(nm_itmp[k], "->", nm_i[j], "\\n")
+      if (length(j)==0) {
+         return(0)
+      } else {
+         return(k)
+      }
+   })
+   i=i[i!=0]
+   if (length(i) > 0) {
+      nm_tmp=nm_tmp[-i]
+   }
+   len_tmp=length(nm_tmp)
+   if (len_tmp > 0) {
+      mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx));
+      nm_i=c(nm_i, paste(nm_tmp, ">=", clownr));
+      mi[nb_tmp+(1:len_tmp), nm_tmp]=diag(1., len_tmp);
+      li=c(li, rep(clownr, len_tmp));
+   }
 }
 nb_fn=nb_fln+nb_ffn
 if (cupn != 0 && nb_fn) {
@@ -1715,8 +1755,8 @@ if (cupn != 0 && nb_fn) {
 }
 
 """%{
-   "nb_notrev": len([fli for (fli,t,nxi) in tfallnx
-      if nxi=="n" and t!="c" and fli in netan["notrev"]]),
+#   "nb_notrev": len([fli for (fli,t,nxi) in tfallnx
+#      if nxi=="n" and t!="c" and fli in netan["notrev"]]),
    "nm_notrev": join(", ", (t+"."+nxi+"."+fli
       for (fli,t,nxi) in tfallnx
       if nxi=="n" and t!="c" and fli in netan["notrev"]),
