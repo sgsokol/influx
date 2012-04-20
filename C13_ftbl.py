@@ -163,10 +163,14 @@ def ftbl_parse(f):
             continue;
         if len(flds)==2 and len(flds[0])==0:
             # read subsection name;
+            if reading=="data" and not subsec_name:
+                raise Exception("Wrong subsection. While beeing in section '%s/%s' (row %d) got wrong subsection '%s'.\n"%(sec_name, subsec_name, irow, flds[1]))
             subsec_name=flds[1];
             # prepare sub-storage
             if not ftbl[sec_name]:
+                # replace an empty list by an empty dictionary
                 ftbl[sec_name]={};
+            #print (irow, reading)##
             ftbl[sec_name][subsec_name]=[];
             try: del stock;
             except NameError: pass;
@@ -200,7 +204,7 @@ def ftbl_parse(f):
                         dic[col_names[i]]=item;
                         metab=stock[data_count-1][col_names[i]];
                         if i > 0 and ((len(metab) and not len(item)) or (not len(metab) and len(item))):
-                            print "i=%d, co='%s', m='%s', tr='%s';"%(i, col_names[i], metab, item);
+                            #print "i=%d, co='%s', m='%s', tr='%s';"%(i, col_names[i], metab, item);
                             raise Exception("ftbl row %d: in the reaction '%s', metabolites seem to be misaligned with carbon transitions."%(irow, fl_name))
                     except IndexError:
                         pass;
@@ -1685,17 +1689,17 @@ def aglom(na,ta,loop):
                 hi=max(i,j);
                 del(na[hi][hi]);
                 del(ta[hi][hi]);
-                print "aglom: "+i+"+"+j+"->"+lo;##
-                print "elim row "+hi+str(na[hi].keys());##
-                print "influenced rows "+str(ta[hi].keys());##
+                #print "aglom: "+i+"+"+j+"->"+lo;##
+                #print "elim row "+hi+str(na[hi].keys());##
+                #print "influenced rows "+str(ta[hi].keys());##
                 # update na rows influenced by hi
                 for ii in ta[hi].keys():
-                    print "\nold row "+ii+str(na[ii].keys());##
+                    #print "\nold row "+ii+str(na[ii].keys());##
                     na[ii].update(na[hi]);
                     del(na[ii][hi]);
                     for jj in na[ii]:
                         ta[jj][ii]=na[ii][jj];
-                    print "new row "+ii+str(na[ii].keys());##
+                    #print "new row "+ii+str(na[ii].keys());##
                 # remove na[hi], ta[hi] and ta's corresponding to na[hi]
                 for ii in na[hi]:
                     del(ta[ii][hi]);
@@ -1706,7 +1710,7 @@ def aglom(na,ta,loop):
                 loop[lo].update(loop.get(hi, set((hi,))));
                 if hi in loop:
                     del(loop[hi]);
-                print "loop:"+str(loop);
+                #print "loop:"+str(loop);
                 return(found);
 def lowtri(A):
     """Try low triangular ordering of matrix A entries"""
@@ -1744,7 +1748,7 @@ def topo_order(A, tA):
         if not inps and not outs:
             # this is not a dag
             srtin.extend(unsrt);
-            print "not a dag";
+            #print "not a dag";
             break;
     return(srtin+srtout);
 def transpose(A):
