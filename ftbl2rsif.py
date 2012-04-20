@@ -145,13 +145,20 @@ if __name__ == "__main__":
        ftbl=ftbl_parse(fin);
     except Exception as inst:
        werr(str(inst)+"\n");
+       raise
 
-    ##print ftbl
+    #print ftbl
     ent="FLUXES";
     #aff("ftbl["+ent+"]", ftbl[ent], f=sys.stderr);
 
     # Analyse the network
-    netan=ftbl_netan(ftbl);
+    try:
+        netan=ftbl_netan(ftbl);
+    except:
+        #werr(str(sys.exc_info()[1])+"\n")
+        raise
+        #sys.exit(1)
+    
     ##print netan;
 
     # create and write the graph
