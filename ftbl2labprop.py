@@ -181,7 +181,11 @@ if __name__ == "__main__":
     f=open(n_R, "w")
 
     # parse ftbl
-    ftbl=C13_ftbl.ftbl_parse(f_ftbl)
+    try:
+        ftbl=C13_ftbl.ftbl_parse(f_ftbl)
+    except:
+        print sys.exc_info()[1]
+        sys.exit(1)
     f_ftbl.close()
 
     # analyse network
@@ -506,10 +510,7 @@ obj2kvh(f, "net-xch01 flux vector", fkvh, indent=1)
 
 # starting cost value
 if (!is.null(measvecti)) {
-   if (optimize) {
-      # so save the first simulation
-      vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
-   }
+   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
    rcost=icumo_cost(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 }
@@ -719,7 +720,7 @@ ine=abs(ui%*%param-ci)<1.e-10
 if (any(ine)) {
    obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
 }
-browser()
+#browser()
 if (!is.null(measvecti)) {
    if (is.null(jx_f$jacobian)) {
       rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
