@@ -349,6 +349,8 @@ def ftbl_netan(ftbl):
         if p2:
             ps.add(p2);
         ms=es|ps;
+        if es&ps:
+           raise Exception("The same metabolite(s) in both sides of reaction: %s (row=%d)."%(join(", ", es&ps), row["irow"]))
         
         # all reactions A+B=C or C=A+B or A+B=C+D
         netan["reac"].add(reac);
