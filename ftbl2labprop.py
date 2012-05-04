@@ -227,25 +227,6 @@ if (TIMEIT) {
 }
 #browser()
 
-# check if initial approximation is feasible
-ineq=ui%*%param-ci
-param_old=param
-if (any(ineq <= -1.e-10)) {
-   cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point:\\n", sep="")
-   print(ineq[ineq<= -1.e-10,1])
-   # put them inside
-   param=put_inside(param, ui, ci)
-   if (any(is.na(param))) {
-      if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
-         # fatal error occurd
-         stop(paste("put_inside: ", attr(param, "mes"), collapse=""))
-      }
-   } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
-      # non fatal problem
-      warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
-   }
-}
-
 # zero crossing strategy
 # inequalities to keep sens of net flux on first call to opt_wwrapper()
 # if active they are removed on the second call to opt_wrapper()
@@ -380,8 +361,8 @@ if (nb_poolf > 0) {
 
 # prepare mapping of metab pools on cumomers
 nminvm=matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1]
-ipc2ix=pmatch(paste("pc", nminvm, sep=":"), nm_poolall, nomatch=0, dup=T)
-ipf2ix=pmatch(paste("pf", nminvm, sep=":"), nm_poolall, nomatch=0, dup=T)
+ipc2ix=match(paste("pc", nminvm, sep=":"), nm_poolall, nomatch=0)
+ipf2ix=match(paste("pf", nminvm, sep=":"), nm_poolall, nomatch=0)
 ip2ix=ipc2ix+ipf2ix
 nb_f$ip2ix=ip2ix
 nb_f$ipf2ix=ipf2ix
@@ -431,9 +412,21 @@ if (nchar(flabcin)) {
    ti=ti[i]
    measvecti=measvecti[,i[-1]-1,drop=F]
    stopifnot(all(!is.na(ti)))
+   nb_ti=length(ti)
+   # divide by 2**ndiv first step
+   ndiv=4
+   tmp=cumsum(2**(1:ndiv))
+   tifull=c(tstart, (ti[2]/tmp[ndiv])*tmp, ti[-(1:2)])
+   #tifull=head(rep(ti, each=ndiv), -(ndiv-1))
+   #for (idiv in 1:(ndiv-1)) {
+   #   i=idiv+1+(0:(nb_ti-2))*ndiv
+   #   th=idiv/ndiv
+   #   tifull[i]=(1.-th)*head(ti, -1)+th*tail(ti, -1)
+   #}
 } else {
    measvecti=NULL
    ti=seq(tstart, tmax, by=dt)
+   tifull=ti
    if (optimize) {
       warning("A fitting is requested but no labeling data are provided by 'file_labcin' option in the ftbl file.
 The fitting is ignored as if '--noopt' option were asked.")
@@ -463,13 +456,13 @@ if (nb_sc && !is.null(measvecti)) {
    # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
    # for corresponding measurements
    # cjac=F because param is not complete here, it lacks scaling params
-   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
+   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    if (!is.null(vr$err) && vr$err) {
       stop(vr$mes)
    }
    ##save(vr, ti, file="vr.Rdata")
    ##stop("aha")
-   # uscaled simulated measurements (usm) [imeas, itime]
+   # unscaled simulated measurements (usm) [imeas, itime]
    #browser()
    simvec=vr$usm
    ms=measvecti*simvec*measinvvar
@@ -482,6 +475,25 @@ if (nb_sc && !is.null(measvecti)) {
    # we dont have measurements yet, just set all scalings to 1.
    param[nb_ff+1:nb_sc]=1.
 }
+# check if initial approximation is feasible
+ineq=ui%*%param-ci
+param_old=param
+if (any(ineq <= -1.e-10)) {
+   cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point:\\n", sep="")
+   print(ineq[ineq<= -1.e-10,1])
+   # put them inside
+   param=put_inside(param, ui, ci)
+   if (any(is.na(param))) {
+      if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
+         # fatal error occurd
+         stop(paste("put_inside: ", attr(param, "mes"), collapse=""))
+      }
+   } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
+      # non fatal problem
+      warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+   }
+}
+
 # see if there are any active inequalities at starting point
 ineq=ui%*%param-ci
 if (any(abs(ineq)<=1.e-10)) {
@@ -510,8 +522,8 @@ obj2kvh(f, "net-xch01 flux vector", fkvh, indent=1)
 
 # starting cost value
 if (!is.null(measvecti)) {
-   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
-   rcost=icumo_cost(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti)
+   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+   rcost=icumo_cost(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 }
 
@@ -538,7 +550,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
          nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvecti, measinvvar, ir2isc,
-         fmn, invfmnvar, ifmn, spAbr, poolall, ti)
+         fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    } else if (method == "Nelder-Mead") {
       control=list(maxit=1000, trace=ctrace)
       control[names(control_ftbl)]=control_ftbl
@@ -547,7 +559,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
          nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvecti, measinvvar, ir2isc,
-         fmn, invfmnvar, ifmn, spAbr, poolall, ti)
+         fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    } else if (method == "SANN") {
       control=list(maxit=1000, trace=ctrace)
       control[names(control_ftbl)]=control_ftbl
@@ -556,7 +568,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          method="SANN", outer.iterations=100, outer.eps=1e-07,
          nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvecti, measinvvar, ir2isc,
-         fmn, invfmnvar, ifmn, spAbr, poolall, ti)
+         fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    } else if (method == "nlsic") {
       control=list(trace=ctrace, btdesc=0.75, maxit=50, errx=1.e-5,
          ci=list(report=F))
@@ -565,7 +577,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
          nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
-         spAbr, poolall, ti)
+         spAbr, poolall, ti, tifull)
       if (res$err || is.null(res$par)) {
          # store res in kvh
          obj2kvh(res, "optimization aborted here", fkvh)
@@ -582,13 +594,13 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
       eval_g=function(x, nb_f=nb_f, nm=nm_list, nb_w=nb_rw, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
          imeas=irmeas, measmat=measmat, measvec=measvecti, measinvvar=measinvvar,
-         ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti) {
+         ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti, tifull=tifull) {
          return(ui%*%x)
       }
       eval_jac_g=function(x, nb_f=nb_f, nm=nm_list, nb_w=nb_rw, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
          imeas=irmeas, measmat=measmat, measvec=measvecti, measinvvar=measinvvar,
-         ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti) {
+         ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti, tifull=tifull) {
          return(tui)
       }
       ui_row_spars=rep.int(1, ncol(ui))
@@ -606,7 +618,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          nb_f=nb_f, nm=nm_list, nb_w=nb_rw, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
          imeas=irmeas, measmat=measmat, measvec=measvecti, measinvvar=measinvvar,
-         ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti)
+         ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti, tifull=tifull)
       res$par=res$solution
       names(res$par)=nm_par
       if (res$status != 0) {
@@ -624,7 +636,7 @@ if (optimize) {
 #browser()
    if (is.null(jx_f$uujac)) {
       # calculate jacobian here
-      vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
+      vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
       if (!is.null(vr$err) && vr$err) {
          stop(vr$mes)
       }
@@ -723,7 +735,7 @@ if (any(ine)) {
 #browser()
 if (!is.null(measvecti)) {
    if (is.null(jx_f$jacobian)) {
-      rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
+      rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    } # else use the last calculated jacobian
    rcost=norm2(jx_f$res)
    obj2kvh(rcost, "final cost", fkvh)
@@ -741,14 +753,14 @@ if (!is.null(measvecti)) {
 } else {
    if (is.null(jx_f$usm)) {
       # simulate measures
-      v=param2fl_usm(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas)
+      v=param2fl_usm(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas, tifull)
    }
 }
 
 if (fullsys) {
    nm_flist=nm_list
    nm_flist$rcumo=nm_cumo
-   v=param2fl_usm(param, cjac=T, nb_f, nm_flist, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAbr_f, poolall, ti, measmat, imeas)
+   v=param2fl_usm(param, cjac=T, nb_f, nm_flist, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAbr_f, poolall, ti, measmat, imeas, tifull)
 } # else use the last calculated usm
 
 # simulated measurements -> kvh
@@ -761,6 +773,11 @@ if (nb_sc > 0) {
 if (nb_fmn) {
    obj2kvh(cbind(value=jx_f$fallnx[nm_fmn], sd=1./sqrt(invfmnvar)), "simulated flux measurements", fkvh)
 }
+# simulated cumomers -> kvh
+obj2kvh(jx_f$xsim, "simulated cumomers", fkvh)
+# simulated derivatives of cumomers -> kvh
+obj2kvh(jx_f$xpsim, "simulated derivatives of cumomers", fkvh)
+
 x=jx_f$x
 obj2kvh(cumo2mass(x), "MID vector", fkvh)
 # replace :i by :x1's
@@ -965,7 +982,7 @@ if (TIMEIT) {
 # Linear method based on jacobian x_f
 # reset fluxes and jacobians according to param
 if (is.null(jx_f$jacobian)) {
-   rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
+   rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
 } # else use last calculated jacobian
 # use last calculated jacobian
 if (DEBUG) {
@@ -976,9 +993,9 @@ if (DEBUG) {
       c(r$res)
    }
    #dr_dpn=jacobian(rj, param, method="Richardson", method.args=list(),
-   #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti)
+   #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    # to compare with jx_f$dr_dp
-   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti)
+   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
 #browser()
 }
 
@@ -1034,37 +1051,47 @@ if (nb_ff > 0) {
    obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
 }
 
-# select best defined flux combinations
-if (nb_ff > 0) {
-   s=svd(covfl)
-   # lin comb coeff matrix
-   l=t(s$u)
-   iord=apply(l,1,function(v){o=order(abs(v), decreasing=T); n=which(cumsum(v[o]**2)>=0.999); o[1:n[1]]})
-   dimnames(l)=dimnames(covfl)
-   nm_fl=dimnames(l)[[1]]
-   nb_fl=nrow(s$u)
-   comb=rep("", nb_fl)
-   for (j in 1:nb_fl) {
-      cva=l[j,iord[[j]]]; # abs(factor) ordered j-th lin combination
-      cva=sign(cva[1])*cva
-      cva=sprintf("%+.3g*", cva)
-      cva[cva=="+1*"]="+"
-      cva[cva=="-1*"]="-"
-      cva[1]=substring(cva[1], 2)
-      comb[j]=paste(cva, nm_fl[iord[[j]]], sep="", collapse="")
+# pool -> kvh
+sdpf=poolall
+sdpf[]=0.
+
+if (nb_poolf > 0) {
+   # covariance matrix of free pools
+   svj=svd(jx_f$uujac[,nb_ff+nb_sc+1:nb_poolf,drop=F])
+   i=svj$d/svj$d[1]<1.e-14
+   if (all(!i) && svj$d[1]<1.e-14) {
+      # we could not find very small d, take just the last
+      i[length(i)]=T
    }
-   # from best to worst defined sd
-   sta=sqrt(abs(diag(l%*%covfl%mmt%(l))))
-   names(sta)=comb
-   o=order(sta)
-   sta=sta[o]
-   obj2kvh(sta, "sd for uncorrelated net-xch01 linear combinations", fkvh, indent=1)
+   ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
+   ibad=unique(unlist(ibad))
+   if (length(ibad) > 0) {
+      warning(paste("Inverse of pool covariance matrix is numerically singular.\\nStatistically undefined pool(s) seems to be:\\n",
+         paste(nm_poolf[ibad], collapse="\\n"), , sep=""))
+   }
+   # "square root" of covariance matrix (to preserve numerical positive definitness)
+   rtcov=(svj$u/sqrt(c(rep(measinvvar, nb_ti-1), invfmnvar)))%*%(t(svj$v)/svj$d)
+   covpf=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(rep(measinvvar, nb_ti-1), invfmnvar))%*%(t(svj$v)/svj$d)
+   dimnames(covpf)=list(nm_poolf, nm_poolf)
+   sdpf[nm_poolf]=sqrt(diag(covpf))/metab_scale
+   poolall[nm_poolf]=param[nm_poolf]
 }
+poolall=poolall/metab_scale
+
+mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
+rownames(mtmp)=nm_poolall
+o=order(nm_poolall)
+obj2kvh(mtmp[o,,drop=F], "metabolite pools (sorted by name)", fkvh, indent=1)
+if (nb_poolf > 0) {
+   obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+}
+
 if (prof) {
    Rprof(NULL)
 }
 close(fkvh)
 """)
+
     f.write("""
 # write edge.netflux property
 fedge=file("edge.netflux.%(org)s", "w")
@@ -1087,6 +1114,7 @@ cat("log2pool (class=Double)\\n", sep="", file=fnode)
 nm_node=substring(names(poolall), 4)
 cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)
 close(fnode)
+
 if (TIMEIT) {
    cat("rend    : ", date(), "\\n", sep="")
 }
