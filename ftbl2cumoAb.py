@@ -125,15 +125,16 @@ for metab in sorted(netan["sto_m_r"].keys()):
 
 f.write("""
 Full flux equations:
-net fluxes\t|exchange fluxes\t=b\n
+metab:net fluxes\t|exchange fluxes\t=b\n
 """);
 nb_fnet=len(netan["vflux"]["net"]);
 for (ir,row) in enumerate(netan["Afl"]):
-    f.write("%(fnet)s\t|%(fxch)s\t=%(b)s\n"%{
-        "fnet": "\t".join(("" if coef==0 else ssign(coef)+
+    f.write("%(metab)s:%(fnet)s\t|%(fxch)s\t=%(b)s\n"%{
+        "metab": netan["vrowAfl"][ir],
+        "fnet": "\t".join(("" if coef==0 else ssign(coef)+(str(abs(coef)) if abs(coef) !=1. else "")+
             "d.n."+netan["vflux"]["net"][i]) for (i,coef) in enumerate(row)
             if i < nb_fnet),
-        "fxch": "\t".join(("" if coef==0 else ssign(coef)+
+        "fxch": "\t".join(("" if coef==0 else ssign(coef)+(str(abs(coef)) if abs(coef) !=1. else "")+
             "d.x."+netan["vflux"]["xch"][i-nb_fnet]) for (i,coef) in enumerate(row)
             if i >= nb_fnet),
         "b": join(" + ", (str(coef)+("*" if (coef and fl) else " ")+str(fl)
