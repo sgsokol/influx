@@ -835,9 +835,11 @@ if (prof) {
    Rprof("%(proffile)s");
 }
 
+nm_list=list()
 # input cumomer vector
 xi=c(%(xi)s);
 nm_xi=c(%(nm_xi)s);
+nm_list$xi=nm_xi;
 nb_xi=length(xi);
 """%{
     "xi": join(", ", netan["cumo_input"].values()),
@@ -1043,7 +1045,9 @@ nb_flx=length(nm_flx);
 nm_fl=c(nm_fln, nm_flx);
 nb_fl=nb_fln+nb_flx;
 # gather flux names in a list
-nm_list=list(flnx=nm_fl, fallnx=nm_fallnx, fwrv=nm_fwrv);
+nm_list$flnx=nm_fl;
+nm_list$fallnx=nm_fallnx;
+nm_list$fwrv=nm_fwrv;
 # flux matrix
 nb_flr=%(nb_flr)d;
 if (nb_fl) {
@@ -1733,6 +1737,22 @@ if (clownr!=0.) {
    if (length(i) > 0) {
       nm_tmp=nm_tmp[-i]
    }
+   # search for inout too
+   nm_itmp=paste("inout ", nm_tmp, ">=", sep="")
+   i=sapply(1:length(nm_itmp), function(k) {
+      j=grep(nm_itmp[k], nm_i)
+      #cat(nm_itmp[k], "->", nm_i[j], "\\n")
+      if (length(j)==0) {
+         return(0)
+      } else {
+         return(k)
+      }
+   })
+   i=i[i!=0]
+   if (length(i) > 0) {
+      nm_tmp=nm_tmp[-i]
+   }
+
    len_tmp=length(nm_tmp)
    if (len_tmp > 0) {
       mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx));
