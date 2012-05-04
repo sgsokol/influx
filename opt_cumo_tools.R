@@ -10,6 +10,7 @@ suppressPackageStartupMessages(library(bitops));
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
 #suppressPackageStartupMessages(library(lattice)); # to keep Matrix silent
 suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
+suppressPackageStartupMessages(library(expm, warn=F, verbose=F)); # for sparse matrices
 #library(inline); # for inline fortran compilation
 
 trisparse_solv=function(A, b, w, method="dense") {
@@ -156,7 +157,7 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
    return(list(res=jx_f$res, fallnx=jx_f$fallnx,
       jacobian=jacobian));
 }
-icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, pool, ti) {
+icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, pool, ti, tifull) {
    # claculates residual vector of labeling propagation corresponding to param
    #cat("icumo_resid: param=", param, ", cjac=", cjac, "\n")
    if (length(measinvvar)) {
@@ -180,7 +181,7 @@ icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, 
    recalcx=!identical(param, jx_f$param) ||
          (cjac && is.null(jx_f$ujaclab))
    if (recalcx) {
-      lres=param2fl_usm(param, cjac, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, pool, ti, measmat, imeas);
+      lres=param2fl_usm(param, cjac, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, pool, ti, measmat, imeas, tifull);
       if (!is.null(lres$err) && lres$err) {
          return(list(err=1, mes=lres$mes));
       }
@@ -239,8 +240,8 @@ cumo_cost=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, i
    }
    return(fn);
 }
-icumo_cost=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, pool, ti) {
-   resl=icumo_resid(param, cjac=FALSE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, pool, ti);
+icumo_cost=function(param, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, pool, ti, tifull) {
+   resl=icumo_resid(param, cjac=FALSE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, imeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, pool, ti, tifull);
    if (!is.null(resl$err) && resl$err) {
       return(NULL);
    }
@@ -424,9 +425,12 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, b
    return(append(list(x=x[(2+nb_xi):length(x)], x_f=x_f), lf));
 }
 
-param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, pool, ti, measmat, irmeas) {
+param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, pool, ti, measmat, irmeas, tifull=ti) {
    # translate free params (fluxes+scales) to fluxes and
    # unscaled simulated measurements (usm) for labeling propagation
+   # tifull may be more fine grained than ti. All ti must be in tifull
+   # only ti moments are reported in usm and jacobian
+   
    #print(jx_f$param-param)
    
    # recalculate or not the labeling?
@@ -444,16 +448,20 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       }
    }
    # here calcx==T or (calcx==F && cjac==T && is.null(jx_f$ujaclab))
-   # so recalculate all that is not in cache in jx_f
+   # so recalculate what is not in the cache in jx_f
    nb_ti=length(ti)
+   nb_tifu=length(tifull)
    if (nb_ti < 2) {
       return(list(err=1, mes="Number of time points is less than 2"))
+   }
+   if (!all(ti %in% tifull)) {
+      return(list(err=1, mes="Not all time moments in ti are present in tifull vector"))
    }
    if (calcx) {
       cat("param2fl_usm: recalculate labprop\n")
    }
    
-   dt=diff(ti)
+   dt=diff(tifull)
    # cumulated sum
    nbc_cumos=c(0, cumsum(nb_cumos))
    # calculate all fluxes from free fluxes
@@ -466,6 +474,12 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
    nb_poolf=nb_f$nb_poolf
    nb_sc=nb_f$nb_sc
    vsc=c(1.,param)[ir2isc]
+   if (!is.null(measmat)) {
+      nb_mcol=ncol(measmat)
+      mema1=measmat[,-nb_mcol,drop=F]
+      memaone=measmat[,nb_mcol]
+      irmeas_xi=irmeas+nb_xi+1
+   }
    # fullfill pool with free pools
    if (nb_poolf > 0) {
       pool[nm$poolf]=param[nm$poolf]
@@ -496,8 +510,8 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       # sp first derivative of s
       sp1=lapply(1:nb_w, function(iw) as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1, xp1, gets=F)$sp)*invmw[[iw]])
       expadt=list()
-      xsim=matrix(0., nrow=length(x1), ncol=nb_ti)
-      xpsim=matrix(0., nrow=length(xp1), ncol=nb_ti)
+      xsim=matrix(0., nrow=length(x1), ncol=nb_tifu)
+      xpsim=matrix(0., nrow=length(xp1), ncol=nb_tifu)
       xsim[,1]=x1
       xpsim[,1]=xp1
       spx=list(sp1)
@@ -515,7 +529,6 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       sp1=spx[[1]]
    }
    if (cjac) {
-      # passage matrix from d_fwrv to d_free_fluxes
       cat("param2fl_usm: recalculate jacobian\n")
       mdf_dff=df_dff(param, lf$flnx)
       jx_f$df_dff <<- mdf_dff
@@ -573,7 +586,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       xpf2=NULL
    }
    # time run from time t1 to time t2
-   for (iti in 2:nb_ti) {
+   for (iti in 2:nb_tifu) {
       dtr=as.character(round(dt[iti-1], 10))
       if (calcx) {
          x2=c(1., xi)
@@ -582,6 +595,17 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          x2=xsim[,iti]
          xp2=xpsim[,iti]
          sp2=spx[[iti]]
+      }
+      # prepare expm(a*dt)
+      if (calcx) {
+         lapply(1:nb_w, function(iw) {
+            if (is.null(expadt[[dtr]])) {
+               expadt[[dtr]] <<- list()
+            }
+            if (length(expadt[[dtr]]) < iw) {
+               expadt[[dtr]][[iw]] <<- expm(as.matrix(lwA[[iw]]*dt[iti-1]))
+            }
+         })
       }
       for (iw in 1:nb_w) {
          # prepare xw1 and xwp1
@@ -593,24 +617,29 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          if (calcx) {
             sw1=s1[[iw]]
             swp1=sp1[[iw]]
-            ssp=fwrv2sp(lf$fwrv, spAb[[iw]], x2, xp2)
-            sw2=as.double(ssp$s)*invmw[[iw]]
+            if (iw > 1) {
+               ssp=fwrv2sp(lf$fwrv, spAb[[iw]], x2, xp2)
+               sw2=as.double(ssp$s)*invmw[[iw]]
+               swp2=as.double(ssp$sp)*invmw[[iw]]
+            } else {
+               # for the first weight the source is constant in pulse experiment
+               sw2=sw1
+               swp2=swp1
+            }
             s2[[iw]]=sw2
-            swp2=as.double(ssp$sp)*invmw[[iw]]
             sp2[[iw]]=swp2
 
-            # prepare expm(a*dt)
-            if (is.null(expadt[[dtr]])) {
-               expadt[[dtr]]=list()
-            }
-            if (length(expadt[[dtr]]) < iw) {
-               expadt[[dtr]][[iw]]=expm(lwA[[iw]]*dt[iti-1])
-            }
             # make a time step for xw
-            xw2=as.double(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, swp1, swp2, xw1))
+            if (T && iti > 2) {
+               # in the hope that the s curve is smooth enough
+               xw2=as.double(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, swp1, swp2, xw1))
+            } else {
+               # for a steep step, low order to preserve monotony
+               xw2=as.double(expm_lin_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, xw1))
+            }
             # bring to interval [0; 1]
-            xw2[xw2<0.]=0.
-            xw2[xw2>1.]=1.
+            #xw2[xw2<0.]=0.
+            #xw2[xw2>1.]=1.
             xwp2=as.double(lwA[[iw]]%*%xw2)+sw2
             x2=c(x2, xw2)
             xp2=c(xp2, xwp2)
@@ -631,7 +660,11 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
                }
                sj2[[iw]]=sj
                # make a time step for jacobian xff
-               xff2[icw,]=as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sj1[[iw]]$jrhs, sj2[[iw]]$jrhs, sj1[[iw]]$jrhsp, sj2[[iw]]$jrhsp, xff1[icw,,drop=F]))
+               if (T && iti > 2) {
+                  xff2[icw,]=as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sj1[[iw]]$jrhs, sj2[[iw]]$jrhs, sj1[[iw]]$jrhsp, sj2[[iw]]$jrhsp, xff1[icw,,drop=F]))
+               } else {
+                  xff2[icw,]=as.matrix(expm_lin_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sj1[[iw]]$jrhs, sj2[[iw]]$jrhs, xff1[icw,,drop=F]))
+               }
                xffp2[icw,]=as.matrix(lwA[[iw]]%*%xff2[icw,,drop=F])+as.matrix(sj2[[iw]]$jrhs)
             }
             # prepare source 2 for jacobian poolf
@@ -652,22 +685,31 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
                }
                spf2[[iw]]=list(s=spf, sp=spfp)
                # make a time step for jacobian xpf
-               xpf2[icw,]=as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], spf1[[iw]]$s, spf2[[iw]]$s, spf1[[iw]]$sp, spf2[[iw]]$sp, xpf1[icw,,drop=F]))
+               if (iti > 2) {
+                  xpf2[icw,]=as.matrix(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], spf1[[iw]]$s, spf2[[iw]]$s, spf1[[iw]]$sp, spf2[[iw]]$sp, xpf1[icw,,drop=F]))
+               } else {
+                  xpf2[icw,]=as.matrix(expm_lin_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], spf1[[iw]]$s, spf2[[iw]]$s, xpf1[icw,,drop=F]))
+               }
                xpfp2[icw,]=as.matrix(lwA[[iw]]%*%xpf2[icw,,drop=F])+as.matrix(spf)
             }
          }
       }
+      it=which(tifull[iti] == ti)
       if (calcx) {
          xsim[,iti]=x2
          xpsim[,iti]=xp2
          spx=append(spx, list(sp2))
          
-         m2=measmat%*%c(x2[-(1:(nb_xi+1))][irmeas], 1.)
-         usm[,iti-1]=m2
+         if (length(it) > 0) {
+            m2=mema1%*%x2[irmeas_xi]+memaone
+            usm[,it-1]=m2
+         }
       } else {
-         m2=usm[,iti-1]
+         if (length(it) > 0) {
+            m2=usm[,it-1]
+         }
       }
-      if (cjac) {
+      if (cjac && length(it) > 0) {
          # scale part of jacobian
          dur_dsc[]=0.
          if (nb_f$nb_sc > 0) {
@@ -676,7 +718,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          }
          # append ff part of jacobian
          if (nb_ff > 0) {
-            m2=measmat%*%rbind(xff2[irmeas,,drop=F], 1.)
+            m2=mema1%*%xff2[irmeas,,drop=F]
             if (nb_sc > 0) {
                m2=vsc*m2
             }
@@ -684,7 +726,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
             m2=matrix(0., nrow=nb_meas, ncol=0)
          }
          if (nb_f$nb_poolf > 0) {
-            mpf=measmat%*%rbind(xpf2[irmeas,,drop=F], 1.)
+            mpf=mema1%*%xpf2[irmeas,,drop=F]
             if (nb_sc > 0) {
                mpf=vsc*mpf
             }
@@ -694,7 +736,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
          jacobian=array(c(jacobian, m2, dur_dsc, mpf), dim=dim(jacobian)+c(0,0,1))
       }
       # prepare next step if any
-      if (iti < nb_ti) {
+      if (iti < nb_tifu) {
          s1=s2
          sp1=sp2
          x1=x2
@@ -710,6 +752,8 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2bfl,
       }
    }
    dimnames(usm)=list(rownames(measmat), ti[-1])
+   dimnames(xsim)=list(c("one", nm$xi, nm$rcumo), tifull)
+   dimnames(xpsim)=list(c("one", nm$xi, nm$rcumo), tifull)
 #print(x);
    # store usefull information in global list jx_f
    jx_f$param<<-param;
@@ -1290,7 +1334,11 @@ put_inside=function(param, ui, ci) {
       param=param+c(dpn);
    } else {
       param=NA
-      attr(param, "mes")="Infeasible inequalities.";
+      mes="Infeasible inequalities."
+      if (!is.null(rownames(ui))) {
+         mes=join("\n", c(mes, rownames(ui)))
+      }
+      attr(param, "mes")=mes;
       attr(param, "err")=1
    }
    return(param)
@@ -1350,7 +1398,40 @@ expm_cub_step=function(inva, dt, expadt, s1, s2, sp1, sp2, x1) {
    tmp2=s2+inva%*%(sp2+inva%*%(sddr+tmp))
    # increment
    dx=inva%*%(expadt%*%tmp1-tmp2)
-   # make the result non negative
+   res=expadt%*%x1+dx
+   return(res)
+}
+expm_lin_step=function(inva, dt, expadt, s1, s2, x1) {
+   # make a single time step for integration of ode xp=a*x+s
+   # according to linear scheme with exponential matrix
+   # return a vector x
+   # 2012/04/25 sokol
+   
+   # auxiliary terms for integration
+   tmp=inva%*%((s2-s1)/dt)
+   # term t
+   tmp1=s1+tmp
+   # term t2
+   tmp2=s2+tmp
+   # increment
+   dx=inva%*%(expadt%*%tmp1-tmp2)
+   res=expadt%*%x1+dx
+   return(res)
+}
+expm_quad_step=function(inva, dt, expadt, s1, s2, sp1, sp2, x1) {
+   # make a single time step for integration of ode xp=a*x+s
+   # according to quadratic scheme with exponential matrix
+   # return a vector x
+   # 2012/04/30 sokol
+   
+   # auxiliary terms for integration
+   tmp=inva%*%((sp2-sp1)/dt)
+   # term t
+   tmp1=s1+inva%*%(sp1+tmp)
+   # term t2
+   tmp2=s2+inva%*%(sp2+tmp)
+   # increment
+   dx=inva%*%(expadt%*%tmp1-tmp2)
    res=expadt%*%x1+dx
    return(res)
 }
@@ -1416,13 +1497,20 @@ dfm_dff=function() {
    res[i,]=dfl_dff[i,];
    return(res)
 }
-plot_ti=function(ti, x, m=NULL) {
+plot_ti=function(ti, x, m=NULL, ...) {
    # plot time curse curves x[icurve, itime] and points from m
    # x and m are supposed to have the same dimension and organization
    nm=rownames(x)
    nb_curve=nrow(x)
    if (is.null(nm)) {
       nm=1:nb_curve
+   } else {
+      o=order(nm)
+      nm=nm[o]
+      x=x[o,,drop=F]
+      if (!is.null(m) && nrow(x)==nrow(m)) {
+         m=m[o,,drop=F]
+      }
    }
    # x and m may have different time moments
    if (is.null(m)) {
@@ -1430,8 +1518,8 @@ plot_ti=function(ti, x, m=NULL) {
    } else {
       tim=as.numeric(colnames(m))
    }
-   plot(range(ti, tim), range(c(x,m)), t="n", ylab="Labeling", xlab="Time")
-   matplot(ti, t(x), t="l", ylab="Labeling", xlab="Time", lty=1:nb_curve, col=1:nb_curve, lwd=2, add=T)
+   plot(range(ti, tim), range(c(x,m)), t="n", ylab="Labeling", xlab="Time", ...)
+   matplot(ti, t(x), t="l", lty=1:nb_curve, col=1:nb_curve, lwd=2, add=T)
    legend("topright", legend=nm, lty=1:nb_curve, col=1:nb_curve, lwd=2, cex=0.75)
    if (!is.null(m)) {
       # plot measured points
@@ -1448,9 +1536,10 @@ get_usm=function(f) {
    nstart=as.numeric(strsplit(res, ":")[[1]][1])
    res=system(sprintf("grep -n 'simulated scaled labeling measurements' '%s'", f), intern=T)
    nend=as.numeric(strsplit(res, ":")[[1]][1])
-   d=as.matrix(read.table(f, header=T, skip=nstart, row.names=2, sep="\t", nrows=nend-nstart-2, check=F))[,-1]
+   d=as.matrix(read.table(f, header=T, skip=nstart, row.names=2, sep="\t", nrows=nend-nstart-2, check=F, comment=""))[,-1]
    ti=as.numeric(colnames(d))
-   return(list(ti=ti, usm=d))
+   o=order(rownames(d))
+   return(list(ti=ti, usm=d[o,,drop=F]))
 }
 get_labcin=function(f, nm_meas) {
    # get labeling cinetic data form file f
@@ -1465,4 +1554,57 @@ get_labcin=function(f, nm_meas) {
       pmatch(paste(v, sep=":", collapse=":"), nm_r)
    })
    return(d[nm,])
+}
+get_hist=function(f, v) {
+   # return list of ti, usm from a _res.kvh file f
+
+   # get skip and end number in the kvh
+   res=system(sprintf("grep -m 1 -n 'history' '%s'", f), intern=T)
+   nstart=as.numeric(strsplit(res, ":")[[1]][1])
+   res=system(sprintf("tail -n +%d '%s' 2>&1| grep -m 1 -n '%s$'", nstart, f, v), intern=T, ignore.stderr=T)
+   nstart=nstart+as.numeric(strsplit(res, ":")[[1]][1])
+   res=system(sprintf("tail -n +%d '%s' 2>&1| grep -m 1 -n -E ^$'\\t?\\t\\w'", nstart, f), intern=T, ignore.stderr=T)
+   nend=nstart+as.numeric(strsplit(res, ":")[[1]][1])
+   d=as.matrix(read.table(f, header=F, skip=nstart, row.names=4, sep="\t", nrows=nend-nstart-2, check=F))[,-(1:3)]
+   return(d)
+}
+get_matrix=function(f, v) {
+   # return a matrix stored in the field v of a kvh file f
+   
+   # get start line number by grep successively all fields in v
+   # and the indent
+   indent=0
+   nstart=0
+   res=""
+   lapply(v, function(it) {
+      res<<-system(sprintf("tail -n +%d '%s' 2>&1| grep -m 1 -n '\\t*%s$'", nstart+1, f, it), intern=T, ignore.stderr=T)
+      spl=strsplit(res, ":")[[1]]
+      nstart<<-nstart+as.numeric(spl[1])
+      indent<<-which(nchar(strsplit(spl[2], "\t")[[1]])>0)[1]-1
+      return(NULL)
+   })
+   # get end number in the kvh
+   wop=options("warn")$warn
+   options(warn=-1)
+   res=system(sprintf("tail -n +%d '%s' 2>&1| grep -m 1 -n -E ^'%s\\w'", nstart+1, f, join("", rep("\t", indent))), intern=T)
+   options(warn=wop)
+   if (length(res) == 0) {
+      nrows=-1
+   } else {
+      nrows=as.numeric(strsplit(res, ":")[[1]][1])-1
+   }
+   d=as.matrix(read.table(f, header=F, skip=nstart, row.names=indent+2, sep="\t", nrows=nrows, check=F, comment=""))[,-(1:(indent+1))]
+   if (rownames(d)[1]=="row_col") {
+      colnames(d)=d[1,]
+      d=d[-1,,drop=F]
+      dn=dimnames(d)
+      options(warn=-1)
+      num<-as.numeric(d)
+      options(warn=wop)
+      if (!any(is.na(num))) {
+         d=matrix(num, nrow=nrow(d))
+         dimnames(d)=dn
+      }
+   }
+   return(d)
 }
