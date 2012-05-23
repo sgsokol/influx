@@ -148,11 +148,13 @@ if __name__ == "__main__":
     if len(args) != 1:
         usage();
         exit(1);
-    org=args[0];
+    org=os.path.basename(args[0])
+    dirorg=os.path.dirname(args[0]) or '.'
 
     # cut .ftbl if any
     if org[-5:]==".ftbl":
         org=org[:-5];
+    fullorg=os.path.join(dirorg, org)
 
     #-->
     #DEBUG=True;
@@ -165,9 +167,9 @@ if __name__ == "__main__":
         import pdb;
 
 
-    n_ftbl=org+".ftbl";
-    n_R=org+".R";
-    #n_fort=org+".f";
+    n_ftbl=fullorg+".ftbl";
+    n_R=fullorg+".R";
+    #n_fort=fullorg+".f";
     f_ftbl=open(n_ftbl, "r");
     try:
         os.chmod(n_R, stat.S_IWRITE);
@@ -342,9 +344,9 @@ if (any(abs(ineq)<=1.e-10)) {
 
     f.write("""
 # formated output in kvh file
-fkvh=file("%(org)s_res.kvh", "w");
+fkvh=file("%(fullorg)s_res.kvh", "w");
 """%{
-    "org": escape(org, "\\"),
+    "fullorg": escape(fullorg, "\\"),
 });
     # main part: call optimization
     f.write("""
@@ -943,15 +945,25 @@ close(fkvh);
 """);
     f.write("""
 # write edge.netflux property
-fedge=file("edge.netflux.%(org)s", "w");
+fedge=file("%(d)s/edge.netflux.%(org)s", "w");
 cat("netflux (class=Double)\\n", sep="", file=fedge);
 nm_edge=names(edge2fl)
 cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge);
+
+# write edge.xchflux property
+fedge=file("%(d)s/edge.xchflux.%(org)s", "w")
+flxch=paste(".x", substring(edge2fl, 4), sep="")
+ifl=charmatch(flxch, substring(names(fallnx), 2))
+cat("xchflux (class=Double)\\n", sep="", file=fedge)
+cat(paste(nm_edge, fallnx[ifl], sep=" = "), sep="\\n" , file=fedge)
+close(fedge)
+
 if (TIMEIT) {
    cat("rend    : ", date(), "\\n", sep="");
 }
 """%{
     "org": escape(org, "\\"),
+    "d": escape(dirorg, "\\"),
 });
 
     f.close();
