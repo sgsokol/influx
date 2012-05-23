@@ -114,7 +114,8 @@ for metab in sorted(netan["sto_m_r"].keys()):
         infl=join("+", (get_net(r, dfc_val) for r in lr["right"]));
         outfl=join("+", (get_net(r, dfc_val) for r in lr["left"]));
         try:
-           verdict="OK" if abs(eval(infl)-eval(outfl)) < 1.e-14 else "bad";
+           dif=abs(eval(infl)-eval(outfl))
+           verdict="OK" if dif < 1.e-10 else "bad ("+str(dif)+")";
         except:
            verdict="No check status";
         f.write("\t%(in)s=%(out)s\t%(verdict)s\n"%{
