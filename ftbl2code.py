@@ -675,7 +675,7 @@ def netan2Rinit(netan, org, f, fullsys):
     #    mf, md, mc - help to construct fallnx
     #    mi - inequality matrix (ftbl content)
     #    ui - inequality matrix (ready for param use)
-    #    measmat - measmat*(x[irmeas];1)=vec of simulated not-yet-scaled measures
+    #    measmat - measmat*(x[irmeas];1)=vec of simulated not-yet-pooled and not-yet-scaled measures
     # Functions:
     #    param2fl_x - translate param to flux and cumomer vector (initial approximation)
     #    cumo_cost - cost function (khi2)
@@ -770,6 +770,15 @@ if (!length(find("opt"))) {
    opt <- parse_args(OptionParser(option_list=option_list))
 }
 #print(opt)
+if (any("opt" == search())) {
+   detach(opt)
+}
+tmp=lapply(names(opt), function(item) {
+   if (length(find(item))>0) {
+      rm(item)
+   }
+   return(NULL)
+})
 attach(opt, warn=F)
 vernum="%(vernum)s"
 if (myver) {
@@ -1397,9 +1406,10 @@ nb_f$nb_sc=nb_sc
 # prepare indexes of dispatching scale params in jacobian
 if (nb_sc > 0) {
    ipaire=matrix(0, nrow=0, ncol=2)
-   lapply(1:nb_sc, function(isc) {
+   tmp=lapply(1:nb_sc, function(isc) {
       i=which(ir2isc==isc+1+nb_ff)
       ipaire <<- rbind(ipaire, cbind(i, isc))
+      return(NULL)
    })
    nb_f$is2m=ipaire
 }
@@ -1422,29 +1432,34 @@ if (nb_sc > 0) {
     f.write("""
 # make measure matrix
 # matrix is "densified" such that
-# measmat*(xr[irmeas];1) gives a vector of simulated not-yet-scaled measures
+# measmat*(xr[irmeas];1) gives a vector of simulated not-yet-pooled and not-yet-scaled measures
 # where irmeas is the R-index of involved in measures cumomers
 # all but 0. Coefficients of 0-cumomers (by defenition equal to 1)
 # are all regrouped in the last matrix column.
+nm_measmat=c(%(idmeasmat)s);
 nm_meas=c(%(idmeas)s);
 nm_list$meas=nm_meas
+nm_list$measmat=nm_measmat
 nb_meas=length(nm_meas);
-measmat=matrix(0., nb_meas, %(ncol)d);
+nb_measmat=length(nm_measmat);
+measmat=matrix(0., nb_measmat, %(ncol)d);
 measvec=c(%(vmeas)s);
 measinvvar=c(%(invvar)s);
 irmeas=c(%(irmeas)s);
 nm_mcumo=c(%(mcumos)s);
-dimnames(measmat)=list(nm_meas, c(nm_mcumo, "#x*"));
+dimnames(measmat)=list(nm_measmat, c(nm_mcumo, "#x*"));
 names(measvec)=nm_meas;
 names(measinvvar)=nm_meas;
+ipooled=list(ishort=pmatch(nm_meas, nm_measmat));
 """%{
     "nrow": len([measures[meas]["vec"] for meas in measures]),
     "ncol": (nb_mcumo+1),
     "irmeas": join(", ", trd(o_mcumos, netan["rcumo2i"], a="")),
     "mcumos": join(", ", o_mcumos, '"', '"'),
-    "idmeas": join(", ", (row["id"] for row in
+    "idmeasmat": join(", ", (row["id"] for row in
         valval(measures[o]["mat"] for o in o_meas)),
         p='"', s='"'),
+    "idmeas": join(", ",  valval(measures[o]["ids"] for o in o_meas), p='"', s='"'),
     "vmeas": join(", ", valval(measures[o]["vec"] for o in o_meas)),
     "invvar": join(", ", (1./sd/sd for sd in valval(measures[o]["dev"]
         for o in o_meas))),
@@ -1456,6 +1471,17 @@ names(measinvvar)=nm_meas;
         if not measures[meas]["mat"]:
             continue;
         #print("meas="+meas+"; mat="+str(measures[meas]["mat"]));##
+        base_pooled=i
+        for metpool in measures[meas]["pooled"]:
+            f.write("""
+# prepare indeces of pooled measurements
+ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
+"""%{
+    "rowid": metpool[0],
+    "ind": join(", ", metpool[1:]),
+    "basep": base_pooled,
+}
+)
         for row in measures[meas]["mat"]:
             i+=1;
             metab=row["metab"];
@@ -1740,7 +1766,7 @@ if (clownr!=0.) {
    # search for inout too
    nm_itmp=paste("inout ", nm_tmp, ">=", sep="")
    i=sapply(1:length(nm_itmp), function(k) {
-      j=grep(nm_itmp[k], nm_i)
+      j=grep(nm_itmp[k], nm_i, fix=T)
       #cat(nm_itmp[k], "->", nm_i[j], "\\n")
       if (length(j)==0) {
          return(0)
