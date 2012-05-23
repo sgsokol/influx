@@ -248,18 +248,17 @@ crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
 tstart=0.;
 tmax=%(tmax)f;
 dt=%(dt)f;
-metab_scale=%(metab_scale)f;
 
 # metabolite pools are : all (poolall) which is divided in free (poolf) and
 # constrained (poolc)
 
 # constrained pool
-poolc=c(%(poolc)s)*metab_scale
+poolc=c(%(poolc)s)
 nm_poolc=c(%(nm_poolc)s)
 names(poolc)=nm_poolc
 
 # starting values for free pool
-poolf=c(%(poolf)s)*metab_scale
+poolf=c(%(poolf)s)
 nm_poolf=c(%(nm_poolf)s)
 names(poolf)=nm_poolf
 nb_poolf=length(poolf)
@@ -280,9 +279,6 @@ nm_list$poolall=nm_poolall
 
 #browser()
 if (nb_poolf > 0) {
-   # multiply pool limits by metab_scale
-   clowp=clowp*metab_scale
-   cupp=cupp*metab_scale
    # extend inequalities ui, ci by cupp >= poolf >= clowp
    nb_row=nrow(ui)
    nb_col=ncol(ui)
@@ -385,7 +381,6 @@ fkvh=file("%(fullorg)s_res.kvh", "w")
     "nm_poolc": join(", ", (n for (n,p) in netan["met_pools"].iteritems() if p > 0.), '"pc:', '"'),
     "dt": netan["opt"]["dt"],
     "tmax": netan["opt"]["tmax"],
-    "metab_scale": netan["opt"]["metab_scale"],
     "flabcin": netan["opt"].get("file_labcin", ""),
 })
     # main part: call optimization
@@ -687,6 +682,7 @@ Unsolvable fluxes may be:
       nm_inv=names(which((ui%*%res$par-ci)[,1]<=1.e-10))
       i=grep("^zc ", nm_inv, v=T)
       if (length(i) > 0) {
+         reopt=TRUE
          i=str2ind(i, nm_i)
          cat("The following inequalities are active after first stage
 of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
@@ -707,27 +703,28 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
          }
          rownames(ui)=nm_i
          names(ci)=nm_i
+      } else {
+         reopt=FALSE
       }
       # enforce new inequalities
-      reopt=TRUE
-      param=put_inside(res$par, ui, ci)
-      if (any(is.na(param))) {
-         if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
-            # fatal error occurd, don't reoptimize
-            warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
-            param=res$param
-            reopt=FALSE
-         }
-      } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
-         # non fatal problem
-         warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
-      }
-      # reoptimize
       if (reopt) {
+         # reoptimize
+         param=put_inside(res$par, ui, ci)
+         if (any(is.na(param))) {
+            if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
+               # fatal error occurd, don't reoptimize
+               warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+               param=res$param
+               reopt=FALSE
+            }
+         } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
+            # non fatal problem
+            warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+         }
          res=opt_wrapper(measvecti, fmn)
          if (any(is.na(res$par))) {
             obj2kvh(res, "optimization process informations", fkvh)
-            stop("Second optimization failed")
+            stop("Second optimization (after zero crossing) failed.")
          }
       }
    }
@@ -1092,10 +1089,10 @@ if (nb_poolf > 0) {
    rtcov=(svj$u/sqrt(c(rep(measinvvar, nb_ti-1), invfmnvar)))%*%(t(svj$v)/svj$d)
    covpf=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(rep(measinvvar, nb_ti-1), invfmnvar))%*%(t(svj$v)/svj$d)
    dimnames(covpf)=list(nm_poolf, nm_poolf)
-   sdpf[nm_poolf]=sqrt(diag(covpf))/metab_scale
+   sdpf[nm_poolf]=sqrt(diag(covpf))
    poolall[nm_poolf]=param[nm_poolf]
 }
-poolall=poolall/metab_scale
+poolall=poolall
 
 mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
 rownames(mtmp)=nm_poolall
