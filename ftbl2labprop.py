@@ -87,7 +87,7 @@ Matrices:
    ui - inequality matrix (ready for param use)
    measmat - measmat*(x[imeas];1)=vec of simulated not-yet-pooled and not-yet-scaled measurements
 Functions:
-   param2fl_usm - translate param to flux and cumomer vector (initial approximation)
+   param2fl_usm_eul - translate param to flux and cumomer vector (initial approximation)
    icumo_cost - cost function (khi2)
    cumo_grad - finite difference gradient
    cumo_gradj - implicit derivative gradient
@@ -269,8 +269,10 @@ poolall=c(poolf, poolc)
 names(poolall)=nm_poolall
 
 # extend param vector by free pools
-param=c(param, poolf)
-nm_par=c(nm_par, nm_poolf)
+if (nb_poolf > 0) {
+   param=c(param, log(poolf))
+   nm_par=c(nm_par, nm_poolf)
+}
 nm_list$par=nm_par
 
 nm_list$poolf=nm_poolf
@@ -279,15 +281,15 @@ nm_list$poolall=nm_poolall
 
 #browser()
 if (nb_poolf > 0) {
-   # extend inequalities ui, ci by cupp >= poolf >= clowp
+   # extend inequalities ui, ci by log(cupp) >= poolf >= log(clowp)
    nb_row=nrow(ui)
    nb_col=ncol(ui)
    ui=cbind(ui, matrix (0., nrow=nrow(ui), ncol=nb_poolf))
    ui=rbind(ui, matrix (0., nrow=2*nb_poolf, ncol=ncol(ui)))
    ui[nb_row+1:nb_poolf,nb_col+1:nb_poolf]=diag(1., nb_poolf)
    ui[nb_row+nb_poolf+1:nb_poolf,nb_col+1:nb_poolf]=diag(-1., nb_poolf)
-   ci=c(ci, rep(clowp, nb_poolf))
-   ci=c(ci, rep(-cupp, nb_poolf))
+   ci=c(ci, rep(log(clowp), nb_poolf))
+   ci=c(ci, rep(-log(cupp), nb_poolf))
    nm_i=c(nm_i, paste(nm_poolf, ">=", clowp, sep=""))
    nm_i=c(nm_i, paste(nm_poolf, "<=", cupp, sep=""))
    rownames(ui)=nm_i
@@ -340,7 +342,7 @@ if (nchar(flabcin)) {
          stop(paste("Cannot match the following measurement(s) in the file '", flabcin, "':\\n", paste(nm_meas[ina], sep="", collapse="\\n"), sep="", collapse=""))
       }
       measvecti=measvecti[im,,drop=F]
-      stopifnot(all(!is.na(measvecti)))
+      #stopifnot(all(!is.na(measvecti)))
       stopifnot(typeof(measvecti)=="double")
    }
    ti=c(tstart, as.numeric(colnames(measvecti)))
@@ -353,6 +355,13 @@ if (nchar(flabcin)) {
    ndiv=4
    tmp=cumsum(2**(1:ndiv))
    tifull=c(tstart, (ti[2]/tmp[ndiv])*tmp, ti[-(1:2)])
+   
+   # divide each interval in 2.
+   tifull=c(rbind(head(tifull, -1), head(tifull, -1)+diff(tifull)/2), tail(tifull, 1))
+   
+   # once again divide each interval in 2.
+   #tifull=c(rbind(head(tifull, -1), head(tifull, -1)+diff(tifull)/2), tail(tifull, 1))
+
    #tifull=head(rep(ti, each=ndiv), -(ndiv-1))
    #for (idiv in 1:(ndiv-1)) {
    #   i=idiv+1+(0:(nb_ti-2))*ndiv
@@ -387,6 +396,11 @@ fkvh=file("%(fullorg)s_res.kvh", "w")
     f.write("""
 #browser()
 names(param)=nm_par
+nb_param=length(param)
+if (initrand) {
+   param[]=runif(nb_param);
+   fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx
+}
 if (nb_sc && !is.null(measvecti)) {
    # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
    # for corresponding measurements
@@ -399,12 +413,13 @@ if (nb_sc && !is.null(measvecti)) {
    ##stop("aha")
    # unscaled simulated measurements (usm) [imeas, itime]
    #browser()
+   inna=which(!is.na(measvecti))
    simvec=vr$usm
-   ms=measvecti*simvec*measinvvar
-   ss=simvec*simvec*measinvvar
+   ms=(measvecti*simvec*measinvvar)[inna]
+   ss=(simvec*simvec*measinvvar)[inna]
    for (i in nb_ff+1:nb_sc) {
-      im=(ir2isc==(i+1))
-      param[i]=sum(ms[im,])/sum(ss[im,])
+      im=outer(ir2isc==(i+1), rep(T, nb_ti), "&")[inna]
+      param[i]=sum(ms[im])/sum(ss[im])
    }
 } else if (nb_sc > 0) {
    # we dont have measurements yet, just set all scalings to 1.
@@ -427,6 +442,7 @@ if (any(ineq <= -1.e-10)) {
       # non fatal problem
       warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
    }
+   fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx
 }
 
 # see if there are any active inequalities at starting point
@@ -455,7 +471,9 @@ obj2kvh(fwrv, "fwd-rev flux vector", fkvh, indent=1)
 f=jx_f$fallnx
 obj2kvh(f, "net-xch01 flux vector", fkvh, indent=1)
 
-obj2kvh(nm_i, "inequalities", fkvh, indent=1)
+obj2kvh(ui%*%param-ci, "inequality slacks (must be >=0)", fkvh, indent=1)
+
+#browser() # before the first call to param2fl_usm_eul
 
 # starting cost value
 if (!is.null(measvecti)) {
@@ -601,8 +619,9 @@ Unsolvable fluxes may be:
    }
 #browser()
    # zero crossing strategy
-   # inequalities to keep sens of net flux on first call to opt_wwrapper()
-   # if active they are removed on the second call to opt_wrapper()
+   # inequalities to keep sens of net flux on first call to opt_wrapper()
+   # if active after the first optimization, they are inversed on the second
+   # call to opt_wrapper()
    mi_zc=NULL
    li_zc=NULL
    if (nb_fn && zerocross) {
@@ -641,10 +660,10 @@ Unsolvable fluxes may be:
          for (i in 1:nb_zc) {
             nmqry=nm_izc[i]
             for (j in 1:nb_i) {
-               if ((isTRUE(all.equal(ui[j,],ui_zc[i,])) ||
-                  isTRUE(all.equal(ui[j,],-ui_zc[i,]))) &&
-                  abs(abs(ci[j])-abs(ci_zc[i]))<=1.e-2) {
-   #browser()
+               if ((diff(range(ui[j,]-ui_zc[i,])) < 1.e-10 ||
+                  diff(range(ui[j,]+ui_zc[i,])) < 1.e-10) &&
+                  abs(ci[j]-ci_zc[i])<1.e-2) {
+#browser()
                   # redundancy
                   cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\\n", sep="")
                   ired=c(ired, i)
@@ -684,7 +703,7 @@ Unsolvable fluxes may be:
       if (length(i) > 0) {
          reopt=TRUE
          i=str2ind(i, nm_i)
-         cat("The following inequalities are active after first stage
+         cat("The following inequalities are active after the first stage
 of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
          ipos=grep(">=", nm_i[i], fix=T, v=T)
          ineg=grep("<=", nm_i[i], fix=T, v=T)
@@ -737,9 +756,10 @@ if (TIMEIT) {
    cat("postopt : ", date(), "\\n", sep="")
 }
 # active constraints
-ine=abs(ui%*%param-ci)<1.e-10
+ine=abs(ui%*%param-ci)
+ine=ine < 1.e-10 | ine < abs(ci)*0.01
 if (any(ine)) {
-   obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
+   obj2kvh(nm_i[ine], "active (up to 1%) inequality constraints", fkvh)
 }
 #browser()
 if (!is.null(measvecti)) {
@@ -748,13 +768,6 @@ if (!is.null(measvecti)) {
    } # else use the last calculated jacobian
    rcost=norm2(jx_f$res)
    obj2kvh(rcost, "final cost", fkvh)
-   # goodness of fit (khi2 test)
-   khi2test=list("khi2 value"=rcost, "data points"=length(jx_f$res),
-      "fitted parameters"=nb_param, "degree of freedom"=length(jx_f$res)-nb_param-1)
-   khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degree of freedom`
-   khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degree of freedom`)
-   khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit good enough the data with respect to provided measurement SD" else "At level of 95% confidence, the model fits good enough the data with respect to provided measurement SD"
-   obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh)
    obj2kvh(jx_f$ureslab, "simulated-measured labeling", fkvh)
    obj2kvh(jx_f$reslab, "(simulated-measured)/sd_exp labeling", fkvh)
    if (nb_fmn > 0) {
@@ -762,21 +775,21 @@ if (!is.null(measvecti)) {
       obj2kvh(jx_f$resflu, "(simulated-measured)/sd_exp fluxes", fkvh)
    }
    # gradient -> kvh
-   gr=2*c((jx_f$ures*c(rep(measinvvar, nb_ti-1), invfmnvar))%tmm%jx_f$udr_dp)
+   gr=2*c(jx_f$res%tmm%jx_f$jacobian)
    names(gr)=nm_par
    obj2kvh(gr, "gradient vector", fkvh)
-   obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
+   #obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
 } else {
    if (is.null(jx_f$usm)) {
       # simulate measures
-      v=param2fl_usm(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas, ipooled, tifull)
+      v=param2fl_usm_eul(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas, ipooled, tifull)
    }
 }
 
 if (fullsys) {
    nm_flist=nm_list
    nm_flist$rcumo=nm_cumo
-   v=param2fl_usm(param, cjac=T, nb_f, nm_flist, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAbr_f, poolall, ti, measmat, imeas, ipooled, tifull)
+   v=param2fl_usm_eul(param, cjac=T, nb_f, nm_flist, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAbr_f, poolall, ti, measmat, imeas, ipooled, tifull)
 } # else use the last calculated usm
 
 # simulated measurements -> kvh
@@ -1004,38 +1017,36 @@ if (is.null(jx_f$jacobian)) {
 if (DEBUG) {
    library(numDeriv); # for numerical jacobian
    # numerical simulation
-   rj=function(v, ...) {
-      r=cumo_resid(v, cjac=F, ...)
-      c(r$res)
-   }
-   #dr_dpn=jacobian(rj, param, method="Richardson", method.args=list(),
+   rj=function(v, ...) { r=icumo_resid(v, cjac=F, ...); c(r$res) }
+   #dr_dpn=jacobian(rj, param, method="simple", method.args=list(),
    #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    # to compare with jx_f$dr_dp
    gr=grad(icumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ipooled, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
 #browser()
 }
 
+# covariance matrix of free fluxes
+svj=svd(jx_f$jacobian)
+i=svj$d/svj$d[1]<1.e-10
+if (all(!i) && svj$d[1]<1.e-10) {
+   # we could not find very small d, take just the last
+   i[length(i)]=T
+}
+ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
+ibad=unique(unlist(ibad))
+if (length(ibad) > 0) {
+   warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
+      paste(nm_par[ibad], collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""))
+}
+# "square root" of covariance matrix (to preserve numerical positive definitness)
+rtcov=(svj$u)%*%(t(svj$v)/svj$d)
+covpar=crossprod(rtcov)
 if (nb_ff > 0) {
-   # covariance matrix of free fluxes
-   svj=svd(jx_f$dr_dff)
-   i=svj$d/svj$d[1]<1.e-14
-   if (all(!i) && svj$d[1]<1.e-14) {
-      # we could not find very small d, take just the last
-      i[length(i)]=T
-   }
-   ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
-   ibad=unique(unlist(ibad))
-   if (length(ibad) > 0) {
-      warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-         paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see the field '/linear stats/net-xch01 fluxes (sorted by name)'\\nin the result file.", sep=""))
-   }
-   # "square root" of covariance matrix (to preserve numerical positive definitness)
-   rtcov=(svj$u/sqrt(c(rep(measinvvar, nb_ti-1), invfmnvar)))%*%(t(svj$v)/svj$d)
-   covff=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(rep(measinvvar, nb_ti-1), invfmnvar))%*%(t(svj$v)/svj$d)
+   covff=covpar[1:nb_ff,1:nb_ff]
    cat("linear stats\\n", file=fkvh)
 
    # sd free+dependent net-xch01 fluxes
-   covfl=crossprod(rtcov%mmt%(rbind(diag(1., nb_ff), dfl_dff)))
+   covfl=crossprod(rtcov[,1:nb_ff,drop=F]%mmt%(rbind(diag(1., nb_ff), dfl_dff)))
    nm_flfd=c(nm_ff, nm_fl)
    dimnames(covfl)=list(nm_flfd, nm_flfd)
    sdfl=sqrt(diag(covfl))
@@ -1054,7 +1065,7 @@ if (nb_ff > 0) {
 
 # sd of all fwd-rev
 if (nb_ff > 0) {
-   covf=crossprod(rtcov%mmt%(jx_f$df_dff))
+   covf=crossprod(rtcov[,1:nb_ff,drop=F]%mmt%(jx_f$df_dff))
    sdf=sqrt(diag(covf))
 } else {
    sdf=rep(0., length(fwrv))
@@ -1073,24 +1084,12 @@ sdpf[]=0.
 
 if (nb_poolf > 0) {
    # covariance matrix of free pools
-   svj=svd(jx_f$uujac[,nb_ff+nb_sc+1:nb_poolf,drop=F])
-   i=svj$d/svj$d[1]<1.e-14
-   if (all(!i) && svj$d[1]<1.e-14) {
-      # we could not find very small d, take just the last
-      i[length(i)]=T
-   }
-   ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
-   ibad=unique(unlist(ibad))
-   if (length(ibad) > 0) {
-      warning(paste("Inverse of pool covariance matrix is numerically singular.\\nStatistically undefined pool(s) seems to be:\\n",
-         paste(nm_poolf[ibad], collapse="\\n"), sep=""))
-   }
    # "square root" of covariance matrix (to preserve numerical positive definitness)
-   rtcov=(svj$u/sqrt(c(rep(measinvvar, nb_ti-1), invfmnvar)))%*%(t(svj$v)/svj$d)
-   covpf=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(rep(measinvvar, nb_ti-1), invfmnvar))%*%(t(svj$v)/svj$d)
+   poolall[nm_poolf]=exp(param[nm_poolf])
+   # cov wrt exp(pf)=pool
+   covpf=covpar[nb_ff+nb_sc+1:nb_poolf,nb_ff+nb_sc+1:nb_poolf]/(poolall[nm_poolf]**2)
    dimnames(covpf)=list(nm_poolf, nm_poolf)
    sdpf[nm_poolf]=sqrt(diag(covpf))
-   poolall[nm_poolf]=param[nm_poolf]
 }
 poolall=poolall
 
@@ -1101,6 +1100,15 @@ obj2kvh(mtmp[o,,drop=F], "metabolite pools (sorted by name)", fkvh, indent=1)
 if (nb_poolf > 0) {
    o=order(nm_poolf)
    obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+}
+if (!is.null(measvecti)) {
+   # goodness of fit (khi2 test)
+   khi2test=list("khi2 value"=rcost, "data points"=length(jx_f$res),
+      "fitted parameters"=nb_param, "degrees of freedom"=length(jx_f$res)-nb_param)
+   khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
+   khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
+   khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
+   obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
 }
 
 if (prof) {
