@@ -856,34 +856,21 @@ if (DEBUG) {
 }
 
 # covariance matrix of free fluxes
-invcov=(jx_f$dr_dff)%tmm%(jx_f$dr_dff*c(measinvvar, invfmnvar));
-covff=try(solve(invcov));
-if (inherits(covff, "try-error")) {
-   # matrix seems to be singular
-   #svi=svd(invcov);
-   #i=svi$d/svi$d[1]<1.e-14;
-   #ibad=apply(abs(svi$v[, i, drop=F]), 2, which.max);
-   #warning(paste("Inverse of covariance matrix is singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-   #   paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see '/linear stats/net-xch01 fluxes (sorted by name)' field in the result file.", sep=""));
-   # regularize and inverse
-   #covff=solve(invcov+diag(1.e-14*svi$d[1], nrow(invcov)));
-   #covff=svi$u%*%diag(1./pmax(svi$d, svi$d[1]*1.e-14))%*%t(svi$v)
-   svj=svd(jx_f$dr_dff)
-   i=svj$d/svj$d[1]<1.e-14;
-   if (all(!i)) {
-      # we could not find very small d, take just the last
-      i[length(i)]=T
-   }
-   ibad=apply(svj$v[, i, drop=F], 2, which.contrib);
-   ibad=unique(unlist(ibad))
-   warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined fluxe(s) seems to be:\\n",
-      paste(nm_ff[ibad], collapse="\\n"), "\\nFor more complete list, see the field '/linear stats/net-xch01 fluxes (sorted by name)'\\nin the result file.", sep=""));
-   # "square root" of covariance matrix (to preserve numerical positive definitness)
-   rtcov=(svj$u/sqrt(c(measinvvar, invfmnvar)))%*%(t(svj$v)/svj$d)
-   covff=svj$v%*%(t(svj$u)/svj$d)%*%(svj$u/c(measinvvar, invfmnvar))%*%(t(svj$v)/svj$d)
-} else {
-   rtcov=chol(covff)
+svj=svd(jx_f$jacobian)
+i=svj$d/svj$d[1]<1.e-10
+if (all(!i) && svj$d[1]<1.e-10) {
+   # we could not find very small d, take just the last
+   i[length(i)]=T
 }
+ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
+ibad=unique(unlist(ibad))
+if (length(ibad) > 0) {
+   warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
+      paste(nm_par[ibad], collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""))
+}
+# "square root" of covariance matrix (to preserve numerical positive definitness)
+rtcov=(svj$u)%*%(t(svj$v)/svj$d)
+covpar=crossprod(rtcov)
 # standart deviations of free fluxes
 #sdff=sqrt(diag(covff));
 cat("linear stats\\n", file=fkvh);
@@ -896,7 +883,7 @@ cat("linear stats\\n", file=fkvh);
 # sd free+dependent net-xch01 fluxes
 fl=c(param[1:nb_ff], flnx);
 nm_flfd=c(nm_ff, nm_fl);
-covfl=crossprod(rtcov%mmt%(rbind(diag(1., nb_ff), dfl_dff)));
+covfl=crossprod(rtcov[,1:nb_ff, drop=F]%mmt%(rbind(diag(1., nb_ff), dfl_dff)));
 dimnames(covfl)=list(nm_flfd, nm_flfd)
 sdfl=sqrt(diag(covfl));
 mtmp=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl));
@@ -906,7 +893,7 @@ obj2kvh(mtmp[o,,drop=F], "net-xch01 fluxes (sorted by name)", fkvh, indent=1);
 obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1);
 
 # sd of all fwd-rev
-covf=crossprod(rtcov%mmt%(jx_f$df_dff));
+covf=crossprod(rtcov[,1:nb_ff, drop=F]%mmt%(jx_f$df_dff));
 sdf=sqrt(diag(covf));
 mtmp=cbind(fwrv, sdf, sdf/abs(fwrv));
 dimnames(mtmp)[[2]]=c("value", "sd", "rsd");
