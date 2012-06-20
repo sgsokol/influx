@@ -1828,17 +1828,18 @@ names(li)=nm_i;
 ui=mi%*%(md%*%invAfl%*%p2bfl+mf);
 mic=(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc)
 ci=li-mi%*%mic;
-#browser()
+#browser() # before null inequality removing
 # remove all zero rows in ui (constrained fluxes with fixed values)
 # find zero indexes
 #print(dim(ui))
 if (ncol(ui)) {
    zi=apply(ui,1,function(v){return(max(abs(v))<=1.e-14)});
 } else {
-   zi=rep(FALSE, nrow(ui))
+   # remove all flux inequalities as there is no free fluxe
+   zi=rep(TRUE, nrow(ui))
 }
 
-if (all(ci[zi]<=1.e-14)) {
+if (all(ci[zi]<=1.e-10)) {
    ui=ui[!zi,,drop=F];
    ci=ci[!zi];
    nm_i=nm_i[!zi];
