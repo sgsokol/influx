@@ -634,7 +634,7 @@ def ftbl_netan(ftbl):
         if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
             werr("Inequalities: in NET section, the formula '"+
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+"' involves a constrained flux\n"+
-                " having a value "+str(netan["flux_constr"]["net"][fl])+".\n The inequality is ignored as meaningless.\n")
+                " having a value "+str(netan["flux_constr"]["net"][fl])+". The inequality is ignored as meaningless.\n")
         netan["flux_inequal"]["net"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
@@ -687,7 +687,7 @@ def ftbl_netan(ftbl):
     # fluxes
 
     # label measurements
-    # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}}
+    # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}
     metabs="";
     for row in ftbl.get("LABEL_MEASUREMENTS",[]):
         #print row;##
@@ -1239,7 +1239,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             # check if this line was already entered before
             for row in res:
                 if row==qry:
-                    raise Exception("An equality in section "+nx+" is redundant. eq:"+str(eq)+
+                    raise Exception("An equality in "+nx+" section is redundant. eq:"+str(eq)+
                         "\nqry="+str(qry)+"\nrow="+str(row));
             res.append(qry);
             netan["vrowAfl"].append("eq "+nx+": "+str(eq[1]));
@@ -1634,10 +1634,17 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
     mat=[];
     vec=[];
     dev=[];
+    pooled=[];
     ids=[];
-    for (metab,irows) in netan.get("peak_meas",{}).iteritems():
+    imrow=-1;
+    for (metabs,irows) in netan.get("peak_meas",{}).iteritems():
         #print "peak matx calc for ", metab;##
-        n=netan["Clen"][metab];
+        metabl=irows.values()[0].values()[0]["pooled"]
+        print(metabl)
+        #metabl=metabl["pooled"]
+        
+        metab0=metabl[0]
+        n=netan["Clen"][metab0];
         strx="#"+"x"*n;
         for (irow,peaks) in irows.iteritems():
             # pmask0x put 0 on three targeted carbons and leave x elsewhere
@@ -1654,9 +1661,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                 vec.append(row["val"]);
                 dev.append(row["dev"]);
                 ids.append(row["id"]);
-                mat.append({"id": row["id"], "scale": metab+";"+str(c_no)+";"+row["irow"], "coefs":{},
-                    "bcumos": None, "metab": metab});
-                res=mat[-1]["coefs"];
+                res={};
                 # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
                 # shift the 3-bit mask to the right carbon position
                 if c_no < n:
@@ -1673,7 +1678,6 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                         pmask=dmask["D+"]>>1;
                     bcumos.append(setcharbit(pmask0x,"1",pmask));
 #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
-                mat[-1]["bcumos"]=bcumos;
                 for cumostr in bcumos:
                     #print cumostr;##
                     decomp=bcumo_decomp(cumostr);
@@ -1683,9 +1687,19 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                     for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
+                if len(row["pooled"]) > 1:
+                    # init index list
+                    pooled.append([row["id"]])
+                for metab in row["pooled"]:
+                    imrow+=1;
+                    mat.append({"id": row["id"], "scale": metabs+";"+str(c_no)+";"+row["irow"], "coefs":res,
+                        "bcumos": bcumos, "metab": metab});
+                    if len(row["pooled"]) > 1:
+                        # indeed something is pooled
+                        pooled[-1].append(imrow)
                 #print "metab,c_no,peak="+",".join((metab,str(c_no),str(peak)));##
                 #print "res=",str(res);##
-    return {"ids": ids, "mat": mat, "vec": vec, "dev": dev};
+    return {"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled};
 
 def bcumo_decomp(bcumo):
     """bcumo is a string of the form #[01x]+. It has to be decomposed
