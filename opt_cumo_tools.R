@@ -12,7 +12,10 @@ suppressPackageStartupMessages(library(nnls)); # for non negative least square
 suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 suppressPackageStartupMessages(library(expm, warn=F, verbose=F)); # for sparse matrices
 #library(inline); # for inline fortran compilation
-
+mc_inst=library(multicore, warn.conflicts=F, verbose=F, logical.return=T)
+if (!mc_inst) {
+   mclapply=lapply
+}
 trisparse_solv=function(A, b, w, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
@@ -1019,7 +1022,7 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2
       return(list(err=1, mes="Not all time moments in ti are present in tifull vector"))
    }
    if (calcx) {
-      cat("param2fl_usm: recalculate labprop\n")
+      cat("param2fl_usm_eul: recalculate labprop\n")
    }
    
    dt=diff(tifull)
@@ -1131,7 +1134,7 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2
       x1=xsim[,1]
    }
    if (cjac) {
-      cat("param2fl_usm: recalculate jacobian\n")
+      cat("param2fl_usm_eul: recalculate jacobian\n")
       mdf_dff=df_dff(param, lf$flnx)
       jx_f$df_dff <<- mdf_dff
       nb_ff=ncol(mdf_dff)
@@ -1165,15 +1168,12 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2
       }
       # prepare (I-a*dt)^-1
       if (calcx) {
-         lapply(1:nb_w, function(iw) {
-            if (is.null(inviadt[[dtr]])) {
-               inviadt[[dtr]] <<- list()
-            }
-            if (length(inviadt[[dtr]]) < iw) {
-               # new inviadt
-               inviadt[[dtr]][[iw]] <<- (diag(nrow(lwA[[iw]]))-lwA[[iw]]*dt[iti-1])
-            }
-         })
+         if (is.null(inviadt[[dtr]])) {
+            # new inviadt
+            inviadt[[dtr]] = mclapply(1:nb_w, function(iw) {
+               solve(diag(nrow(lwA[[iw]]))-lwA[[iw]]*dt[iti-1])
+            })
+         }
       }
       subdiv=iti==2  # subdivide or no time step (when time run instability occurs)
       iw=1
@@ -1186,7 +1186,7 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2
          if (calcx) {
             sw2=as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x2)$s)*invmw[[iw]]
             # make a time step for xw
-            xw2=as.double(solve(inviadt[[dtr]][[iw]],(xw1+dt[iti-1]*sw2)))
+            xw2=as.double(inviadt[[dtr]][[iw]]%*%(xw1+dt[iti-1]*sw2))
             
             # subdivide or not time step ?
             if (!subdiv && (any(xw2 < -1.e-3) || any(xw2 > 1.001))) {
@@ -1217,7 +1217,7 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2
                   # add lighter cumomers to jacobian source term
                   sj$jrhs=sj$jrhs-invmw[[iw]]*(sj$b_x%*%xff2[1:nbc_cumos[iw],])
                }
-               xff2[icw,]=as.matrix(solve(inviadt[[dtr]][[iw]], (dt[iti-1]*sj$jrhs+xff1[icw,])))
+               xff2[icw,]=as.matrix(inviadt[[dtr]][[iw]]%*%(dt[iti-1]*sj$jrhs+xff1[icw,]))
             }
             # prepare jacobian poolf
             if (nb_poolf > 0) {
@@ -1230,7 +1230,7 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_w, nb_cumos, invAfl, p2
                }
                spf=(dt[iti-1]*invmw[[iw]])*spf
                spf=xpf1[icw,]+spf
-               xpf2[icw,]=as.matrix(solve(inviadt[[dtr]][[iw]],spf))
+               xpf2[icw,]=as.matrix(inviadt[[dtr]][[iw]]%*%spf)
             }
          }
          iw=iw+1 # must be the last operator of while loop
@@ -2191,4 +2191,86 @@ get_hist=function(f, v) {
    # get skip and end number in the kvh
    d=kvh_get_matrix(f, c("history", v))
    return(d)
+}
+spr2emu=function(spr, ix2met, met2len, ix2iemu) {
+   # translate b_pre structure written for reduced cumo into
+   # b_pre_emu structure for EMU
+   # each term f_i*x_j*x_k in b_pre is converted into a Cauchy product terms
+   # f_i*Sum_p,q[(e_e(j)+Mp)*(e_e(k)+Mq)] where p+q=current emu weight (iwe)
+   # emu weight (iwe) runs from 1 (+M0) to iwc (+M(iwc-1)). 
+   # So for each cumoweight iwc there will be iwc b_pre_emu vectors
+   # Input:
+   # spr - cumomer sparse structures
+   # ix2met - vector of metabolite names indexed by 1+inp+cumomers
+   # met2len - vector of metabolite carbon length indexed by metabolite names
+   # ix2iemu - vector of emu+m0 indexes in 1+inpemu+emu vector indexed
+   # by 1+inp+cumo indexes
+   
+   # Retruns spr structure for emu
+   # 2012-07-06 sokol
+   nw=length(spr)
+   spemu=list()
+   if (nw < 1) {
+      return(spemu)
+   }
+   spemu[[1]]=list(
+      b_pre_emu=spr[[1]]$b_pre,
+      ind_fbe=spr[[1]]$ind_fb,
+      ind_xe1=ix2iemu[spr[[1]]$ind_x1],
+      ind_xe2=ix2iemu[spr[[1]]$ind_x2],
+   )
+   
+   if (nw == 1) {
+      # cumo weights are allways start from 1 to weigth max
+      # if there is only weight max, the lower weights must be present
+      # but corresponding matrices and vectors are of dim=0
+      
+      # for iwc==1 emu+M1 are identical to cumomers
+      # but the system A*x=b for emu+M0 does not change as
+      # all fluxes in A and b sum to 0.
+      return(spemu)
+   }
+   for (iwc in 2:nw) {
+      # iwc is the resulting fragment length
+      sp=spr[[iwc]]
+      nb_cumo=ncol(sp$at)
+      spemu[[iwc]]=list()
+      spemu[[iwc]]$b_pre_emu=c() # we will cbind each mass weight
+      spemu[[iwc]]$ncol=c() # will be vector of ncol for b_pre_emu
+      # get fragment length for each ind_x
+      flen1=ix2flen[sp$ind_x1]
+      flen2=iwc-flen1
+      flenmin=pmin(flen1, flen2)
+      nb_ind=length(sp$ind_x1)
+      for (iwe in 1:iwc) {
+         # iwe runs from m+0 to m+(iwc-1) to form all masses but last for
+         # the current fragment length.
+         if (iwe==1) {
+            # For m+0 (iwe=1) vector b is the same in cumo and emu
+            b=sp$b_pre
+            ind_fbe=spr[[1]]$ind_fb
+            ind_xe1=ix2iemu[spr[[1]]$ind_x1]
+            ind_xe2=ix2iemu[spr[[1]]$ind_x2]
+         } else {
+            # b_pre_emu
+            b=Matrix(0., nrow=nrow(sp$b_pre), ncol=ncol(sp$b_pre)*iwe)
+            nb_ind=length(sp$ind_fb)
+            onesiwe=(1%rep%iwe)
+            # form cauchy product pairs to form the mass iwe-1
+            # we start with m+0 for x1 and m+(iwe-1) for x2
+            add1=outer(0:(iwe-1), 0%rep%nb_ind, "+")
+            add2=outer((iwe-1):0, 0%rep%nb_ind, "+")
+            # then remove non physical indexes
+            inph=add1>(onesiwe%o%flen1) | add2>(onesiwe%o%flen2)
+            ind_xe1=(onesiwe%o%ix2iemu[spr[[1]]$ind_x1]+add1*nb_cumo)[inph]
+            ind_xe2=(onesiwe%o%ix2iemu[spr[[1]]$ind_x2]+add2*nb_cumo)[inph]
+            ind_fbe=(onesiwe%o%sp$ind_fb)[inph]
+            
+            # calculate slot @p in b_pre_emu
+         }
+         # assemble spemu
+         spemu[[iwc]]$b_pre_emu=cBind(spemu[[iwc]]$b_pre_emu, b)
+         spemu[[iwc]]$ncol=c(spemu[[iwc]]$ncol, ncol(b))
+      }
+   }
 }
