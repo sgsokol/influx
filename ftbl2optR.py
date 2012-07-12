@@ -185,6 +185,8 @@ if __name__ == "__main__":
     # reload(C13_ftbl);
 
     netan=C13_ftbl.ftbl_netan(ftbl);
+    # prepare rcumo system
+    rAb=C13_ftbl.rcumo_sys(netan)
 
     # write initialization part of R code
     ftbl2code.netan2Rinit(netan, org, f, fullsys);
