@@ -194,7 +194,8 @@ if __name__ == "__main__":
     # reload(C13_ftbl)
 
     netan=C13_ftbl.ftbl_netan(ftbl)
-
+    # prepare rcumo system
+    rAb=C13_ftbl.rcumo_sys(netan)
     # write initialization part of R code
     ftbl2code.netan2Rinit(netan, org, f, fullsys)
 
@@ -361,13 +362,6 @@ if (nchar(flabcin)) {
    
    # once again divide each interval in 2.
    #tifull=c(rbind(head(tifull, -1), head(tifull, -1)+diff(tifull)/2), tail(tifull, 1))
-
-   #tifull=head(rep(ti, each=ndiv), -(ndiv-1))
-   #for (idiv in 1:(ndiv-1)) {
-   #   i=idiv+1+(0:(nb_ti-2))*ndiv
-   #   th=idiv/ndiv
-   #   tifull[i]=(1.-th)*head(ti, -1)+th*tail(ti, -1)
-   #}
 } else {
    measvecti=NULL
    ti=seq(tstart, tmax, by=dt)
@@ -596,23 +590,25 @@ if (optimize) {
          stop(vr$mes)
       }
    }
-   qrj=qr(jx_f$dr_dff)
-   d=diag(qrj$qr)
-   qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
-   if (qrj$rank) {
-      nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
-   } else {
-      nm_uns=nm_ff
-   }
-   if (qrj$rank < nb_ff && !(least_norm || method!="nlsic")) {
-      # Too bad. The jacobian of free fluxes is not of full rank.
-      dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx)
-      write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t")
-      stop(paste("Provided measurements (isotopomers and fluxes) are not
-sufficient to resolve all free fluxes.
-Unsolvable fluxes may be:
-", paste(nm_uns, sep=", ", collapse=", "),
-         "\nJacobian dr_dff is dumped in dbg_dr_dff_singular.txt", sep=""))
+   if (nb_ff > 0) {
+      qrj=qr(jx_f$jacobian[1:nb_ff,,drop=F])
+      d=diag(qrj$qr)
+      qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
+      if (qrj$rank) {
+         nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
+      } else {
+         nm_uns=nm_ff
+      }
+      if (qrj$rank < nb_ff && !(least_norm || method!="nlsic")) {
+         # Too bad. The jacobian of free fluxes is not of full rank.
+         dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx)
+         write.matrix(formatC(jx_f$dr_dff, 15), file="dbg_dr_dff_singular.txt", sep="\t")
+         stop(paste("Provided measurements (isotopomers and fluxes) are not
+   sufficient to resolve all free fluxes.
+   Unsolvable fluxes may be:
+   ", paste(nm_uns, sep=", ", collapse=", "),
+            "\nJacobian dr_dff is dumped in dbg_dr_dff_singular.txt", sep=""))
+      }
    }
    if (TIMEIT) {
       cat("optim   : ", date(), "\\n", sep="")
@@ -750,6 +746,8 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    param=res$par
    names(param)=nm_par
    res$jacobian=NULL # sometimes it's too huge to be presented to humans
+   res$res=NULL # idem
+   res$prevres=NULL # idem
    obj2kvh(res, "optimization process informations", fkvh)
 }
 if (TIMEIT) {
@@ -768,22 +766,22 @@ if (!is.null(measvecti)) {
    } # else use the last calculated jacobian
    rcost=norm2(jx_f$res)
    obj2kvh(rcost, "final cost", fkvh)
-   obj2kvh(jx_f$ureslab, "simulated-measured labeling", fkvh)
-   obj2kvh(jx_f$reslab, "(simulated-measured)/sd_exp labeling", fkvh)
-   if (nb_fmn > 0) {
-      obj2kvh(jx_f$uresflu, "simulated-measured fluxes", fkvh)
-      obj2kvh(jx_f$resflu, "(simulated-measured)/sd_exp fluxes", fkvh)
-   }
    # gradient -> kvh
    gr=2*c(jx_f$res%tmm%jx_f$jacobian)
    names(gr)=nm_par
    obj2kvh(gr, "gradient vector", fkvh)
    #obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
+   obj2kvh(jx_f$ureslab, "simulated-measured labeling", fkvh)
+   obj2kvh(jx_f$reslab, "(simulated-measured)/sd_exp labeling", fkvh)
 } else {
    if (is.null(jx_f$usm)) {
       # simulate measures
       v=param2fl_usm_eul(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas, ipooled, tifull)
    }
+}
+if (nb_fmn > 0) {
+   obj2kvh(jx_f$uresflu, "simulated-measured fluxes", fkvh)
+   obj2kvh(jx_f$resflu, "(simulated-measured)/sd_exp fluxes", fkvh)
 }
 
 if (fullsys) {
