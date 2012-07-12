@@ -346,17 +346,21 @@ nb_c=%(nbc)d;
         ba_xw+=ncumo;
         ncucumo+=ncumo;
 
-def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
+def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1, emu=False):
     """
-    Transform cumomer linear sytems collection (from ftbl file)
+    Transform cumomer or emu linear sytems collection (from ftbl file)
     to a R code calculating sparse matrix A and vector b
-    in A*x+b=0 for a given weight iw (index in resulting list)
-    Flux vector fl of all fwd. and rev. fluxes is known from
+    in A*x+b=0 for a given weight of fragment iw (index in resulting list)
+    Flux vector fl of all fwd. and rev. fluxes is known from an
     R environement.
     
-    Resulting code is a list sprAb indexed by cumomer weight
+    Resulting code is a list sprAb indexed by cumomer (emu) weight
     (cf. generated R comments for details on sprAb)
-    cumomer vector incu=c(1, xi, xl), xi - input, xl - lighter cumomers.
+    cumomer vector incu=c(1, xi, xl), xi - input cumomers, xl - lighter cumomers.
+    emu vector inemu=c(1, xi, xl), xi - input emus, xl - lighter emus.
+    In a given weight w, emu vector is a juxtaposition of fragments:M+0
+    then fragments:M+1 and so on.
+    So in emu framework, for a given weght w,the size of b is w*nrow(A)
     
     incu2i_b1 gives i in incu from cumomer name. i=1 corresponds to the constant 1.
     Difference wrt netan2Abcumo_sp is that pure R code is used
@@ -435,10 +439,14 @@ nb_fwrv=%(n)d;
             elif cr not in b:
                 raise Exception("Empty row in cumomer matrix, weight=%d (base 1), cumo=%s"%(w, cr))
             # btuple is list of (iflux, icumo1, icumo2)
+            # or (iflux, iemu1, iemu2)
             if cr in b:
                 btuple=[(fwrv2i[fl], incu2i_b1[l[0]], (incu2i_b1[l[1]] if len(l)==2 else 1))
                     for (fl, d) in b[cr].iteritems()
                     for (i,l) in d.iteritems()];
+                if emu:
+                    # translate fragments index to emu indexes in a cauchy product
+                    pass;
                 nb_maxfb=max(nb_maxfb, len(btuple));
             else:
                 btuple=[];
@@ -851,8 +859,8 @@ nm_xi=c(%(nm_xi)s);
 nm_list$xi=nm_xi;
 nb_xi=length(xi);
 """%{
-    "xi": join(", ", netan["cumo_input"].values()),
-    "nm_xi": join(", ", netan["cumo_input"].keys(), '"', '"'),
+    "xi": join(", ", netan["rcumo_input"].values()),
+    "nm_xi": join(", ", netan["rcumo_input"].keys(), '"', '"'),
 #        "sofile": escape(os.path.basename(ff.name)[:-1]+
 #            ("dll" if platform.system() == "windows" else "so"), "\\"),
     "dirx": escape(dirx, "\\"),
@@ -1532,7 +1540,8 @@ ifmn=c(%(ifmn)s);
 
 def netan2R_rcumo(netan, org, f):
     # prepare reduced python systems
-    rAb=C13_ftbl.rcumo_sys(netan);
+    #rAb=C13_ftbl.rcumo_sys(netan);
+    rAb=netan["rcumo_sys"] if ("rcumo_sys" in netan) else C13_ftbl.rcumo_sys(netan)
     # full matrix is Ab=netan["cumo_sys"]
 
     # prune ordered cumomer list in reverse order
@@ -1554,7 +1563,7 @@ def netan2R_rcumo(netan, org, f):
     rcumos=list(valval(netan["vrcumo"]));
     rcumo2i=dict((c,i+1) for (i,c) in enumerate(rcumos));
     # composit cumomer vector incu=c(1,xi,xc)
-    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"].keys()+rcumos));
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["rcumo_input"].keys()+rcumos));
     # write code for reduced cumomer systems
     #netan2Abcumo_f(rAb["A"], rAb["b"],
     #    netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], incu2i_b1, "fwrv2rAbcumo");
@@ -1588,14 +1597,14 @@ nm_incu=c("one", nm_xi, nm_rcumo); # the constant 1 has name "one"
 
 def netan2R_cumo(netan, org, f):
     """netan2R_cumo(netan, org, f)->dict
-    generate fortran code for matrices
+    generate data structures for cumoemr matrices
     """
     # prepare cumo2i
     # translate cumoname like A:7 to its index in R vector of cumomers
     cumos=list(valval(netan["vcumo"]));
     cumo2i=dict((c,i+1) for (i,c) in enumerate(cumos));
     # composite cumomer vector
-    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"].keys()+cumos));
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["rcumo_input"].keys()+cumos));
 
     # write sparse matrix code for complete cumomer systems
     #netan2Abcumo_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
