@@ -75,6 +75,7 @@ Restrictions:
 # 2011-04-27 sokol: ftbl_neta(): added flux_inout
 # 2011-04-27 sokol: cumo_infl(),...: not reversible fluxes are replaced by flux_inout in cumomer balance
 # 2012-05-04 sokol: added pooled metabs (same carbon length) in measurements
+# 2012-06-25 sokol: added EMU fragment gathering ms_frag_gath()
 import numpy as np;
 import re;
 import copy;
@@ -295,6 +296,9 @@ def ftbl_netan(ftbl):
         "flux_measured":{},
         "iso_input":{},
         "cumo_input":{},
+        "rcumo_input":{},
+        "emu_input_all":{},
+        "emu_input":{},
         "flux_inequal":{"net":[], "xch":[]},
         "flux_equal":{"net":[], "xch":[]},
         "label_meas":{},
@@ -619,9 +623,16 @@ def ftbl_netan(ftbl):
     
     # translate input iso to input cumo
     for metab in netan["iso_input"]:
-       for icumo in xrange(1,1<<(netan["Clen"][metab])):
-           cumo=metab+":"+str(icumo);
-           netan["cumo_input"][cumo]=iso2cumo(netan["Clen"][metab], icumo, netan["iso_input"][metab]);
+        for icumo in xrange(1, 1<<(netan["Clen"][metab])):
+            cumo=metab+":"+str(icumo);
+            netan["cumo_input"][cumo]=iso2cumo(netan["Clen"][metab], icumo, netan["iso_input"][metab]);
+    # translate input iso to input emu
+    for metab in netan["iso_input"]:
+        #print (metab, netan["iso_input"][metab]);
+        for mask in xrange(1, 1<<(netan["Clen"][metab])):
+            for iemu in xrange(sumbit(mask)):
+                emu=metab+":"+str(mask)+"+"+str(iemu);
+                netan["emu_input_all"][emu]=sum(netan["iso_input"][metab].get(i, 0) for i in xrange(1<<netan["Clen"][metab]) if sumbit(i&mask)==iemu);
     
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
@@ -1868,15 +1879,13 @@ def transpose(A):
             tA[j]=tA.get(j,{});
             tA[j][i]=A[i][j];
     return(tA);
-def rcumo_sys(netan):
-    """Calculate reduced cumomers systems A*x=b
-    we start with observed cumomers of max weight
-    and we include only needed involved cumomers
-    A list of cumomer lists (by weight) is stored
-    in netant["vrcumo"]
+def rcumo_sys(netan, meas_cumos=set()):
+    """Calculate reduced cumomers or EMU systems A*x=b
+    we start with observed cumomers (emus) of max weight
+    and we include only needed involved cumomers (emus)
+    A list of cumomer (emu) lists (by weight) is stored
+    in netan["vrcumo"]
     """
-    # get cumomers involved in measurements
-    meas_cumos=set();
     # generate measurements dico if not yet done
     if "measures" not in netan:
         measures=dict();
@@ -1885,10 +1894,12 @@ def rcumo_sys(netan):
         netan["measures"]=measures;
     measures=netan["measures"];
     
-    for meas in measures:
-        for row in measures[meas]["mat"]:
-            metab=row["metab"];
-            meas_cumos.update(metab+":"+str(icumo) for icumo in row["coefs"].keys() if icumo != 0);
+    # get cumomers involved in measurements
+    if not meas_cumos :
+        for meas in measures:
+            for row in measures[meas]["mat"]:
+                metab=row["metab"];
+                meas_cumos.update(metab+":"+str(icumo) for icumo in row["coefs"].keys() if icumo != 0);
     # make list of observed weights
     weights=set(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos);
     if not weights:
@@ -1900,7 +1911,6 @@ def rcumo_sys(netan):
 
     # cumomers to visit are stored in lists by weights
     to_visit=dict((w,[]) for w in weights);
-    used_fluxes=set();
     A=[{} for i in xrange(maxw)]; # store matrices by weight
     b=[{} for i in xrange(maxw)]; # store rhs by weight
     used=set();
@@ -1940,6 +1950,10 @@ def rcumo_sys(netan):
                     # input metabolites are to rhs, others are to visit
                     if inmetab not in netan["input"] and inw != 0 and incumo not in to_visit[inw]:
                         to_visit[inw].append(incumo);
+                    if inmetab in netan["input"]:
+                        netan["rcumo_input"][incumo]=netan["cumo_input"][incumo]
+                        emus=[incumo+"+"+str(i) for i in xrange(inw)]
+                        netan["emu_input"].update((e,netan["emu_input_all"][e]) for e in emus)
                     # main part: write equations
                     if inw==w :
                         # equal weight => A
@@ -1983,7 +1997,15 @@ def rcumo_sys(netan):
             if cumol[i] not in A[iw]:
                 #print "prune", i, cumol[i];##
                 del(cumol[i]);
-    return {"A": A, "b": b};
+    netan["rcumo_sys"]={"A": A, "b": b}
+    # make order list for emu_input
+    netan["vemu_input"]=netan["emu_input"].keys()
+    # make order list for internal emus
+    netan["vemu"]=copy.deepcopy(netan["vrcumo"]);
+    for w in xrange(len(netan["vemu"])):
+        l=netan["vemu"][w]
+        netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w) for m in l]
+    return netan["rcumo_sys"];
 
 def cumo_infl(netan, cumo):
     """cumo_infl(netan, cumo)->list(tuple(in_cumo, fl, imetab, iin_metab))
@@ -2079,3 +2101,28 @@ def conv_mid(x,y):
     for i in xrange(ny):
         z[i:i+nx]+=x*y[i];
     return(z);
+
+def ms_frag_gath(netan):
+    """gather metabolite fragments necessary to obtain a given set of data
+    observed in MS measurements.
+    The fragment mask is encoded in the same way as cumomers, Met:7 <=> Met#(0)111
+    """
+    frags=set()
+    to_visit=set()
+    for m_id in netan["mass_meas"]:
+        for mask in netan["mass_meas"][m_id]:
+            # just the first weight item is sufficient
+            item=netan["mass_meas"][m_id][mask].values()[0]
+            to_visit.update(met+":"+str(mask) for met in item["pooled"])
+    while to_visit:
+        for frag in list(to_visit):
+            if frag in frags:
+                # already accounted
+                to_visit.remove(frag)
+                continue;
+            frags.add(frag)
+            to_visit.remove(frag)
+            # add its contributors for visiting
+            to_visit.update(incumo for (incumo,fl,imetab,iinmetab) in cumo_infl(netan, frag))
+            break
+    return(frags)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Transform .ftbl file to human readable matrix A and right hand part b
-in full (default) or reduced (option -r) system A*x=b.
+in full cumomer (default), reduced cumomer (option -r) or emu (option --emu) system A*x=b.
 
 usage: ./ftbl2cumoAb.py [-h|--help|-r[--DEBUG] network.ftbl > network_symeq.txt
 """
-# 2008-10-14 sokol
+# 2008-10-14 sokol: initial release
+# 2012-06-26 sokol: added --emu option
 
 import sys, os;
 import time;
@@ -26,13 +27,14 @@ def get_net(r, dfc):
     return res;
 # get arguments
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "DEBUG"]);
+    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "DEBUG", "emu"]);
 except getopt.GetoptError, err:
     print str(err);
     usage();
     sys.exit(1);
 DEBUG=False;
 reduced=False;
+emu=False;
 for o,a in opts:
     if o in ("-h", "--help"):
         usage();
@@ -41,6 +43,8 @@ for o,a in opts:
         DEBUG=True;
     elif o=="-r":
         reduced=True;
+    elif o=="--emu":
+        emu=True;
     else:
         assert False, "unhandled option";
 if not args:
@@ -143,7 +147,7 @@ for (ir,row) in enumerate(netan["Afl"]):
     });
 
 
-# cumomer balance equations
+# cumomer or emu balance equations
 #pdb.set_trace();
 measures={"label": {}, "mass": {}, "peak": {}};
 o_meas=measures.keys(); # ordered measure types
@@ -159,14 +163,18 @@ for meas in o_meas:
         join(", ", row["coefs"].iteritems()) for (i,row) in
         enumerate(measures[meas]["mat"])))+"\n");
 
-if reduced:
+if emu:
+    Ab=C13_ftbl.rcumo_sys(netan, C13_ftbl.ms_frag_gath(netan));
+    vcumo=netan["vrcumo"];
+    f.write("\n# EMU fragment system\n");
+elif reduced:
     Ab=C13_ftbl.rcumo_sys(netan);
     vcumo=netan["vrcumo"];
     f.write("\n# reduced to measurable cumomers system\n");
 else:
     Ab=netan["cumo_sys"];
     vcumo=netan["vcumo"];
-    f.write("\n# full (not reduced to measures) system\n");
+    f.write("\n# full (not reduced to measures) cumomer system\n");
 #aff("A3", Ab["A"][2]);##
 #aff("\nb3", Ab["b"][2]);##
 for (w,A) in enumerate(Ab["A"]):
@@ -197,3 +205,4 @@ for (w,A) in enumerate(Ab["A"]):
             }) for fl in Ab["b"][w][r_cumo]))+"\n");
 
 #f.close(); # no need to close stdout
+#f.write(str(netan["emu_input"])+"\n")

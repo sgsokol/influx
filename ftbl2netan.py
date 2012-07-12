@@ -43,4 +43,7 @@ if __name__ == "__main__":
             measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas);
         tools_ssg.dict2kvh({"measures": measures});
     tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan)});
+    tools_ssg.dict2kvh({"rcumo_input": netan["rcumo_input"]});
+    tools_ssg.dict2kvh({"vemu_input": netan["vemu_input"]});
+    tools_ssg.dict2kvh({"vemu": netan["vemu"]});
     sys.exit(0);
