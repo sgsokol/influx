@@ -163,13 +163,11 @@ for meas in o_meas:
         join(", ", row["coefs"].iteritems()) for (i,row) in
         enumerate(measures[meas]["mat"])))+"\n");
 
+Ab=C13_ftbl.rcumo_sys(netan, emu);
+vcumo=netan["vrcumo"];
 if emu:
-    Ab=C13_ftbl.rcumo_sys(netan, C13_ftbl.ms_frag_gath(netan));
-    vcumo=netan["vrcumo"];
     f.write("\n# EMU fragment system\n");
 elif reduced:
-    Ab=C13_ftbl.rcumo_sys(netan);
-    vcumo=netan["vrcumo"];
     f.write("\n# reduced to measurable cumomers system\n");
 else:
     Ab=netan["cumo_sys"];
