@@ -120,11 +120,11 @@ if __name__ == "__main__":
         pass
 
     def usage():
-        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--DEBUG] network_name[.ftbl]\n")
+        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--DEBUG] network_name[.ftbl]\n")
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "DEBUG"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "DEBUG"])
     except getopt.GetoptError, err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -133,6 +133,7 @@ if __name__ == "__main__":
 
     fullsys=False
     DEBUG=False
+    emu=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -141,6 +142,8 @@ if __name__ == "__main__":
             cost=True
         elif o=="--fullsys":
             fullsys=True
+        elif o=="--emu":
+            emu=True
         elif o=="--DEBUG":
             DEBUG=True
         else:
@@ -195,7 +198,10 @@ if __name__ == "__main__":
 
     netan=C13_ftbl.ftbl_netan(ftbl)
     # prepare rcumo system
-    rAb=C13_ftbl.rcumo_sys(netan)
+    if emu:
+        rAb=C13_ftbl.rcumo_sys(netan, C13_ftbl.ms_frag_gath(netan))
+    else:
+        rAb=C13_ftbl.rcumo_sys(netan)
     # write initialization part of R code
     ftbl2code.netan2Rinit(netan, org, f, fullsys)
 
@@ -399,7 +405,7 @@ if (nb_sc && !is.null(measvecti)) {
    # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
    # for corresponding measurements
    # cjac=F because param is not complete here, it lacks scaling params
-   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    if (!is.null(vr$err) && vr$err) {
       stop(vr$mes)
    }
@@ -471,8 +477,8 @@ obj2kvh(ui%*%param-ci, "inequality slacks (must be >=0)", fkvh, indent=1)
 
 # starting cost value
 if (!is.null(measvecti)) {
-   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
-   rcost=icumo_cost(param, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
+   vr=icumo_resid(param, cjac=F, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+   rcost=icumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 }
 
@@ -497,7 +503,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
       res=constrOptim(param, icumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-5, control,
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
-         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, ipooled, measvecti, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    } else if (method == "Nelder-Mead") {
@@ -506,7 +512,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
       res=constrOptim(param, icumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
-         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, ipooled, measvecti, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    } else if (method == "SANN") {
@@ -515,7 +521,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
       res=constrOptim(param, icumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="SANN", outer.iterations=100, outer.eps=1e-07,
-         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, ipooled, measvecti, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
    } else if (method == "nlsic") {
@@ -524,7 +530,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
       control[names(control_ftbl)]=control_ftbl
       res=nlsic(param, icumo_resid, 
          ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
-         nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
          irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
          spAbr, poolall, ti, tifull)
       if (res$err || is.null(res$par)) {
@@ -540,13 +546,13 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
       control=list(max_iter=500, print_level=ctrace*5)
       control[names(control_ftbl)]=control_ftbl
       tui=c(t(ui))
-      eval_g=function(x, nb_f=nb_f, nm=nm_list, nb_w=nb_rw, nb_cumos=nb_rcumos,
+      eval_g=function(x, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
          imeas=irmeas, measmat=measmat, ipooled=ipooled, measvec=measvecti, measinvvar=measinvvar,
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti, tifull=tifull) {
          return(ui%*%x)
       }
-      eval_jac_g=function(x, nb_f=nb_f, nm=nm_list, nb_w=nb_rw, nb_cumos=nb_rcumos,
+      eval_jac_g=function(x, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
          imeas=irmeas, measmat=measmat, ipooled=ipooled, measvec=measvecti, measinvvar=measinvvar,
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti, tifull=tifull) {
@@ -564,7 +570,7 @@ opt_wrapper=function(measvecti, fmn, ctrace=1) {
          eval_h_structure=NULL,
          opts=control,
          ipoptr_environment=new.env(),
-         nb_f=nb_f, nm=nm_list, nb_w=nb_rw, nb_cumos=nb_rcumos,
+         nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
          imeas=irmeas, measmat=measmat, ipooled=ipooled, measvec=measvecti, measinvvar=measinvvar,
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spAbr, pool=poolall, ti=ti, tifull=tifull)
@@ -585,7 +591,7 @@ if (optimize) {
 #browser()
    if (is.null(jx_f$uujac)) {
       # calculate jacobian here
-      vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+      vr=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
       if (!is.null(vr$err) && vr$err) {
          stop(vr$mes)
       }
@@ -762,7 +768,7 @@ if (any(ine)) {
 #browser()
 if (!is.null(measvecti)) {
    if (is.null(jx_f$jacobian)) {
-      rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+      rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    } # else use the last calculated jacobian
    rcost=norm2(jx_f$res)
    obj2kvh(rcost, "final cost", fkvh)
@@ -776,7 +782,7 @@ if (!is.null(measvecti)) {
 } else {
    if (is.null(jx_f$usm)) {
       # simulate measures
-      v=param2fl_usm_eul(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas, ipooled, tifull)
+      v=param2fl_usm_eul(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, spAbr, poolall, ti, measmat, irmeas, ipooled, tifull)
    }
 }
 if (nb_fmn > 0) {
@@ -787,7 +793,7 @@ if (nb_fmn > 0) {
 if (fullsys) {
    nm_flist=nm_list
    nm_flist$rcumo=nm_cumo
-   v=param2fl_usm_eul(param, cjac=T, nb_f, nm_flist, nb_w, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAbr_f, poolall, ti, measmat, imeas, ipooled, tifull)
+   v=param2fl_usm_eul(param, cjac=T, nb_f, nm_flist, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAbr_f, poolall, ti, measmat, imeas, ipooled, tifull)
 } # else use the last calculated usm
 
 # simulated measurements -> kvh
@@ -1009,7 +1015,7 @@ if (TIMEIT) {
 # Linear method based on jacobian x_f
 # reset fluxes and jacobians according to param
 if (is.null(jx_f$jacobian)) {
-   rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+   rres=icumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
 } # else use last calculated jacobian
 # use last calculated jacobian
 if (DEBUG) {
@@ -1017,9 +1023,9 @@ if (DEBUG) {
    # numerical simulation
    rj=function(v, ...) { r=icumo_resid(v, cjac=F, ...); c(r$res) }
    #dr_dpn=jacobian(rj, param, method="simple", method.args=list(),
-   #   nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
+   #   nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAbr, poolall, ti, tifull)
    # to compare with jx_f$dr_dp
-   gr=grad(icumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ipooled, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
+   gr=grad(icumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, ipooled, measvecti, ipooled, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAbr, poolall, ti, tifull)
 #browser()
 }
 
