@@ -21,7 +21,7 @@ direx="." if not direx else direx
 version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
-pyopt=set(("--fullsys", "--DEBUG"))
+pyopt=set(("--fullsys", "--emu", "--DEBUG"))
 
 # create a parser for command line options
 parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file",
@@ -36,6 +36,8 @@ parser.add_option("--meth", type="choice",
     help="method for optimization, one of nlsic|BFGS|Nelder-Mead. Default: nlsic")
 parser.add_option("--fullsys", action="store_true",
     help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)") 
+parser.add_option("--emu", action="store_true",
+    help="calculate labeling in EMU approach")
 parser.add_option("--irand", action="store_true",
     help="ignore initial approximation for free fluxes from FTBL file and use random values instead")
 parser.add_option("--sens",
@@ -108,10 +110,10 @@ print(s)
 
 try:
     # compile static fortran functions if the shared lib is inexistent or too old
-    fcumo=os.path.join(direx, "cumo.")
-    if not os.path.exists(fcumo+so) or os.path.getmtime(fcumo+"f") >= os.path.getmtime(fcumo+so):
-        p=subp.check_call("R CMD SHLIB --clean ".split()+["cumo.f"], cwd=direx, stdout=flog, stderr=ferr)
-        flog.flush()
+    #fcumo=os.path.join(direx, "cumo.")
+    #if not os.path.exists(fcumo+so) or os.path.getmtime(fcumo+"f") >= os.path.getmtime(fcumo+so):
+    #    p=subp.check_call("R CMD SHLIB --clean ".split()+["cumo.f"], cwd=direx, stdout=flog, stderr=ferr)
+    #    flog.flush()
 
     # generate the R code
     # extract just python options
