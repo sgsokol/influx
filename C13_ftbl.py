@@ -630,7 +630,7 @@ def ftbl_netan(ftbl):
     for metab in netan["iso_input"]:
         #print (metab, netan["iso_input"][metab]);
         for mask in xrange(1, 1<<(netan["Clen"][metab])):
-            for iemu in xrange(sumbit(mask)):
+            for iemu in xrange(sumbit(mask)+1):
                 emu=metab+":"+str(mask)+"+"+str(iemu);
                 netan["emu_input_all"][emu]=sum(netan["iso_input"][metab].get(i, 0) for i in xrange(1<<netan["Clen"][metab]) if sumbit(i&mask)==iemu);
     
@@ -700,7 +700,7 @@ def ftbl_netan(ftbl):
     # label measurements
     # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}
     metabs="";
-    for row in ftbl.get("LABEL_MEASUREMENTS",[]):
+    for row in ftbl.get("LABEL_MEASUREMENTS", []):
         #print row;##
         # test the cumomer pattern validity
         if (not re.match(r"#[01x]+(\+#[01x]+)*", row["CUM_CONSTRAINTS"])):
@@ -1553,13 +1553,14 @@ def label_meas2matrix_vec_dev(netan):
                     for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
+                emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
                 if len(row["pooled"]) > 1:
                     # init index list
                     pooled.append([row["id"]])
                 for metab in row["pooled"]:
                     imrow+=1;
                     mat.append({"id": row["id"], "scale": metabs+";"+group, "coefs":res,
-                        "bcumos": row["bcumos"], "metab": metab});
+                        "bcumos": row["bcumos"], "metab": metab, "emuco": emuco});
                     if len(row["pooled"]) > 1:
                         # indeed something is pooled
                         pooled[-1].append(imrow)
@@ -1613,6 +1614,7 @@ def mass_meas2matrix_vec_dev(netan):
                     for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
+                emuco={str(fmask)+"+"+str(weight): 1}
                 if len(row["pooled"]) > 1:
                     # init index list
                     pooled.append([row["id"]])
@@ -1622,7 +1624,7 @@ def mass_meas2matrix_vec_dev(netan):
                         # indeed something is pooled
                         pooled[-1].append(imrow)
                     mat.append({"id": row["id"], "scale": metabs+";"+fmask01+";"+m_irow, "coefs":res,
-                        "bcumos": bcumos, "metab": metab});
+                        "bcumos": bcumos, "metab": metab, "emuco": emuco});
     return {"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled};
 
 def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD": 7}):
@@ -1698,13 +1700,14 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                     for icumo in decomp["-"]:
                         res.setdefault(icumo,0);
                         res[icumo]-=1;
+                emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
                 if len(row["pooled"]) > 1:
                     # init index list
                     pooled.append([row["id"]])
                 for metab in row["pooled"]:
                     imrow+=1;
                     mat.append({"id": row["id"], "scale": metabs+";"+str(c_no)+";"+row["irow"], "coefs":res,
-                        "bcumos": bcumos, "metab": metab});
+                        "bcumos": bcumos, "metab": metab, "emuco": emuco});
                     if len(row["pooled"]) > 1:
                         # indeed something is pooled
                         pooled[-1].append(imrow)
@@ -1879,12 +1882,12 @@ def transpose(A):
             tA[j]=tA.get(j,{});
             tA[j][i]=A[i][j];
     return(tA);
-def rcumo_sys(netan, meas_cumos=set()):
+def rcumo_sys(netan, emu=False):
     """Calculate reduced cumomers or EMU systems A*x=b
     we start with observed cumomers (emus) of max weight
     and we include only needed involved cumomers (emus)
     A list of cumomer (emu) lists (by weight) is stored
-    in netan["vrcumo"]
+    in netan["vrcumo"] (netan["vemu"])
     """
     # generate measurements dico if not yet done
     if "measures" not in netan:
@@ -1895,7 +1898,13 @@ def rcumo_sys(netan, meas_cumos=set()):
     measures=netan["measures"];
     
     # get cumomers involved in measurements
-    if not meas_cumos :
+    meas_cumos=set()
+    if emu:
+        for meas in measures:
+            for row in measures[meas]["mat"]:
+                metab=row["metab"];
+                meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() );
+    else:
         for meas in measures:
             for row in measures[meas]["mat"]:
                 metab=row["metab"];
@@ -1918,6 +1927,8 @@ def rcumo_sys(netan, meas_cumos=set()):
     # initialize to_visit, we'll stop when it's empty
     for cumo in meas_cumos:
         (m,w)=cumo.split(":");
+        if m in netan["input"]:
+            continue;
         w=sumbit(int(w));
         to_visit[w].append(cumo);
 
@@ -1952,7 +1963,7 @@ def rcumo_sys(netan, meas_cumos=set()):
                         to_visit[inw].append(incumo);
                     if inmetab in netan["input"]:
                         netan["rcumo_input"][incumo]=netan["cumo_input"][incumo]
-                        emus=[incumo+"+"+str(i) for i in xrange(inw)]
+                        emus=[incumo+"+"+str(i) for i in xrange(inw+1)]
                         netan["emu_input"].update((e,netan["emu_input_all"][e]) for e in emus)
                     # main part: write equations
                     if inw==w :
@@ -2004,7 +2015,7 @@ def rcumo_sys(netan, meas_cumos=set()):
     netan["vemu"]=copy.deepcopy(netan["vrcumo"]);
     for w in xrange(len(netan["vemu"])):
         l=netan["vemu"][w]
-        netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w) for m in l]
+        netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w+2) for m in l]
     return netan["rcumo_sys"];
 
 def cumo_infl(netan, cumo):
