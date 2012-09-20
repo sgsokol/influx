@@ -193,7 +193,7 @@ def netan2Abcumo_sp(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
 #  bfpr - unsigned sparse rhs of Ax=b.
 #   [(irow, iflux, incu_index1, incu_index2),...]
 #   to calculate terms like flux*x1*x2. When there is only one
-#   term x, x2 is set to 1
+#   term x, incu_index2 is set to 1
 #  ta_fx - unsigned sparse matrix t(dA_df*x)
 #   @i run through the fluxes contibuting to a row of dA_df*x
 #  x2ta_fx - 1-based indexes of x0=c(0,x) for dA_df*x which is
@@ -244,41 +244,42 @@ nb_fwrv=%(n)d;
             else:
                 btuple=[];
             # one list per row
-            l_ia.append(atuple);
-            l_ib.append(btuple);
+            l_ia.append(sorted(atuple));
+            l_ib.append(sorted(btuple));
         f.write(
 """
 w=%(w)d;
 nb_c=%(nbc)d;
-%(var)s[[w]]=list();
-%(var)s[[w]]$tA=as(Matrix(0, nrow=nb_c, ncol=nb_c, sparse=T), "dgCMatrix");
-%(var)s[[w]]$tA@i=as.integer(c(%(ia)s));
-%(var)s[[w]]$tA@p=as.integer(c(%(pa)s));
-%(var)s[[w]]$tA@x=rep(0., length(%(var)s[[w]]$tA@i)); # place holder
+l=list();
+l$tA=as(Matrix(0, nrow=nb_c, ncol=nb_c, sparse=T), "dgCMatrix");
+l$tA@i=as.integer(c(%(ia)s));
+l$tA@p=as.integer(c(%(pa)s));
+l$tA@x=rep(0., length(l$tA@i)); # place holder
 
-%(var)s[[w]]$f2ta=matrix(as.integer(c(%(f2ta)s)), nrow=2);
-%(var)s[[w]]$bfpr=matrix(as.integer(c(%(bfpr)s)), nrow=4);
+l$f2ta=matrix(as.integer(c(%(f2ta)s)), nrow=2);
+l$bfpr=matrix(as.integer(c(%(bfpr)s)), nrow=4);
 
-%(var)s[[w]]$ta_fx=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
-%(var)s[[w]]$ta_fx@i=as.integer(c(%(ia_fx)s));
-%(var)s[[w]]$ta_fx@p=as.integer(c(%(pa_fx)s));
-%(var)s[[w]]$ta_fx@x=rep(0., length(%(var)s[[w]]$ta_fx@i)); # place holder
+l$ta_fx=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
+l$ta_fx@i=as.integer(c(%(ia_fx)s));
+l$ta_fx@p=as.integer(c(%(pa_fx)s));
+l$ta_fx@x=rep(0., length(l$ta_fx@i)); # place holder
 
-%(var)s[[w]]$x2ta_fx=matrix(as.integer(c(%(x2ta_fx)s)), nrow=3);
+l$x2ta_fx=matrix(as.integer(c(%(x2ta_fx)s)), nrow=3);
 
-%(var)s[[w]]$tb_f=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
-%(var)s[[w]]$tb_f@i=as.integer(c(%(ibf)s));
-%(var)s[[w]]$tb_f@p=as.integer(c(%(pbf)s));
-%(var)s[[w]]$tb_f@x=rep(0., length(%(var)s[[w]]$tb_f@i)); # place holder
+l$tb_f=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
+l$tb_f@i=as.integer(c(%(ibf)s));
+l$tb_f@p=as.integer(c(%(pbf)s));
+l$tb_f@x=rep(0., length(l$tb_f@i)); # place holder
 
-%(var)s[[w]]$x2tb_f=matrix(as.integer(c(%(x2tb_f)s)), nrow=2);
+l$x2tb_f=matrix(as.integer(c(%(x2tb_f)s)), nrow=2);
 
-%(var)s[[w]]$tb_x=as(Matrix(0, nrow=%(ncucumo)d, ncol=nb_c, sparse=T), "dgCMatrix");
-%(var)s[[w]]$tb_x@i=as.integer(c(%(ib_x)s));
-%(var)s[[w]]$tb_x@p=as.integer(c(%(pb_x)s));
-%(var)s[[w]]$tb_x@x=rep(0., length(%(var)s[[w]]$tb_x@i)); # place holder
+l$tb_x=as(Matrix(0, nrow=%(ncucumo)d, ncol=nb_c, sparse=T), "dgCMatrix");
+l$tb_x@i=as.integer(c(%(ib_x)s));
+l$tb_x@p=as.integer(c(%(pb_x)s));
+l$tb_x@x=rep(0., length(l$tb_x@i)); # place holder
 
-%(var)s[[w]]$fx2tb_x=matrix(as.integer(c(%(fx2tb_x)s)), nrow=3);
+l$fx2tb_x=matrix(as.integer(c(%(fx2tb_x)s)), nrow=3);
+%(var)s[[w]]=l
 """%{
    "var": varname,
    "w": w,
@@ -286,12 +287,12 @@ nb_c=%(nbc)d;
    "ncucumo": ncucumo,
    "ia": join(", ", [ix
        for lt in l_ia
-       for (ix, lf) in sorted(lt)
+       for (ix, lf) in lt
        ]),
    "pa": join(", ", cumsum(len(lt) for lt in l_ia)),
    "f2ta": join(", ", valval((len(lf), ifl)
        for lt in l_ia
-       for (ix, lf) in sorted(lt)
+       for (ix, lf) in lt
        for ifl in lf)),
    "bfpr": join(", ", valval((ir+1, ifl, i1, i2)
        for (ir, lt) in enumerate(l_ib)
@@ -315,12 +316,12 @@ nb_c=%(nbc)d;
    )),
    "ibf": join(", ", (ifl-1
        for lt in l_ib
-       for ifl in sorted(ifl for (ifl, i1, i2) in lt)
+       for (ifl, i1, i2) in lt
    )),
    "pbf": join(", ", cumsum(len(lt) for lt in l_ib)),
    "x2tb_f": join(", ", valval((ix1, ix2)
        for lt in l_ib
-       for (ifl, ix1, ix2) in sorted(lt)
+       for (ifl, ix1, ix2) in lt
    )),
    "ib_x": join(", ", (icu-ba_x-1
        for lt in l_ib
@@ -390,7 +391,7 @@ def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
 #   @i run through the fluxes contibuting to a row of dA_df*x
 #  x2ta_fx - 1-based indexes of x0=c(0,x) for dA_df*x which is
 #   comosed of differences (x_diag - x_off-diag) and (x_diag)
-#   when flux is in b term. In this case index of x_off-diag is
+#   when flux is in b term. In this case the index of x_off-diag is
 #   set to 1 (i.e. 0-value in x0).
 #   [irow, ixoff] irow is actually ixdiag
 #  tb_f - unsigned sparse matrix t(db_df) with indexes ix1, ix2 for product as in bfpr
@@ -423,103 +424,120 @@ nb_fwrv=%(n)d;
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
         nb_maxfa=0; # how many fluxes in an off-diagonal term in a
-        nb_maxfb=0; # how many fluxes in a term in b
-        nb_ax=0;
+        #nb_maxfb=0; # how many fluxes in a term in b
+        #nb_ax=0;
         for irow in xrange(ncumo):
             cr=cumos[irow];
             row=A[cr];
             # atuple is list of (icumo, list(fluxes))
             atuple=[(c2i[c], [fwrv2i[fl] for fl in row[c]])
-                for c in cumos if c in row and c!=cr];
-            if atuple:
-                nb_maxfa=max(nb_maxfa, max(len(lf) for (ic, lf) in atuple));
-            elif cr not in b:
-                raise Exception("Empty row in cumomer matrix, weight=%d (base 1), cumo=%s"%(w, cr))
+                for c in row] #cumos if c in row and c!=cr];
+            #if atuple:
+            #    nb_maxfa=max(nb_maxfa, max(len(lf) for (ic, lf) in atuple));
+            #elif cr not in b:
+            #    raise Exception("Empty row in cumomer matrix, weight=%d (base 1), cumo=%s"%(w, cr))
             # btuple is list of (iflux, icumo1, icumo2)
             if cr in b:
                 btuple=[(fwrv2i[fl], incu2i_b1[l[0]], (incu2i_b1[l[1]] if len(l)==2 else 1))
                     for (fl, d) in b[cr].iteritems()
                     for (i,l) in d.iteritems()];
-                nb_maxfb=max(nb_maxfb, len(btuple));
+                #nb_maxfb=max(nb_maxfb, len(btuple));
             else:
                 btuple=[];
             # one list per row
-            l_ia.append(atuple);
-            nb_ax+=len(atuple)
-            l_ib.append(btuple);
+            l_ia.append(sorted(atuple));
+            #nb_ax+=len(atuple)
+            l_ib.append(sorted(btuple));
         f.write(
 """
 w=%(w)d;
 nb_c=%(nbc)d;
-%(var)s[[w]]=list();
-#%%(var)s[[w]]$tA=as(Matrix(0, nrow=nb_c, ncol=nb_c, sparse=T), "dgCMatrix");
-#%%(var)s[[w]]$tA@i=as.integer(c(%%(ia)s));
-#%%(var)s[[w]]$tA@p=as.integer(c(%%(pa)s));
+l=list();
+l$nb_c=nb_c;
+l$nb_fwrv=nb_fwrv;
+if (nb_c > 0) {
+   ind_a=matrix(as.integer(c(%(ind_a)s)), ncol=3, byrow=T);
+   ind_a=cbind(ind_a, ind_a[,2]+nb_c*ind_a[,3]+1)
+   colnames(ind_a)=c("indf", "ir0", "ic0", "iv1")
+   tmp=spind2pre(ind_a[,4])
+   # order it by iv1
+   ind_a=ind_a[tmp$o,]
+   l$ind_a=ind_a
+   
+   # prepare a_pre for colSums(a_pre) -> a@x
+   l$a_pre=tmp$pre
+   # prepare a
+   l$a=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c*nb_c)
 
-%(var)s[[w]]$ind_ia=c(%(ind_ia)s);
-nb_ax=%(nb_ax)d
-%(var)s[[w]]$a_pre=as(Matrix(0, nrow=%(nb_maxfa)d, ncol=nb_ax, sparse=T), "dgCMatrix");
-%(var)s[[w]]$a_pre@i=as.integer(c(%(ia_pre)s));
-%(var)s[[w]]$a_pre@p=as.integer(c(%(pa_pre)s));
-%(var)s[[w]]$ind_fa=c(%(ind_fa)s);
+   a_fx=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
+   a_fx@i=as.integer(c(%(ia_fx)s));
+   a_fx@p=as.integer(c(%(pa_fx)s));
+   l$ta_fx=a_fx
 
-%(var)s[[w]]$b_pre=as(Matrix(0, nrow=%(nb_maxfb)d, ncol=nb_c, sparse=T), "dgCMatrix");
-%(var)s[[w]]$b_pre@i=as.integer(c(%(ib_pre)s));
-%(var)s[[w]]$b_pre@p=as.integer(c(%(pb_pre)s));
-%(var)s[[w]]$ind_fb=c(%(ind_fb)s);
-%(var)s[[w]]$ind_x1=c(%(ind_x1)s);
-%(var)s[[w]]$ind_x2=c(%(ind_x2)s);
+   l$x2ta_fx=matrix(as.integer(c(%(x2ta_fx)s)), ncol=3, byrow=T);
+   # form a_fx_pre
+   a_fx_pre=Matrix(0, ncol=length(a_fx@i), nrow=max(l$x2ta_fx[,1])+1)
+   a_fx_pre@i=as.integer(l$x2ta_fx[,1])
+   inz=which(diff(c(a_fx_pre@i, 0))<=0)
+   a_fx_pre@p=as.integer(c(0, cumsum(a_fx_pre@i[inz]+1)))
+   l$a_fx_pre=a_fx_pre
 
-a_fx=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
-a_fx@i=as.integer(c(%(ia_fx)s));
-a_fx@p=as.integer(c(%(pa_fx)s));
-%(var)s[[w]]$ta_fx=a_fx
+   x2tb_f=matrix(as.integer(c(%(x2tb_f)s)), ncol=4, byrow=T);
+   colnames(x2tb_f)=c("indf", "indx1", "indx2", "irow")
+   tmp=spind2pre(x2tb_f[,4])
+   # order it by irow
+   x2tb_f=x2tb_f[tmp$o,]
+   l$x2tb_f=x2tb_f
+   
+   # prepare b_pre for colSums(b_pre) -> b
+   l$b_pre=tmp$pre
+   # prepare b
+   l$b=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c)
+   #l$b_pre=as(Matrix(0, nrow=%%(nb_maxfb)d, ncol=nb_c, sparse=T), "dgCMatrix");
+   #l$b_pre@i=as.integer(c(%%(ib_pre)s));
+   #l$b_pre@p=as.integer(c(%%(pb_pre)s));
 
-%(var)s[[w]]$x2ta_fx=matrix(as.integer(c(%(x2ta_fx)s)), ncol=3, byrow=T);
-# form a_fx_pre
-a_fx_pre=Matrix(0, ncol=length(a_fx@i), nrow=max(%(var)s[[w]]$x2ta_fx[,1])+1)
-a_fx_pre@i=as.integer(%(var)s[[w]]$x2ta_fx[,1])
-inz=which(diff(c(a_fx_pre@i, 0))<=0)
-a_fx_pre@p=as.integer(c(0, cumsum(a_fx_pre@i[inz]+1)))
-%(var)s[[w]]$a_fx_pre=a_fx_pre
+   l$tb_f=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
+   l$tb_f@i=as.integer(x2tb_f[,1]-1);
+   l$tb_f@p=as.integer(c(%(pbf)s));
 
-%(var)s[[w]]$tb_f=as(Matrix(0, nrow=nb_fwrv, ncol=nb_c, sparse=T), "dgCMatrix");
-%(var)s[[w]]$tb_f@i=as.integer(c(%(ibf)s));
-%(var)s[[w]]$tb_f@p=as.integer(c(%(pbf)s));
+   b_x=as(Matrix(0, nrow=%(ncucumo)d, ncol=nb_c, sparse=T), "dgCMatrix");
+   b_x@i=as.integer(c(%(ib_x)s));
+   b_x@p=as.integer(c(%(pb_x)s));
+   l$tb_x=b_x
 
-%(var)s[[w]]$x2tb_f=matrix(as.integer(c(%(x2tb_f)s)), ncol=2, byrow=T);
+   fx2tb_x=matrix(as.integer(c(%(fx2tb_x)s)), ncol=3, byrow=T);
+   l$fx2tb_x=fx2tb_x
 
-b_x=as(Matrix(0, nrow=%(ncucumo)d, ncol=nb_c, sparse=T), "dgCMatrix");
-b_x@i=as.integer(c(%(ib_x)s));
-b_x@p=as.integer(c(%(pb_x)s));
-%(var)s[[w]]$tb_x=b_x
-
-fx2tb_x=matrix(as.integer(c(%(fx2tb_x)s)), ncol=3, byrow=T);
-%(var)s[[w]]$fx2tb_x=fx2tb_x
-
-# form b_x_pre
-if (nrow(fx2tb_x)) {
-   b_x_pre=Matrix(0, ncol=length(b_x@i), nrow=max(fx2tb_x[,1])+1)
-   b_x_pre@i=as.integer(fx2tb_x[,1])
-   inz=which(diff(c(b_x_pre@i, 0))<=0)
-   b_x_pre@p=as.integer(c(0, cumsum(b_x_pre@i[inz]+1)))
-   %(var)s[[w]]$b_x_pre=b_x_pre
+   # form b_x_pre
+   if (nrow(fx2tb_x)) {
+      b_x_pre=Matrix(0, ncol=length(b_x@i), nrow=max(fx2tb_x[,1])+1)
+      b_x_pre@i=as.integer(fx2tb_x[,1])
+      inz=which(diff(c(b_x_pre@i, 0))<=0)
+      b_x_pre@p=as.integer(c(0, cumsum(b_x_pre@i[inz]+1)))
+      l$b_x_pre=b_x_pre
+   }
 }
+%(var)s[[w]]=l
 """%{
    "var": varname,
    "w": w,
    "nbc": ncumo,
    "ncucumo": ncucumo,
-   "nb_ax": nb_ax,
-   "ia": join(", ", [ix
-       for lt in l_ia
-       for (ix, lf) in lt # already sorted(lt) by construction
-       ]),
-   "pa": join(", ", cumsum(len(lt) for lt in l_ia)),
-   "f2ta": join(", ", valval((len(lf), ifl)
-       for lt in l_ia
-       for (ix, lf) in sorted(lt)
-       for ifl in lf)),
+   #"nb_ax": nb_ax,
+   #"ia": join(", ", [ix
+   #    for lt in l_ia
+   #    for (ix, lf) in lt # already sorted(lt) by construction
+   #    ]),
+   #"pa": join(", ", cumsum(len(lt) for lt in l_ia)),
+   #"f2ta": join(", ", valval((len(lf), ifl)
+   #    for lt in l_ia
+   #    for (ix, lf) in lt
+   #    for ifl in lf)),
+   "ind_a": join(", ", valval((ifl, ir, ic)
+      for (ir, lt) in enumerate(l_ia)
+      for (ic, lf) in lt
+      for ifl in lf)),
    "bfpr": join(", ", valval((ir+1, ifl, i1, i2)
        for (ir, lt) in enumerate(l_ib)
        for (ifl, i1, i2) in lt)),
@@ -540,14 +558,10 @@ if (nrow(fx2tb_x)) {
        [(ifl, 1) for ifl,i1,i2 in l_ib[ir]]), key=itemgetter(0))]
        for (ilg, (ifl, ix)) in enumerate(lg)
    )),
-   "ibf": join(", ", (ifl-1
-       for lt in l_ib
-       for ifl in sorted(ifl for (ifl, i1, i2) in lt)
-   )),
    "pbf": join(", ", cumsum(len(lt) for lt in l_ib)),
-   "x2tb_f": join(", ", valval((ix1, ix2)
-       for lt in l_ib
-       for (ifl, ix1, ix2) in sorted(lt)
+   "x2tb_f": join(", ", valval((ifl, i1, i2, ir+1)
+       for (ir, lt) in enumerate(l_ib)
+       for (ifl, i1, i2) in lt
    )),
    "ib_x": join(", ", (icu-ba_x-1
        for lt in l_ib
@@ -577,34 +591,22 @@ if (nrow(fx2tb_x)) {
        for row in l_ia
        for (ic, lf) in row
    )),
-   "ind_fa": join(", ", valval(lf
-       for row in l_ia
-       for (ic, lf) in row
-   )),
-   "ind_ia": join(", ", (ic+ir*ncumo
-       for (ir, row) in enumerate(l_ia)
-       for (ic, lf) in row
-   )),
-   "nb_maxfa": nb_maxfa,
-   "nb_maxfb": nb_maxfb,
-   "ib_pre": join(", ", valval(range(len(row))
-       for row in l_ib if len(row)
-   )),
-   "pb_pre": join(", ", cumsum(len(row)
-       for row in l_ib # if row
-   )),
-   "ind_fb": join(", ", (ifl
-       for row in l_ib
-       for (ifl, ic1, ic2) in row
-   )),
-   "ind_x1": join(", ", (ic1
-       for row in l_ib
-       for (ifl, ic1, ic2) in row
-   )),
-   "ind_x2": join(", ", (ic2
-       for row in l_ib
-       for (ifl, ic1, ic2) in row
-   )),
+   #"ind_fa": join(", ", valval(lf
+   #    for row in l_ia
+   #    for (ic, lf) in row
+   #)),
+   #"ind_ia": join(", ", (ic+ir*ncumo
+   #    for (ir, row) in enumerate(l_ia)
+   #    for (ic, lf) in row
+   #)),
+   #"nb_maxfa": nb_maxfa,
+   #"nb_maxfb": nb_maxfb,
+   #"ib_pre": join(", ", valval(range(len(row))
+   #    for row in l_ib if len(row)
+   #)),
+   #"pb_pre": join(", ", cumsum(len(row)
+   #    for row in l_ib # if row
+   #)),
    #"ib": join(", ", [i
    #    for (i, row) in enumerate(l_ib) if row
    #    ]),
@@ -741,7 +743,9 @@ option_list <- list(
    make_option("--version", default=F, action="store_true", dest="myver",
        help="show program's version number and exit"),
    make_option("--noopt", default=T, action="store_false", dest="optimize",
-       help="no optimization, just use free fluxes as is, to calculate dependent fluxes, cumomers, stats and so on"),
+       help="no optimization, just use free fluxes as is (after a possible
+projection on the feasibility domain delimited by inequalities),
+to calculate dependent fluxes, cumomers, stats and so on"),
    make_option("--noscale", default=F, action="store_true",
        help="no scaling factors to optimize => all scaling factors are 1"),
    make_option("--meth", default="nlsic", dest="method",
@@ -753,7 +757,7 @@ option_list <- list(
    make_option("--irand", default=F, action="store_true", dest="initrand",
        help="ignore initial approximation from FTBL file and use random values instead"),
    make_option("--sens", default="", metavar="mc=N", dest="sensitive",
-       help="sensitivity method: mc=N, mc stands for Monte-Carlo. N is the number of Monte-Carlo simulations. Default: 10"),
+       help="sensitivity method: mc=N, mc stands for Monte-Carlo. N is the number of Monte-Carlo simulations. '=N' is optional. Default N: 10"),
    make_option("--cupx", default=0.999, type="double",
        help="upper limit for reverse fluxes. Must be in interval [0, 1]"),
    make_option("--cupn", default=1.e3, type="double",
@@ -875,15 +879,18 @@ xi=c(%(xi)s);
 nm_xi=c(%(nm_xi)s);
 nm_list$xi=nm_xi;
 nb_xi=length(xi);
+nb_f$xi=nb_xi;
 nm_inp=nm_xi
 nm_incu=c("one", nm_xi, nm_rcumo)
 nm_inlab=nm_incu
 spa=spAbr
 nm_x=nm_rcumo
 nb_x=nb_rcumos
+nb_f$rcumos=nb_rcumos
 if (emu) {
    nm_emu=c(%(nm_emu)s);
    nb_emus=nb_rcumos*(1:nb_rw+1)
+   nb_f$emus=nb_emus
    nm_list$emu=nm_emu
    nm_x=nm_emu
    nb_x=nb_emus
@@ -891,11 +898,12 @@ if (emu) {
    nm_xiemu=c(%(nm_xiemu)s);
    nm_list$xiemu=nm_xiemu;
    nb_xiemu=length(xiemu);
+   nb_f$xiemu=nb_xiemu;
    nm_inp=nm_xiemu
    xi=xiemu
    nm_inemu=c("one", nm_xiemu, nm_emu)
    nm_inlab=nm_inemu
-   spa=spr2emu(spAbr, nm_incu, nm_inemu)
+   spa=spr2emu(spAbr, nm_incu, nm_inemu, nb_f)
 }
 # composite labeling vector incu c(1, xi, xc) names
 nm_inlab=c("one", nm_inp, nm_x); # the constant 1 has name "one"
