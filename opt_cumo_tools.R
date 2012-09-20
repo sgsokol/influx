@@ -1744,36 +1744,37 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    x2tb_f=spAbr$x2tb_f
    # construct off-diagonal terms of a
    a_pre=spAbr$a_pre
-   #b_pre=spAbr[["b_pre"]];
+   b_pre=spAbr[["b_pre"]];
    a_fx=spAbr[["ta_fx"]];
-   #a=spAbr$tA;
+   a=spAbr$a;
    #nb_c=if (is.null(b_pre)) 0 else ncol(b_pre) # cumomer or fragment number (when emu==T)
-   nb_c=if (is.null(a_fx)) 0 else ncol(a_fx) # cumomer or fragment number (when emu==T)
+   nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
    
    if (nb_c == 0) {
       a=Matrix(0., nb_c, nb_c)
       b=Matrix(0., nb_c, 1)
       return(list(A=a, b=b))
    }
-   a_pre@x=fwrv[spAbr$ind_fa]
-   #a@x=Matrix::colSums(a_pre)
-   a=new("dsparseVector", x=colSums(a_pre), i=1+spAbr$ind_ia, length=nb_c*nb_c)
+   a_pre@x=fwrv[spAbr$ind_a[,1]]
+   a@x=colSums(a_pre)
+   #a=new("dsparseVector", x=colSums(a_pre), i=1+spAbr$ind_ia, length=nb_c*nb_c)
    dim(a)=c(nb_c, nb_c)
-   a=as(a, "dgCMatrix")
+   diag(a)=-diag(a)
+   A=as(a, "dgCMatrix")
    
    # get just fluxes in b
    #b_pre@x=fwrv[x2tb_f[,1]]
-   b_pre=tapply(fwrv[x2tb_f[,1]], list(x2tb_f[,4]), sum)
+   #b_pre=tapply(fwrv[x2tb_f[,1]], list(x2tb_f[,4]), sum)
    
-   #b=spAbr$b
-   #b@x=Matrix::colSums(b_pre)
+   b=spAbr$b
+   #b@x=colSums(b_pre)
    #b=colSums(b_pre)
-   b=new("dsparseVector", x=as.double(b_pre), i=as.integer(names(b_pre)), length=nb_c)
+   #b=new("dsparseVector", x=as.double(b_pre), i=as.integer(names(b_pre)), length=nb_c)
    
    # sum off-diagonal terms
    # and add fluxes from b
-   diag(a)=as.numeric(-colSums(a))-as.numeric(b);
-   A=t(a)
+   #diag(a)=as.numeric(-colSums(a))-as.numeric(b);
+   #A=t(a)
    dimnames(A)=list(nm_rcumo[1:nb_c], nm_rcumo[1:nb_c]);
    
    # construct a complete b vector
@@ -1786,14 +1787,16 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
          }
          b=-vapply(b_pre, colSums, double(nb_c))
       } else {
-         #b_pre@x=b_pre@x*incu[x2tb_f[,2]]*incu[x2tb_f[,3]]
-         #b@x=-colSums(as.matrix(b_pre))
-         #b=-Matrix::colSums(b_pre)
-         b_pre=tapply(fwrv[x2tb_f[,1]]*incu[x2tb_f[,2]]*incu[x2tb_f[,3]], list(x2tb_f[,4]), sum)
-         b@x=as.double(-b_pre)
+         b_pre@x=fwrv[x2tb_f[,1]]*incu[x2tb_f[,2]]*incu[x2tb_f[,3]]
+         b@x=-colSums(b_pre)
+         #b=-colSums(b_pre)
+         #b_pre=tapply(fwrv[x2tb_f[,1]]*incu[x2tb_f[,2]]*incu[x2tb_f[,3]], list(x2tb_f[,4]), sum)
+         #b@x=as.double(-b_pre)
       }
-
-      b=as.matrix(as.double(b))
+      if (is.null(dim(b))) {
+         #b=as.matrix(as.double(b))
+         dim(b)=c(nb_c, 1)
+      }
       rownames(b)=nm_rcumo[1:nb_c];
       return(list(A=A, b=b));
    } else {
@@ -2423,4 +2426,33 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
       }
    }
    return(spemu)
+}
+spind2pre=function(ind) {
+   # sparse index ind is analyzed to return
+   # a sparse matrix pre such that colSums(pre)
+   # could give a sparse vector whose elements
+   # ind are fullfilled with the sum of values
+   # corresponding to repeated indexes.
+   # NB before colSums(pre), pre@x slot must be assigned.
+   
+   # Output list:
+   # o - order for sorting ind in increasing way
+   # pre - sparse matrix of dgCMatrix type (without @x slot)
+   # compi - compact indexes (without repetitions) to be used as
+   #  v[compi]=colSums(pre) for a dense or sparse vector v
+   #  or as v@i=compi-1; v@x=colSums(pre) for a sparse vector v.
+   
+   # 2012-09-19 sokol
+   
+   o=order(ind)
+   freq=tabulate(ind)
+   compi=which(freq!=0)
+   freq=freq[compi]
+   pre=new("dgCMatrix",
+      Dim=as.integer(c(max(freq), length(freq))),
+      i=as.integer(unlist(lapply(freq, seq))-1),
+      p=as.integer(c(0, cumsum(freq))),
+      x=double(length(ind)) # just a place holder
+   )
+   return(list(o=o, pre=pre, compi=compi))
 }
