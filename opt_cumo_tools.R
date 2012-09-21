@@ -1683,46 +1683,7 @@ cumo_jacob=function(param, nb_f, nm, nb_cumos,
    #dimnames(jx_f$udr_dp)=list(names(jx_f$res), nm_par);
    return(NULL);
 }
-fwrv2Ab=function(fwrv, spAb, incu, nm_rcumo) {
-   # calculate sparse A and its rhs b from fields of the list spAb
-   # according to conventions explained in comments to python function
-   # netan2Abcumo_sp() generating spAb
-   # return a list A, b
-   # 2010-10-17 sokol
-   a=spAb$tA;
-   a@x[]=0;
-   n=nrow(a);
-   res<-.Fortran("f2a",
-      fi=as.matrix(spAb$f2ta),
-      islot=a@i,
-      n=as.integer(ncol(spAb$f2ta)),
-      fwrv=as.double(fwrv),
-      x=a@x,
-      nx=as.integer(length(a@x)),
-      NAOK=TRUE,
-      DUP=FALSE
-   );
-   # sum off-diagonal terms
-   # and add fluxes from b
-   fb=rep(0., n);
-   b=rep(0., n);
-   res<-.Fortran("f2b",
-      bfpr=as.matrix(spAb$bfpr),
-      n=as.integer(ncol(spAb$bfpr)),
-      fwrv=as.double(fwrv),
-      incu=as.double(incu),
-      fb=as.double(fb),
-      b=as.double(b),
-      NAOK=TRUE,
-      DUP=FALSE
-   );
-   diag(a)=-apply(a, 2, sum)-fb;
-   A=-t(a)
-   dimnames(A)=list(nm_rcumo, nm_rcumo);
-   b=-b
-   names(b)=nm_rcumo;
-   return(list(A=A, b=b));
-}
+
 fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    # calculate sparse A and b (in A*x=b where x is cumomer vector)
    # from fields of the list spAbr
@@ -1741,11 +1702,8 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    # emu+mN have to be calculated from 1-sum(lighter weights m+i)
    # 2012-07-16 sokol
    
-   x2tb_f=spAbr$x2tb_f
    # construct off-diagonal terms of a
    a_pre=spAbr$a_pre
-   b_pre=spAbr[["b_pre"]];
-   a_fx=spAbr[["ta_fx"]];
    a=spAbr$a;
    #nb_c=if (is.null(b_pre)) 0 else ncol(b_pre) # cumomer or fragment number (when emu==T)
    nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
@@ -1766,7 +1724,7 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    #b_pre@x=fwrv[x2tb_f[,1]]
    #b_pre=tapply(fwrv[x2tb_f[,1]], list(x2tb_f[,4]), sum)
    
-   b=spAbr$b
+   #b=spAbr$b
    #b@x=colSums(b_pre)
    #b=colSums(b_pre)
    #b=new("dsparseVector", x=as.double(b_pre), i=as.integer(names(b_pre)), length=nb_c)
@@ -1787,14 +1745,13 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
          }
          b=-vapply(b_pre, colSums, double(nb_c))
       } else {
-         b_pre@x=fwrv[x2tb_f[,1]]*incu[x2tb_f[,2]]*incu[x2tb_f[,3]]
+         ind_b=spAbr[["ind_b"]]
+         b_pre=spAbr[["b_pre"]];
+         b=spAbr[["b"]];
+         b_pre@x=fwrv[ind_b[,1]]*incu[ind_b[,2]]*incu[ind_b[,3]]
          b@x=-colSums(b_pre)
-         #b=-colSums(b_pre)
-         #b_pre=tapply(fwrv[x2tb_f[,1]]*incu[x2tb_f[,2]]*incu[x2tb_f[,3]], list(x2tb_f[,4]), sum)
-         #b@x=as.double(-b_pre)
       }
       if (is.null(dim(b))) {
-         #b=as.matrix(as.double(b))
          dim(b)=c(nb_c, 1)
       }
       rownames(b)=nm_rcumo[1:nb_c];
@@ -1802,53 +1759,6 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    } else {
       return(list(A=A, b=NULL));
    }
-}
-fx2j=function(fwrv, spAb, incu) {
-   # calculate sparse j_rhs and b_x from fields of the list spAb
-   # according to conventions explained in comments
-   # to python function netan2Abcumo_sp() generating spAb
-   # Return a list j_rhs, b_x
-   # 2010-10-22 sokol
-   fwrv=as.double(fwrv);
-   incu=as.double(incu);
-   a_fx=spAb$ta_fx;
-   a_fx@x[]=0.;
-   res<-.Fortran("x2a_fx",
-      xi=as.matrix(spAb$x2ta_fx),
-      n=as.integer(ncol(spAb$x2ta_fx)),
-      islot=a_fx@i,
-      x0=c(0., incu),
-      x=a_fx@x,
-      nx=as.integer(length(a_fx@x)),
-      NAOK=TRUE,
-      DUP=FALSE
-   );
-   b_f=spAb$tb_f;
-   b_f@x[]=0.;
-   res<-.Fortran("x2b_f",
-      xi=as.matrix(spAb$x2tb_f),
-      n=as.integer(ncol(spAb$x2tb_f)),
-      islot=b_f@i,
-      incu=incu,
-      x=b_f@x,
-      nx=as.integer(length(b_f@x)),
-      NAOK=TRUE,
-      DUP=FALSE
-   );
-   b_x=spAb$tb_x;
-   b_x@x[]=0.;
-   res<-.Fortran("fx2b_x",
-      fxi=as.matrix(spAb$fx2tb_x),
-      n=as.integer(ncol(spAb$fx2tb_x)),
-      islot=b_x@i,
-      fwrv=fwrv,
-      incu=incu,
-      x=b_x@x,
-      nx=as.integer(length(b_x@x)),
-      NAOK=TRUE,
-      DUP=FALSE
-   );
-   return(list(j_rhsw=-t(b_f-a_fx), b_x=-t(b_x)));
 }
 
 fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
@@ -1867,13 +1777,15 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    # a_f*x + a*x_f=b_f + b_xl*xl_f
    emu=is.list(spAbr$ind_fbe)
    x0=c(0., incu)
-   a_fx=spAbr$ta_fx
+   a_fx=spAbr$afx
+   nb_c=spAbr$nb_c
+   nb_fwrv=spAbr$nb_fwrv
    if (is.null(a_fx)) {
       # no system at this weight
       return(list(j_rhsw=NULL, b_x=NULL, j_rhswp=NULL, b_xp=NULL))
    }
    # form a_fx_pre (to get a_f*x by colsum of a_fx_pre)
-   x2ta_fx=spAbr$x2ta_fx
+   afx_pre=spAbr$afx_pre
    if (emu) {
       res=Matrix(0., nrow=nrow(a_fx), ncol=0)
       # fragment length
@@ -1893,13 +1805,19 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       }
       a_fx=res
    } else {
-      spAbr$a_fx_pre@x=x0[x2ta_fx[,2]]-x0[x2ta_fx[,3]]
+      ind_afx=spAbr$ind_afx
+      tmp=tail(incu, nb_c)[ind_afx[,"ic0"]+1]
+      i=ind_afx[,"ic0"]==ind_afx[,"ir0"]
+      tmp[i]=-tmp[i]
+      afx_pre@x=tmp
+      
       # calculate @x slot of a_fx
-      a_fx@x=colSums(spAbr$a_fx_pre)
+      a_fx@x=colSums(afx_pre)
+      dim(a_fx)=c(nb_c, nb_fwrv)
    }
    
    # prepare b_f
-   b_f=spAbr$tb_f
+   b_f=spAbr$bf
    if (emu) {
       # NB: b is shorter than xw by M+N vector which is added to xw as (1-sum(lighter weights))
       b_f=Matrix(0., nrow=nrow(b_f), ncol=ncol(b_f)*iwc)
@@ -1918,8 +1836,15 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
          b_f[cbind(ifl,icb)[ival,,drop=F]]=xs[ival]
       }
    } else {
-      x2tb_f=spAbr$x2tb_f
-      b_f@x=incu[x2tb_f[,2]]*incu[x2tb_f[,3]]
+      #x2tb_f=spAbr$x2tb_f
+      #b_f@x=incu[x2tb_f[,2]]*incu[x2tb_f[,3]]
+      ind_bf=spAbr$ind_bf
+      bf_pre=spAbr$bf_pre
+      bf_pre@x=incu[ind_bf[,"indx1"]]*incu[ind_bf[,"indx2"]]
+      
+      # calculate @x slot of b_f
+      b_f@x=colSums(bf_pre)
+      dim(b_f)=c(nb_c, nb_fwrv)
    }
    
    # prepare b_x
@@ -1985,7 +1910,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       j_rhswp=NULL
       b_xp=NULL
    }
-   return(list(j_rhsw=-t(b_f+a_fx), b_x=-t(b_x), j_rhswp=j_rhswp, b_xp=b_xp))
+   return(list(j_rhsw=-b_f-a_fx, b_x=-t(b_x), j_rhswp=j_rhswp, b_xp=b_xp))
 }
 
 put_inside=function(param, ui, ci) {
