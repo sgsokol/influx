@@ -1780,6 +1780,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    a_fx=spAbr$afx
    nb_c=spAbr$nb_c
    nb_fwrv=spAbr$nb_fwrv
+   nb_cl=spAbr$nb_cl
    if (is.null(a_fx)) {
       # no system at this weight
       return(list(j_rhsw=NULL, b_x=NULL, j_rhswp=NULL, b_xp=NULL))
@@ -1848,8 +1849,10 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    }
    
    # prepare b_x
-   fx2tb_x=spAbr$fx2tb_x
-   if (all(dim(fx2tb_x) > 0)) {
+   ind_bx=spAbr$ind_bx
+   #fx2tb_x=spAbr$fx2tb_x
+   #if (all(dim(fx2tb_x) > 0)) {
+   if (all(dim(ind_bx) > 0)) {
       if (emu) {
          b_x=Matrix(0., nrow=sum(head(nb$emus, iwc-1)), ncol=iwc*nb$rcumos[iwc])
          ba_e=1+nb$xiemu
@@ -1870,17 +1873,23 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
             b_x[cbind(ix,icb)[ival,,drop=F]]=xs[ival]
          }
       } else {
-         b_x=spAbr$tb_x
+         #b_x=spAbr$tb_x
+         b_x=spAbr$bx
          # form b_x_pre
-         spAbr$b_x_pre@x=fwrv[fx2tb_x[,2]]*incu[fx2tb_x[,3]]
+         #spAbr$b_x_pre@x=fwrv[fx2tb_x[,2]]*incu[fx2tb_x[,3]]
+         spAbr$bx_pre@x=fwrv[ind_bx[,"indf"]]*incu[ind_bx[,"indx"]]
          # calculate @x slot of b_x
-         b_x@x=colSums(spAbr$b_x_pre)
+         #b_x@x=colSums(spAbr$b_x_pre)
+         b_x@x=colSums(spAbr$bx_pre)
+         dim(b_x)=c(nb_c, spAbr$nb_cl)
       }
    } else {
       if (emu) {
          b_x=Matrix(0., nrow=0, ncol=iwc*nb$rcumos[iwc])
       } else {
-         b_x=spAbr$tb_x
+         #b_x=spAbr$tb_x
+         b_x=spAbr$bx
+         dim(b_x)=c(nb_c, spAbr$nb_cl)
       }
    }
    if (!is.null(incup)) {
@@ -1910,7 +1919,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       j_rhswp=NULL
       b_xp=NULL
    }
-   return(list(j_rhsw=-b_f-a_fx, b_x=-t(b_x), j_rhswp=j_rhswp, b_xp=b_xp))
+   return(list(j_rhsw=-b_f-a_fx, b_x=-b_x, j_rhswp=j_rhswp, b_xp=b_xp))
 }
 
 put_inside=function(param, ui, ci) {
@@ -2374,7 +2383,7 @@ spind2pre=function(ind) {
    compi=which(freq!=0)
    freq=freq[compi]
    pre=new("dgCMatrix",
-      Dim=as.integer(c(max(freq), length(freq))),
+      Dim=as.integer(c(max(freq, 0), length(freq))),
       i=as.integer(unlist(lapply(freq, seq))-1),
       p=as.integer(c(0, cumsum(freq))),
       x=double(length(ind)) # just a place holder
