@@ -1819,15 +1819,6 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
          b_f[cbind(ifl,icb)[ival,,drop=F]]=xs[ival]
       }
    } else {
-      #x2tb_f=spAbr$x2tb_f
-      #b_f@x=incu[x2tb_f[,2]]*incu[x2tb_f[,3]]
-      #%ind_bf=spAbr$ind_bf
-      #%bf_pre=spAbr$bf_pre
-      #%bf_pre@x=incu[ind_bf[,"indx1"]]*incu[ind_bf[,"indx2"]]
-      
-      # calculate @x slot of b_f
-      #%b_f@x=colSums(bf_pre)
-      #%dim(b_f)=c(nb_c, nb_fwrv)
       ind_b=spAbr$ind_b
       b_f=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"indf"],
          x=-incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]],
@@ -1837,8 +1828,6 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    
    # prepare b_x
    ind_bx=spAbr$ind_bx
-   #fx2tb_x=spAbr$fx2tb_x
-   #if (all(dim(fx2tb_x) > 0)) {
    if (all(dim(ind_bx) > 0)) {
       if (emu) {
          b_x=Matrix(0., nrow=sum(head(nb$emus, iwc-1)), ncol=iwc*nb$rcumos[iwc])
@@ -1860,15 +1849,6 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
             b_x[cbind(ix,icb)[ival,,drop=F]]=xs[ival]
          }
       } else {
-         #b_x=spAbr$tb_x
-         #%b_x=spAbr$bx
-         # form b_x_pre
-         #spAbr$b_x_pre@x=fwrv[fx2tb_x[,2]]*incu[fx2tb_x[,3]]
-         #%spAbr$bx_pre@x=fwrv[ind_bx[,"indf"]]*incu[ind_bx[,"indx"]]
-         # calculate @x slot of b_x
-         #b_x@x=colSums(spAbr$b_x_pre)
-         #%b_x@x=colSums(spAbr$bx_pre)
-         #%dim(b_x)=c(nb_c, spAbr$nb_cl)
          b_x=sparseMatrix(
             i=ind_bx[,"irow"],
             j=ind_bx[,"ic1"],
