@@ -79,12 +79,15 @@ def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
 #  tb_x - unsigned sparse transpose of db_dx over x in lighter weights
 #   @i runs over lighter cumomers
 
+if (TIMEIT) {
+   cat("spAbr   : ", date(), "\\n", sep="");
+}
+
 nb_fwrv=%(n)d;
 %(var)s=list();
 """%{
     "var": varname,
     "n": len(fwrv2i),
-    #"lcu": join(", ", (len(l) for l in vcumol))
 });
     # base of cumomers in composed vector incu=c(1, input, xcumo)
     # +1 for c(1,...)
@@ -129,6 +132,9 @@ nb_fwrv=%(n)d;
             l_ib.append(btuple);
         f.write(
 """
+if (TIMEIT) {
+   cat("weight %(w)d: ", date(), "\\n", sep="");
+}
 w=%(w)d;
 nb_c=%(nbc)d;
 ba_x=%(ba_x)d; # base of cumomer indexes in incu vector
@@ -140,31 +146,9 @@ l$nb_cl=%(ncucumo)d # number of lighter cumomers
 if (nb_c > 0) {
    # matrix a
    ind_a=matrix(as.integer(c(%(ind_a)s)), ncol=3, byrow=T);
-   ind_a=cbind(ind_a, ind_a[,2]+nb_c*ind_a[,3]+1)
-   colnames(ind_a)=c("indf", "ir0", "ic0", "iv1")
-   tmp=spind2pre(ind_a[,4])
-   # order it by iv1
-   ind_a=ind_a[tmp$o,]
+   colnames(ind_a)=c("indf", "ir0", "ic0")
    l$ind_a=ind_a
    
-   # prepare a_pre for colSums(a_pre) -> a@x
-   l$a_pre=tmp$pre
-   # prepare a
-   l$a=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c*nb_c)
-
-   # jacobian a_fx
-   ind_afx=ind_a
-   ind_afx[,"iv1"]=ind_afx[,"ir0"]+nb_c*(ind_afx[,"indf"]-1)+1
-   tmp=spind2pre(ind_afx[,"iv1"])
-   # order it by iv1
-   ind_afx=ind_afx[tmp$o,]
-   l$ind_afx=ind_afx
-   
-   # prepare afx_pre for colSums(afx_pre) -> afx@x
-   l$afx_pre=tmp$pre
-   # prepare afx
-   l$afx=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c*nb_fwrv)
-
    # vector b
    ind_b=matrix(as.integer(c(%(ind_b)s)), ncol=4, byrow=T);
    colnames(ind_b)=c("indf", "indx1", "indx2", "irow")
@@ -173,29 +157,8 @@ if (nb_c > 0) {
    imi=pmin(ind_b[,"indx1"], ind_b[,"indx2"])
    ind_b[,"indx1"]=ima
    ind_b[,"indx2"]=imi
-   tmp=spind2pre(ind_b[,"irow"])
-   # order it by irow
-   ind_b=ind_b[tmp$o,]
    l$ind_b=ind_b
    
-   # prepare b_pre for colSums(b_pre) -> b
-   l$b_pre=tmp$pre
-   # prepare b
-   l$b=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c)
-
-   # jacobian b_f
-   ind_bf=cbind(ind_b, ind_b[,"irow"]+nb_c*(ind_b[,"indf"]-1))
-   colnames(ind_bf)=c("indf", "indx1", "indx2", "irow", "iv1")
-   tmp=spind2pre(ind_bf[,"iv1"])
-   # order it by iv1
-   ind_bf=ind_bf[tmp$o,]
-   l$ind_bf=ind_bf
-   
-   # prepare bf_pre for colSums(bf_pre) -> bf@x
-   l$bf_pre=tmp$pre
-   # prepare bf
-   l$bf=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c*nb_fwrv)
-
    # jacobian b_x
    i=ind_b[,"indx2"]!=1 # exclude from derivation plain input entries
    tmp=ind_b[i,]
@@ -211,34 +174,9 @@ if (nb_c > 0) {
    } else {
       ind_bx=tmp
    }
-   colnames(ind_bx)=c("indf", "iv1", "indx", "irow")
-   ind_bx[,"iv1"]=ind_bx[,"irow"]+nb_c*(ind_bx[,"iv1"]-ba_x-1)
-   tmp=spind2pre(ind_bx[,"iv1"])
-   # order it by iv1
-   ind_bx=ind_bx[tmp$o,]
+   colnames(ind_bx)=c("indf", "ic1", "indx", "irow")
+   ind_bx[,"ic1"]=ind_bx[,"ic1"]-ba_x
    l$ind_bx=ind_bx
-   
-   # prepare bx_pre for colSums(bx_pre) -> bx@x
-   l$bx_pre=tmp$pre
-   # prepare bx
-   l$bx=new("dsparseVector", x=double(length(tmp$compi)), i=tmp$compi, length=nb_c*l$nb_cl)
-
-   #b_x=as(Matrix(0, nrow=%%(ncucumo)d, ncol=nb_c, sparse=T), "dgCMatrix");
-   #b_x@i=as.integer(c(%%(ib_x)s));
-   #b_x@p=as.integer(c(%%(pb_x)s));
-   #l$tb_x=b_x
-
-   #fx2tb_x=matrix(as.integer(c(%%(fx2tb_x)s)), ncol=3, byrow=T);
-   #l$fx2tb_x=fx2tb_x
-
-   # form b_x_pre
-   #if (nrow(fx2tb_x)) {
-   #   b_x_pre=Matrix(0, ncol=length(b_x@i), nrow=max(fx2tb_x[,1])+1)
-   #   b_x_pre@i=as.integer(fx2tb_x[,1])
-   #   inz=which(diff(c(b_x_pre@i, 0))<=0)
-   #   b_x_pre@p=as.integer(c(0, cumsum(b_x_pre@i[inz]+1)))
-   #   l$b_x_pre=b_x_pre
-   #}
 }
 %(var)s[[w]]=l
 """%{
@@ -247,93 +185,14 @@ if (nb_c > 0) {
    "nbc": ncumo,
    "ncucumo": ncucumo,
    "ba_x": ba_x,
-   #"nb_ax": nb_ax,
-   #"ia": join(", ", [ix
-   #    for lt in l_ia
-   #    for (ix, lf) in lt # already sorted(lt) by construction
-   #    ]),
-   #"pa": join(", ", cumsum(len(lt) for lt in l_ia)),
-   #"f2ta": join(", ", valval((len(lf), ifl)
-   #    for lt in l_ia
-   #    for (ix, lf) in lt
-   #    for ifl in lf)),
    "ind_a": join(", ", valval((ifl, ir, ic)
       for (ir, lt) in enumerate(l_ia)
       for (ic, lf) in lt
       for ifl in lf)),
-   #"bfpr": join(", ", valval((ir+1, ifl, i1, i2)
-   #    for (ir, lt) in enumerate(l_ib)
-   #    for (ifl, i1, i2) in lt)),
-   #"ia_fx": join(", ", (ifl-1
-   #    for (ir, lt) in enumerate(l_ia)
-   #    for ifl in sorted(set([f for (ix, lf) in lt for f in lf]+
-   #    [f for (f,i1,i2) in l_ib[ir]]))
-   #)), # a flux is not unique in a given row of A, because of split reactions in two identical metabolites
-   #"pa_fx": join(", ", cumsum(
-   #    len(set([f for ix,lf in lt for f in lf]+
-   #    [f for f,i1,i2 in l_ib[ir]]))
-   #    for (ir, lt) in enumerate(l_ia)
-   #)),
-   #"x2ta_fx": join(", ", valval((ilg, ix, ir+ba_xw+2) # +2 comes from +1 for c(0,incu), +1 for 1-based
-   #    for (ir, lt) in enumerate(l_ia)
-   #   for lg in [list(g) for k, g in
-   #    groupby(sorted([(ifl, ix+ba_xw+2) for ix,lf in lt for ifl in lf]+
-   #    [(ifl, 1) for ifl,i1,i2 in l_ib[ir]]), key=itemgetter(0))]
-   #    for (ilg, (ifl, ix)) in enumerate(lg)
-   #)),
-   #"pbf": join(", ", cumsum(len(lt) for lt in l_ib)),
    "ind_b": join(", ", valval((ifl, i1, i2, ir+1)
        for (ir, lt) in enumerate(l_ib)
        for (ifl, i1, i2) in lt
    )),
-   #"ib_x": join(", ", (icu-ba_x-1
-   #    for lt in l_ib
-   #    for icu in sorted(set(icu
-   #    for (ifl, i1, i2) in lt
-   #    for icu in (i1, i2) if icu > ba_x))
-   #)),
-   #"pb_x": join(", ", cumsum(len(set(icu
-   #    for (ifl, i1, i2) in lt
-   #    for icu in (i1, i2) if icu > ba_x))
-   #    for lt in l_ib
-   #)),
-   #"fx2tb_x": join(", ", valval((ilg, ifl, icof)
-   #    for lt in l_ib
-   #    for lg in (list(g)
-   #    for k,g in groupby(sorted((icu, ifl, icof)
-   #    for (ifl, i1, i2) in lt
-   #    for (icu, icof) in ((i1,i2), (i2, i1))
-   #    if icu > ba_x), key=itemgetter(0)))
-   #    for (ilg, (icu, ifl, icof)) in enumerate(lg)
-   #)),
-   #"ia_pre": join(", ", valval(range(len(lf))
-   #    for row in l_ia
-   #    for (ic, lf) in row
-   #)),
-   #"pa_pre": join(", ", cumsum(len(lf)
-   #    for row in l_ia
-   #    for (ic, lf) in row
-   #)),
-   #"ind_fa": join(", ", valval(lf
-   #    for row in l_ia
-   #    for (ic, lf) in row
-   #)),
-   #"ind_ia": join(", ", (ic+ir*ncumo
-   #    for (ir, row) in enumerate(l_ia)
-   #    for (ic, lf) in row
-   #)),
-   #"nb_maxfa": nb_maxfa,
-   #"nb_maxfb": nb_maxfb,
-   #"ib_pre": join(", ", valval(range(len(row))
-   #    for row in l_ib if len(row)
-   #)),
-   #"pb_pre": join(", ", cumsum(len(row)
-   #    for row in l_ib # if row
-   #)),
-   #"ib": join(", ", [i
-   #    for (i, row) in enumerate(l_ib) if row
-   #    ]),
-   #"pb": join(", ", [0, len([i for i in l_ib if i])]),
 });
         ba_xw+=ncumo;
         ncucumo+=ncumo;
@@ -403,7 +262,6 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    ci - inequalities for param use (ui%*%param-ci>=0)
     #    measvec,
     #    measinvvar,
-    #    irmeas,
     #    fmn
     #    nb_sys - system sizes
     # Matrices:
@@ -413,7 +271,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    mf, md, mc - help to construct fallnx
     #    mi - inequality matrix (ftbl content)
     #    ui - inequality matrix (ready for param use)
-    #    measmat - measmat*(x[irmeas];1)=vec of simulated not-yet-pooled and not-yet-scaled measures
+    #    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measures
     # Functions:
     #    param2fl_x - translate param to flux and cumomer vector (initial approximation)
     #    cumo_cost - cost function (khi2)
@@ -966,6 +824,10 @@ bp=c2bfl%*%fc+cnst2bfl;
 """);
 
     f.write("""
+if (TIMEIT) {
+   cat("Afl qr(): ", date(), "\\n", sep="");
+}
+
 qrAfl=qr(Afl, LAPACK=T);
 d=diag(qrAfl$qr);
 qrAfl$rank=sum(abs(d)>=abs(d[1]*1.e-10))
@@ -1048,6 +910,10 @@ invAfl=solve(qrAfl);
     });
     f.write("""
 # intermediate jacobian
+if (TIMEIT) {
+   cat("dfl_dff : ", date(), "\\n", sep="");
+}
+
 dfl_dff=invAfl %*% p2bfl
 dimnames(dfl_dff)=list(nm_fl, nm_ff)
 
@@ -1215,30 +1081,26 @@ if (nb_sc > 0) {
     f.write("""
 # make measure matrix
 # matrix is "densified" such that
-# measmat*(xr[irmeas];1) gives a vector of simulated not-yet-pooled and not-yet-scaled measures
-# where irmeas is the R-index of involved in measures cumomers (emus)
+# measmat*xr+memaone gives a vector of simulated not-yet-pooled and not-yet-scaled measures
 # all but 0. Coefficients of 0-cumomers (by defenition equal to 1)
-# are all regrouped in the last matrix column.
+# are all regrouped in the memaone.
 nm_measmat=c(%(idmeasmat)s);
 nm_meas=c(%(idmeas)s);
 nm_list$meas=nm_meas
 nm_list$measmat=nm_measmat
 nb_meas=length(nm_meas);
 nb_measmat=length(nm_measmat);
-measmat=matrix(0., nb_measmat, %(ncol)d);
+measmat=Matrix(0., nb_measmat, %(ncol)d);
+memaone=numeric(nb_measmat)
 measvec=c(%(vmeas)s);
 measinvvar=c(%(invvar)s);
-irmeas=c(%(irmeas)s);
-nm_mcumo=c(%(mcumos)s);
-dimnames(measmat)=list(nm_measmat, c(nm_mcumo, "#x*"));
+dimnames(measmat)=list(nm_measmat, nm_rcumo);
 names(measvec)=nm_meas;
 names(measinvvar)=nm_meas;
 ipooled=list(ishort=pmatch(nm_meas, nm_measmat));
 """%{
     "nrow": len([measures[meas]["vec"] for meas in measures]),
-    "ncol": (nb_mcumo+1),
-    "irmeas": join(", ", trd(o_mcumos, netan["emu2i"] if emu else netan["rcumo2i"], a="")),
-    "mcumos": join(", ", o_mcumos, '"', '"'),
+    "ncol": sum(len(l) for l in netan["vrcumo"]),
     "idmeasmat": join(", ", (row["id"] for row in
         valval(measures[o]["mat"] for o in o_meas)),
         p='"', s='"'),
@@ -1265,19 +1127,43 @@ ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
     "basep": base_pooled,
 }
 )
+    # preepare measmat indexes and values : ir, ic, val
+    f.write("""
+# prepare measmat indexes and values : ir, ic, val
+ind_mema=matrix(c(
+""")
+    i=0;
+    for meas in o_meas:
+        if not measures[meas]["mat"]:
+            continue;
         for row in measures[meas]["mat"]:
             i+=1;
             metab=row["metab"];
-            f.write(
-"""measmat[%(i)d, c(%(cumos)s)]=c(%(coefs)s);
+#            f.write(
+#measmat[%(i)d, c(%(cumos)s)]=c(%(coefs)s);
+            f.write("""%(iricval)s,
 """%{
-    "i": i,
-    "cumos": join(", ", ((metab+":"+str(k))
-        for k in row["emuco"].keys()), p='"', s='"') if emu else join(", ", ((metab+":"+str(k) if k else "#x*")
-        for k in row["coefs"].keys()), p='"', s='"'),
-    "coefs": join(", ", row["emuco"].values()) if emu else join(", ", row["coefs"].values()),
+    "iricval": join(", ", valval((i, netan["rcumo2i0"][metab+":"+str(k)]+1, v)
+        for (k, v) in (row["emuco"].iteritems() if emu else row["coefs"].iteritems()) if k))
+    #"i": i,
+    #"cumos": join(", ", ((metab+":"+str(k))
+    #    for k in row["emuco"].keys()), p='"', s='"') if emu else join(", ", ((metab+":"+str(k) if k else "#x*")
+    #    for k in row["coefs"].keys()), p='"', s='"'),
+    #"coefs": join(", ", row["emuco"].values()) if emu else join(", ", row["coefs"].values()),
 });
 
+    f.write("""
+NULL), ncol=3, byrow=T); # close ind_mema creation
+measmat[ind_mema[,1:2]]=ind_mema[,3];
+
+memaone=c(%(memaone)s);
+names(memaone)=nm_measmat
+"""%{
+    "memaone": join(", ", (row["coefs"].get(0, 0.)
+        for meas in o_meas
+        for row in measures[meas]["mat"])) if not emu else
+        "rep(0., nb_measmat)"
+});
     f.write("""
 # prepare flux measures
 nb_fmn=%(nb_fmn)d;
@@ -1670,173 +1556,3 @@ if (!is.null(ired)) {
    nm_i=nm_i[-ired];
 }
 """);
-
-def netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, incu2i_b1, fortfun="fj_rhs"):
-    """
-    netan2j_rhs_f(Al, bl, vcumol, minput, f, fwrv2i, cumo2i, fortfun="fj_rhs")->None
-    minput - input metabolites
-    Write a Fortran subroutine calculating term by term j_rhs in the
-    the Jacobian dx_df (or x_f) derived from cumomer balances
-    for a given weight iw (input Fortran parameter)
-    Flux vector fl is known from Fortran parameter list
-    """
-    # 2009-07-24 sokol
-    
-    f.write("""
-C************************************************************************
-C Define subroutine for jacobian rhs calculation for a given weight iw
-C NB: This is an automatically generated code. Don't edit
-C Generated by
-C %(cmd)s
-C at %(date)s
-C Copyright 2009, INRA, France.
-C
-C************************************************************************
-
-
-      SUBROUTINE %(fortfun)s(fl, nf, x, xw, x_f, nx, nxw, iw, j_rhs, b_x)
-
-      IMPLICIT NONE
-C-------------------------------------------------------------------------
-C For a given weight iw, update term by term j_rhs matrix
-C for cumomer vector x and x_f of previous weights.
-C The term b_x*x_f is not included in j_rhs, only b_x
-C is calculated and returned. It is left to the care of the user
-C to integrate this term to j_rhs
-C
-C Input:
-C fl (double): array of forward-reverse fluxes 
-C nf (int): dimension of previous array
-C x (double): composite array of input and lighter cumomers
-C x_f (double): matrix (nx, nf) with weight lighter than current iw
-C nx (int): x  and x_f column dimension
-C nxw (int): cumomer number for current weight iw
-C iw (int): weight for which the matrix should be calculated
-C j_rhs (double): array(nxw x nf) initial value of right hand side
-C   matrix.
-C Output:
-C j_rhs (double): array(n x nf)
-C b_x (double): array(nxw x nx)
-      INTEGER            nf
-      INTEGER            nx
-      INTEGER            nxw
-      INTEGER            iw
-      DOUBLE PRECISION   fl(nf)
-      DOUBLE PRECISION   x(nx)
-      DOUBLE PRECISION   xw(nxw)
-      DOUBLE PRECISION   x_f(nx,nf)
-      DOUBLE PRECISION   j_rhs(nxw,nf)
-      DOUBLE PRECISION   b_x(nxw,nx)
-      
-C      write(0,*) "%(fortfun)s: start", nf, nx, nxw, iw,
-C fluxes: %(fl)s
-C composite x: %(x)s
-    """%{
-    "cmd": join(" ", sys.argv),
-    "date": time.ctime(),
-    "fortfun": fortfun,
-    "fl": str(sorted((i,f) for (f,i) in fwrv2i.iteritems())),
-    "x": str(sorted((i,c) for (c,i) in incu2i_b1.iteritems())),
-    });
-    for (iwl,A) in enumerate(Al):
-        b=bl[iwl];
-        w=iwl+1;
-        cumos=vcumol[iwl];
-        # current weight cumomer numbering for xw vector
-        wcumo2i=dict((c,i+1) for (i,c) in enumerate(cumos));
-        #print ("wcumo2i", wcumo2i);
-        ncumo=len(cumos);
-        #d=[c for c in netan['cumo_sys']['A'][w-1] if not c in cumos]
-        if ncumo != len(A):
-            raise Exception("Wrong cumomer number");
-        #metab_paths=netan['metab_paths']; # ordered by pathways
-        f.write("""
-      if (iw .EQ. %(iw)d) then
-C        dA_dv * cumos definition
-C        xw: %(cumos)s
-"""%    {
-        "iw": w,
-        "cumos": join(", ", ((i+1,c) for (i,c) in enumerate(cumos))),
-        });
-        # run through the matrix A
-        for irow in xrange(ncumo):
-            # for a given row and vi, A_vi*x is just a sum of x concerned by vi
-            # in this row.
-            # This sum is added to j_rhs[irow, vi]
-            visum={};
-            f.write("""
-C        ir=%d, cumo=%s\n"""%(irow+1, cumos[irow]));
-            xsum="";
-            for cumo in A[cumos[irow]].keys():
-                icol=wcumo2i[cumo]-1; # back to zero based
-                sign="+" if (irow != icol) else "-";
-                for fl in A[cumos[irow]][cumo]:
-                    visum[fl]=visum.get(fl, {"+": [], "-": []});
-                    visum[fl][sign].append(cumos[icol]);
-            # update irow in j_rhs with -a_v_x
-            for fl in visum:
-                for sign in visum[fl]:
-                    term=join('+', trd(visum[fl][sign], wcumo2i, 'xw(', ')', None));
-                    if not term:
-                        continue;
-                    code="         j_rhs(%(ir)d,%(ic)d)=j_rhs(%(ir)d,%(ic)d)%(sign)s(%(term)s)\n" % {
-                        "ir": irow+1,
-                        "ic": fwrv2i[fl],
-                        "sign": sign,
-                        "term": term,
-                        };
-                    f.write(fwrap(code));
-            # b_v: run through the b
-            if cumos[irow] not in b:
-                continue;
-            f.write("""
-C        b_v term""");
-            brow=b[cumos[irow]];
-            for (fl, dlst) in brow.iteritems():
-                f.write(fwrap("""
-         j_rhs(%(ir)d,%(ic)d)=j_rhs(%(ir)d,%(ic)d)+%(b_v)s
-""" %           {
-                    "ir": irow+1,
-                    "ic": fwrv2i[fl],
-                    "b_v": joint("+", [
-                        join("*", trd(lst, incu2i_b1, "x(", ")"))
-                        for (imetab,lst) in dlst.iteritems()
-        ])}));
-            if iwl > 0:
-                f.write("""
-C        b_x term""");
-            for (fl, dlst) in brow.iteritems():
-                ifl=fwrv2i[fl];
-                b_x="fl(%d)"%ifl;
-                csum=dict();
-                for (imetab,lst) in dlst.iteritems():
-                    if len(lst)==1:
-                        # input cumomer, skip
-                        continue;
-                    # derive the cumo products item*factor
-                    for (item,ifct) in ((0,1), (1,0)):
-                        if lst[item] in cumo2i:
-                            # the item is a variable cumomer (not input) so it's derivable
-                            factor=("x(%d)"%incu2i_b1[lst[ifct]]);
-                            ici=cumo2i[lst[item]]; # index of cumomer item
-                            if ici in csum:
-                                csum[ici].append(factor);
-                            else:
-                                csum[ici]=[factor];
-                if not csum:
-                    continue;
-                for (ix,factor) in csum.iteritems():
-                    f.write(fwrap("""
-         b_x(%(ir)d,%(ic)d)=b_x(%(ir)d,%(ic)d)+%(b_x)s*(%(factor)s)
-""" %   {
-        "ir": irow+1,
-        "ic": ix,
-        "b_x": b_x,
-        "factor": join("+", factor)}));
-        f.write("""
-      endif
-"""); # end of fortran if on iw
-    f.write("""
-      RETURN
-      END SUBROUTINE %(fortfun)s
-"""%{"fortfun": fortfun});
