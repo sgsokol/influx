@@ -124,11 +124,12 @@ try:
     flog.flush()
 
     # execute R code
+    rcmd="R --no-save --no-restore --slave --args".split()+lopts
+    flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >"+flog.name+" 2>"+ferr.name+"\n")
     s="calcul  : "+now_s()
     flog.write(s+"\n")
     flog.flush()
     print(s)
-    rcmd="R --no-save --no-restore --slave --args".split()+lopts
     p=subp.check_call(rcmd, stdin=open(f+".R"), stdout=flog, stderr=ferr)
     flog.flush()
 except:

@@ -78,7 +78,7 @@ ft=args[-1]
 if ft[-5:] != ".ftbl":
     ft=ft+".ftbl"
 if not os.path.exists(ft):
-    parser.error("FTBL file '%s' does not exist."%ft)
+    parser.error("FTBL file '%s' does not exist."%os.path.abspath(ft))
 f=ft[:-5]
 flog=open(f+".log", "w")
 ferr=open(f+".err", "w")
@@ -121,11 +121,12 @@ try:
     flog.flush()
 
     # execute R code
+    rcmd="R --no-save --no-restore --slave --args".split()+lopts
+    flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >"+flog.name+" 2>"+ferr.name+"\n")
     s="calcul  : "+now_s()
     flog.write(s+"\n")
     flog.flush()
     print(s)
-    rcmd="R --no-save --no-restore --slave --args".split()+lopts
     p=subp.check_call(rcmd, stdin=open(f+".R"), stdout=flog, stderr=ferr)
     flog.flush()
 except:
