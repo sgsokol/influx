@@ -70,7 +70,6 @@ Numeric vectors:
    ci - inequalities for param use (ui%*%param-ci>=0)
    measvec,
    measinvvar,
-   imeas,
    fmn
 Matrices:
    Afl, qrAfl, invAfl,
@@ -78,7 +77,7 @@ Matrices:
    mf, md - help to construct fallnx
    mi - inequality matrix (ftbl content)
    ui - inequality matrix (ready for param use)
-   measmat - measmat*(x[imeas];1)=vec of simulated not-yet-scaled measurements
+   measmat - measmat*x+memaone=vec of simulated not-yet-scaled measurements
 Functions:
    param2fl_x - translate param to flux and cumomer vector (initial approximation)
    cumo_cost - cost function (khi2)
@@ -319,7 +318,7 @@ vr=param2fl_x(param, cjac=FALSE, nb_f, nm_list, nb_x, invAfl, p2bfl, bp, fc, xi,
 if (!is.null(vr$err) && vr$err) {
    stop(vr$mes);
 }
-simvec=(measmat%*%c(vr$x[irmeas],1.));
+simvec=measmat%*%vr$x+memaone;
 if (DEBUG) {
    cat("initial simvec:\\n");
    print(simvec);
@@ -353,6 +352,10 @@ if (any(abs(ineq)<=1.e-10)) {
 """);
 
     f.write("""
+if (TIMEIT) {
+   cat("kvh init: ", date(), "\\n", sep="");
+}
+
 # formated output in kvh file
 fkvh=file("%(fullorg)s_res.kvh", "w");
 """%{
@@ -378,17 +381,21 @@ x=vr$x;
 names(x)=nm_x;
 obj2kvh(cumo2mass(x), "starting MID vector", fkvh, indent=1);
 # replace :i by #x1's
-nm_mask=unlist(lapply(strsplit(names(x), ":"), function(v) {
+nm_mask=t(sapply(strsplit(names(x), "[:+]"), function(v) {
    n=length(v);
-   metab=paste(v[-n], collapse=":");
-   mask=int2bit(v[n], len=clen[metab])
-   c(metab, mask);
+   metab=v[1];
+   mask=int2bit(v[2], len=clen[metab])
+   c(metab, mask, if (n==3) v[3] else NULL);
 }))
-nm_mask=t(matrix(nm_mask, nrow=2));
 o=order(nm_mask[,1], nm_mask[,2]);
 # replace 0 by x in mask
 nm_mask[,2]=gsub("0", "x", nm_mask[,2], fixed=T);
-nm_mask=paste(nm_mask[,1], nm_mask[,2], sep="#");
+tmp=paste(nm_mask[,1], nm_mask[,2], sep="#");
+if (emu) {
+   nm_mask=paste(tmp, nm_mask[,3], sep="+");
+} else {
+   nm_mask=tmp
+}
 names(nm_mask)=names(x);
 names(x)=nm_mask;
 obj2kvh(x[o], "starting cumomer vector", fkvh, indent=1);
@@ -403,11 +410,11 @@ n=length(f);
 names(f)=nm_fallnx;
 obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1);
 
-rres=cumo_resid(param, cjac=TRUE, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa, emu);
+rres=cumo_resid(param, cjac=TRUE, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa, emu);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1);
 
-rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
+rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
 obj2kvh(rcost, "starting cost value", fkvh, indent=1);
 
 obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1);
@@ -436,7 +443,7 @@ opt_wrapper=function(measvec, fmn, trace=1) {
          ui, ci, mu = 1e-5, control,
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
          nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
-         irmeas, measmat, measvec, measinvvar, ir2isc,
+         memaone, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spa, emu);
    } else if (method == "Nelder-Mead") {
       control=list(maxit=1000, trace=trace);
@@ -445,7 +452,7 @@ opt_wrapper=function(measvec, fmn, trace=1) {
          ui, ci, mu = 1e-4, control,
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
          nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
-         irmeas, measmat, measvec, measinvvar, ir2isc,
+         memaone, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spa, emu);
    } else if (method == "SANN") {
       control=list(maxit=1000, trace=trace);
@@ -454,7 +461,7 @@ opt_wrapper=function(measvec, fmn, trace=1) {
          ui, ci, mu = 1e-4, control,
          method="SANN", outer.iterations=100, outer.eps=1e-07,
          nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
-         irmeas, measmat, measvec, measinvvar, ir2isc,
+         memaone, measmat, measvec, measinvvar, ir2isc,
          fmn, invfmnvar, ifmn, spa, emu);
    } else if (method == "nlsic") {
       control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
@@ -463,7 +470,7 @@ opt_wrapper=function(measvec, fmn, trace=1) {
       res=nlsic(param, cumo_resid, 
          ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
          nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi,
-         irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
+         memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar,
          spa, emu);
       if (res$err || is.null(res$par)) {
          # store res in kvh
@@ -480,13 +487,13 @@ opt_wrapper=function(measvec, fmn, trace=1) {
       tui=c(t(ui))
       eval_g=function(x, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
-         imeas=irmeas, measmat=measmat, measvec=measvec, measinvvar=measinvvar,
+         memaone=memaone, measmat=measmat, measvec=measvec, measinvvar=measinvvar,
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spa) {
          return(ui%*%x)
       }
       eval_jac_g=function(x, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
-         imeas=irmeas, measmat=measmat, measvec=measvec, measinvvar=measinvvar,
+         memaone=memaone, measmat=measmat, measvec=measvec, measinvvar=measinvvar,
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spa) {
          return(tui)
       }
@@ -504,7 +511,7 @@ opt_wrapper=function(measvec, fmn, trace=1) {
          ipoptr_environment=new.env(),
          nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, bp=bp, fc=fc, xi=xi,
-         imeas=irmeas, measmat=measmat, measvec=measvec, measinvvar=measinvvar,
+         memaone=memaone, measmat=measmat, measvec=measvec, measinvvar=measinvvar,
          ir2isc=ir2isc, fmn=fmn, invfmnvar=invfmnvar, ifmn=ifmn, spAb=spa, emu=emu);
       res$par=res$solution
       names(res$par)=nm_par
@@ -521,7 +528,7 @@ opt_wrapper=function(measvec, fmn, trace=1) {
 if (optimize) {
    # check if at starting position all fluxes can be resolved
 #browser();
-   qrj=qr(jx_f$dr_dff);
+   qrj=qr(jx_f$dr_dff, LAPACK=T);
    d=diag(qrj$qr)
    qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
    if (qrj$rank) {
@@ -610,8 +617,8 @@ if (any(ine)) {
    obj2kvh(nm_i[ine], "active inequality constraints", fkvh);
 }
 #browser();
-rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
-rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa, emu);
+rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
+rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa, emu);
 obj2kvh(rcost, "final cost", fkvh);
 names(rres$res)=c(nm_meas, nm_fmn);
 obj2kvh(rres$res, "(simulated-measured)/sd_exp", fkvh);
@@ -847,8 +854,8 @@ if (TIMEIT) {
 }
 # Linear method based on jacobian x_f
 # reset fluxes and jacobians according to param
-rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa, emu);
-#grj=cumo_gradj(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
+rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa, emu);
+#grj=cumo_gradj(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
 if (DEBUG) {
    library(numDeriv); # for numerical jacobian
    # numerical simulation
@@ -857,12 +864,12 @@ if (DEBUG) {
       c(r$res);
    }
    #dr_dpn=jacobian(rj, param, method="Richardson", method.args=list(),
-   #   nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa);
-   dx_dfn=num_jacob(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, "fwrv2rAbcumo");
-   dr_dp=num_fjacob(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa);
+   #   nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa);
+   dx_dfn=num_jacob(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, "fwrv2rAbcumo");
+   dr_dp=num_fjacob(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spa);
    # to compare with jx_f$dr_dp
-   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
-   grn=cumo_grad(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, irmeas, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
+   gr=grad(cumo_cost, param, method="Richardson", method.args=list(), nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
+   grn=cumo_grad(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spa, emu);
 #browser();
 }
 
