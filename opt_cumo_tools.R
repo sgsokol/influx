@@ -1716,6 +1716,7 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    # 2012-07-16 sokol
    
    nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
+   w=spAbr$w # cumomer weight
    
    if (nb_c == 0) {
       a=Matrix(0., nb_c, nb_c)
@@ -1727,23 +1728,27 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    i=which(ind_a[,"ir0"]==ind_a[,"ic0"])
    x[i]=-x[i] # diagonal terms are negative
    A=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"ic0"]+1, x=x, dims=c(nb_c, nb_c))
-   dimnames(A)=list(nm_rcumo, nm_rcumo);
+   dimnames(A)=list(head(nm_rcumo, nb_c), head(nm_rcumo, nb_c));
    
    # construct a complete b vector
    if (getb) {
       if (emu) {
-         b_pre=spAbr$b_pre_emu;
-         iwc=length(b_pre)
-         for (iwe in 1:iwc) {
-            b_pre[[iwe]]@x=fwrv[spAbr$ind_fbe[[iwe]]]*incu[spAbr$ind_xe1[[iwe]]]*incu[spAbr$ind_xe2[[iwe]]]
-         }
-         b=-vapply(b_pre, colSums, double(nb_c))
+         #b_pre=spAbr$b_pre_emu;
+         #iwc=length(b_pre)
+         #for (iwe in 1:iwc) {
+         #   b_pre[[iwe]]@x=fwrv[spAbr$ind_fbe[[iwe]]]*incu[spAbr$ind_xe1[[iwe]]]*incu[spAbr$ind_xe2[[iwe]]]
+         #}
+         #b=-vapply(b_pre, colSums, double(nb_c))
+         ind_b=spAbr[["ind_b_emu"]]
+         x=-fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
+         b=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"iwe"], x=x, dims=c(nb_c, w))
+         dimnames(b)=list(head(nm_rcumo, nb_c), 1:w);
       } else {
          ind_b=spAbr[["ind_b"]]
          x=-fwrv[ind_b[,1]]*incu[ind_b[,2]]*incu[ind_b[,3]]
          b=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=x, dims=c(nb_c, 1))
+         dimnames(b)=list(head(nm_rcumo, nb_c), 1);
       }
-      rownames(b)=nm_rcumo;
       return(list(A=A, b=b));
    } else {
       return(list(A=A, b=NULL));
@@ -2199,16 +2204,17 @@ get_hist=function(f, v) {
    return(d)
 }
 spr2emu=function(spr, nm_incu, nm_inemu, nb) {
-   # translate b_pre structure written for reduced cumo into
-   # b_pre_emu structure for EMU
-   # each term f_i*x_j*x_k in b_pre is converted into a Cauchy product terms
+   # translate spAbr structure written for reduced cumo into
+   # spemu structure for EMU
+   # each term f_i*x_j*x_k in b is converted into a Cauchy product terms
    # f_i*Sum_p,q[(e_e(j)+Mp)*(e_e(k)+Mq)] where p+q=current emu weight (iwe)
    # emu weight (iwe) runs from 1 (+M0) to iwc (+M(iwc-1)). 
-   # So for each cumoweight iwc there will be iwc b_pre_emu vectors
+   # So for each cumoweight iwc there will be iwc columns in the final b vector
    # Input:
    # spr - cumomer sparse structures
    # nm_incu - vector of cumomer (i.e. fragment) names
    # of length 1+inp+cumo
+   # nm_inemu - names of emu components ("one"+input+emu)
    # nb is list of various numbers (cumomers, emus and so on)
    
    # Returns spr structure for emu
@@ -2218,52 +2224,48 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    if (nw < 1) {
       return(spemu)
    }
-   x2tb_f=spr[[1]]$x2tb_f
+   #x2tb_f=spr[[1]]$x2tb_f
+   ind_b=spr[[1]]$ind_b
+   ind_b_emu=cbind(ind_b, iwe=1)
    nme2iemu=1:length(nm_inemu)
    names(nme2iemu)=nm_inemu
-   ind_xe2=nme2iemu[nm_incu[x2tb_f[,3]]%s+%"+0"]
-   ind_xe2[x2tb_f[,3]==1]=1 # for "one" index
    
-   spemu[[1]]=append(spemu[[1]], list(
-      #b_pre_emu=list(spr[[1]]$b_pre),
-      iprod=list(ind_xe2!=1), # which term is a product of two lighter fragment
-      ind_fbe=list(x2tb_f[,1]),
-      ind_xe1=list(nme2iemu[nm_incu[x2tb_f[,2]]%s+%"+0"]),
-      ind_xe2=list(ind_xe2),
-      ind_ice=list(x2tb_f[,4])
-   ))
-   if (nw == 1) {
-      # cumo weights are allways start from 1 to weigth max
-      # if there is only weight max, the lower weights must be present
-      # but corresponding matrices and vectors are of dim=0
-      
-      # for iwc==1 emu+M1 are identical to cumomers
-      # but the system A*x=b for emu+M0 does not change as
-      # all fluxes in A and b sum to 0.
-      return(spemu)
-   }
-   for (iwc in 2:nw) {
+   # cumo weights are allways start from 1 to weigth max
+   # if there is only weight max, the lower weights must be present
+   # but corresponding matrices and vectors are of dim=0
+
+   # for iwc==1 emu+M1 are identical to cumomers
+   # and the system A*x=b for emu+M0 does not change as
+   # all fluxes in A and b sum to 0.
+   for (iwc in 1:nw) {
       # iwc is the resulting fragment length
       sp=spr[[iwc]]
-      x2tb_f=sp$x2tb_f
-      nb_cumo=nb$rcumos[iwc]
-      fx2tb_x=sp$fx2tb_x
-      b_x=Matrix(0., nrow=sum(head(nb$emus, iwc-1)), ncol=iwc*nb$rcumos[iwc])
+      ind_b=sp$ind_b
+      nb_ind=nrow(ind_b)
+      #x2tb_f=sp$x2tb_f
+      #nb_cumo=nb$rcumos[iwc]
+      nb_c=sp$nb_c
+      #fx2tb_x=sp$fx2tb_x
+      #b_x=Matrix(0., nrow=sum(head(nb$emus, iwc-1)), ncol=iwc*nb$rcumos[iwc])
       ba_e=1+nb$xiemu
 #cat("iwc=", iwc, ", nb_cumo=", nb_cumo, "\n")
       spemu[[iwc]]=sp
-      spemu[[iwc]]$b_pre_emu=list() # we will cbind each mass weight
-      spemu[[iwc]]$ind_fbe=list()
-      spemu[[iwc]]$ind_xe1=list()
-      spemu[[iwc]]$ind_xe2=list()
-      spemu[[iwc]]$ind_ice=list()
+      #spemu[[iwc]]$b_pre_emu=list() # we will cbind each mass weight
+      #spemu[[iwc]]$ind_fbe=list()
+      #spemu[[iwc]]$ind_xe1=list()
+      #spemu[[iwc]]$ind_xe2=list()
+      #spemu[[iwc]]$ind_ice=list()
       # prepare names
-      nm_c1=nm_incu[x2tb_f[,2]]
-      nm_c2=nm_incu[x2tb_f[,3]]
-      # get fragment length for each ind_x
-      flen1=sapply(strsplit(nm_c1, ":"), function(v) sumbit(as.numeric(v[2])))
+      #nm_c1=nm_incu[x2tb_f[,2]]
+      #nm_c2=nm_incu[x2tb_f[,3]]
+      nm_c1=nm_incu[ind_b[,"indx1"]]
+      nm_c2=nm_incu[ind_b[,"indx2"]]
+      # get fragment length for each ind_x which is product of two terms
+      inot1=ind_b[,"indx2"]!=1
+      flen1=iwc%rep%nb_ind
+      flen1[inot1]=vapply(strsplit(nm_c1[inot1], ":"), function(v) sumbit(as.numeric(v[2])), 1)
       flen2=iwc-flen1
-      nb_ind=nrow(x2tb_f)
+      #nb_ind=nrow(x2tb_f)
       onesind=(1%rep%nb_ind)
       
       for (iwe in 1:iwc) {
@@ -2271,16 +2273,21 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
          # the current fragment length.
          if (iwe==1) {
             # For m+0 (iwe=1) vector b is the same in cumo and emu
-            b_pre=sp$b_pre
-            ind_fbe=x2tb_f[,1]
-            ind_xe1=nme2iemu[nm_incu[x2tb_f[,2]]%s+%"+0"]
-            ind_xe2=nme2iemu[nm_incu[x2tb_f[,3]]%s+%"+0"]
-            ind_xe2[x2tb_f[,3]==1]=1
-            ind_ice=x2tb_f[,4]
+            #b_pre=sp$b_pre
+            #ind_fbe=x2tb_f[,1]
+            #ind_xe1=nme2iemu[nm_incu[x2tb_f[,2]]%s+%"+0"]
+            #ind_xe2=nme2iemu[nm_incu[x2tb_f[,3]]%s+%"+0"]
+            #ind_xe2[x2tb_f[,3]==1]=1
+            #ind_ice=x2tb_f[,4]
+            ind_b_emu=ind_b
+            ind_b_emu=cbind(ind_b_emu, iwe=1)
+            ind_b_emu[,"indx2"]=nme2iemu[nm_incu[ind_b[,"indx2"]]%s+%"+0"]
+            ind_b_emu[!inot1,"indx2"]=1
+            ind_b_emu[,"indx1"]=nme2iemu[nm_incu[ind_b[,"indx1"]]%s+%"+0"]
          } else {
             # b_pre_emu
-            b_pre=Matrix(0., nrow=nrow(sp$b_pre)*iwe, ncol=ncol(sp$b_pre))
-            nb_ind=nrow(x2tb_f)
+            #b_pre=Matrix(0., nrow=nrow(sp$b_pre)*iwe, ncol=ncol(sp$b_pre))
+            #nb_ind=nrow(x2tb_f)
             onesiwe=(1%rep%iwe)
             # form cauchy product pairs to form the mass iwe-1
             # we start with m+0 for x1 and m+(iwe-1) for x2
@@ -2291,20 +2298,24 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
             ind_xe1=nme2iemu[(outer(""%rep%iwe, nm_c1, paste, sep="")%s+%"+"%s+%add1)[!inph]]
             ind_xe2=nme2iemu[(outer(""%rep%iwe, nm_c2, paste, sep="")%s+%"+"%s+%add2)[!inph]]
             ind_xe2[is.na(ind_xe2)]=1 # ones stay ones
-            ind_fbe=(onesiwe%o%x2tb_f[,1])[!inph]
-            ind_ice=(onesiwe%o%x2tb_f[,4])[!inph]+(iwe-1)*nb_cumo
+            #ind_fbe=(onesiwe%o%x2tb_f[,1])[!inph]
+            ind_fbe=(onesiwe%o%ind_b[,"indf"])[!inph]
+            #ind_ice=(onesiwe%o%x2tb_f[,4])[!inph]+(iwe-1)*nb_cumo
+            ind_ice=(onesiwe%o%ind_b[,"irow"])[!inph]
+            ind_b_emu=rbind(ind_b_emu, cbind(ind_fbe, ind_xe1, ind_xe2, ind_ice, iwe))
             
             # calculate slot @p in b_pre_emu
             # b_pre_emu has the same col.number than b_pre
-            p=colSums(!inph)
-            bp=sp$b_pre
-            bp@x=p
-            p=as.integer(c(0, colSums(bp)))
-            b_pre@i=as.integer(unlist(sapply(p, function(n) if (n) 0:(n-1) else NULL)))
-            b_pre@p=as.integer(cumsum(p))
+            #p=colSums(!inph)
+            #bp=sp$b_pre
+            #bp@x=p
+            #p=as.integer(c(0, colSums(bp)))
+            #b_pre@i=as.integer(unlist(sapply(p, function(n) if (n) 0:(n-1) else NULL)))
+            #b_pre@p=as.integer(cumsum(p))
 
             # prepare b_x
-            if (all(dim(fx2tb_x) > 0)) {
+            #if (all(dim(fx2tb_x) > 0)) {
+            if (FALSE) {
                i1=ind_xe1
                i2=ind_xe2
                i=c(i1-ba_e, i2-ba_e)
@@ -2321,14 +2332,15 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
                b_x[cbind(ix,icb)[ival,,drop=F]]=xs[ival]
             }
          }
-         b_pre@x=numeric(length(ind_fbe)) # just place holder
+         #b_pre@x=numeric(length(ind_fbe)) # just place holder
          # assemble spemu
-         spemu[[iwc]]$b_pre_emu=append(spemu[[iwc]]$b_pre_emu, list(b_pre))
-         spemu[[iwc]]$ind_fbe=append(spemu[[iwc]]$ind_fbe, list(ind_fbe))
-         spemu[[iwc]]$ind_xe1=append(spemu[[iwc]]$ind_xe1, list(ind_xe1))
-         spemu[[iwc]]$ind_xe2=append(spemu[[iwc]]$ind_xe2, list(ind_xe2))
-         spemu[[iwc]]$ind_ice=append(spemu[[iwc]]$ind_ice, list(ind_ice))
+         #spemu[[iwc]]$b_pre_emu=append(spemu[[iwc]]$b_pre_emu, list(b_pre))
+         #spemu[[iwc]]$ind_fbe=append(spemu[[iwc]]$ind_fbe, list(ind_fbe))
+         #spemu[[iwc]]$ind_xe1=append(spemu[[iwc]]$ind_xe1, list(ind_xe1))
+         #spemu[[iwc]]$ind_xe2=append(spemu[[iwc]]$ind_xe2, list(ind_xe2))
+         #spemu[[iwc]]$ind_ice=append(spemu[[iwc]]$ind_ice, list(ind_ice))
       }
+      spemu[[iwc]]$ind_b_emu=ind_b_emu
    }
    return(spemu)
 }
