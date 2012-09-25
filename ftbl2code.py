@@ -432,7 +432,6 @@ opts=commandArgs()
 
 # get some cumomer tools
 source("%(dirx)s/opt_cumo_tools.R");
-#dyn.load("%(dirx)s/cumo.%%(so)s");
 if (TIMEIT) {
    cat("rinit   : ", date(), "\n", sep="");
 }
@@ -1094,13 +1093,13 @@ measmat=Matrix(0., nb_measmat, %(ncol)d);
 memaone=numeric(nb_measmat)
 measvec=c(%(vmeas)s);
 measinvvar=c(%(invvar)s);
-dimnames(measmat)=list(nm_measmat, nm_rcumo);
+rownames(measmat)=nm_measmat;
 names(measvec)=nm_meas;
 names(measinvvar)=nm_meas;
 ipooled=list(ishort=pmatch(nm_meas, nm_measmat));
 """%{
     "nrow": len([measures[meas]["vec"] for meas in measures]),
-    "ncol": sum(len(l) for l in netan["vrcumo"]),
+    "ncol": sum(len(l) for l in (netan["vemu"] if emu else netan["vrcumo"])),
     "idmeasmat": join(", ", (row["id"] for row in
         valval(measures[o]["mat"] for o in o_meas)),
         p='"', s='"'),
@@ -1133,17 +1132,16 @@ ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
 ind_mema=matrix(c(
 """)
     i=0;
+    lab2i0=netan["emu2i0" if emu else "rcumo2i0"]
     for meas in o_meas:
         if not measures[meas]["mat"]:
             continue;
         for row in measures[meas]["mat"]:
             i+=1;
             metab=row["metab"];
-#            f.write(
-#measmat[%(i)d, c(%(cumos)s)]=c(%(coefs)s);
             f.write("""%(iricval)s,
 """%{
-    "iricval": join(", ", valval((i, netan["rcumo2i0"][metab+":"+str(k)]+1, v)
+    "iricval": join(", ", valval((i, lab2i0[metab+":"+str(k)]+1, v)
         for (k, v) in (row["emuco"].iteritems() if emu else row["coefs"].iteritems()) if k))
     #"i": i,
     #"cumos": join(", ", ((metab+":"+str(k))
@@ -1271,11 +1269,6 @@ def netan2R_cumo(netan, org, f):
     # composite cumomer vector
     incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["rcumo_input"].keys()+cumos));
 
-    # write sparse matrix code for complete cumomer systems
-    #netan2Abcumo_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
-    #    netan["vcumo"], netan["input"], ff, netan["fwrv2i"], cumo2i, incu2i_b1, "fwrv2Abcumo");
-    #netan2j_rhs_f(netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
-    #    netan["vcumo"], netan["input"], ff, netan["fwrv2i"], cumo2i, incu2i_b1, "fj_rhs");
     netan2Abcumo_spr("spAbr_f", netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
         netan["vcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1);
     # write R constants and names
