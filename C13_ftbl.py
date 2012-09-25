@@ -2008,6 +2008,7 @@ def rcumo_sys(netan, emu=False):
             if cumol[i] not in A[iw]:
                 #print "prune", i, cumol[i];##
                 del(cumol[i]);
+    netan["rcumo2i0"]=dict((cumo,i) for (i, cumo) in enumerate(valval(netan["vrcumo"])))
     netan["rcumo_sys"]={"A": A, "b": b}
     # make order list for emu_input
     netan["vemu_input"]=netan["emu_input"].keys()
@@ -2016,6 +2017,7 @@ def rcumo_sys(netan, emu=False):
     for w in xrange(len(netan["vemu"])):
         l=netan["vemu"][w]
         netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w+2) for m in l]
+    netan["emu2i0"]=dict((emu,i) for (i, emu) in enumerate(valval(netan["vemu"])))
     return netan["rcumo_sys"];
 
 def cumo_infl(netan, cumo):
