@@ -110,7 +110,7 @@ dfc2fallnx=function(nb_f, flnx, param, fc) {
    return(f);
 }
 
-cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, emu) {
+cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb, emu, pool, ipooled) {
    if (length(measinvvar)) {
       sqm=sqrt(measinvvar);
    } else {
@@ -122,9 +122,9 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc,
       sqf=c();
    }
    # find x for all weights
-   if (!identical(param, jx_f$param) ||
+   if (max(abs((param-jx_f$param))) > 1.e-7 ||
          (cjac && is.null(jx_f$x_f))) {
-      lres=param2fl_x(param, cjac, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, emu);
+      lres=param2fl_x(param, cjac, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, emu, pool, measmat, memaone, ipooled);
       if (!is.null(lres$err) && lres$err) {
          return(list(err=1, mes=lres$mes));
       }
@@ -145,7 +145,7 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc,
    } # else we have everything in jx_f
    # jacobian
    if (cjac) {
-      if (!identical(param, jx_f$param) || is.null(jx_f$jacobian)) {
+      if (max(abs(param - jx_f$param)) > 1.e-7 || is.null(jx_f$jacobian)) {
          # recalculate it
          cumo_jacob(param, nb_f, nm, nb_cumos, invAfl, p2bfl,
             bp, fc, xi, memaone, measmat, measvec, ir2isc);
@@ -181,9 +181,9 @@ icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc
    
    jacobian=NULL;
    # find usimvec
-   recalcx=!identical(param, jx_f$param) ||
+   recalcx=max(abs(param-jx_f$param))>1.e-7 ||
          (cjac && is.null(jx_f$ujaclab))
-   recalcjac=cjac && (recalcx || !identical(param, jx_f$param) ||
+   recalcjac=cjac && (recalcx || max(abs(param-jx_f$param)) > 1.e-7 ||
          is.null(jx_f$ujaclab) || is.null(jx_f$uujac))
    if (recalcx) {
       lres=param2fl_usm_eul(param, cjac, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, pool, ti, measmat, memaone, ipooled, tifull);
@@ -236,7 +236,7 @@ icumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc
    #}
    return(list(res=jx_f$res, jacobian=jx_f$jacobian, ures=jx_f$ures, usm=jx_f$usm, simvec=jx_f$simvec, fallnx=jx_f$fallnx));
 }
-cumo_cost=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu) {
+cumo_cost=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu, pool, ipooled) {
    resl=cumo_resid(param, cjac=FALSE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, ir2isc, ifmn, fmn, measinvvar, invfmnvar, spAb);
    if (!is.null(resl$err) && resl$err) {
       return(NULL);
@@ -260,14 +260,14 @@ icumo_cost=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaon
    }
    return(fn);
 }
-cumo_grad=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu) {
+cumo_grad=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu, pool, ipooled) {
    # calculate gradient of cost function for cumomer minimization problem
    # method: forward finite differences f(x+h)-f(x)/h
    # x+h is taken as (1+fact)*x
    fact=1.e-7;
    grad=param; # make place for gradient
    # f(x)
-   f=cumo_cost(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu);
+   f=cumo_cost(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu, pool, ipooled);
    for (i in 1:length(param)) {
       x=param[i];
       h=x*fact;
@@ -276,7 +276,7 @@ cumo_grad=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone
          # we are too close to zero here
          param[i]=fact;
       }
-      fh=cumo_cost(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu);
+      fh=cumo_cost(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu, pool, ipooled);
       # restore modified param
       param[i]=x;
       grad[i]=(fh-f)/h;
@@ -307,11 +307,12 @@ p2f=function(param, nb_f, nm, invAfl, p2bfl, bp, fc, xi) {
    return(param2fl(param, nb_f, nm, invAfl, p2bfl, bp, fc, xi)$fwrv);
 }
 
-param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, emu) {
+param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
+   bp, fc, xi, spAb, emu, pool, measmat, memaone, ipooled) {
    # translate free params (fluxes+scales) to fluxes and cumomers
    # or emus
    nb_w=length(spAb);
-   if (!is.null(jx_f$param) && identical(param, jx_f$param) &&
+   if (!is.null(jx_f$param) && max(abs(param-jx_f$param))<=1.e-7 &&
       (length(jx_f$x)==sum(spAb[[nb_w]]$tb_x))) {
       if (cjac) {
           if (!is.null(jx_f$x_f)) {
@@ -354,6 +355,79 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc,
       obj2kvh(tmp, "net-xch", conct);
    }
 #browser();
+   # prepare measurment pooling operations
+   nb_poolf=nb_f$nb_poolf
+   nb_meas=length(ipooled$ishort)
+   nb_sc=nb_f$nb_sc
+   vsc=c(1.,param)[ir2isc]
+   # fullfill pool with free pools
+   if (nb_poolf > 0) {
+      pool[nm$poolf]=exp(param[nm$poolf])
+   }
+   
+   nb_mcol=ncol(measmat)
+   # ponderate measmat by relative pool concentrations for pooled measurements
+   collect_pools=c()
+   lapply(names(ipooled), function(nmp) {
+      if (nmp=="ishort") {
+         return(NULL)
+      }
+      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
+      collect_pools <<- c(collect_pools, metabs)
+   })
+   collect_pools=unique(collect_pools)
+   pwei=list()
+   dpwei=list() # derivatives for jacobian
+   nm_metabs=matrix(sapply(names(pool), function(nm) {
+      strsplit(nm, ":")[[1]]
+   }), nrow=2)[2,]
+   if (cjac && nb_poolf > 0) {
+      nm_metabf=matrix(sapply(nm$poolf, function(nm) {
+         strsplit(nm, ":")[[1]]
+      }), nrow=2)[2,]
+      # matrix of ponderation derivation
+      fpw2m=Matrix(0., nrow=nrow(measmat), ncol=nb_poolf)
+   }
+   for (metabs in collect_pools) {
+      metabv=strsplit(metabs, "+", fix=T)[[1]]
+      ime=match(metabv, nm_metabs)
+      vp=pool[ime]
+      vs=sum(vp)
+      pwei[[metabs]]=pool[ime]/vs # pool is assumed non negative, non zero vector
+      # auxiliary matrix for jacobian part depending on ponderation by pools
+      if (cjac && nb_poolf > 0) {
+         in_pf=match(metabv, nm_metabf)
+         imef=which(!is.na(in_pf))
+         if (length(imef)==0) {
+            next
+         }
+         in_pf=in_pf[!is.na(in_pf)]
+         icoupl=cbind(imef, in_pf)
+         vd=-vp%o%rep(1., nb_poolf)
+         vd[,-in_pf]=0.
+         vd[icoupl]=vd[icoupl]+vs
+         dpwei[[metabs]]=vd/(vs*vs)
+      }
+   }
+   # ponderation itself
+   measmatp=measmat
+   memaonep=memaone
+   for (nmp in names(ipooled)) {
+      if (nmp=="ishort") {
+         next
+      }
+      i=ipooled[[nmp]]
+      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
+      measmatp[i,]=measmat[i,,drop=F]*pwei[[metabs]]
+      memaonep[i]=memaone[i]*pwei[[metabs]]
+      # auxiliary matrix for jacobian itself
+      if (cjac && nb_poolf > 0 && !is.null(dpwei[[metabs]])) {
+         fpw2m[i,]=dpwei[[metabs]]
+      }
+   }
+   mema1=measmatp
+
+   # simulate labeling weight by weight
    ba_x=0;
    for (iw in 1:nb_w) {
       nx=length(x);
@@ -457,7 +531,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc,
          }
       } else if (nxw > 0) {
          # bind cumomer vector
-         if (!is.null(jx_f$param) && !identical(param, jx_f$param)) {
+         if (!is.null(jx_f$param) && max(abs(param-jx_f$param)) > 1.e-7) {
             x_f=NULL;
          }
       }
@@ -474,7 +548,8 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc,
    return(append(list(x=x[(2+nb_xi):length(x)], x_f=x_f), lf));
 }
 
-param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, spAb, pool, ti, measmat, memaone, ipooled, tifull=ti) {
+param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
+   bp, fc, xi, spAb, pool, ti, measmat, memaone, ipooled, tifull=ti) {
    # translate free params (fluxes+scales) to fluxes and
    # unscaled simulated measurements (usm) for labeling propagation
    # tifull may be more fine grained than ti. All ti must be in tifull
@@ -490,7 +565,7 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, f
    # recalculate or not the labeling?
    nb_w=length(spAb)
    calcx=is.null(jx_f$param) ||
-      !identical(param, jx_f$param) ||
+      max(abs(param-jx_f$param)) > 1.e-7 ||
       (length(jx_f$x)!=dim(spAb[[nb_w]]$tb_x)[1]+nb_cumos[nb_w])
    if (!calcx) {
       if (cjac) {
@@ -636,10 +711,6 @@ param2fl_usm=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, f
          }
          return(ai)
       })
-      #lwinva=lapply(lwA, function(a) {
-      #   qa=qr(as.matrix(a), LAPACK=T)
-      #   return(qr.solve(qa, tol=1e-14))
-      #})
       # s
       s1=lapply(1:nb_w, function(iw) {as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1)$s)*invmw[[iw]]})
       # xp first derivative of x
@@ -1049,7 +1120,7 @@ param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, b
    # recalculate or not the labeling?
    nb_w=length(spAb)
    calcx=is.null(jx_f$param) ||
-      !identical(param, jx_f$param) ||
+      max(abs(param-jx_f$param)) > 1.e-7 ||
       (length(jx_f$x)!=dim(spAb[[nb_w]]$tb_x)[1]+nb_cumos[nb_w])
    if (!calcx) {
       if (cjac) {
@@ -1622,7 +1693,7 @@ cumo_gradj=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaon
 }
 # cost function for donlp2 solver
 cumo_fn=function(p) {
-   return(cumo_cost(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu))
+   return(cumo_cost(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu, pool, measmat, memaone, ipooled))
 }
 cumo_dfn=function(p) {
    return(cumo_gradj(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb));
@@ -1641,7 +1712,7 @@ cumo_jacob=function(param, nb_f, nm, nb_cumos,
       # But for some strange reason it didn't happen.
       # So let recalculate the cost and some matricies
       #res=cumo_cost(param, nb_f, nm, nb_cumos, invAfl, p2bfl, bp, fc, xi, memaone, measmat, measvec, measinvvar, ir2isc, fmn, invfmnvar, ifmn, spAb, emu);
-      stopifnot(identical(param, jx_f$param));
+      stopifnot(max(abs(param, jx_f$param))<1.e-7);
    }
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
    names(param)=nm_par;
@@ -1689,9 +1760,9 @@ cumo_jacob=function(param, nb_f, nm, nb_cumos,
    # corresponding to a given scale parameter
    if (nb_sc > 0) {
       jx_f$drc_sc<<-apply(t(nb_ff+1+(1:nb_sc)), 2, function(isc){i=ir2isc==isc; v=z; v[i]=sm[i]; v;});
-      jx_f$udr_dp<<-as.matrix(cBind(jx_f$dr_dff, rBind(jx_f$drc_sc, matrix(0, nrow=nb_fmn, ncol=nb_sc))));
+      jx_f$udr_dp<<-cBind(jx_f$dr_dff, rBind(jx_f$drc_sc, matrix(0, nrow=nb_fmn, ncol=nb_sc)));
    } else {
-      jx_f$udr_dp<<-as.matrix(jx_f$dr_dff);
+      jx_f$udr_dp<<-jx_f$dr_dff;
    }
    #dimnames(jx_f$udr_dp)=list(names(jx_f$res), nm_par);
    return(NULL);
@@ -1769,60 +1840,47 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    
    # we derivate a*x=b implicitly
    # a_f*x + a*x_f=b_f + b_xl*xl_f
-   emu=is.list(spAbr$ind_fbe)
+   emu=is.matrix(spAbr$ind_b_emu)
    x0=c(0., incu)
    nb_c=spAbr$nb_c
    nb_fwrv=spAbr$nb_fwrv
    nb_cl=spAbr$nb_cl
+   w=spAbr$w
    if (nb_c==0) {
       # no system at this weight
       return(list(j_rhsw=NULL, b_x=NULL, j_rhswp=NULL, b_xp=NULL))
    }
+   
+   # a_fx
+   ind_a=spAbr$ind_a
+   i=ind_a[,"ic0"]==ind_a[,"ir0"]
    if (emu) {
-      res=Matrix(0., nrow=nrow(a_fx), ncol=0)
-      # fragment length
-      iwc=length(spAbr$b_pre_emu)
-      # base for m0 index in x0
-      ba=nb$xiemu-nb$xi+sum(head(nb$emus, iwc-1)-head(nb$rcumos, iwc-1))
-      for (iwe in 1:iwc) {
-         i1=x2ta_fx[,2]+ba
-         i1[x2ta_fx[,2]==1]=1
-         i2=x2ta_fx[,3]+ba
-         i2[x2ta_fx[,3]==1]=1
-         spAbr$a_fx_pre@x=x0[i1]-x0[i2]
-         # calculate @x slot of a_fx
-         a_fx@x=colSums(spAbr$a_fx_pre)
-         res=cBind(res, a_fx)
-         ba=ba+nb$rcumos[iwc]
+      x=tail(incu, (w+1)*nb_c)
+      for (iwe in 1:w) {
+         tmp=x[ind_a[,"ic0"]+(1+(iwe-1)*nb_c)]
+         tmp[i]=-tmp[i]
+         a_fx=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"indf"], x=tmp, dims=c(nb_c, nb_fwrv))
+         if (iwe == 1) {
+            res=a_fx
+         } else {
+            res=rBind(res, a_fx)
+         }
       }
       a_fx=res
    } else {
-      ind_a=spAbr$ind_a
       tmp=tail(incu, nb_c)[ind_a[,"ic0"]+1]
-      i=ind_a[,"ic0"]==ind_a[,"ir0"]
       tmp[i]=-tmp[i]
       a_fx=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"indf"], x=tmp, dims=c(nb_c, nb_fwrv))
    }
    
    # prepare b_f
-   #%b_f=spAbr$bf
    if (emu) {
-      # NB: b is shorter than xw by M+N vector which is added to xw as (1-sum(lighter weights))
-      b_f=Matrix(0., nrow=nrow(b_f), ncol=ncol(b_f)*iwc)
-      for (iwe in 1:iwc) {
-         iprod=spAbr$iprod[[iwe]]
-         if (length(iprod) == 0) {
-            next
-         }
-         i=spAbr$ind_fbe[[iwe]][iprod]
-         ic=spAbr$ind_ice[[iwe]][iprod]
-         x=incu[spAbr$ind_xe1[[iwe]][iprod]]*incu[spAbr$ind_xe2[[iwe]][iprod]]
-         xs=tapply(x, list(i, ic), sum)
-         ival=!is.na(xs)
-         icb=rep(as.integer(colnames(xs)), each=nrow(xs))
-         ifl=rep(as.integer(rownames(xs)), ncol(xs))
-         b_f[cbind(ifl,icb)[ival,,drop=F]]=xs[ival]
-      }
+      # NB: b is shorter than emuw (or xw) by M+N vector which is added to xw as (1-sum(lighter weights))
+      ind_b=spAbr$ind_b_emu
+      b_f=sparseMatrix(i=ind_b[,"irow"]+nb_c*(ind_b[,"iwe"]-1), j=ind_b[,"indf"],
+         x=-incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]],
+         dims=c(nb_c*w, nb_fwrv)
+      )
    } else {
       ind_b=spAbr$ind_b
       b_f=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"indf"],
@@ -1832,28 +1890,17 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    }
    
    # prepare b_x
-   ind_bx=spAbr$ind_bx
    if (all(dim(ind_bx) > 0)) {
       if (emu) {
-         b_x=Matrix(0., nrow=sum(head(nb$emus, iwc-1)), ncol=iwc*nb$rcumos[iwc])
-         ba_e=1+nb$xiemu
-         for (iwe in 1:iwc) {
-            i1=spAbr$ind_xe1[[iwe]]
-            i2=spAbr$ind_xe2[[iwe]]
-            i=c(i1-ba_e, i2-ba_e)
-            ic=c(spAbr$ind_ice[[iwe]], spAbr$ind_ice[[iwe]])
-            x=c(fwrv[spAbr$ind_fbe[[iwe]]]*incu[i2], fwrv[spAbr$ind_fbe[[iwe]]]*incu[i1])
-            ival=i>0
-            i=i[ival]
-            ic=ic[ival]
-            x=x[ival]
-            xs=tapply(x, list(i, ic), sum)
-            ival=!is.na(xs)
-            icb=rep(as.integer(colnames(xs)), each=nrow(xs))
-            ix=rep(as.integer(rownames(xs)), ncol(xs))
-            b_x[cbind(ix,icb)[ival,,drop=F]]=xs[ival]
-         }
+         ind_bx=spAbr$ind_bx_emu
+         b_x=sparseMatrix(
+            i=ind_bx[,"irow"],
+            j=ind_bx[,"ic1"],
+            x=-fwrv[ind_bx[,"indf"]]*incu[ind_bx[,"indx"]],
+            dims=c(nb_c*w, spAbr$nb_emul)
+         )
       } else {
+         ind_bx=spAbr$ind_bx
          b_x=sparseMatrix(
             i=ind_bx[,"irow"],
             j=ind_bx[,"ic1"],
@@ -1863,7 +1910,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       }
    } else {
       if (emu) {
-         b_x=Matrix(0., nrow=0, ncol=iwc*nb$rcumos[iwc])
+         b_x=Matrix(0., nrow=0, ncol=spAbr$nb_emul)
       } else {
          b_x=Matrix(0., nrow=0, ncol=spAbr$nb_cl)
       }
@@ -2240,24 +2287,15 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    for (iwc in 1:nw) {
       # iwc is the resulting fragment length
       sp=spr[[iwc]]
+      spemu[[iwc]]=sp
+      nb_c=sp$nb_c
+      if (nb_c == 0) {
+         next
+      }
       ind_b=sp$ind_b
       nb_ind=nrow(ind_b)
-      #x2tb_f=sp$x2tb_f
-      #nb_cumo=nb$rcumos[iwc]
-      nb_c=sp$nb_c
-      #fx2tb_x=sp$fx2tb_x
-      #b_x=Matrix(0., nrow=sum(head(nb$emus, iwc-1)), ncol=iwc*nb$rcumos[iwc])
       ba_e=1+nb$xiemu
-#cat("iwc=", iwc, ", nb_cumo=", nb_cumo, "\n")
-      spemu[[iwc]]=sp
-      #spemu[[iwc]]$b_pre_emu=list() # we will cbind each mass weight
-      #spemu[[iwc]]$ind_fbe=list()
-      #spemu[[iwc]]$ind_xe1=list()
-      #spemu[[iwc]]$ind_xe2=list()
-      #spemu[[iwc]]$ind_ice=list()
       # prepare names
-      #nm_c1=nm_incu[x2tb_f[,2]]
-      #nm_c2=nm_incu[x2tb_f[,3]]
       nm_c1=nm_incu[ind_b[,"indx1"]]
       nm_c2=nm_incu[ind_b[,"indx2"]]
       # get fragment length for each ind_x which is product of two terms
@@ -2265,7 +2303,6 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
       flen1=iwc%rep%nb_ind
       flen1[inot1]=vapply(strsplit(nm_c1[inot1], ":"), function(v) sumbit(as.numeric(v[2])), 1)
       flen2=iwc-flen1
-      #nb_ind=nrow(x2tb_f)
       onesind=(1%rep%nb_ind)
       
       for (iwe in 1:iwc) {
@@ -2273,21 +2310,12 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
          # the current fragment length.
          if (iwe==1) {
             # For m+0 (iwe=1) vector b is the same in cumo and emu
-            #b_pre=sp$b_pre
-            #ind_fbe=x2tb_f[,1]
-            #ind_xe1=nme2iemu[nm_incu[x2tb_f[,2]]%s+%"+0"]
-            #ind_xe2=nme2iemu[nm_incu[x2tb_f[,3]]%s+%"+0"]
-            #ind_xe2[x2tb_f[,3]==1]=1
-            #ind_ice=x2tb_f[,4]
             ind_b_emu=ind_b
             ind_b_emu=cbind(ind_b_emu, iwe=1)
             ind_b_emu[,"indx2"]=nme2iemu[nm_incu[ind_b[,"indx2"]]%s+%"+0"]
             ind_b_emu[!inot1,"indx2"]=1
             ind_b_emu[,"indx1"]=nme2iemu[nm_incu[ind_b[,"indx1"]]%s+%"+0"]
          } else {
-            # b_pre_emu
-            #b_pre=Matrix(0., nrow=nrow(sp$b_pre)*iwe, ncol=ncol(sp$b_pre))
-            #nb_ind=nrow(x2tb_f)
             onesiwe=(1%rep%iwe)
             # form cauchy product pairs to form the mass iwe-1
             # we start with m+0 for x1 and m+(iwe-1) for x2
@@ -2298,49 +2326,34 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
             ind_xe1=nme2iemu[(outer(""%rep%iwe, nm_c1, paste, sep="")%s+%"+"%s+%add1)[!inph]]
             ind_xe2=nme2iemu[(outer(""%rep%iwe, nm_c2, paste, sep="")%s+%"+"%s+%add2)[!inph]]
             ind_xe2[is.na(ind_xe2)]=1 # ones stay ones
-            #ind_fbe=(onesiwe%o%x2tb_f[,1])[!inph]
             ind_fbe=(onesiwe%o%ind_b[,"indf"])[!inph]
-            #ind_ice=(onesiwe%o%x2tb_f[,4])[!inph]+(iwe-1)*nb_cumo
             ind_ice=(onesiwe%o%ind_b[,"irow"])[!inph]
             ind_b_emu=rbind(ind_b_emu, cbind(ind_fbe, ind_xe1, ind_xe2, ind_ice, iwe))
-            
-            # calculate slot @p in b_pre_emu
-            # b_pre_emu has the same col.number than b_pre
-            #p=colSums(!inph)
-            #bp=sp$b_pre
-            #bp@x=p
-            #p=as.integer(c(0, colSums(bp)))
-            #b_pre@i=as.integer(unlist(sapply(p, function(n) if (n) 0:(n-1) else NULL)))
-            #b_pre@p=as.integer(cumsum(p))
-
-            # prepare b_x
-            #if (all(dim(fx2tb_x) > 0)) {
-            if (FALSE) {
-               i1=ind_xe1
-               i2=ind_xe2
-               i=c(i1-ba_e, i2-ba_e)
-               ic=c(spAbr$ind_ice[[iwe]], spAbr$ind_ice[[iwe]])
-               x=c(fwrv[spAbr$ind_fbe[[iwe]]]*incu[i2], fwrv[spAbr$ind_fbe[[iwe]]]*incu[i1])
-               ival=i>0
-               i=i[ival]
-               ic=ic[ival]
-               x=x[ival]
-               xs=tapply(x, list(i, ic), sum)
-               ival=!is.na(xs)
-               icb=rep(as.integer(colnames(xs)), each=nrow(xs))
-               ix=rep(as.integer(rownames(xs)), ncol(xs))
-               b_x[cbind(ix,icb)[ival,,drop=F]]=xs[ival]
-            }
          }
-         #b_pre@x=numeric(length(ind_fbe)) # just place holder
-         # assemble spemu
-         #spemu[[iwc]]$b_pre_emu=append(spemu[[iwc]]$b_pre_emu, list(b_pre))
-         #spemu[[iwc]]$ind_fbe=append(spemu[[iwc]]$ind_fbe, list(ind_fbe))
-         #spemu[[iwc]]$ind_xe1=append(spemu[[iwc]]$ind_xe1, list(ind_xe1))
-         #spemu[[iwc]]$ind_xe2=append(spemu[[iwc]]$ind_xe2, list(ind_xe2))
-         #spemu[[iwc]]$ind_ice=append(spemu[[iwc]]$ind_ice, list(ind_ice))
       }
       spemu[[iwc]]$ind_b_emu=ind_b_emu
+      # prepare b_x
+      if (all(dim(spAbr[["ind_bx"]]) > 0)) {
+         i=ind_b_emu[,"indx2"]!=1 # exclude from derivation plain input entries
+         tmp=ind_b_emu[i,]
+
+         # term of d/d_x1 ( is garanted to be internal, not input cumomer)
+         # => indx remain in place in indx2, ind_store remain in column indx1
+
+         # term of d/d_x2 (x2 can be an input cumomer => no derivation)
+         # => indx is taken from indx1 and goes to indx2, while ind_store goes to indx1
+         i=which(tmp[,"indx2"] > ba_e)
+         if (length(i)) {
+            ind_bx=rbind(tmp, tmp[i,c(1,3,2,4,5)])
+         } else {
+            ind_bx=tmp
+         }
+         colnames(ind_bx)=c("indf", "ic1", "indx", "irow", "iwe")
+         ind_bx[,"ic1"]=ind_bx[,"ic1"]-ba_e
+         ind_bx[,"irow"]=ind_bx[,"irow"]+(ind_bx[,"iwe"]-1)*nb_c
+         spemu[[iwc]]$ind_bx_emu=ind_bx
+      }
+      spemu[[iwc]]$nb_emul=sum(head(nb$emus, iwc-1))
    }
    return(spemu)
 }
