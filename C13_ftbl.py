@@ -1903,7 +1903,7 @@ def rcumo_sys(netan, emu=False):
         for meas in measures:
             for row in measures[meas]["mat"]:
                 metab=row["metab"];
-                meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() );
+                meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() if i[:2]!="0+");
     else:
         for meas in measures:
             for row in measures[meas]["mat"]:
