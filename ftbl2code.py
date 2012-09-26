@@ -161,7 +161,7 @@ if (nb_c > 0) {
    
    # jacobian b_x
    i=ind_b[,"indx2"]!=1 # exclude from derivation plain input entries
-   tmp=ind_b[i,]
+   tmp=ind_b[i,,drop=F]
    
    # term of d/d_x1 ( is garanted to be internal, not input cumomer)
    # => indx remain in place in indx2, ind_store remain in column indx1
@@ -1118,7 +1118,7 @@ ipooled=list(ishort=pmatch(nm_meas, nm_measmat));
         base_pooled=i
         for metpool in measures[meas]["pooled"]:
             f.write("""
-# prepare indeces of pooled measurements
+# prepare indices of pooled measurements
 ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
 """%{
     "rowid": metpool[0],
@@ -1133,6 +1133,8 @@ ind_mema=matrix(c(
 """)
     i=0;
     lab2i0=netan["emu2i0" if emu else "rcumo2i0"]
+    onelab="0+0" if emu else 0
+    fcoef="emuco" if emu else "coefs"
     for meas in o_meas:
         if not measures[meas]["mat"]:
             continue;
@@ -1142,7 +1144,7 @@ ind_mema=matrix(c(
             f.write("""%(iricval)s,
 """%{
     "iricval": join(", ", valval((i, lab2i0[metab+":"+str(k)]+1, v)
-        for (k, v) in (row["emuco"].iteritems() if emu else row["coefs"].iteritems()) if k))
+        for (k, v) in row[fcoef].iteritems() if k != onelab))
     #"i": i,
     #"cumos": join(", ", ((metab+":"+str(k))
     #    for k in row["emuco"].keys()), p='"', s='"') if emu else join(", ", ((metab+":"+str(k) if k else "#x*")
@@ -1157,10 +1159,9 @@ measmat[ind_mema[,1:2]]=ind_mema[,3];
 memaone=c(%(memaone)s);
 names(memaone)=nm_measmat
 """%{
-    "memaone": join(", ", (row["coefs"].get(0, 0.)
+    "memaone": join(", ", (row[fcoef].get(onelab, 0.)
         for meas in o_meas
-        for row in measures[meas]["mat"])) if not emu else
-        "rep(0., nb_measmat)"
+        for row in measures[meas]["mat"]))
 });
     f.write("""
 # prepare flux measures
