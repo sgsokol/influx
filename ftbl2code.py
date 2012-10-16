@@ -1047,16 +1047,6 @@ if (noscale) {
 }
 nm_list$par=nm_par
 nb_f$nb_sc=nb_sc
-# prepare indexes of dispatching scale params in jacobian
-if (nb_sc > 0) {
-   ipaire=matrix(0, nrow=0, ncol=2)
-   tmp=lapply(1:nb_sc, function(isc) {
-      i=which(ir2isc==isc+1+nb_ff)
-      ipaire <<- rbind(ipaire, cbind(i, isc))
-      return(NULL)
-   })
-   nb_f$is2m=ipaire
-}
 """);
     # get the full dict of non zero cumomers involved in measures
     # cumo=metab:icumo where icumo is in [1;2^Clen]
@@ -1078,8 +1068,7 @@ if (nb_sc > 0) {
     imcumo2i=dict((cumo, i) for (i, cumo) in enumerate(o_mcumos));
     nb_mcumo=len(o_mcumos);
     f.write("""
-# make measure matrix
-# matrix is "densified" such that
+# make a sparse measurement matrix
 # measmat*xr+memaone gives a vector of simulated not-yet-pooled and not-yet-scaled measures
 # all but 0. Coefficients of 0-cumomers (by defenition equal to 1)
 # are all regrouped in the memaone.
@@ -1110,12 +1099,11 @@ ipooled=list(ishort=pmatch(nm_meas, nm_measmat));
     });
 
     # get coeffs in the order above with their corresponding indices from total cumomer vector
-    i=0;
+    base_pooled=0;
     for meas in o_meas:
         if not measures[meas]["mat"]:
             continue;
         #print("meas="+meas+"; mat="+str(measures[meas]["mat"]));##
-        base_pooled=i
         for metpool in measures[meas]["pooled"]:
             f.write("""
 # prepare indices of pooled measurements
@@ -1126,8 +1114,20 @@ ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
     "basep": base_pooled,
 }
 )
+        base_pooled=base_pooled+len(measures[meas]["vec"])
     # preepare measmat indexes and values : ir, ic, val
     f.write("""
+ir2isc=ir2isc[ipooled$ishort]
+# prepare indexes of dispatching scale params in jacobian
+if (nb_sc > 0) {
+   ipaire=matrix(0, nrow=0, ncol=2)
+   tmp=lapply(1:nb_sc, function(isc) {
+      i=which(ir2isc==isc+1+nb_ff)
+      ipaire <<- rbind(ipaire, cbind(i, isc))
+      return(NULL)
+   })
+   nb_f$is2m=ipaire
+}
 # prepare measmat indexes and values : ir, ic, val
 ind_mema=matrix(c(
 """)
