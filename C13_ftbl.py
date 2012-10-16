@@ -477,7 +477,7 @@ def ftbl_netan(ftbl):
         if not m in netan["metabint"]:
             # unknown metabolite
             raise Exception("Uknown metabolite. Metabolite '"+m+"' defined in the section METABOLITE_POOLS is not internal metabolite in the NETWORK section.");
-    if netan["met_pools"]:
+    if netan["met_pools"] and me=="ftbl2labprop.py":
         for m in netan["metabint"]:
             if not m in netan["met_pools"]:
                 # unknown metabolite
@@ -709,6 +709,10 @@ def ftbl_netan(ftbl):
         group=row["CUM_GROUP"] or group;
         # metabs can be metab1[+metab2[+...]]
         metabl=metabs.split("+")
+        if (len(metabl) > 1):
+            # pooling metabolites will need their concentraions
+            if len(set(metabl).intersection(netan["met_pools"])) != len(metabl):
+                raise Exception("One or several of pooled metabolites '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", metabl), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -768,6 +772,10 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row));
         metabs=row["META_NAME"] or metabs;
         metabl=metabs.split("+")
+        if (len(metabl) > 1):
+            # pooling metabolites will need their concentraions
+            if len(set(metabl).intersection(netan["met_pools"])) != len(metabl):
+                raise Exception("One or several of pooled metabolites '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", metabl), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -832,6 +840,10 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             irow=str(row["irow"])
         # metabs can be metab1[+metab2[+...]]
         metabl=metabs.split("+")
+        if (len(metabl) > 1):
+            # pooling metabolites will need their concentraions
+            if len(set(metabl).intersection(netan["met_pools"])) != len(metabl):
+                raise Exception("One or several of pooled metabolites '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", metabl), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
