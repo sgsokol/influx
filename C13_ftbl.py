@@ -76,6 +76,8 @@ Restrictions:
 # 2011-04-27 sokol: cumo_infl(),...: not reversible fluxes are replaced by flux_inout in cumomer balance
 # 2012-05-04 sokol: added pooled metabs (same carbon length) in measurements
 # 2012-06-25 sokol: added EMU fragment gathering ms_frag_gath()
+# 2012-11-08 sokol: added variable growth fluxes depending on variable
+#                   concentrations (flux_vgrowth, vflux_growth.[net])
 import numpy as np;
 import re;
 import copy;
@@ -256,6 +258,7 @@ def ftbl_netan(ftbl):
      - free fluxes (flux_free)
      - constrained fluxes (flux_constr)
      - measured fluxes (flux_measured)
+     - variable growth fluxes (flux_vgrowth)
      - input isotopomers (iso_input)
      - input cumomers (cumo_input)
      - flux inequalities (flux_ineqal)
@@ -311,6 +314,7 @@ def ftbl_netan(ftbl):
         "vflux_free":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
         "vflux_constr":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
         "vflux_meas":{"net":[], "net2i":{}},
+        "vflux_growth":{"net":[], "net2i":{}},
         "vflux_compl":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
         "vflux_fwrv":{"fw":[], "rv":[], "fw2i":{}, "rv2i":{}},
         "vrowAfl":[],
@@ -319,7 +323,7 @@ def ftbl_netan(ftbl):
         "flux_inout":set(),
         "opt": {},
         "met_pools": {},
-        "nx2dfc": {},
+        "nx2dfcg": {},
     };
     res="";     # auxiliary short-cut to current result;
 
@@ -350,16 +354,16 @@ def ftbl_netan(ftbl):
     # analyse networks
     netw=ftbl.get("NETWORK");
     if not netw:
-        raise Exception("No NETWORK section in ftbl");
+        raise Exception("No NETWORK section in the ftbl file");
     row_to_del=[];
     for row in netw:
         reac=row["FLUX_NAME"];
         #print "reac="+reac;#
         e1=row.get("EDUCT_1");
-        if not e1: raise Exception("EDUCT_1 must be defined in flux "+reac);
+        if not e1: raise Exception("EDUCT_1 must be defined in the reaction '%s' (row=%d)."%(reac, row["irow"]));
         e2=row.get("EDUCT_2");
         p1=row.get("PRODUCT_1");
-        if not p1: raise Exception("PRODUCT_1 must be defined in flux "+reac);
+        if not p1: raise Exception("PRODUCT_1 must be defined in the reaction '%s'(row=%d)."%(reac, row["irow"]));
         p2=row.get("PRODUCT_2");
         
         # local substrate (es), product (ps) and metabolites (ms) sets
@@ -371,7 +375,7 @@ def ftbl_netan(ftbl):
             ps.add(p2);
         ms=es|ps;
         if es&ps:
-           raise Exception("The same metabolite(s) in both sides of reaction: %s (row=%d)."%(join(", ", es&ps), row["irow"]))
+           raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (row=%d)."%(join(", ", es&ps), reac, row["irow"]))
         
         # all reactions A+B=C or C=A+B or A+B=C+D
         netan["reac"].add(reac);
@@ -442,21 +446,34 @@ def ftbl_netan(ftbl):
         # end netan["sto_m_r"]
         #aff("sto_m_r"+str(reac), netan["sto_m_r"]);##
 
+    # internal metabs
+    netan["metabint"]=netan["metabs"].copy()
+    netan["metabint"].difference_update(netan["input"] | netan["output"])
+    # all met_pools must be in internal metabolites
+    mdif=set(netan["met_pools"]).difference(netan["metabint"])
+    if len(mdif) :
+        # unknown metabolite
+        raise Exception("Uknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.");
     # add growth fluxes if requested
+    netan["flux_growth"]={"net": {}};
+    netan["flux_vgrowth"]={"net": {}, "xch": {}}; # fluxes depending on variable pools
     if netan["opt"].get("include_growth_flux"):
         if not netan["opt"].get("mu"):
-            raise Exception("Growth parameter mu is not set in OPTIONS section");
-        netan["flux_growth"]=set();
+            raise Exception("Parameter include_growth_flux is set to True but the growth parameter mu is absent in OPTIONS section");
         for (m,si) in netan["met_pools"].iteritems():
             mgr=m+"_gr";
             reac=mgr;
             if reac in netan["reac"]:
                 raise Exception("Cannot add growth reaction "+reac+". It is already in network");
             netan["reac"].add(reac);
-            netan["subs"].update((m,));
-            netan["prods"].update((mgr,));
+            netan["subs"].add(m);
+            netan["prods"].add(mgr);
             netan["metabs"].update((m,mgr));
-            netan["flux_growth"].add(reac);
+            if si > 0 :
+               netan["flux_growth"]["net"][reac]=None;
+            else:
+               netan["flux_vgrowth"]["net"][reac]=None;
+               netan["flux_vgrowth"]["xch"][reac]=0.;
             #aff("ms for "+reac, ms);##
 
             # create chemical formula
@@ -473,15 +490,18 @@ def ftbl_netan(ftbl):
     netan["metabint"].difference_update(netan["input"] | netan["output"])
 
     # check metab names in pools and network
-    for m in netan["met_pools"]:
-        if not m in netan["metabint"]:
-            # unknown metabolite
-            raise Exception("Uknown metabolite. Metabolite '"+m+"' defined in the section METABOLITE_POOLS is not internal metabolite in the NETWORK section.");
+    # all met_pools must be in internal metabolites
+    mdif=set(netan["met_pools"]).difference(netan["metabint"])
+    if len(mdif) :
+        # unknown metabolite
+        raise Exception("Uknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.");
+
     if netan["met_pools"] and me=="ftbl2labprop.py":
-        for m in netan["metabint"]:
-            if not m in netan["met_pools"]:
-                # unknown metabolite
-                raise Exception("Uknown metabolite. Metabolite '"+m+"' defined as internal in the section NETWORK is not defined in the METABOLITE_POOLS section.");
+        # all internal metabs must be also in met_pools section
+        mdif=netan["metabint"].difference(netan["met_pools"])
+        if len(mdif) :
+            # unknown metabolite(s)
+            raise Exception("Uknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK are not defined in the METABOLITE_POOLS section.");
     
     # input and output flux names
     netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]));
@@ -490,12 +510,13 @@ def ftbl_netan(ftbl):
     #print "fl in + out="+str(netan["flux_in"])+"+"+str( netan["flux_out"]);##
 
     # analyse reaction reversibility
-    # and free fluxes(dictionary flux->init value for simulation or minimization)
-    # and constrained fluxes (dictionary flux->value)
+    # free fluxes(dictionary flux->init value for simulation or minimization)
+    # constrained fluxes (dictionary flux->value)
+    # variable growth fluxes (dictionary flux->value)
     # The rest are dependent fluxes
+    netan["flux_dep"]={"net":set(), "xch":set()};
     netan["flux_free"]={"net":{}, "xch":{}};
     netan["flux_constr"]={"net":{}, "xch":{}};
-    netan["flux_dep"]={"net":set(), "xch":set()};
     flx=ftbl.get("FLUXES");
     if flx:
         xch=flx.get("XCH");
@@ -537,16 +558,23 @@ def ftbl_netan(ftbl):
                 raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in net fluxes."%reac);
             if (len(ncond) == 0 and
                 (reac in netan["flux_inout"] and
-                not reac in netan.get("flux_growth", ()))):
+                not reac in netan["flux_growth"]["net"] and
+                not reac in netan["flux_vgrowth"]["net"])):
                 # input-output fluxes are by definition not reversible
                 netan["notrev"].add(reac);
                 netan["flux_constr"]["xch"][reac]=0.;
                 continue;
-            if netan["opt"].get("include_growth_flux") and reac in netan["flux_growth"]:
+            if netan["opt"].get("include_growth_flux") and reac in netan["flux_growth"]["net"]:
                 m=reac[:-3];
                 netan["notrev"].add(reac);
                 netan["flux_constr"]["xch"][reac]=0.;
-                netan["flux_constr"]["net"][reac]=netan["opt"].get("metab_scale", 1.)*netan["opt"]["mu"]*netan["met_pools"][m];
+                netan["flux_constr"]["net"][reac]=netan["opt"]["mu"]*netan["met_pools"][m];
+                continue;
+            if netan["opt"].get("include_growth_flux") and reac in netan["flux_vgrowth"]["net"]:
+                m=reac[:-3];
+                netan["notrev"].add(reac);
+                netan["flux_vgrowth"]["net"][reac]=netan["opt"]["mu"]*abs(netan["met_pools"][m]);
+                netan["flux_vgrowth"]["xch"][reac]=0.;
                 continue;
             ncond=ncond[0];
             #aff("cond", cond);##
@@ -588,10 +616,17 @@ def ftbl_netan(ftbl):
     ##        aff("constr net", netan["flux_free"]["net"]);
     ##        aff("free xch", netan["flux_free"]["xch"]);
             except:
-                werr("Error occured on the row %d of ftbl file:\n"%cond["irow"]);
+                werr("Error occured on the row %d or %d of ftbl file:\n"%(ncond["irow"], cond["irow"]));
+                #werr(join("; ", cond)+"\n")
+                #werr(join("; ", cond.values())+"\n")
+                #werr(join("; ", ncond)+"\n")
+                #werr(join("; ", ncond.values())+"\n")
                 raise;
     except Exception as inst:
+        #werr(join(" ", sys.exc_info())+"\n")
         werr(": ".join(inst)+"\n");
+    # complete variable growth exchange fluxes
+    netan["flux_vgrowth"]["xch"]=dict((k, 0.) for k in netan["flux_vgrowth"]["net"])
     
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
@@ -685,17 +720,15 @@ def ftbl_netan(ftbl):
                    raise Exception("%s flux `%s` in the equality\n%s\nis not defined."%
                        (afftype, fl, join("=", row)));
     # Check that fluxes are all in reactions
-    # and form nx2dfc dictionary
+    # and form nx2dfcg dictionary
     for (affnx, nx, nxsh) in (("net", "net", "n."), ("exchange", "xch", "x.")):
-        for (affdfc, dfc, dfcsh) in (("Dependent", "flux_dep", "d."), ("Free", "flux_free", "f."), ("Constrained", "flux_constr", "c.")):
-            #print netan[dfc][nx];##
-            for fl in netan[dfc][nx]:
+        for (affdfcg, dfcg, dfcgsh) in (("Dependent", "flux_dep", "d."), ("Free", "flux_free", "f."), ("Constrained", "flux_constr", "c."), ("Variable growth", "flux_vgrowth", "g.")):
+            #print netan[dfcg][nx];##
+            for fl in netan[dfcg][nx]:
                 if fl not in netan["reac"]:
                    raise Exception("%s %s flux `%s` is not defined."%
-                       (affdfc, affnx, fl));
-                netan["nx2dfc"][nxsh+fl]=dfcsh+nxsh+fl;
-    # Check that all reactions are dispathed between dependent free and constrained
-    # fluxes
+                       (affdfcg, affnx, fl));
+                netan["nx2dfcg"][nxsh+fl]=dfcgsh+nxsh+fl;
 
     # label measurements
     # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}
@@ -711,8 +744,9 @@ def ftbl_netan(ftbl):
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
-            if len(set(metabl).intersection(netan["met_pools"])) != len(metabl):
-                raise Exception("One or several of pooled metabolites '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", metabl), row["irow"]))
+            mdif=set(metabl).difference(netan["met_pools"])
+            if mdif:
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -774,8 +808,9 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
-            if len(set(metabl).intersection(netan["met_pools"])) != len(metabl):
-                raise Exception("One or several of pooled metabolites '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", metabl), row["irow"]))
+            mdif=set(metabl).difference(netan["met_pools"])
+            if mdif:
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -842,8 +877,9 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
-            if len(set(metabl).intersection(netan["met_pools"])) != len(metabl):
-                raise Exception("One or several of pooled metabolites '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", metabl), row["irow"]))
+            mdif=set(metabl).difference(netan["met_pools"])
+            if mdif:
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -1072,13 +1108,15 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         netan["vcumo"].append([cumo for cumo in valval(cumo_paths)]);
 
     # ordered unknown flux lists
-    # get all reactions which are not constrained neither free
+    # get all reactions which are not constrained, not free and not growth
     netan["vflux"]["net"].extend(reac for reac in netan["reac"]
         if reac not in netan["flux_constr"]["net"] and
-        reac not in netan["flux_free"]["net"]);
+        reac not in netan["flux_free"]["net"] and
+        reac not in netan["flux_vgrowth"]["net"]);
     netan["vflux"]["xch"].extend(reac for reac in netan["reac"]
         if reac not in netan["flux_constr"]["xch"] and
-        reac not in netan["flux_free"]["xch"]);
+        reac not in netan["flux_free"]["xch"] and
+        reac not in netan["flux_vgrowth"]["xch"]);
 
     # order
     netan["vflux"]["net"].sort();
@@ -1124,17 +1162,30 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     # easy index finder
     netan["vflux_meas"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_meas"]["net"]))
 
+    # ordered variable growth fluxes
+    netan["vflux_growth"]["net"]=netan["flux_vgrowth"]["net"].keys();
+    netan["vflux_growth"]["xch"]=netan["flux_vgrowth"]["xch"].keys();
+
+    # order
+    netan["vflux_growth"]["net"].sort();
+    netan["vflux_growth"]["xch"].sort();
+    
+    # easy index finder
+    netan["vflux_growth"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_growth"]["net"]))
+    netan["vflux_growth"]["xch2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_growth"]["xch"]))
 
     # ordered complete flux lists
     netan["vflux_compl"]={
         "net": 
         netan["vflux"]["net"]+
         netan["vflux_free"]["net"]+
-        netan["vflux_constr"]["net"],
+        netan["vflux_constr"]["net"]+
+        netan["vflux_growth"]["net"],
         "xch":
         netan["vflux"]["xch"]+
         netan["vflux_free"]["xch"]+
-        netan["vflux_constr"]["xch"],
+        netan["vflux_constr"]["xch"]+
+        netan["vflux_growth"]["xch"],
     };
     # easy index finding
     # net
@@ -1149,6 +1200,10 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         (fl,i+len(netan["vflux"]["net"])+len(netan["vflux_free"]["net"]))
         for (i,fl) in enumerate(netan["vflux_constr"]["net"])
     ));
+    netan["vflux_compl"]["net2i"].update(dict(
+        (fl,i+len(netan["vflux"]["net"])+len(netan["vflux_free"]["net"])+len(netan["vflux_constr"]["net"]))
+        for (i,fl) in enumerate(netan["vflux_growth"]["net"])
+    ));
     # xch
     netan["vflux_compl"]["xch2i"]=dict(
         (fl,i) for (i,fl) in enumerate(netan["vflux"]["xch"])
@@ -1161,7 +1216,10 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         (fl,i+len(netan["vflux"]["xch"])+len(netan["vflux_free"]["xch"]))
         for (i,fl) in enumerate(netan["vflux_constr"]["xch"])
     ));
-
+    netan["vflux_compl"]["xch2i"].update(dict(
+        (fl,i+len(netan["vflux"]["xch"])+len(netan["vflux_free"]["xch"])+len(netan["vflux_constr"]["xch"]))
+        for (i,fl) in enumerate(netan["vflux_growth"]["xch"])
+    ));
 
     # ordered fwd-rev flux lists
     # fw and rv parts are identical so they match each other
@@ -1169,9 +1227,11 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         ["fwd."+fl for fl in netan["vflux"]["net"]]+\
         ["fwd."+fl for fl in netan["vflux_free"]["net"]]+\
         ["fwd."+fl for fl in netan["vflux_constr"]["net"]]+\
+        ["fwd."+fl for fl in netan["vflux_growth"]["net"]]+\
         ["rev."+fl for fl in netan["vflux"]["net"]]+\
         ["rev."+fl for fl in netan["vflux_free"]["net"]]+\
-        ["rev."+fl for fl in netan["vflux_constr"]["net"]];
+        ["rev."+fl for fl in netan["vflux_constr"]["net"]]+\
+        ["rev."+fl for fl in netan["vflux_growth"]["xch"]];
     
     # order
     netan["vflux_fwrv"]["fwrv"].sort();
@@ -1179,6 +1239,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     # easy index finder
     netan["vflux_fwrv"]["fwrv2i"]=dict((fl,i) for (i,fl) in
         enumerate(netan["vflux_fwrv"]["fwrv"]))
+    
     
     # linear problem on fluxes Afl*(fl_net;fl_xch)=bfl
     # matrix Afl is composed of the following parts :
@@ -1192,12 +1253,13 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     # numeric coefficients
     # If the key is empty "", it means that the value is just a scalar to add
     
-    # Full flux names are of the format [dfc].[nx].<R>
-    # where "d", "f", or "c" corresponds to
+    # Full flux names are of the format [dfcg].[nx].<reac>
+    # where "d", "f", "c" or "g" correspond to
     # - dependent
     # - free
     # - constrained
-    # and <R> correspond to the reaction name
+    # - growth
+    # and <reac> correspond to the reaction name
     
     # stocheometric part
     res=netan["Afl"];
@@ -1238,8 +1300,10 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 #print "bfl: fl="+fl;##
                 if fl in netan["flux_free"]["net"]:
                     dtmp["f.n."+fl]=dtmp.get("f.n."+fl,0)-coefs[fl];
-                if fl in netan["flux_constr"]["net"]:
+                elif fl in netan["flux_constr"]["net"]:
                     dtmp["c.n."+fl]=dtmp.get("c.n."+fl,0)-coefs[fl];
+                elif fl in netan["flux_vgrowth"]["net"]:
+                    dtmp["g.n."+fl]=dtmp.get("g.n."+fl,0)-coefs[fl];
             #print "dtmp=", dtmp;
 
     # flux equality part
@@ -1276,6 +1340,10 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             for fl in netan["flux_constr"][nx]:
                 if fl in eq[1]:
                     dtmp["c."+nxl+"."+fl]=dtmp.get("c."+nxl+"."+fl,0)-float(eq[1][fl]);
+            # pass growth fluxes to rhs
+            for fl in netan["flux_vgrowth"][nx]:
+                if fl in eq[1]:
+                    dtmp["g."+nxl+"."+fl]=dtmp.get("c."+nxl+"."+fl,0)-float(eq[1][fl]);
     return netan;
 
 def enum_path(starts, netw, outs, visited=set()):
