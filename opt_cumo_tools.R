@@ -4,15 +4,6 @@ if (length(find("TIMEIT")) && TIMEIT) {
    cat("load    : ", date(), "\n", sep="")
 }
 jx_f=list()
-suppressPackageStartupMessages(library(bitops))
-suppressPackageStartupMessages(library(nnls)); # for non negative least square
-suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
-options(Matrix.quiet=TRUE)
-#suppressPackageStartupMessages(library(expm, warn=F, verbose=F)); # for sparse matrices
-mc_inst=library(multicore, warn.conflicts=F, verbose=F, logical.return=T)
-if (!mc_inst) {
-   mclapply=lapply
-}
 trisparse_solv=function(A, b, w, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
@@ -1993,15 +1984,15 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
 put_inside=function(param, ui, ci) {
    # put param inside of feasible domain delimited by u%*%param >= ci
    mes=""
-   ineq=ui%*%param-ci
+   ineq=as.numeric(ui%*%param-ci)
    if (all(ineq>1.e-10)) {
       # nothing to do, already inside and well inside
       return(param)
    }
-   dp=ldp(ui, -ineq)
+   dp=ldp(as.matrix(ui), -ineq)
    if (!is.null(dp)) {
       # get new active inequalities
-      ineqd=ui%*%(param+dp)-ci
+      ineqd=as.numeric(ui%*%(param+dp)-ci)
       # check that we are at least at the border and not outside
       if (any(ineqd < -1.e-7)) {
          param=NA
@@ -2047,7 +2038,7 @@ put_inside=function(param, ui, ci) {
          }
       }
       # move starting point slightly inside of feasible domain
-      param=param+c(dpn)
+      param=param+as.numeric(dpn)
    } else {
       param=NA
       mes="Infeasible inequalities."

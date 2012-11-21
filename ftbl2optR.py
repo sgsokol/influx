@@ -309,7 +309,7 @@ if (nb_fn && zerocross) {
    rownames(mi_zc)=nm_izc
    li_zc=rep(zc, length(nm_izc))
    ui_zc=cBind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
-      matrix(0., nrow=nrow(mi_zc), ncol=nb_sc+nb_poolf))
+      Matrix(0., nrow=nrow(mi_zc), ncol=nb_sc+nb_poolf))
    ci_zc=li_zc-mi_zc%*%mic
    # remove redundant/contradictory inequalities
    nb_zc=nrow(ui_zc)
@@ -608,17 +608,17 @@ if (optimize) {
 of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
          ipos=grep(">=", nm_i[i], v=T)
          ineg=grep("<=", nm_i[i], v=T)
-         ui[i,]=-ui[i,]
+         ui[i,]=-ui[i,,drop=F]
          if (length(ipos)) {
             ipzc=str2ind(ipos, nm_izc)
             ipos=str2ind(ipos, nm_i)
-            ci[ipos]=zc+mi_zc[ipzc,,drop=F]%*%mic
+            ci[ipos]=as.numeric(zzc+mi_zc[ipzc,,drop=F]%*%mic)
             nm_i[ipos]=sub(">=", "<=-", nm_i[ipos])
          }
          if (length(ineg)) {
             inzc=str2ind(ineg, nm_izc)
             ineg=str2ind(ineg, nm_i)
-            ci[ineg]=zc+mi_zc[inzc,,drop=F]%*%mic
+            ci[ineg]=as.numeric(zc+mi_zc[inzc,,drop=F]%*%mic)
             nm_i[ineg]=sub("<=-", ">=", nm_i[ineg])
          }
          rownames(ui)=nm_i
