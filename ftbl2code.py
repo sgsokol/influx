@@ -306,6 +306,15 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    pdb.set_trace()
     res={}
     f.write("""
+suppressPackageStartupMessages(library(bitops))
+suppressPackageStartupMessages(library(nnls)); # for non negative least square
+suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
+options(Matrix.quiet=TRUE)
+#suppressPackageStartupMessages(library(expm, warn=F, verbose=F)); # for sparse matrices
+mc_inst=library(multicore, warn.conflicts=F, verbose=F, logical.return=T)
+if (!mc_inst) {
+   mclapply=lapply
+}
 
 # get some common tools
 source("%(dirx)s/tools_ssg.R")
@@ -959,7 +968,10 @@ if (TIMEIT) {
    cat("dfl_dffg : ", date(), "\\n", sep="")
 }
 
-dfl_dffg=invAfl %*% cBind(p2bfl, g2bfl)
+dfl_dffg=invAfl %*% p2bfl
+if (nb_fgr) {
+   dfl_dffg=cBind(dfl_dffg, invAfl%*%g2bfl)
+}
 dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
 
 # prepare mf, md, mc and mg matrices
@@ -1568,10 +1580,10 @@ if (all(ci[zi]<=1.e-10)) {
 }
 
 # complete ui by zero columns corresponding to scale params
-ui=cBind(ui, Matrix(0., NROW(ui), nb_param-nb_ff))
 if (nb_sc) {
+   ui=cBind(as.matrix(ui), matrix(0., NROW(ui), nb_sc))
    # complete ui by scales >=0
-   ui=rBind(ui, cBind(Matrix(0, nb_sc, nb_ff), diag(1, nb_sc)))
+   ui=rBind(ui, cBind(matrix(0, nb_sc, nb_ff), diag(1, nb_sc)))
    ci=c(ci,rep(0., nb_sc))
    nm_i=c(nm_i, paste(nm_par[(nb_ff+1):nb_param], ">=0", sep=""))
    dimnames(ui)[[1]]=nm_i
