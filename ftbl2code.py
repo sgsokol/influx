@@ -4,7 +4,7 @@
 
 # 2012-02-21 sokol@insa-toulouse.fr : cumomer matrices and rhs from sparse matrices
 #                                     (without fortran code)
-# 2009-09-14 sokol@insa-toulouse.fr : flux.[net|xch] -> [dfc].[nx].flux
+# 2009-09-14 sokol@insa-toulouse.fr : flux.[net|xch] -> [dfcg].[nx].flux
 #                                     flux.[fwd|rev] -> [fwd|rev].flux
 # 2008-12-08 sokol@insa-toulouse.fr : added netan2Rinit()
 # 2008-11-25 sokol@insa-toulouse.fr : adapted for reduced cumomer list
@@ -215,7 +215,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     # Important python variables:
     # Collections:
     #    netan - (dict) ftbl structured content;
-    #    tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["n"|"x"]] list)- total flux
+    #    tfallnx - (3-tuple[reac,["d"|"f"|"c"|"g"], ["n"|"x"]] list)- total flux
     #    collection;
     #    measures - (dict) exp data;
     #    rAb - (list) reduced linear systems A*x_cumo=b by weight;
@@ -255,7 +255,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    param - free flux net, free flux xch, scale label, scale mass, scale peak
     #    fcn, fcx, fc,
     #    bp - helps to construct the rhs of flux system
-    #    fallnx - complete flux vector (dep, free, constr:net+xch)
+    #    fallnx - complete flux vector (dep, free, constr, growth:net+xch)
     #    bc - helps to construct fallnx
     #    li - inequality vector (mi%*%fallnx>=li)
     #    ir2isc - measur row to scale vector replicator
@@ -268,7 +268,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    Afl, qrAfl, invAfl,
     #    p2bfl - helps to construct the rhs of flux system from free fluxes
     #    c2bfl - helps to construct the rhs of flux system from constr. fluxes
-    #    mf, md, mc - help to construct fallnx
+    #    mf, md, mc, mg - help to construct fallnx
     #    mi - inequality matrix (ftbl content)
     #    ui - inequality matrix (ready for param use)
     #    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measures
@@ -591,30 +591,36 @@ def netan2R_fl(netan, org, f):
     nb_fwrv=len(netan["vflux_fwrv"]["fwrv2i"]);
 
     # make tuple for complete flux vector d,f,c
-    # (name,"d|f|c","n|x")
+    # (name,"d|f|c|g","n|x")
     tfallnx=zip(
             netan["vflux"]["net"]+
             netan["vflux_free"]["net"]+
             netan["vflux_constr"]["net"]+
+            netan["vflux_growth"]["net"]+
             netan["vflux"]["xch"]+
             netan["vflux_free"]["xch"]+
-            netan["vflux_constr"]["xch"],
+            netan["vflux_constr"]["xch"]+
+            netan["vflux_growth"]["net"],
 
             ["d"]*len(netan["vflux"]["net"])+
             ["f"]*len(netan["vflux_free"]["net"])+
             ["c"]*len(netan["vflux_constr"]["net"])+
+            ["g"]*len(netan["vflux_growth"]["net"])+
             ["d"]*len(netan["vflux"]["xch"])+
             ["f"]*len(netan["vflux_free"]["xch"])+
-            ["c"]*len(netan["vflux_constr"]["xch"]),
+            ["c"]*len(netan["vflux_constr"]["xch"])+
+            ["g"]*len(netan["vflux_growth"]["net"]),
 
             ["n"]*len(netan["vflux"]["net"])+
             ["n"]*len(netan["vflux_free"]["net"])+
             ["n"]*len(netan["vflux_constr"]["net"])+
+            ["n"]*len(netan["vflux_growth"]["net"])+
             ["x"]*len(netan["vflux"]["xch"])+
             ["x"]*len(netan["vflux_free"]["xch"])+
-            ["x"]*len(netan["vflux_constr"]["xch"]),
+            ["x"]*len(netan["vflux_constr"]["xch"])+
+            ["x"]*len(netan["vflux_growth"]["net"]),
             );
-    netan["f2dfc_nx_f"]={
+    netan["f2dfcg_nx_f"]={
        "net": dict((fl, t+".n."+fl) for (fl,t,nx) in tfallnx if nx=="n"),
        "xch": dict((fl, t+".x."+fl) for (fl,t,nx) in tfallnx if nx=="x"),
     };
@@ -649,12 +655,14 @@ fallnx2fwrv=function(fallnx) {
         "inet2ifwrv": join(", ", (1+
         (netan["vflux"]["net2i"][fl[4:]] if fl[4:] in netan["vflux"]["net2i"]
         else nb_fln+netan["vflux_free"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["net2i"]
-        else nb_fln+nb_ffn+netan["vflux_constr"]["net2i"][fl[4:]])
+        else nb_fln+nb_ffn+netan["vflux_constr"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["net2i"]
+        else nb_fln+nb_ffn+nb_fcn+netan["vflux_growth"]["net2i"][fl[4:]])
         for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
         "ixch2ifwrv": join(", ", (1+len(netan["vflux_fwrv"]["fwrv"])/2+
         (netan["vflux"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux"]["xch2i"]
         else nb_flx+netan["vflux_free"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["xch2i"]
-        else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl[4:]])
+        else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["xch2i"]
+        else nb_flx+nb_ffx+nb_fcx+netan["vflux_growth"]["xch2i"][fl[4:]])
         for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
     });
     # auxiliary dict for edge-flux coupling
@@ -669,7 +677,7 @@ fallnx2fwrv=function(fallnx) {
            for m in lr["right"]:
                f2edge[fl].append(fl+" ("+fl+") "+m);
     #sys.stderr.write(str(f2edge)+"\n");
-    #sys.stderr.write(str(netan["f2dfc_nx_f"]["net"])+"\n");
+    #sys.stderr.write(str(netan["f2dfcg_nx_f"]["net"])+"\n");
     f.write("""
 # fwd-rev flux names
 nm_fwrv=c(%(nm_fwrv)s);
@@ -703,7 +711,7 @@ if (nb_fl) {
     "nm_fallnx": join(", ", (join(".", (t[1],t[2],t[0])) for t in tfallnx), '"', '"'),
     "nm_fln": join(", ", netan["vflux"]["net"], '"d.n.', '"'),
     "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
-    "edge2fl": join(", ", ('"'+e+'"="'+netan["f2dfc_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
+    "edge2fl": join(", ", ('"'+e+'"="'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
 });
     for (i,row) in enumerate(netan["Afl"]):
         f.write(
@@ -751,6 +759,7 @@ if (initrand) {
 # scaling factors are added to param later
 
 nb_ff=nb_ffn+nb_ffx;
+
 # constrained fluxes
 # net
 nb_fcn=%(nb_fcn)d;
@@ -765,14 +774,24 @@ nm_fc=c(nm_fcn, nm_fcx)
 names(fc)=nm_fc;
 nb_fc=nb_fcn+nb_fcx;
 
+# variable growth fluxes (constant are already accounted in constrained fluxes)
+nb_fgr=%(nb_fgr)d;
+nm_fgr=c(%(nm_fgr)s);
+fgr=c(%(fgr)s);
+nm_list$fgr=nm_fgr;
+
 # total flux vector fallnx dimension
-nb_fallnx=nb_fl+nb_ff+nb_fc;
+nb_fallnx=nb_fl+nb_ff+nb_fc+nb_fgr+nb_fgr;
+nb_fwrv=nb_fallnx;
 
 # all flux cardinals
 nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
    nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,
    nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,
-   nb_fallnx=nb_fallnx);
+   nb_fallnx=nb_fallnx, nb_fwrv=nb_fwrv,
+   nb_fgr=nb_fgr,
+   include_growth_flux=%(inc_gr_f)s,
+   mu=%(mu)s);
 """%{
     "nm_rows": join(", ", netan["vrowAfl"], '"', '"'),
     "nb_ffn": nb_ffn,
@@ -791,35 +810,59 @@ nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
         for fl in netan["vflux_constr"]["net"]]),
     "fcx": join(", ", [netan["flux_constr"]["xch"][fl]
         for fl in netan["vflux_constr"]["xch"]]),
+    "inc_gr_f": "TRUE" if netan["opt"].get("include_growth_flux") else "FALSE",
+    "mu": str(netan["opt"].get("mu", "NULL")),
+    "nb_fgr": len(netan["vflux_growth"]["net"]),
+    "nm_fgr": join(", ", netan["vflux_growth"]["net"], '"g.n.', '"'),
+    "fgr": join(", ", [netan["flux_vgrowth"]["net"][fl]
+        for fl in netan["vflux_growth"]["net"]]),
 });
     f.write("""
-# prepare p2bfl, c2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
-# c2bfl%*%fc+cnst2bfl=bfl
+# prepare p2bfl, c2bfl, g2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
+# c2bfl%*%fc+g2bfl%*%fgr+cnst2bfl=bfl
 # replace f.[nx].flx by corresponding param coefficient
-p2bfl=matrix(0., nrow=nb_flr, ncol=nb_ff);
+p2bfl=Matrix(0., nrow=nb_flr, ncol=nb_ff);
 # replace c.[nx].flx by corresponding fc coefficient
-c2bfl=matrix(0., nrow=nb_flr, ncol=nb_fc);
-cnst2bfl=numeric(nb_flr); # can come from equalities
+c2bfl=Matrix(0., nrow=nb_flr, ncol=nb_fc);
+# variable growth fluxes
+g2bfl=Matrix(0., nrow=nb_flr, ncol=nb_fgr);
+cnst2bfl=numeric(nb_flr); # may be coming from equalities
 colnames(p2bfl)=nm_par;
 colnames(c2bfl)=nm_fc;
+colnames(g2bfl)=nm_fgr;
 """);
+    row={"f": None, "c": None, "g": None, "cnst": None}
     for (i,item) in enumerate(netan["bfl"]):
         if not item:
             continue;
-        f.write("\
-p2bfl[%(i)d, c(%(if)s)]=c(%(row)s);\n\
-c2bfl[%(i)d, c(%(ic)s)]=c(%(rowc)s);\n\
-cnst2bfl[%(i)d]=%(rowcnst)s;\n\
-"%{
-        "i": i+1,
-        "if": join(", ", (k for k in item.keys() if k[0:2]=="f."), p='"', s='"'),
-        "row": join(", ", (v for (k,v) in item.iteritems() if k[0:2]=="f.")),
-        "ic": join(", ", (k for k in item.keys() if k[0:2]=="c."), p='"', s='"'),
-        "rowc": join(", ", (v for (k,v) in item.iteritems() if k[0:2]=="c.")),
-        "rowcnst": item.get("", 0.),
-        });
+        # split terms in flux types
+        row["cnst"]=item.get("")
+        row["f"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="f.")
+        row["c"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="c.")
+        row["g"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="g.")
+        f.write("\n")
+        if row["f"]:
+            f.write("p2bfl[%(i)d, c(%(if)s)]=c(%(rowf)s);\n"%\
+                {"i": i+1,
+                "if": join(", ", row["f"].keys(), p='"', s='"'),
+                "rowf": join(", ", row["f"].values()),
+                })
+        if row["c"]:
+            f.write("c2bfl[%(i)d, c(%(ic)s)]=c(%(rowc)s);\n"%\
+                {"i": i+1,
+                "ic": join(", ", row["c"].keys(), p='"', s='"'),
+                "rowc": join(", ", row["c"].values()),
+                })
+        if row["g"]:
+            f.write("g2bfl[%(i)d, c(%(ig)s)]=c(%(rowg)s);\n"%\
+                {"i": i+1,
+                "ig": join(", ", row["g"].keys(), p='"', s='"'),
+                "rowg": join(", ", row["g"].values()),
+                })
+        if row["cnst"]:
+            f.write("cnst2bfl[%(i)d]=%(rowcnst)s;\n"%{"i": i+1, "rowcnst": row["cnst"],})
     f.write("""
-bp=c2bfl%*%fc+cnst2bfl;
+bp=as.numeric(c2bfl%*%fc+cnst2bfl);
 """);
 
     f.write("""
@@ -839,27 +882,30 @@ if (nrow(Afl) != ncol(Afl)) {
    } else {
       nextra=nrow(Afl)-ncol(Afl)
       comb=combn(nb_ffn, nextra)
-      i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, p2bfl[,i]))))[1]
-      ka=kappa(cbind(Afl, p2bfl[,i]))
+      i=which.min(apply(comb, 2, function(i)kappa(cBind(Afl, p2bfl[,i]))))[1]
+      i=comb[,i]
+      ka=kappa(cBind(Afl, p2bfl[,i]))
       if (ka!=Inf) {
          prop=paste("Proposal to delcare dependent flux(es) is:\\n",
-            paste(nm_ffn[i], collapse="\\n"), sep="")
+            paste(nm_ffn[i], collapse="\\n"), "\\n", sep="")
       } else {
          # test constraint candidate
          if (nb_fcn > 0) {
             comb=combn(nb_fcn, nextra)
-            i=which.min(apply(comb, 2, function(i)kappa(cbind(Afl, c2bfl[,i]))))[1]
-            ka=kappa(cbind(Afl, c2bfl[,i]))
+            i=which.min(apply(comb, 2, function(i)kappa(cBind(Afl, c2bfl[,i]))))[1]
+            i=comb[,i]
+            ka=kappa(cBind(Afl, c2bfl[,i]))
             if (ka!=Inf) {
                prop=paste("Proposal to delcare dependent flux(es) is:\\n",
-               paste(nm_fcn[i], collapse="\\n"), sep="")
+               paste(nm_fcn[i], collapse="\\n"), "\\n", sep="")
             } else {
-               prop="No proposal for dependent fluxes could be made."
+               prop="No proposal for dependent fluxes could be made.\\n"
             }
          } else {
-            prop="No proposal for dependent fluxes could be made."
+            prop="No proposal for dependent fluxes could be made.\\n"
          }
       }
+      prop=paste(prop, "Condition number of stoechiometric matrix would be ", ka, "\\n", sep="")
       mes=paste("There is (are) probably ", nextra,
          " extra free flux(es) among the following:\\n",
          paste(nm_ffn, collapse="\\n"), "\\n",
@@ -876,7 +922,7 @@ if (nrow(Afl) != ncol(Afl)) {
 if (qrAfl$rank != nb_fl) {
    #write.table(Afl);
    # make a suggestion of new free fluxes
-   A=cbind(Afl, -p2bfl, -c2bfl)
+   A=cBind(Afl, -p2bfl, -c2bfl)
    colnames(A)=c(colnames(Afl), nm_ff, nm_fc)
    qa=qr(A, LAPACK=T)
    d=diag(qa$qr);
@@ -910,26 +956,31 @@ invAfl=solve(qrAfl);
     f.write("""
 # intermediate jacobian
 if (TIMEIT) {
-   cat("dfl_dff : ", date(), "\\n", sep="");
+   cat("dfl_dffg : ", date(), "\\n", sep="");
 }
 
-dfl_dff=invAfl %*% p2bfl
-dimnames(dfl_dff)=list(nm_fl, nm_ff)
+dfl_dffg=invAfl %*% cBind(p2bfl, g2bfl)
+dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
 
-# prepare mf, md matrices and bd vector
-# such that mf%*%ff+md%*%fl+mc%*%fc gives fallnx
-# here ff free fluxes (param), fl are dependent fluxes and fc are constrained
-# fluxes
-mf=matrix(0., nb_fallnx, nb_ff);
+# prepare mf, md, mc and mg matrices
+# such that mf%*%ff+md%*%fl+mc%*%fc+mg%*%fgr gives fallnx
+# here ff free fluxes (param), fl are dependent fluxes, fc are constrained
+# fluxes and fgr are variable growth fluxes
+mf=Matrix(0., nb_fallnx, nb_ff);
 dimnames(mf)=list(nm_fallnx, nm_ff);
-md=matrix(0., nb_fallnx, nb_fl);
+md=Matrix(0., nb_fallnx, nb_fl);
 dimnames(md)=list(nm_fallnx, nm_fl);
-mc=matrix(0., nb_fallnx, nb_fc);
+mc=Matrix(0., nb_fallnx, nb_fc);
 dimnames(mc)=list(nm_fallnx, nm_fc);
+mg=Matrix(0., nb_fallnx, nb_fgr);
+dimnames(mg)=list(nm_fallnx, nm_fgr);
 
 mf[nm_ff, nm_ff]=diag(1., nb_ff);
 md[nm_fl, nm_fl]=diag(1., nb_fl);
 mc[nm_fc, nm_fc]=diag(1., nb_fc);
+if (nb_fgr) {
+   mg[nm_fgr, nm_fgr]=diag(1., nb_fgr);
+}
 """);
     netan["fwrv2i"]=fwrv2i;
     netan["tfallnx"]=tfallnx;
@@ -1178,13 +1229,13 @@ invfmnvar=c(%(invfmnvar)s);
 
 # indices for measured fluxes
 # fallnx[ifmn]=>fmn, here fallnx is complete net|xch flux vector
-# combining unknown (dependent), free and constrainded fluxes
+# combining unknown (dependent), free, constrainded and groth fluxes
 ifmn=c(%(ifmn)s);
 
 """%{
     "nb_fmn": len(netan["vflux_meas"]["net"]),
     "nm_fmn": join(", ", trd(("n."+f for f in netan["vflux_meas"]["net"]),
-        netan["nx2dfc"]), '"', '"'),
+        netan["nx2dfcg"]), '"', '"'),
     "fmn": join(", ", (netan["flux_measured"][fl]["val"]
         for fl in netan["vflux_meas"]["net"])),
     "invfmnvar": join(", ", (1./(netan["flux_measured"][fl]["dev"]**2)
@@ -1303,14 +1354,13 @@ def netan2R_ineq(netan, org, f):
     # ex: netan["flux_inequal"]
     # {'net': [], 'xch': [('0.85', '>=', {'v2': '+1.'})]}
     tfallnx=netan["tfallnx"];
-    f2dfc_nx_f=netan["f2dfc_nx_f"];
+    f2dfcg_nx_f=netan["f2dfcg_nx_f"];
     #dict2kvh(dict((i,t) for (i,t) in enumerate(tfallnx)), "tfallnx.kvh");##
     nb_ineq=len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"]);
     f.write("""
 if (TIMEIT) {
    cat("ineq    : ", date(), "\n", sep="");
 }
-fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
 # to the inequalities given in ftbl file
@@ -1339,7 +1389,7 @@ li[%(i)s]=%(sign)s%(li)g;
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", trd(ineq[2].keys(), f2dfc_nx_f["net"]), p='"', s='"'),
+    "f": join(", ", trd(ineq[2].keys(), f2dfcg_nx_f["net"]), p='"', s='"'),
     "coef": join(", ", ineq[2].values()),
     "li": ineq[0],
     });
@@ -1351,7 +1401,7 @@ li[%(i)s]=%(sign)s%(li)g;
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": len(netan["flux_inequal"]["net"])+i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", trd(ineq[2].keys(), f2dfc_nx_f["xch"]), p='"', s='"'),
+    "f": join(", ", trd(ineq[2].keys(), f2dfcg_nx_f["xch"]), p='"', s='"'),
     "coef": join(", ", ineq[2].values()),
     "li": ineq[0],
     });
@@ -1495,7 +1545,7 @@ names(li)=nm_i;
 # constraints such that ui%*%param[1:nb_ff]-ci>=0
 ui=mi%*%(md%*%invAfl%*%p2bfl+mf);
 mic=(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc)
-ci=li-mi%*%mic;
+ci=as.numeric(li-mi%*%mic);
 #browser() # before null inequality removing
 # remove all zero rows in ui (constrained fluxes with fixed values)
 # find zero indexes
@@ -1518,10 +1568,10 @@ if (all(ci[zi]<=1.e-10)) {
 }
 
 # complete ui by zero columns corresponding to scale params
-ui=cbind(ui, matrix(0., NROW(ui), nb_param-nb_ff));
+ui=cBind(ui, Matrix(0., NROW(ui), nb_param-nb_ff));
 if (nb_sc) {
    # complete ui by scales >=0
-   ui=rbind(ui, cbind(matrix(0, nb_sc, nb_ff), diag(1, nb_sc)));
+   ui=rBind(ui, cBind(Matrix(0, nb_sc, nb_ff), diag(1, nb_sc)));
    ci=c(ci,rep(0., nb_sc));
    nm_i=c(nm_i, paste(nm_par[(nb_ff+1):nb_param], ">=0", sep=""));
    dimnames(ui)[[1]]=nm_i;
