@@ -252,9 +252,9 @@ crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
     f.write("""
 
 ## variables for isotopomer cinetics
-tstart=0.;
-tmax=%(tmax)f;
-dt=%(dt)f;
+tstart=0.
+tmax=%(tmax)f
+dt=%(dt)f
 
 # metabolite pools are : all (poolall) which is divided in free (poolf) and
 # constrained (poolc)
@@ -340,7 +340,7 @@ if (nchar(flabcin)) {
    } else {
       # try to strip row number from measure id
       nm_strip=sapply(strsplit(nm_meas, ":"), function(v) {
-         v[length(v)]="";
+         v[length(v)]=""
          paste(v, sep="", collapse=":")
       })
       im=pmatch(nm_strip, nm_row)
@@ -398,7 +398,7 @@ fkvh=file("%(fullorg)s_res.kvh", "w")
 names(param)=nm_par
 nb_param=length(param)
 if (initrand) {
-   param[]=runif(nb_param);
+   param[]=runif(nb_param)
    fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, bp, fc)$fallnx
 }
 if (nb_sc && !is.null(measvecti)) {
@@ -649,11 +649,11 @@ if (optimize) {
       ci_zc=li_zc-mi_zc%*%mic
       # remove all zero rows in ui_zc (constrained fluxes with fixed values)
       # find zero indexes
-      zi=apply(ui_zc,1,function(v){return(max(abs(v))<=1.e-14)});
-      ui_zc=ui_zc[!zi,,drop=F];
-      mi_zc=mi_zc[!zi,,drop=F];
-      ci_zc=ci_zc[!zi];
-      nm_izc=nm_izc[!zi];
+      zi=apply(ui_zc,1,function(v){return(max(abs(v))<=1.e-14)})
+      ui_zc=ui_zc[!zi,,drop=F]
+      mi_zc=mi_zc[!zi,,drop=F]
+      ci_zc=ci_zc[!zi]
+      nm_izc=nm_izc[!zi]
       # remove redundant/contradictory inequalities
       nb_zc=nrow(ui_zc)
       nb_i=nrow(ui)
@@ -1078,7 +1078,7 @@ if (nb_poolf > 0) {
    # "square root" of covariance matrix (to preserve numerical positive definitness)
    poolall[nm_poolf]=exp(param[nm_poolf])
    # cov wrt exp(pf)=pool
-   covpf=crossprod(rtcov[,nb_ff+nb_sc+1:nb_poolf, drop=F]%mrv%poolall[nm_poolf]);
+   covpf=crossprod(rtcov[,nb_ff+nb_sc+1:nb_poolf, drop=F]%mrv%poolall[nm_poolf])
    dimnames(covpf)=list(nm_poolf, nm_poolf)
    sdpf[nm_poolf]=sqrt(diag(covpf))
 }

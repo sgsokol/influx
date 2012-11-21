@@ -587,6 +587,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
             mpf=as.matrix(mpf%mrv%pool[nm$poolf])
          }
       } else {
+         mff=mffg
          mpf=matrix(0., nrow=nb_meas, ncol=0)
       }
       if (nb_sc > 0) {
