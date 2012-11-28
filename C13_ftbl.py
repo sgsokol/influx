@@ -78,6 +78,7 @@ Restrictions:
 # 2012-06-25 sokol: added EMU fragment gathering ms_frag_gath()
 # 2012-11-08 sokol: added variable growth fluxes depending on variable
 #                   concentrations (flux_vgrowth, vflux_growth.[net])
+# 2012-11-23 sokol: added concentration measurements
 import numpy as np
 import re
 import copy
@@ -170,7 +171,7 @@ def ftbl_parse(f):
         if len(flds)==2 and len(flds[0])==0:
             # read subsection name
             if reading=="data" and not subsec_name:
-                raise Exception("Wrong subsection. While beeing in section '%s/%s' (row %d) got wrong subsection '%s'.\n"%(sec_name, subsec_name, irow, flds[1]))
+                raise Exception("Wrong subsection. While beeing in section '%s/%s' (row: %d) got wrong subsection '%s'.\n"%(sec_name, subsec_name, irow, flds[1]))
             subsec_name=flds[1]
             # prepare sub-storage
             if not ftbl[sec_name]:
@@ -197,7 +198,7 @@ def ftbl_parse(f):
             data=l[skiptab:].split("\t")
             dic={"irow": irow}
             if sec_name == "NETWORK" and len(data[0])==0:
-                # we are at carbon transition line here (e.g. #ABC -> #AB +#C)
+                # here, we are at carbon transition line (e.g. #ABC -> #AB +#C)
                 #print "data_count="+str(data_count), \
                 #    "\ndata="+str([l for l in enumerate(data)]), \
                 #    "\nstock="+str(stock);##
@@ -273,6 +274,7 @@ def ftbl_netan(ftbl):
      - fw-rv fluxes ordered lists (vflux_fwrv)
      - row names ordered lists for Afl (vrowAfl)
      - in-out fluxes (flux_in, flux_out)
+     - measured concentrations (metab_measured)
     """
     # init named sets
     netan={
@@ -324,6 +326,7 @@ def ftbl_netan(ftbl):
         "opt": {},
         "met_pools": {},
         "nx2dfcg": {},
+        "metab_measured":{},
     }
     res="";     # auxiliary short-cut to current result
 
@@ -360,10 +363,10 @@ def ftbl_netan(ftbl):
         reac=row["FLUX_NAME"]
         #print "reac="+reac;#
         e1=row.get("EDUCT_1")
-        if not e1: raise Exception("EDUCT_1 must be defined in the reaction '%s' (row=%d)."%(reac, row["irow"]))
+        if not e1: raise Exception("EDUCT_1 must be defined in the reaction '%s' (row: %d)."%(reac, row["irow"]))
         e2=row.get("EDUCT_2")
         p1=row.get("PRODUCT_1")
-        if not p1: raise Exception("PRODUCT_1 must be defined in the reaction '%s'(row=%d)."%(reac, row["irow"]))
+        if not p1: raise Exception("PRODUCT_1 must be defined in the reaction '%s'(row: %d)."%(reac, row["irow"]))
         p2=row.get("PRODUCT_2")
         
         # local substrate (es), product (ps) and metabolites (ms) sets
@@ -375,7 +378,7 @@ def ftbl_netan(ftbl):
             ps.add(p2)
         ms=es|ps
         if es&ps:
-           raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (row=%d)."%(join(", ", es&ps), reac, row["irow"]))
+           raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (row: %d)."%(join(", ", es&ps), reac, row["irow"]))
         
         # all reactions A+B=C or C=A+B or A+B=C+D
         netan["reac"].add(reac)
@@ -404,7 +407,7 @@ def ftbl_netan(ftbl):
                     continue
                 if carb[0] != "#":
                     raise Exception("In carbon string for metabolite "+m+" a starting '#' is missing."+
-                        "\nreaction="+str(row)+"\ncarbons ="+str(trans))
+                        "\nreaction="+str(row)+"\ncarbons ="+str(trans)+" (row: %d)"%row["id"])
                 # carbon transitions
                 netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
 
@@ -413,7 +416,7 @@ def ftbl_netan(ftbl):
                         netan["Clen"][m] != len(carb)-1:
                     raise Exception("CarbonLength", "Metabolite "+m+" has length "+
                             str(netan["Clen"][m])+" but in reaction "+reac+
-                            " it has length "+str(len(carb)-1))
+                            " it has length "+str(len(carb)-1)+" (row: %d)"%row["id"])
                 netan["Clen"][m]=len(carb)-1; # don't count '#' character
         except KeyError:
             werr("CarbonTrans: No reaction "+reac+" in carbon transitions\n")
@@ -453,18 +456,18 @@ def ftbl_netan(ftbl):
     mdif=set(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
         # unknown metabolite
-        raise Exception("Uknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
+        raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
     # add growth fluxes if requested
     netan["flux_growth"]={"net": {}}
     netan["flux_vgrowth"]={"net": {}, "xch": {}}; # fluxes depending on variable pools
     if netan["opt"].get("include_growth_flux"):
         if not netan["opt"].get("mu"):
-            raise Exception("Parameter include_growth_flux is set to True but the growth parameter mu is absent in OPTIONS section")
+            raise Exception("Parameter include_growth_flux is set to True but the growth parameter mu is absent or zero in OPTIONS section")
         for (m,si) in netan["met_pools"].iteritems():
             mgr=m+"_gr"
             reac=mgr
             if reac in netan["reac"]:
-                raise Exception("Cannot add growth reaction "+reac+". It is already in network")
+                raise Exception("Cannot add growth reaction "+reac+". It is already in the network")
             netan["reac"].add(reac)
             netan["subs"].add(m)
             netan["prods"].add(mgr)
@@ -494,14 +497,14 @@ def ftbl_netan(ftbl):
     mdif=set(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
         # unknown metabolite
-        raise Exception("Uknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
+        raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
 
     if netan["met_pools"] and me=="ftbl2labprop.py":
         # all internal metabs must be also in met_pools section
         mdif=netan["metabint"].difference(netan["met_pools"])
         if len(mdif) :
             # unknown metabolite(s)
-            raise Exception("Uknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK are not defined in the METABOLITE_POOLS section.")
+            raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK are not defined in the METABOLITE_POOLS section.")
     
     # input and output flux names
     netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]))
@@ -631,13 +634,30 @@ def ftbl_netan(ftbl):
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
         if row["FLUX_NAME"] not in netan["reac"]:
-            raise Exception("Mesured flux `%s` is not defined."%row["FLUX_NAME"])
+            raise Exception("Mesured flux `%s` is not defined in NETWORK section (row: %d)."%(row["FLUX_NAME"], row["id"]))
         if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
-            raise Exception("Mesured flux `%s` must be defined as either free or dependent."%row["FLUX_NAME"])
+            raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["id"]))
         netan["flux_measured"][row["FLUX_NAME"]]={\
                 "val": eval(row["VALUE"]), \
                 "dev": eval(row["DEVIATION"])}
+    
+    # measured concentartions
+    for row in ftbl.get("METAB_MEASUREMENTS",[]):
+        metabl=row["META_NAME"].split("+")
+        found_neg=False
+        for m in metabl:
+            if m not in netan["metabint"]:
+                raise Exception("Mesured metabolite `%s` is not internal metabolite (row: %d)."%(m, row["id"]))
+            if m not in netan["met_pools"]:
+                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["id"]))
+            found_neg=found_neg or netan["met_pools"][m] < 0.
+        if not found_neg:
+            raise Exception("At least one of mesured metabolites `%s` must be defined as free (i.e. having negative starting value) in the METABOLITE_POOLS (row: %d)."%(row["META_NAME"], row["id"]))
+        netan["metab_measured"][row["META_NAME"]]={\
+                "val": eval(row["VALUE"]), \
+                "dev": eval(row["DEVIATION"])}
+    
     # input isotopomers
     for row in ftbl.get("LABEL_INPUT",[]):
         metab=row.get("META_NAME", "") or metab
@@ -746,7 +766,7 @@ def ftbl_netan(ftbl):
             # pooling metabolites will need their concentraions
             mdif=set(metabl).difference(netan["met_pools"])
             if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", mdif), row["irow"]))
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -765,7 +785,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             mlen=netan["Clen"][metab]
             clen=netan["Clen"][metab]
             if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (ftbl line: %d)"%(metab, clen, metab0, clen0, row["irow"]))
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (ftbl row: %d)"%(metab, clen, metab0, clen0, row["irow"]))
         if not metabs in netan["label_meas"]:
             netan["label_meas"][metabs]={}
         if not group in netan["label_meas"][metabs]:
@@ -810,7 +830,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             # pooling metabolites will need their concentraions
             mdif=set(metabl).difference(netan["met_pools"])
             if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", mdif), row["irow"]))
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -828,7 +848,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
 You can add a fictious metabolite in your network immediatly after '"""+metab+"' (seen in PEAK_MEASUREMENTS).")
             clen=netan["Clen"][metab]
             if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (ftbl line: %d)"%(metab, clen, metab0, clen0, row["irow"]))
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (row: %d)"%(metab, clen, metab0, clen0, row["irow"]))
         netan["peak_meas"].setdefault(metabs,{})
         for suff in ("S", "D-", "D+", "DD", "T"):
             # get val and dev for this type of peak
@@ -879,7 +899,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             # pooling metabolites will need their concentraions
             mdif=set(metabl).difference(netan["met_pools"])
             if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row %d)"%(join(", ", mdif), row["irow"]))
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -901,7 +921,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
 You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
             clen=netan["Clen"][metab]
             if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (ftbl line: %d)"%(metab, clen, metab0, clen0, row["irow"]))
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (row: %d)"%(metab, clen, metab0, clen0, row["irow"]))
         if row["FRAGMENT"]:
             # recalculate fragment mask
             mask=0
@@ -1239,6 +1259,18 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     # easy index finder
     netan["vflux_fwrv"]["fwrv2i"]=dict((fl,i) for (i,fl) in
         enumerate(netan["vflux_fwrv"]["fwrv"]))
+        
+    # ordered metabolite pools
+    netan["vpool"]={
+        "free": [m for (m,v) in netan["met_pools"].iteritems() if v < 0.],
+        "constrained": [m for (m,v) in netan["met_pools"].iteritems() if v >= 0.],
+    }
+    netan["vpool"]["free"].sort()
+    netan["vpool"]["constrained"].sort()
+    netan["vpool"]["all"]=netan["vpool"]["free"]+netan["vpool"]["constrained"]
+    # easy index finding
+    netan["vpool"]["all2i"]=dict((m,i) for (i,m) in
+        enumerate(netan["vpool"]["all"]))
     
     
     # linear problem on fluxes Afl*(fl_net;fl_xch)=bfl
