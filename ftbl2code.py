@@ -261,7 +261,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    ir2isc - measur row to scale vector replicator
     #    ci - inequalities for param use (ui%*%param-ci>=0)
     #    measvec,
-    #    measinvvar,
+    #    measdev,
     #    fmn
     #    nb_sys - system sizes
     # Matrices:
@@ -271,7 +271,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    mf, md, mc, mg - help to construct fallnx
     #    mi - inequality matrix (ftbl content)
     #    ui - inequality matrix (ready for param use)
-    #    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measures
+    #    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measurements
     # Functions:
     #    param2fl_x - translate param to flux and cumomer vector (initial approximation)
     #    cumo_cost - cost function (khi2)
@@ -294,7 +294,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     #    python measure matrix, vector and vars
     #    R ui, ci
     #    R measure matrix, vector, vars
-    #    R flux measures
+    #    R flux measurements
 
     # header
     f.write("# This is an automatically generated R code. Don't edit.\n")
@@ -356,7 +356,7 @@ to calculate dependent fluxes, cumomers, stats and so on"),
        help="upper limit for metabolite pool"),
    make_option("--clownr", default=0, type="double",
        help="lower limit for not reversible free and dependent fluxes. Zero value means no lower limit"),
-   make_option("--clowp", default=1.e-7, type="double",
+   make_option("--clowp", default=1.e-8, type="double",
        help="lower limit for free metabolite pools. Must be positive."),
    make_option("--cinout", default=0, type="double",
        help="lower limit for input/output free and dependent fluxes. Must be non negative"),
@@ -1132,7 +1132,7 @@ nb_f$nb_sc=nb_sc
     nb_mcumo=len(o_mcumos)
     f.write("""
 # make a sparse measurement matrix
-# measmat*xr+memaone gives a vector of simulated not-yet-pooled and not-yet-scaled measures
+# measmat*xr+memaone gives a vector of simulated not-yet-pooled and not-yet-scaled measurements
 # all but 0. Coefficients of 0-cumomers (by defenition equal to 1)
 # are all regrouped in the memaone.
 nm_measmat=c(%(idmeasmat)s)
@@ -1144,10 +1144,10 @@ nb_measmat=length(nm_measmat)
 measmat=Matrix(0., nb_measmat, %(ncol)d)
 memaone=numeric(nb_measmat)
 measvec=c(%(vmeas)s)
-measinvvar=c(%(invvar)s)
+measdev=c(%(dev)s)
 rownames(measmat)=nm_measmat
 names(measvec)=nm_meas
-names(measinvvar)=nm_meas
+names(measdev)=nm_meas
 ipooled=list(ishort=pmatch(nm_meas, nm_measmat))
 """%{
     "nrow": len([measures[meas]["vec"] for meas in measures]),
@@ -1157,7 +1157,7 @@ ipooled=list(ishort=pmatch(nm_meas, nm_measmat))
         p='"', s='"'),
     "idmeas": join(", ",  valval(measures[o]["ids"] for o in o_meas), p='"', s='"'),
     "vmeas": join(", ", valval(measures[o]["vec"] for o in o_meas)),
-    "invvar": join(", ", (1./sd/sd for sd in valval(measures[o]["dev"]
+    "dev": join(", ", (sd for sd in valval(measures[o]["dev"]
         for o in o_meas))),
     })
 
@@ -1227,7 +1227,7 @@ names(memaone)=nm_measmat
         for row in measures[meas]["mat"]))
 })
     f.write("""
-# prepare flux measures
+# prepare flux measurements
 nb_fmn=%(nb_fmn)d
 nb_f$nb_fmn=nb_fmn
 nm_fmn=c(%(nm_fmn)s)
@@ -1236,21 +1236,20 @@ nm_list$fmn=nm_fmn
 # measured values
 fmn=c(%(fmn)s)
 
-# inverse of variance for flux measures
-invfmnvar=c(%(invfmnvar)s)
+# inverse of variance for flux measurements
+fmndev=c(%(fmndev)s)
 
 # indices for measured fluxes
 # fallnx[ifmn]=>fmn, here fallnx is complete net|xch flux vector
 # combining unknown (dependent), free, constrainded and groth fluxes
 ifmn=c(%(ifmn)s)
-
 """%{
     "nb_fmn": len(netan["vflux_meas"]["net"]),
     "nm_fmn": join(", ", trd(("n."+f for f in netan["vflux_meas"]["net"]),
         netan["nx2dfcg"]), '"', '"'),
     "fmn": join(", ", (netan["flux_measured"][fl]["val"]
         for fl in netan["vflux_meas"]["net"])),
-    "invfmnvar": join(", ", (1./(netan["flux_measured"][fl]["dev"]**2)
+    "fmndev": join(", ", (netan["flux_measured"][fl]["dev"]
         for fl in netan["vflux_meas"]["net"])),
     "ifmn": join(", ", (1+netan["vflux_compl"]["net2i"][fl]
         for fl in netan["vflux_meas"]["net"])),
