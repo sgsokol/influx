@@ -57,6 +57,10 @@ parser.add_option("--ln", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
 parser.add_option("--zc", type="float",
     help="Apply zero crossing strategy with non negative threshold for net fluxes")
+parser.add_option("--fseries",
+       help="File name with free parameter values for multiple starting points. Default '' (empty, i.e. only one starting point defined in FTBL file)"),
+parser.add_option("--iseries",
+       help="Indexes of starting points to use. Format: '1:10' use only first ten starting points; '1,3' use first and third starting pointsDefault '' (empty, i.e. all requested starting points)"),
 parser.add_option("--DEBUG", action="store_true",
     help="developer option")
 parser.add_option("--TIMEIT", action="store_true",
