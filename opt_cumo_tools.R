@@ -1920,9 +1920,9 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       }
    } else {
       if (emu) {
-         b_x=Matrix(0., nrow=0, ncol=spAbr$nb_emul)
+         b_x=Matrix(0., nrow=nb_c, ncol=spAbr$nb_emul)
       } else {
-         b_x=Matrix(0., nrow=0, ncol=spAbr$nb_cl)
+         b_x=Matrix(0., nrow=nb_c, ncol=spAbr$nb_cl)
       }
    }
    if (!is.null(incup)) {
@@ -2374,4 +2374,88 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
       spemu[[iwc]]$nb_emul=sum(head(nb$emus, iwc-1))
    }
    return(spemu)
+}
+opt_wrapper=function(measurements, trace=1) {
+   if (method == "BFGS") {
+      control=list(maxit=500, trace=trace)
+      control[names(control_ftbl)]=control_ftbl
+      res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+         ui, ci, mu = 1e-5, control,
+         method="BFGS", outer.iterations=100, outer.eps=1e-08,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         measurements, ir2isc, spa, emu, pool, ipooled)
+   } else if (method == "Nelder-Mead") {
+      control=list(maxit=1000, trace=trace)
+      control[names(control_ftbl)]=control_ftbl
+      res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+         ui, ci, mu = 1e-4, control,
+         method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         measurements, ir2isc, spa, emu, pool, ipooled)
+   } else if (method == "SANN") {
+      control=list(maxit=1000, trace=trace)
+      control[names(control_ftbl)]=control_ftbl
+      res=constrOptim(param, cumo_cost, grad=cumo_gradj,
+         ui, ci, mu = 1e-4, control,
+         method="SANN", outer.iterations=100, outer.eps=1e-07,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         measurements, ir2isc, spa, emu, pool, ipooled)
+   } else if (method == "nlsic") {
+      control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
+         ci=list(report=F), history=FALSE, adaptbt=TRUE)
+      control[names(control_ftbl)]=control_ftbl
+      res=nlsic(param, cumo_resid, 
+         ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
+         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         measurements, ir2isc,
+         spa, emu, pool, ipooled)
+      if (res$err || is.null(res$par)) {
+         # store res in kvh
+         obj2kvh(res, "optimization aborted here", fkvh)
+         warning(res$mes)
+         res$par=rep(NA, length(param))
+         res$cost=NA
+      } else if (nchar(res$mes)) {
+         warning(res$mes)
+      }
+   } else if (method == "ipopt") {
+      control=list(max_iter=500, print_level=trace*5)
+      control[names(control_ftbl)]=control_ftbl
+      tui=c(t(ui))
+      eval_g=function(x, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
+         invAfl=invAfl, p2bfl=p2bfl, g2bfl=g2bfl, bp=bp, fc=fc, xi=xi,
+         measurements=measurements, ir2isc=ir2isc, spAb=spa) {
+         return(ui%*%x)
+      }
+      eval_jac_g=function(x, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
+         invAfl=invAfl, p2bfl=p2bfl, g2bfl=g2bfl, bp=bp, fc=fc, xi=xi,
+         measurements=measurements, ir2isc=ir2isc, spAb=spa) {
+         return(tui)
+      }
+      ui_row_spars=rep.int(1, ncol(ui))
+      res=ipoptr(param, cumo_cost, cumo_gradj,
+         lb=NULL, ub=NULL,
+         eval_g=eval_g,
+         eval_jac_g=eval_jac_g,
+         eval_jac_g_structure=lapply(1:nrow(ui), function(i)ui_row_spars),
+         constraint_lb=ci,
+         constraint_ub=rep(1.e19, length(ci)),
+         eval_h=NULL,
+         eval_h_structure=NULL,
+         opts=control,
+         ipoptr_environment=new.env(),
+         nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
+         invAfl=invAfl, p2bfl=p2bfl, g2bfl=g2bfl, bp=bp, fc=fc, xi=xi,
+         measurements=measurements, ir2isc=ir2isc, spAb=spa, emu=emu, pool=pool, ipooled=ipooled)
+      res$par=res$solution
+      names(res$par)=nm_par
+      if(res$status != 0) {
+         # store res in kvh
+         obj2kvh(res$par, "optimization aborted here", fkvh)
+         warning(res$message)
+      }
+   } else {
+      stop(paste("Unknown minimization method '", method, "'", sep=""))
+   }
+   return(res)
 }
