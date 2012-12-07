@@ -1765,7 +1765,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
     for (metabs,irows) in netan.get("peak_meas",{}).iteritems():
         #print "peak matx calc for ", metab;##
         metabl=irows.values()[0].values()[0]["pooled"]
-        print(metabl)
+        #print(metabl)
         #metabl=metabl["pooled"]
         
         metab0=metabl[0]
