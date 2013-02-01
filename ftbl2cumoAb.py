@@ -11,6 +11,7 @@ import sys, os
 import time
 import getopt
 import numpy as np
+from fractions import Fraction as Frac
 
 sys.path.append('/home/sokol/dev/python')
 from tools_ssg import *
@@ -86,12 +87,14 @@ try:
     d=np.linalg.solve(Afl, bfl)
     dfc_val.update(("d.n."+f, d[i]) for (i,f) in enumerate(netan["vflux"]["net"]))
     dfc_val.update(("d.x."+f, d[i+len(netan["vflux"]["net"])]) for (i,f) in enumerate(netan["vflux"]["xch"]))
+    invAfl=np.matrix(Afl).I
 except Exception as err:
     sys.stderr.write("dependent net fluxes="+str(netan["vflux"]["net"])+"\n")
     sys.stderr.write("dependent xch fluxes="+str(netan["vflux"]["xch"])+"\n")
     sys.stderr.write("Afl="+str(netan["Afl"])+"\n")
     sys.stderr.write("bfl="+str(netan["bfl"])+"\n")
     sys.stderr.write(str(err)+"\n")
+    invAfl=None
 
 # print flux values
 f.write("""
@@ -146,6 +149,54 @@ for (ir,row) in enumerate(netan["Afl"]):
             for (fl,coef) in netan["bfl"][ir].iteritems()), a="0"),
     })
 
+if invAfl != None:
+    # show formulas for dependent fluxes using inverted Afl
+    # free, constrained and constant value name to index translator
+    nfn=len(netan["vflux_free"]["net"])
+    nfx=len(netan["vflux_free"]["xch"])
+    nf=nfn+nfx
+    ncn=len(netan["vflux_constr"]["net"])
+    ncx=len(netan["vflux_constr"]["xch"])
+    nc=ncn+ncx
+    
+    # constant part
+    fcv2i={"": 0}
+    
+    # free part
+    fcv2i.update(("f.n."+k, v+1) for k,v in netan["vflux_free"]["net2i"].iteritems())
+    fcv2i.update(("f.x."+k, v+nfn+1) for k,v in netan["vflux_free"]["xch2i"].iteritems())
+    
+    # constrained part
+    fcv2i.update(("c.n."+k, v+nf+1) for k,v in netan["vflux_constr"]["net2i"].iteritems())
+    fcv2i.update(("c.x."+k, v+nf+ncn+1) for k,v in netan["vflux_constr"]["xch2i"].iteritems())
+    
+    # inverse: from index to name
+    fl,i=zip(*fcv2i.iteritems())
+    i2fcv=np.array(fl)
+    i2fcv[np.array(i)]=fl
+    
+    i,j,v=[ np.array(i) for i in zip(*((i,fcv2i[f],v) for (i,row) in enumerate(netan["bfl"]) if row for (f,v) in row.iteritems())) ]
+    
+    f2bfl=np.zeros((Afl.shape[0], nf+nc+1))
+    f2bfl[i,j]=v
+    fcv2dep=invAfl*np.matrix(f2bfl)
+    f.write("""
+Dependent flux equations:
+dep.flux=f(cnst,net,xch)\n
+""")
+    ndn=len(netan["vflux"]["net"])
+    ndx=len(netan["vflux"]["xch"])
+    nd=ndn+ndx
+    assert fcv2dep.shape[0] == nd, "Bad dimensions dependent fluxes as function of free, constrained and constant values.\nWe should have %d rows, instead we got %d."%(nd, fcv2dep.shape[0])
+    ira=np.arange(fcv2dep.shape[1])
+    for (ir,row) in enumerate(fcv2dep.A):
+        nz=abs(row) >= 1.e-10
+        formula=join("", ( (("+" if v > 0 else "-") if abs(abs(v)-1.) < 1.e-10 and f != "" else ("+" if v > 0 else "") + "%s"% Frac.from_float(v).limit_denominator(100)) + ("*" if f != "" and abs(abs(v)-1) > 1.e-10 else "") + f for (v,f) in zip(row[nz],i2fcv[nz])))
+        formula=formula if formula[0] != "+" else formula[1:]
+        f.write("%(dep)s=%(formula)s\n"%{
+            "dep": "d.n."+netan["vflux"]["net"][ir] if ir < ndn else "d.x."+netan["vflux"]["xch"][ir-ndn],
+            "formula": formula,
+        })
 
 # cumomer or emu balance equations
 #pdb.set_trace()
