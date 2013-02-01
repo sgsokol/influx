@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Optimize free fluxes of a given static metabolic network to fit
-13C data defined in a FTBL file."
+"""Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file."
 """
 import sys, os, datetime as dt, subprocess as subp
 from optparse import OptionParser
@@ -9,8 +8,6 @@ def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
 
 pla=sys.platform
-# shared object suffix
-so="dll" if pla=="win32" or pla=="cygwin" else "dylib" if pla=="darwin" else "so"
 # my own name
 me=os.path.realpath(sys.argv[0])
 # my exec dir
@@ -27,45 +24,72 @@ pyopt=set(("--fullsys", "--emu", "--DEBUG"))
 parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file",
     description=__doc__,
     version="%prog "+version)
-parser.add_option("--noopt", action="store_true",
-    help="no optimization, just use free fluxes as is, to calculate dependent fluxes, cumomers, stats and so on")
-parser.add_option("--noscale", action="store_true",
+parser.add_option(
+"--noopt", action="store_true",
+    help="no optimization, just use free parameters as is (after a projection on feasability domain), to calculate dependent fluxes, cumomers, stats and so on")
+parser.add_option(
+"--noscale", action="store_true",
     help="no scaling factors to optimize => all scaling factors are assumed to be 1")
-parser.add_option("--meth", type="choice",
+parser.add_option(
+"--meth", type="choice",
     choices=["BFGS", "Nelder-Mead", "ipopt", "nlsic"],
     help="method for optimization, one of nlsic|BFGS|Nelder-Mead. Default: nlsic")
-parser.add_option("--fullsys", action="store_true",
-    help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)") 
-parser.add_option("--emu", action="store_true",
-    help="calculate labeling in EMU approach")
-parser.add_option("--irand", action="store_true",
-    help="ignore initial approximation for free fluxes from FTBL file and use random values instead")
-parser.add_option("--sens",
-    help="sensitivity method: SENS can be 'mc[=N]', mc stands for Monte-Carlo. N is the number of Monte-Carlo simulations. Default for N: 10")
-parser.add_option("--cupx", type="float",
-    help="upper limit for reverse fluxes. Must be in interval [0, 1]")
-parser.add_option("--cupn", type="float",
-    help="upper limit for net fluxes")
-parser.add_option("--clownr", type="float",
+parser.add_option(
+"--fullsys", action="store_true",
+    help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)")
+parser.add_option(
+"--emu", action="store_true",
+    help="simulate labeling in EMU approach")
+parser.add_option(
+"--irand", action="store_true",
+    help="ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries option) and use random values drawn uniformly from [0,1] interval")
+parser.add_option(
+"--sens",
+    help="sensitivity method: SENS can be 'mc[=N]', mc stands for Monte-Carlo. N is an optional number of Monte-Carlo simulations. Default for N: 10")
+parser.add_option(
+"--cupx", type="float",
+    help="upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999")
+parser.add_option(
+"--cupn", type="float",
+    help="upper limit for net fluxes. Default: 1.e3")
+parser.add_option(
+"--cupp", type="float",
+    help="upper limit for metabolite pool. Default: 1.e5"),
+parser.add_option(
+"--clownr", type="float",
     help="lower limit for not reversible free and dependent fluxes. Zero value (default) means no lower limit")
-parser.add_option("--cinout", type="float",
-    help="lower limit for input/output free and dependent fluxes. Must be non negative")
-parser.add_option("--np", type="int",
-    help="""Number of parallel process used in Monte-Carlo simulations
-    Without this option or for NP=0 all available cores in a given node are used""")
-parser.add_option("--ln", action="store_true",
+parser.add_option(
+"--cinout", type="float",
+    help="lower limit for input/output free and dependent fluxes. Must be non negative. Default: 0")
+parser.add_option(
+"--clowp",
+    help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
+parser.add_option(
+"--np", type="int",
+    help="""Number of parallel process used in Monte-Carlo simulations. Without this option or for NP=0 all available cores in a given node are used""")
+parser.add_option(
+"--ln", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
-parser.add_option("--zc", type="float",
+parser.add_option(
+"--zc", type="float",
     help="Apply zero crossing strategy with non negative threshold for net fluxes")
-parser.add_option("--fseries",
-       help="File name with free parameter values for multiple starting points. Default '' (empty, i.e. only one starting point defined in FTBL file)"),
-parser.add_option("--iseries",
-       help="Indexes of starting points to use. Format: '1:10' use only first ten starting points; '1,3' use first and third starting pointsDefault '' (empty, i.e. all requested starting points)"),
-parser.add_option("--DEBUG", action="store_true",
+parser.add_option(
+"--fseries",
+       help="File name with free parameter values for multiple starting points. Default: '' (empty, i.e. only one starting point from the FTBL file is used)"),
+parser.add_option(
+"--iseries",
+       help="Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default: '' (empty, i.e. all provided starting points are used)")
+parser.add_option(
+"--seed",
+       help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis (--sens mc=N) if executed in sequential way (--np=1). Default: current system value, i.e. random drawing will be varying at each run.")
+parser.add_option(
+"--DEBUG", action="store_true",
     help="developer option")
-parser.add_option("--TIMEIT", action="store_true",
+parser.add_option(
+"--TIMEIT", action="store_true",
     help="developer option")
-parser.add_option("--prof", action="store_true",
+parser.add_option(
+"--prof", action="store_true",
     help="developer option")
 
 # parse commande line
@@ -113,12 +137,6 @@ flog.flush()
 print(s)
 
 try:
-    # compile static fortran functions if the shared lib is inexistent or too old
-    #fcumo=os.path.join(direx, "cumo.")
-    #if not os.path.exists(fcumo+so) or os.path.getmtime(fcumo+"f") >= os.path.getmtime(fcumo+so):
-    #    p=subp.check_call("R CMD SHLIB --clean ".split()+["cumo.f"], cwd=direx, stdout=flog, stderr=ferr)
-    #    flog.flush()
-
     # generate the R code
     # extract just python options
     opt4py=list(pyopt.intersection(lopts))+[ft]
@@ -128,7 +146,7 @@ try:
     flog.flush()
 
     # execute R code
-    rcmd="R --no-save --no-restore --slave --args".split()+lopts
+    rcmd="R --vanilla --slave --args".split()+lopts
     flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >"+flog.name+" 2>"+ferr.name+"\n")
     s="calcul  : "+now_s()
     flog.write(s+"\n")
