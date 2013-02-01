@@ -7,7 +7,7 @@ Troubleshooting
 
 The software is provided "AS IS" so for the troubleshooting you are on your own. We don't provide any support of any kind.
 
-Anyway, if you have a problem during installation, you can ask some help from your computer desk.
+Anyway, if you have a problem during installation, you can ask for help from your local computer desk.
 
 If you have a problem with FTBL editing, you can read the documentation from `13CFlux <https://www.13cflux.net>`_ and/or interpret error messages generated during FTBL parsing.
 
