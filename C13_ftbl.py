@@ -1,5 +1,6 @@
 """- Parse .ftbl
 - Analyse ftbl
+
 Restrictions:
  - metabolite name cannot have
   ":" - it's a separator in measure id
@@ -1833,7 +1834,7 @@ def bcumo_decomp(bcumo):
     of this linear combination are 1 or -1. So it can be represented as
     sum(cumos_positive)-sum(cumos_negative). The result of this function
     is a dictionary {"+": list of icumos, "-": list of icumos}. icumo is
-    an integer who's binary form indicates 1's positions in a cumomer."""
+    an integer whose binary form indicates 1's positions in a cumomer."""
     
     # take zero positions
     zpos=[ i for i in xrange(len(bcumo)-1) if bcumo[-i-1]=="0" ]
