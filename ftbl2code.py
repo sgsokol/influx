@@ -206,10 +206,10 @@ def netan2Rinit(netan, org, f, fullsys, emu=False):
     ff is fortran code output pointer
     fullsys=True means write also a code for the full cumomer system
     Return a dictionnary with some python variables:
-        "measures": measures,
-        "o_mcumos": o_mcumos,
-        "cumo2i": cumo2i,
-        ...
+        * "measures": measures,
+        * "o_mcumos": o_mcumos,
+        * "cumo2i": cumo2i,
+        * ...
     """
     global DEBUG
     # Important python variables:
@@ -333,46 +333,46 @@ option_list <- list(
    make_option("--version", default=F, action="store_true", dest="myver",
        help="show program's version number and exit"),
    make_option("--noopt", default=T, action="store_false", dest="optimize",
-       help="no optimization, just use free fluxes as is (after a possible
-projection on the feasibility domain delimited by inequalities),
-to calculate dependent fluxes, cumomers, stats and so on"),
+       help="no optimization, just use free parameters as is (after a projection on feasability domain), to calculate dependent fluxes, cumomers, stats and so on"),
    make_option("--noscale", default=F, action="store_true",
-       help="no scaling factors to optimize => all scaling factors are 1"),
+       help="no scaling factors to optimize => all scaling factors are assumed to be 1"),
    make_option("--meth", default="nlsic", dest="method",
        help="method for optimization, one of BFGS|Nelder-Mead|ipopt|nlsic. Default: %%default"),
    make_option("--fullsys", default=F, action="store_true",
        help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)"),
    make_option("--emu", default=F, action="store_true",
-       help="calculate labeling in EMU approach"),
+       help="simulate labeling in EMU approach"),
    make_option("--irand", default=F, action="store_true", dest="initrand",
-       help="ignore initial approximation from FTBL file and use random values instead"),
+       help="ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries option) and use random values drawn uniformly from [0,1]
+interval"),
    make_option("--sens", default="", metavar="mc=N", dest="sensitive",
-       help="sensitivity method: mc=N, mc stands for Monte-Carlo. N is the number of Monte-Carlo simulations. '=N' is optional. Default N: 10"),
+       help="sensitivity method: SENS can be 'mc[=N]', mc stands for Monte-Carlo. N is an optional number of Monte-Carlo simulations. Default for N: 10"),
    make_option("--cupx", default=0.999, type="double",
-       help="upper limit for reverse fluxes. Must be in interval [0, 1]"),
+       help="upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999"),
    make_option("--cupn", default=1.e3, type="double",
-       help="upper limit for net fluxes"),
+       help="upper limit for net fluxes. Default: 1.e3"),
    make_option("--cupp", default=1.e5, type="double",
-       help="upper limit for metabolite pool"),
+       help="upper limit for metabolite pool. Default: 1.e5"),
    make_option("--clownr", default=0, type="double",
        help="lower limit for not reversible free and dependent fluxes. Zero value means no lower limit"),
-   make_option("--clowp", default=1.e-8, type="double",
-       help="lower limit for free metabolite pools. Must be positive."),
    make_option("--cinout", default=0, type="double",
-       help="lower limit for input/output free and dependent fluxes. Must be non negative"),
+       help="lower limit for input/output free and dependent fluxes. Must be non negative. Default: 0"),
+   make_option("--clowp", default=1.e-8, type="double",
+       help="lower limit for free metabolite pools. Must be positive. Default 1.e-8"),
    make_option("--np", default=0, type="integer",
-       help="Number of parallel process used in Monte-Carlo simulations
-       Without this option or for NP=0 all available cores in a given node are used"),
+       help="Number of parallel process used in Monte-Carlo simulations. Without this option or for NP=0 all available cores in a given node are used"),
    make_option("--ln", default=F, action="store_true", dest="least_norm",
-       help="Least norm solution is proposed when Jacobian is rank deficient"),
+       help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient"),
    make_option("--zc", default=-.Machine$double.xmax, type="double",
        help="Apply zero crossing strategy with non negative threshold for net fluxes"),
-   make_option("--DEBUG", default=F, action="store_true",
-       help="developer option"),
    make_option("--fseries", default="", dest="fseries",
        help="File name with free parameter values for multiple starting points. Default '' (empty, i.e. only one starting point defined in FTBL file)"),
    make_option("--iseries", default="", dest="iseries",
        help="Indexes of starting points to use. Format: '1:10' use only first ten starting points; '1,3' use first and third starting pointsDefault '' (empty, i.e. all requested starting points)"),
+   make_option("--seed", default=-.Machine$integer.max, type="integer",
+       help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) and Monte-Carlo simulations for sensitivity analysis (--sens mc=N) if executed in sequential way (i.e. with --np=1 option). Default: system value, i.e. random drawing will be varying at each run."),
+   make_option("--DEBUG", default=F, action="store_true",
+       help="developer option"),
    make_option("--TIMEIT", default=F, action="store_true",
        help="developer option"),
    make_option("--prof", default=F, action="store_true",
@@ -439,6 +439,13 @@ if (zc==-.Machine$double.xmax) {
       stop(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""))
    }
    zerocross=T
+}
+if (seed==-.Machine$integer.max) {
+   # no seed to apply
+   set_seed=F
+} else {
+   set_seed=T
+   set.seed(seed)
 }
 opts=commandArgs()
 # end command line argument proceeding
