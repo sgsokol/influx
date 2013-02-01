@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
    
    Introduction <intro>
+   Change Log <changelog>
    Installation <install>
    Quick Start <quick>
    User's manual <manual>
