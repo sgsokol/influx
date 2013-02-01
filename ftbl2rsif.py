@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""
+r"""
 read a .ftbl file from stdin and translate it to .sif file for Cytoscape
 on stdout. Two substrates or two products reactions are represented as
 diamond nodes. Node attributes are written in node.<attribute>.fnetw file
@@ -8,7 +8,7 @@ usage: ./ftbl2rsif.py < fnetw.ftbl > fnetw.sif
 or: ./ftbl2rsif.py fnetw.ftbl (in this case node.<attribute>.fnetw are silently
 rewritten)
 
-usage: ./ftbl2rsif [-h|--help|--DEBUG] network[.ftbl]
+usage: ./ftbl2rsif [-h|--help|--DEBUG] mynetwork[.ftbl]
 Take an ftbl file and produce a .cif and attribute files for
 cytoscape visualisation of the network defined in the ftbl.
 
@@ -16,23 +16,20 @@ OPTIONS
 -h, --help print this message and exit
 --DEBUG enable some debuggin features and output (for advanced users)
 
-PARAMETERS
-network - the base of an ftbl file (network.ftbl)
+:param mynetwork: the base of an ftbl file (mynetwork.ftbl)
 
-OUTPUT
-network.sif:
- - network definition for cytoscape
+:returns: mynetwork.sif -- file of the network definition suitable for cytoscape
 
-For attribute files the names are self explanatory :
-edge.label.network
-edge.sourceArrowColor.network
-edge.targetArrowColor.network
-node.fillColor.network
-node.shape.network
+For attribute files, the names are self explanatory :
+ * edge.label.mynetwork
+ * edge.sourceArrowColor.mynetwork
+ * edge.targetArrowColor.mynetwork
+ * node.fillColor.mynetwork
+ * node.shape.mynetwork
 
-NB
-Base name of ftbl file ('network' in this example)
-is used to create or silently overwrite all result files.
+.. note::
+ Base name of ftbl file ('mynetwork' in this example)
+ is used to create or silently overwrite all result files list
 """
 
 # 2008-01-23 sokol: initial release
