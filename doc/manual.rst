@@ -13,7 +13,7 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
 
 .. note::
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
- Some sections concerning metabolite pools were added to original FTBL format. Other important difference, is that user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0)
+ Some sections concerning metabolite pools were added to original FTBL format (cf. `Growth flux option`_). Other important difference, is that user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0)
 
 moreover we supposed ``influx_s.py`` is in the PATH variable.
 
@@ -206,7 +206,7 @@ Finally, the metabolite concentrations by a unit of biomass are reported in a se
 	Mal	-6.47828321758155
 	...	...
 
-Metabolite names used in this section must be identical to those used in the NETWORK section and others. Negative value is used as indicator of variable metabolite pools. Such varying metabolites are part of fitted parameters. Absolute values from this section are used as starting values in optimization process.
+Metabolite names used in this section must be identical to those used in the ``NETWORK`` section and others. Negative value is used as indicator of a variable metabolite pool. Such varying metabolites are part of fitted parameters. Absolute values from this section are used as their starting values in the optimization process.
 
 One of valuable originality of ``influx_s``, it is a possibility given to
 the user to couple fluxomics and metabolomics in stationary experiments. It can be done because metabolite pools can influence labeling in two ways:
