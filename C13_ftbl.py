@@ -348,10 +348,10 @@ def ftbl_netan(ftbl):
     fxch=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}))
     net_wo_xch=fnet-fxch
     if net_wo_xch:
-        raise Exception("Fluxe(s) '%s' are defined in the FLUX/NET section but not in the XCH one.", join(", ", net_wo_xch))
+        raise Exception("Fluxe(s) '%s' are defined in the FLUX/NET section but not in the XCH one."%join(", ", net_wo_xch))
     xch_wo_net=fxch-fnet
     if xch_wo_net:
-        raise Exception("Fluxe(s) '%s' are defined in the FLUX/XCH section but not in the NET one.", join(", ", xch_wo_net))
+        raise Exception("Fluxe(s) '%s' are defined in the FLUX/XCH section but not in the NET one."%join(", ", xch_wo_net))
 
     # quick not reversible reactions for complete subs and prods accounting
     revreac=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
