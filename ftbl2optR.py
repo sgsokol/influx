@@ -578,7 +578,7 @@ for (irun in iseq(nseries)) {
    o=order(names(rres$res))
    obj2kvh(rres$res[o], "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1)
 
-   rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurments, ir2isc, spa, emu, pool, ipooled)
+   rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
@@ -789,33 +789,6 @@ for (irun in iseq(nseries)) {
       simcumom=c(1.,param)[ir2isc]*jx_f$usimcumom
       simfmn=f[nm_fmn]
       simpool=as.numeric(measurements$mat$pool%*%poolall)
-      mc_sim=function(i) {
-         # random measurement generation
-         if (nb_meas) {
-            meas_mc=rnorm(nb_meas, simcumom, measurements$dev$labeled)
-         } else {
-            meas_mc=c()
-         }
-         if (nb_fmn) {
-            fmn_mc=rnorm(nb_fmn, simfmn, measurements$dev$flux)
-         } else {
-            fmn_mc=c()
-         }
-         if (nb_poolm) {
-            poolm_mc=rnorm(nb_fmn, simfmn, measurements$dev$pool)
-         } else {
-            poolm_mc=c()
-         }
-         #cat("imc=", i, "\\n", sep="")
-         # minimization
-         measurements_mc=measurements
-         measurements_mc$vec$labeled=meas_mc
-         measurements_mc$vec$flux=fmn_mc
-         measurements_mc$vec$pool=poolm_mc
-         res=opt_wrapper(measurements_mc, trace=0)
-         # return the solution
-         return(list(cost=sum(jx_f$res*jx_f$res), par=res$par))
-      }
       # parallel execution
       if (mc_inst) {
          mc_res=mclapply(1:nmc, mc_sim)
@@ -862,29 +835,37 @@ for (irun in iseq(nseries)) {
       obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent)
       obj2kvh(quantile(cost_mc, c(0.025, 0.975)), "ci", fkvh, indent)
       # free parameters section in kvh
-      cat("\\tfree parameters\\n", file=fkvh)
+      cat("\\tStatistics\\n", file=fkvh)
+      mout=c()
       indent=2
       # param stats
       # mean
-      obj2kvh(apply(free_mc, 1, mean), "mean", fkvh, indent)
+      mout=cbind(mout, mean=apply(free_mc, 1, mean))
+      #obj2kvh(apply(free_mc, 1, mean), "mean", fkvh, indent)
       # median
       parmed=apply(free_mc, 1, median)
+      mout=cbind(mout, median=parmed)
 #browser()
-      obj2kvh(parmed, "median", fkvh, indent)
+      #obj2kvh(parmed, "median", fkvh, indent)
       # covariance matrix
       covmc=cov(t(free_mc))
       obj2kvh(covmc, "covariance", fkvh, indent)
       # sd
       sdmc=sqrt(diag(covmc))
-      obj2kvh(sdmc, "sd", fkvh, indent)
-      obj2kvh(sdmc*100/abs(param), "rsd (%)", fkvh, indent)
+      mout=cbind(mout, sd=sdmc)
+      #obj2kvh(sdmc, "sd", fkvh, indent)
+      #obj2kvh(sdmc*100/abs(param), "rsd (%)", fkvh, indent)
+      mout=cbind(mout, "rsd (%)"=sdmc*100/abs(param))
       # confidence intervals
       ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
       ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-      dimnames(ci_mc)[[2]][3]="length"
-      obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
-      obj2kvh((ci_mc-cBind(param, param, 0))*100/abs(param),
-         "relative 95% confidence intervals (%)", fkvh, indent)
+      colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
+      mout=cBind(mout, ci_mc)
+      #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
+      #obj2kvh((ci_mc-cBind(param, param, 0))*100/abs(param),
+      #   "relative 95% confidence intervals (%)", fkvh, indent)
+      mout=cbind(mout, "relative CI (%)"=ci_mc[,3]*100/abs(param))
+      obj2kvh(mout, "free parameters", fkvh, indent)
 
       # net-xch01 stats
       fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fallnx)
@@ -915,8 +896,8 @@ for (irun in iseq(nseries)) {
          # confidence intervals
          ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
          ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cBind(ci_mc, (ci_mc-cBind(fallnx, fallnx, 0))*100/abs(fallnx))
-         dimnames(ci_mc)[[2]]=c("ci 2.5%", "ci 97.5%", "ci 95% length", "rci 2.5% (%)", "rci 97.5% (%)", "rci 95% length (%)")
+         ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(fallnx))
+         colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
          #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
          fallout=cBind(fallout, ci_mc)
          #obj2kvh((ci_mc-cBind(fallnx, fallnx, 0))*100/abs(fallnx),
@@ -950,8 +931,8 @@ for (irun in iseq(nseries)) {
          # confidence intervals
          ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)))
          ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cBind(ci_mc, (ci_mc-cBind(fwrv, fwrv, 0))*100/abs(fwrv))
-         dimnames(ci_mc)[[2]]=c("ci 2.5%", "ci 97.5%", "ci 95% length", "rci 2.5% (%)", "rci 97.5% (%)", "rci 95% length (%)")
+         ci_mc=cBind(ci_mc[,3]*100/abs(fwrv))
+         dimnames(ci_mc)[[2]]=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
          #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
          #obj2kvh((ci_mc-cBind(fwrv, fwrv, 0))*100/abs(fwrv),
          #   "relative 95% confidence intervals (%)", fkvh, indent)
