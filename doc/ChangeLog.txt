@@ -14,7 +14,7 @@ New features:
  - METAB_MEASUREMENTS section is added to FTBL format;
  - added :math:`\chi^2` test for evaluating the goodness of fit;
  - removed ``metab_scale`` field from OPTIONS section in FTBL format;
- - "dead end" internal metabolites are allowed in a network without being an output metabolite;
+ - "dead end" internal metabolites are allowed in a network without being an output metabolite. As consequence, input-output fluxes must be explicitly declared as non reversibles in the FTBL;
  - added optional EMU framework (``--emu``);
  - added optional series of starting points, fixed or randomly generated
    (``--fseries``, ``--iseries``);

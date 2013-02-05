@@ -13,6 +13,7 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
 
 .. note::
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
+ Some sections concerning metabolite pools were added to original FTBL format. Other important difference, is that user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0)
 
 moreover we supposed ``influx_s.py`` is in the PATH variable.
 
@@ -226,9 +227,11 @@ Another section that was added "ad hoc" to FTBL file is ``METAB_MEASUREMENTS``:
 	Mal	6.47828321758155*1.e-3/10.7	1.e-2
 	Rub5P+Rib5P+Xul5P	1.66034545348219*1.e-3/10.7	1.e-2
 
-Like for other measurements, user has to provide a name, a value and a standard deviation for each entry in this section. Metabolites listed in this section must be defined in the ``NETWORK`` section and must have a negative value in the ``METABOLITE_POOLS`` section. Numerical values can be simple arithmetic expressions which are evaluated during file parsing.
+Like for other measurements, user has to provide a name, a value and a standard deviation for each entry in this section. Metabolites listed in this section must be defined in the ``NETWORK`` section and must have a negative value in the ``METABOLITE_POOLS`` section. Numerical values can be simple arithmetic expressions (as in the example above) which are evaluated during file parsing.
 
 When a metabolite name is given as a sum of metabolites (e.g. ``Rub5P+Rib5P+Xul5P``) it is interpreted as a list of metabolites to be pooled. It is done proportionally to their concentrations. No numerical factor can appear in this sum. At least one of the metabolites from the list must have negative value in the ``METABOLITE_POOLS`` section. Otherwise, all metabolites from the list would be considered as having a fixed concentration and providing a measurement for such metabolites would be meaningless.
+
+.. note:: There is no a specific option activating simulation of metabolite concentrations and taking them into account to the fitting process. Their simple presence in the ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` sections make concerned metabolites fittable parameters.
 
 An example of an FTBL file having metabolite sections and involving growth fluxes can be found in ``test/e_coli_growth.ftbl``.
 
