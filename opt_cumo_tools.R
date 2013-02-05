@@ -1290,8 +1290,6 @@ opt_wrapper=function(measurements, trace=1) {
          measurements, ir2isc,
          spa, emu, pool, ipooled)
       if (res$err || is.null(res$par)) {
-         # store res in kvh
-         obj2kvh(res, "optimization aborted here", fkvh)
          warning(res$mes)
          res$par=rep(NA, length(param))
          res$cost=NA
@@ -1329,13 +1327,40 @@ opt_wrapper=function(measurements, trace=1) {
          measurements=measurements, ir2isc=ir2isc, spAb=spa, emu=emu, pool=pool, ipooled=ipooled)
       res$par=res$solution
       names(res$par)=nm_par
-      if(res$status != 0) {
-         # store res in kvh
-         obj2kvh(res$par, "optimization aborted here", fkvh)
-         warning(res$message)
-      }
    } else {
       stop(paste("Unknown minimization method '", method, "'", sep=""))
    }
    return(res)
+}
+
+# wrapper for Monte-Carlo simulations
+mc_sim=function(i) {
+   # random measurement generation
+   if (nb_meas) {
+      meas_mc=rnorm(nb_meas, simcumom, measurements$dev$labeled)
+   } else {
+      meas_mc=c()
+   }
+   if (nb_fmn) {
+      fmn_mc=rnorm(nb_fmn, simfmn, measurements$dev$flux)
+   } else {
+      fmn_mc=c()
+   }
+   if (nb_poolm) {
+      poolm_mc=rnorm(nb_poolm, simpool, measurements$dev$pool)
+   } else {
+      poolm_mc=c()
+   }
+   #cat("imc=", i, "\\n", sep="")
+   # minimization
+   measurements_mc=measurements
+   measurements_mc$vec$labeled=meas_mc
+   measurements_mc$vec$flux=fmn_mc
+   measurements_mc$vec$pool=poolm_mc
+   res=opt_wrapper(measurements_mc, trace=0)
+   if (nchar(res$mes) > 0) {
+      cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=stderr(), sep="")
+   }
+   # return the solution
+   return(list(cost=sum(jx_f$res*jx_f$res), par=res$par))
 }
