@@ -730,7 +730,14 @@ for (irun in iseq(nseries)) {
    gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
    names(gr)=nm_par
    obj2kvh(gr, "gradient vector", fkvh)
+   colnames(jx_f$udr_dp)=nm_par
    obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
+   
+   # generalized inverse of non reduced jacobian
+   svj=svd(jx_f$udr_dp)
+   invj=svj$v%*%(t(svj$u)/svj$d)
+   dimnames(invj)=rev(dimnames(jx_f$udr_dp))
+   obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
 
    if (fullsys) {
       nm_flist=nm_list
@@ -931,7 +938,7 @@ for (irun in iseq(nseries)) {
          # confidence intervals
          ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)))
          ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cBind(ci_mc[,3]*100/abs(fwrv))
+         ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(fwrv))
          dimnames(ci_mc)[[2]]=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
          #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
          #obj2kvh((ci_mc-cBind(fwrv, fwrv, 0))*100/abs(fwrv),
