@@ -108,6 +108,7 @@ f=ft[:-5]
 flog=open(f+".log", "w")
 ferr=open(f+".err", "w")
 flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
+print(" ".join('"'+v+'"' for v in sys.argv))
 
 # now parse commandArgs from the FTBL file
 cmd=""
