@@ -123,20 +123,21 @@ if __name__ == "__main__":
         pass
 
     def usage():
-        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--DEBUG] network_name[.ftbl]\n")
+        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--DEBUG] [--ropts ROPTS] network_name[.ftbl]\n")
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "DEBUG"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "DEBUG", "ropts="])
     except getopt.GetoptError, err:
         #pass
         sys.stderr.write(str(err)+"\n")
         usage()
-        #sys.exit(1)
+        sys.exit(1)
 
     fullsys=False
     DEBUG=False
     emu=False
+    ropts=['""']
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -149,12 +150,15 @@ if __name__ == "__main__":
             emu=True
         elif o=="--DEBUG":
             DEBUG=True
+        elif o=="--ropts":
+            ropts=a.split("; ") if len(a) else ['""']
         else:
             #assert False, "unhandled option"
             # unknown options can come from shell
             # which passes all options both to python and R scripts
             # so just ignore unknown options
-            pass
+            #pass
+            raise
     #aff("args", args);##
     #aff("opts", opts);##
     if len(args) != 1:
@@ -204,7 +208,7 @@ if __name__ == "__main__":
         rAb=C13_ftbl.rcumo_sys(netan)
 
     # write initialization part of R code
-    ftbl2code.netan2Rinit(netan, org, f, fullsys, emu)
+    ftbl2code.netan2Rinit(netan, org, f, fullsys, emu, ropts)
 
     f.write("""
 #browser()
@@ -288,6 +292,8 @@ measurements=list(
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
+nm_resid=c(nm_meas, nm_fmn, nm_poolm)
+nm_list$resid=nm_resid
 """%{
     "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
     "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"'),
@@ -310,7 +316,11 @@ if (nchar(fseries) > 0) {
    pstart=as.matrix(read.table(fseries, header=T, row.n=1, sep="\\t"))
    # skip parameters (rows) who's name is not in nm_par
    i=rownames(pstart) %in% nm_par
+   if (!any(i)) {
+      stop("Option --fseries is used but no free parameter with known name is found.")
+   }
    pstart=pstart[i,,drop=F]
+   cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="")
 #expp   # take log of free pools
 #expp   i=grep("^pf:", rownames(pstart))
 #expp   pstart[i,]=log(pstart[i,])
@@ -363,6 +373,9 @@ for (irun in iseq(nseries)) {
    } else {
       runsuf=""
    }
+   if (length(nseries) > 0) {
+      cat("Starting point", runsuf, "\\n", sep="")
+   }
    fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) %s+% runsuf %s+% ".kvh", "w");
 
    # remove zc inequalities from previous interations
@@ -377,7 +390,7 @@ for (irun in iseq(nseries)) {
    names(ineq)=rownames(ui)
    param_old=param
    if (any(ineq <= -1.e-10)) {
-      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point:\\n", sep="")
+      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\\n", sep="")
       print(ineq[ineq<= -1.e-10])
       # put them inside
       param=put_inside(param, ui, ci)
@@ -511,7 +524,7 @@ for (irun in iseq(nseries)) {
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
    if (any(abs(ineq)<=1.e-10)) {
-      cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point:\\n",
+      cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point", runsuf, ":\\n",
          paste(names(ineq[abs(ineq)<=1.e-10]), collapse="\\n"), "\\n", sep="")
    }
 """)
@@ -529,6 +542,10 @@ for (irun in iseq(nseries)) {
    cat("influx\\n", file=fkvh)
    cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="")
    # save options of command line
+   cat("\\truntime options\\n", file=fkvh)
+   cat("\\t\\t%s\\n", file=fkvh)
+   """%join("\n\t\t", ropts)[1:-1])
+    f.write("""
    cat("\\tR command line\\n", file=fkvh)
    obj2kvh(opts, "opts", fkvh, indent=2)
 
@@ -574,7 +591,7 @@ for (irun in iseq(nseries)) {
    obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
 
    rres=cumo_resid(param, cjac=TRUE, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
-   names(rres$res)=c(nm_meas, nm_fmn, nm_poolm)
+   names(rres$res)=nm_resid
    o=order(names(rres$res))
    obj2kvh(rres$res[o], "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1)
 
@@ -642,7 +659,7 @@ for (irun in iseq(nseries)) {
          if (length(i) > 0) {
             i=str2ind(i, nm_i)
             cat("The following inequalities are active after first stage
-   of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
+of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
             ipos=grep(">=", nm_i[i], v=T)
             ineg=grep("<=", nm_i[i], v=T)
             ui[i,]=-ui[i,,drop=F]
@@ -665,7 +682,7 @@ for (irun in iseq(nseries)) {
             param=put_inside(res$par, ui, ci)
             if (any(is.na(param))) {
                if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
-                  # fatal error occurd, don't reoptimize
+                  # fatal error occured, don't reoptimize
                   warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
                   param=res$param
                   reopt=FALSE
@@ -679,15 +696,40 @@ for (irun in iseq(nseries)) {
                res=opt_wrapper(measurements)
                if (any(is.na(res$par))) {
                   obj2kvh(res, "optimization process informations", fkvh)
-                  cat("Second optimization failed", runsuf, "\n", file=stderr(), sep="")
+                  cat("Second optimization failed", runsuf, "\\n", file=stderr(), sep="")
                   close(fkvh)
                   next
                }
             }
          }
-      }
+      }	
       param=res$par
       names(param)=nm_par
+      if (excl_outliers != F) {
+         # detect outliers
+         iout=which(rz.pval.bi(res$res) <= excl_outliers)
+         #cat("iout=", iout, "\\n")
+         if (length(iout)) {
+            measurements$outlier=iout
+            cat("Excluded outliers at p-value ", excl_outliers, ":\\n",
+               paste(nm_resid[iout], collapse="\\n"), "\\n", sep="")
+            jx_f_save=jx_f
+            resout=opt_wrapper(measurements)
+            if (any(is.na(resout$par))) {
+               cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=stderr(), sep="")
+               # continue without outlier exclusion
+               measurements$outlier=NULL
+               jx_f=jx_f_save
+            } else {
+               res=resout
+               param=res$par
+               names(param)=nm_par
+               obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
+            }
+         } else {
+            warning("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.")
+         }
+      }
       obj2kvh(res, "optimization process informations", fkvh)
    }
    if (TIMEIT) {
@@ -708,7 +750,11 @@ for (irun in iseq(nseries)) {
    pres[,irun]=param
    costres[irun]=rcost
    obj2kvh(rcost, "final cost", fkvh)
-   names(rres$res)=c(nm_meas, nm_fmn, nm_poolm)
+   if (is.null(measurements$outlier) || length(measurements$outlier)==0) {
+      names(rres$res)=nm_resid
+   } else {
+      names(rres$res)=nm_resid[-measurements$outlier]
+   }
    o=order(names(rres$res))
    obj2kvh(rres$res[o], "(simulated-measured)/sd_exp", fkvh)
 
@@ -785,6 +831,8 @@ for (irun in iseq(nseries)) {
 
    fgr=fallnx[nm_fgr]
 
+   # keep last jx_f in jx_f_last
+   jx_f_last=jx_f
    if (sensitive=="mc") {
       if (TIMEIT) {
          cat("monte-ca: ", date(), "\\n", sep="")
@@ -829,7 +877,7 @@ for (irun in iseq(nseries)) {
       cat("monte-carlo\\n", file=fkvh)
       indent=1
       obj2kvh(nmc, "sample number", fkvh, indent)
-      avaco=multicore:::detectCores()
+      avaco= if (mc_inst) multicore:::detectCores() else NA
       obj2kvh(avaco, "detected cores", fkvh, indent)
       avaco=max(1, avaco, na.rm=T)
       obj2kvh(min(avaco, options("cores")$cores, na.rm=T), "used cores", fkvh, indent)
@@ -957,6 +1005,7 @@ for (irun in iseq(nseries)) {
    }
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
+   jx_f=jx_f_last
    if (is.null(jx_f$jacobian)) {
       rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
    } # else use last calculated jacobian
@@ -971,7 +1020,7 @@ for (irun in iseq(nseries)) {
    ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
    ibad=unique(unlist(ibad))
    if (length(ibad) > 0) {
-      warning(paste("Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
+      warning(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
          paste(nm_par[ibad], collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""))
    }
    # "square root" of covariance matrix (to preserve numerical positive definitness)
@@ -1092,6 +1141,8 @@ close(fco)
 if (TIMEIT) {
    cat("rend    : ", date(), "\\n", sep="")
 }
+flush(stdout())
+flush(stderr())
 """%{
     "org": escape(org, "\\"),
     "d": escape(dirorg, "\\"),
