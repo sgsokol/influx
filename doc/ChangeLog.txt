@@ -3,7 +3,7 @@ Change Log for influx_s
 =======================================
 
 
-2013-03-04 version 2.2
+2013-03-13 version 2.2
 ----------------------
 New features:
  - if more than one FTBL file is given in argument to ``influx_s``, all files are proceeded simultaneously in independent processes;
