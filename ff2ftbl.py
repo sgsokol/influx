@@ -2,7 +2,8 @@
 
 """
 This program gets free flux and free pool values from kvh file
-and put them in a ftbl file.
+and put them in a ftbl file after rounding values to 7 digits
+(default value but can be change with -r option).
 
 Names in kvh are like "f.n.FLX" or "f.x.FLX" or "pf:Glc6P"
 Names in ftbl are like "FLX" in corresponding NET or XCH section
@@ -14,7 +15,7 @@ edited flux or pool are lost.
 
 New content is sent to stdout
 
-usage: ./ff2ftbl.py [-h|--help] f.kvh f.ftbl > new_f.ftbl
+usage: ./ff2ftbl.py [-h|--help] [-r 7] f.kvh f.ftbl > new_f.ftbl
 or: cat f.kvh | ./ff2ftbl.py - f.ftbl > new_f.ftbl
 """
 import sys
@@ -28,7 +29,7 @@ def usage(mes):
     sys.stderr.write(os.linesep.join([mes, __doc__]))
 
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "h", ["help"])
+    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help"])
 except getopt.GetoptError, err:
     #pass
     usage(str(err))
@@ -36,10 +37,14 @@ except getopt.GetoptError, err:
 
 fullsys=False
 DEBUG=False
+nround=7
 for o,a in opts:
     if o in ("-h", "--help"):
         usage()
         sys.exit(0)
+    elif o == "-r":
+        # round option
+        nround=int(a)
     else:
         assert False, "unhandled option"
 #aff("args", args);##
@@ -55,8 +60,8 @@ ftbl=args[1]
 # get free fluxes from kvh
 ff=kvh.kvh2dict(fkvh)
 
-# convert strings to floats
-ff=dict((k,float(v)) for (k,v) in ff.iteritems())
+# convert strings to floats and round it to nround digits (default 7)
+ff=dict((k, round(float(v), nround)) for (k,v) in ff.iteritems())
 
 #print("ff=", ff)
 # read ftbl in a list of lines
@@ -70,7 +75,8 @@ iend=ixch+[i for (i,l) in enumerate(lftbl[ixch:]) if re.match("[^ \t\r\n/]+", l)
 #print(ifl,inet,ixch)
 
 # detect metabolite definition section in ftbl
-ipool=[i for (i,l) in enumerate(lftbl) if re.match("^METABOLITE_POOLS\w*(//.*)*", l)][0]
+ipool=[i for (i,l) in enumerate(lftbl) if re.match("^METABOLITE_POOLS\w*(//.*)*", l)]
+ipool=ipool[0] if ipool else None
 
 # get metab_scale if any
 #try:
