@@ -408,7 +408,7 @@ def ftbl_netan(ftbl):
                     continue
                 if carb[0] != "#":
                     raise Exception("In carbon string for metabolite "+m+" a starting '#' is missing."+
-                        "\nreaction="+str(row)+"\ncarbons ="+str(trans)+" (row: %d)"%row["id"])
+                        "\nreaction="+str(row)+"\ncarbons ="+str(trans)+" (row: %d)"%row["irow"])
                 # carbon transitions
                 netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
 
@@ -417,7 +417,7 @@ def ftbl_netan(ftbl):
                         netan["Clen"][m] != len(carb)-1:
                     raise Exception("CarbonLength", "Metabolite "+m+" has length "+
                             str(netan["Clen"][m])+" but in reaction "+reac+
-                            " it has length "+str(len(carb)-1)+" (row: %d)"%row["id"])
+                            " it has length "+str(len(carb)-1)+" (row: %d)"%row["irow"])
                 netan["Clen"][m]=len(carb)-1; # don't count '#' character
         except KeyError:
             werr("CarbonTrans: No reaction "+reac+" in carbon transitions\n")
@@ -635,10 +635,10 @@ def ftbl_netan(ftbl):
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
         if row["FLUX_NAME"] not in netan["reac"]:
-            raise Exception("Mesured flux `%s` is not defined in NETWORK section (row: %d)."%(row["FLUX_NAME"], row["id"]))
+            raise Exception("Mesured flux `%s` is not defined in NETWORK section (row: %d)."%(row["FLUX_NAME"], row["irow"]))
         if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
-            raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["id"]))
+            raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["irow"]))
         netan["flux_measured"][row["FLUX_NAME"]]={\
                 "val": eval(row["VALUE"]), \
                 "dev": eval(row["DEVIATION"])}
@@ -649,12 +649,12 @@ def ftbl_netan(ftbl):
         found_neg=False
         for m in metabl:
             if m not in netan["metabint"]:
-                raise Exception("Mesured metabolite `%s` is not internal metabolite (row: %d)."%(m, row["id"]))
+                raise Exception("Mesured metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
             if m not in netan["met_pools"]:
-                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["id"]))
+                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
             found_neg=found_neg or netan["met_pools"][m] < 0.
         if not found_neg:
-            raise Exception("At least one of mesured metabolites `%s` must be defined as free (i.e. having negative starting value) in the METABOLITE_POOLS (row: %d)."%(row["META_NAME"], row["id"]))
+            raise Exception("At least one of mesured metabolites `%s` must be defined as free (i.e. having negative starting value) in the METABOLITE_POOLS (row: %d)."%(row["META_NAME"], row["irow"]))
         netan["metab_measured"][row["META_NAME"]]={\
                 "val": eval(row["VALUE"]), \
                 "dev": eval(row["DEVIATION"])}
