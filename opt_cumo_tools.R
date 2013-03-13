@@ -115,8 +115,15 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, 
 #expp      pool[nm$poolf]=exp(param[nm$poolf])
       pool[nm$poolf]=param[nm$poolf]
       res=c((simvec-measurements$vec$labeled), (jx_f$fallnx[measurements$mat$flux]-measurements$vec$flux), as.numeric(measurements$mat$pool%*%pool)-measurements$vec$pool)
-      jx_f$ures<<-res
-      jx_f$res<<-res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)
+      names(res)=nm$resid
+      if (is.null(measurements$outlier) || length(measurements$outlier)==0) {
+         jx_f$ures<<-res
+         jx_f$res<<-res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)
+      } else {
+         # exclude outliers
+         jx_f$ures<<-res[-measurements$outlier]
+         jx_f$res<<-(res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool))[-measurements$outlier]
+      }
    } # else we have everything in jx_f
    # jacobian
    if (cjac) {
@@ -125,7 +132,12 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, 
          cumo_jacob(param, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl,
             bp, fc, xi, measurements, ir2isc)
          jacobian=as.matrix(jx_f$udr_dp/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool))
-         colnames(jacobian)=nm$par
+         dimnames(jacobian)=list(nm$resid, nm$par)
+         
+         if (!is.null(measurements$outlier) && !length(measurements$outlier)==0) {
+            # exclude outliers
+            jacobian=jacobian[-measurements$outlier,,drop=F]
+         }
          jx_f$jacobian <<- jacobian
          if (nb_f$nb_ff > 0) {
             jx_f$dr_dff <<- jacobian[,1:nb_f$nb_ff,drop=F]
@@ -385,13 +397,13 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
          ba_x=ba_x+nb_c
       }
    }
+   if (emu) {
+      names(x)=c("one", nm$xi, nm$emu)
+   } else {
+      names(x)=c("one", nm$xi, nm$rcumo)
+   }
    jx_f$x <<- x
    x=tail(x, -nb_xi-1)
-   if (emu) {
-      names(x)=nm$emu
-   } else {
-      names(x)=nm$rcumo
-   }
    
    # calculate unreduced and unscaled measurements
    mv=mema1%*%x+memaonep
