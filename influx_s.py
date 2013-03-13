@@ -3,9 +3,74 @@
 """
 import sys, os, datetime as dt, subprocess as subp
 from optparse import OptionParser
+from threading import Thread
 
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
+
+def optional_pval(pval):
+    def func(option,opt_str,value,parser):
+        if parser.rargs and not parser.rargs[0].startswith('-'):
+            try:
+                val=float(parser.rargs[0])
+                parser.rargs.pop(0)
+            except:
+                val=pval
+        else:
+            val=pval
+        setattr(parser.values,option.dest,val)
+    return func
+
+def launch_job(ft, fshort, cmd_opts):
+    r"""Launch R code generation and then its execution
+"""
+    #print "here thread: "+fshort
+    f=ft[:-5]
+    flog=open(f+".log", "wb")
+    ferr=open(f+".err", "wb")
+    flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
+
+    # code generation
+    s=fshort+"code gen: "+now_s()
+    flog.write(s+"\n")
+    flog.flush()
+    print(s)
+
+    try:
+        # generate the R code
+        # leave python options as are and put R options as argument to --ropts
+        opt4py=list(pyopt.intersection("--"+kc for kc in cmd_opts.keys())) + \
+            ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
+            if isinstance(v, type("")) else "T" if v is True else "F" \
+            if v is False else str(v)) for k,v in cmd_opts.iteritems()) + '"'] \
+            + [ft]
+        pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
+        #print(pycmd)
+        p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
+        flog.flush()
+
+        # execute R code
+        rcmd="R --vanilla --slave".split()
+        flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >>"+flog.name+" 2>>"+ferr.name+"\n")
+        s=fshort+"calcul  : "+now_s()
+        flog.write(s+"\n")
+        flog.flush()
+        print(s)
+        try:
+            p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
+        except:
+            pass
+        ferr.close()
+        s=fshort+"end     : "+now_s()
+        print(s)
+        flog.write(s+"\n")
+        if os.path.getsize(ferr.name) > 0:
+            s="=>Check "+ferr.name
+            print(s)
+            flog.write(s+"\n")
+        flog.close()
+    except:
+        pass
 
 pla=sys.platform
 # my own name
@@ -21,7 +86,7 @@ version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 pyopt=set(("--fullsys", "--emu", "--DEBUG"))
 
 # create a parser for command line options
-parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file",
+parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file1 [FTBL_file2 [...]]",
     description=__doc__,
     version="%prog "+version)
 parser.add_option(
@@ -83,6 +148,9 @@ parser.add_option(
 "--seed",
        help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis (--sens mc=N) if executed in sequential way (--np=1). Default: current system value, i.e. random drawing will be varying at each run.")
 parser.add_option(
+"--excl_outliers", action='callback', callback=optional_pval(0.01), dest="excl_outliers",
+       help="This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.")
+parser.add_option(
 "--DEBUG", action="store_true",
     help="developer option")
 parser.add_option(
@@ -96,77 +164,38 @@ parser.add_option(
 (opts, args) = parser.parse_args()
 #print ("opts=", opts)
 #print ("args=", args)
-if len(args) != 1:
+# make args unique
+args=set(args)
+if len(args) < 1:
     parser.print_help()
-    parser.error("FTBL_file expected in argument")
-ft=args[-1]
-if ft[-5:] != ".ftbl":
-    ft=ft+".ftbl"
-if not os.path.exists(ft):
-    parser.error("FTBL file '%s' does not exist."%ft)
-f=ft[:-5]
-flog=open(f+".log", "w")
-ferr=open(f+".err", "w")
-flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
+    parser.error("At least one FTBL_file expected in argument")
+
 print(" ".join('"'+v+'"' for v in sys.argv))
 
-# now parse commandArgs from the FTBL file
-cmd=""
-for line in open(ft, "rb"):
-    if line[:13] == "\tcommandArgs\t":
-        cmd=line[13:]
-        break
-(cmd_opts, args) = parser.parse_args(cmd.split())
-#print ("cmd_opts=", cmd_opts)
-if len(args) != 0:
-    parser.print_help()
-    parser.error("FTBL_file has to be given in the command line")
+for ft in args:
+    if ft[-5:] != ".ftbl":
+        ft=ft+".ftbl"
+    if not os.path.exists(ft):
+        sys.stderr.write("FTBL file '%s' does not exist."%ft)
+        continue;
+    f=ft[:-5]
+    fshort="" if len(args) == 1 else os.path.basename(f)+": "
 
-# update cmd_opts with runtime options
-cmd_opts._update_loose(dict((k,v) for (k,v) in eval(str(opts)).iteritems() if not v is None))
-#print("cmd_opts=", cmd_opts)
+    # now parse commandArgs from the FTBL file
+    cmd=""
+    for line in open(ft, "rb"):
+        if line[:13] == "\tcommandArgs\t":
+            cmd=line[13:]
+            break
+    (cmd_opts, cmd_args) = parser.parse_args(cmd.split())
+    #print ("cmd_opts=", cmd_opts)
+    if len(cmd_args) != 0:
+        ferr.write("Argument(s) '%s' from the field commandArgs of '%s' are ignored.\n"%(" ".join(cmd_args), ft))
 
-lopts=[("--"+k, v if type(v)!=type(True) else None) for (k,v) in eval(str(cmd_opts)).iteritems() if not v is None]
-#print("lopts=", lopts)
-lopts=[str(v) for t in lopts for v in t if not v is None]
-#print("lopts2=", lopts)
-
-# code generation
-s="code gen: "+now_s()
-flog.write(s+"\n")
-flog.flush()
-print(s)
-
-try:
-    # generate the R code
-    # extract just python options
-    opt4py=list(pyopt.intersection(lopts))+[ft]
-    pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
-    #print(pycmd)
-    p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
-    flog.flush()
-
-    # execute R code
-    rcmd="R --vanilla --slave --args".split()+lopts
-    flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >"+flog.name+" 2>"+ferr.name+"\n")
-    s="calcul  : "+now_s()
-    flog.write(s+"\n")
-    flog.flush()
-    print(s)
-    p=subp.check_call(rcmd, stdin=open(f+".R"), stdout=flog, stderr=ferr)
-    flog.flush()
-except:
-    pass
-
-#end
-s="end     : "+now_s()
-flog.write(s+"\n")
-print(s)
-
-ferr.close()
-if os.path.getsize(ferr.name) > 0:
-    s="=>Check "+ferr.name
-    print(s)
-    flog.write(s+"\n")
-flog.close()
+    # update cmd_opts with runtime options
+    cmd_opts._update_loose(dict((k,v) for (k,v) in eval(str(opts)).iteritems() if not v is None))
+    cmd_opts=eval(str(cmd_opts))
+    cmd_opts=dict((k,v) for k,v in cmd_opts.iteritems() if v is not None)
+    #print("cmd_opts=", cmd_opts)
+    Thread(target=launch_job, name=ft, args=(ft, fshort, cmd_opts)).start()
 sys.exit(0)
