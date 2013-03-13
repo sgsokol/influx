@@ -46,10 +46,6 @@ A basic work-flow with ``influx_s`` is composed of the following steps:
   will contain only one column corresponding to the starting point defined
   in the ``mynetwork.ftbl`` file.
   
-  .. note:: In this file, the values of fitted metabolite pools (if any)
-    correspond
-    to their natural logarithm values :math:`\ln(M)`, where :math:`M` is a fitted size of
-    a given metabolite.
  ``edge.netflux.mynetwok``, ``edge.xchflux.mynetwok``, ``node.log2pool.mynetwork``
   as the middle name of this files suggest, they can be used to map the corresponding
   values on the network graph in the `cytoscape <http://www.cytoscape.org>`_ software.
