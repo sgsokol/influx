@@ -17,6 +17,11 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
 
 moreover we supposed ``influx_s.py`` is in the PATH variable.
 
+In a high throuput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.: ::
+
+ $ influx_s.py mynetwork1 mynetwork2
+
+and so on. All files are then proceeded in separate independent processes launched almost simultaniously. It is an operating system who is in charge to make a repartition of all these processes among all available CPUs and cores.
 
 Sometimes, particular cases need usage of special options of ``influx_s``. The list of available options can be seen by running::
 
@@ -34,7 +39,7 @@ or::
 
  $ influx_s.py --meth=BFGS mynetwork
 
-The option names can be shortened till a non ambiguous interpretation is possible, e.g in the previous example, the option could be shortened as ``--m BFGS`` or ``--m=BFGS`` because there is no other option name starting by a letter ``m``. But an option ``--no`` could not be distinguished between ``--noopt`` and ``--noscale``. So at least ``--nos`` (for ``--noscale``) or ``--noo`` (for ``--noopt``) should be provided.
+The option names can be shortened till a non ambiguous interpretation is possible, e.g in the previous example, the option could be shortened as ``--m BFGS`` or ``--m=BFGS`` because there is no other option name starting by a letter ``m``. But an option ``--no`` could not be distinguished between ``--noopt`` and ``--noscale``. So at least ``--nos`` (for ``--noscale``) or ``--noo`` (for ``--noopt``) should be provided. There is only one option that does not admit a usage of an equal sign to provide an argument, it is ``--excl_outliers``. Use only a space character to provide an argument to this option when required.
 
 Here after the available options with their full names are enumerated and detailed.
 
@@ -103,7 +108,17 @@ Command line options
                      
                      For both ``--fseries`` and ``--iseries``, one result file is generated per starting point, e.g. ``mynetwork_res.V1.kvh``, ``mynetwork_res.V2.kvh`` and so on. If starting points comes from a ``--fseries`` then the suffixes ``V1``, ``V2``, ... are replaced by the column names from this file. In addition, a file ``mynetwork.pres.csv`` resuming all estimated parameters and final cost values is written.
   --seed=SEED        Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (``--irand``) but also Monte-Carlo simulations for sensitivity analysis (``--sens mc=N``) if executed in sequential way (``--np=1``). Default: current system value, i.e. the random drawing will be varying at each run.
-  --DEBUG          developer option
+  --excl_outliers    This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.
+
+                     An optional p-value used here does not give a proportion of residuals that will be excluded from optimization process. If you want to filter out more outliers than with the default p-value, use a value grater than the default value of 0.01, e.g.: ::
+
+                      influx_s.py --excl_outliers 0.02 mynetwork.ftbl
+
+                     .. note::
+
+                      Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).
+
+ --DEBUG          developer option
 
                    Produce a lot of run-time information in the log-file and many additional files. This also can slow down the program in a drastic way. Don't use this option unless your know what your are doing.
   --TIMEIT         developer option
