@@ -3,8 +3,7 @@
 """
 import sys, os, datetime as dt, subprocess as subp
 from optparse import OptionParser
-from threading import Thread, enumerate as th_enum
-from time import sleep
+from threading import Thread
 
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
@@ -22,7 +21,7 @@ def optional_pval(pval):
         setattr(parser.values,option.dest,val)
     return func
 
-def launch_compil(ft, fshort, cmd_opts):
+def launch_job(ft, fshort, cmd_opts):
     r"""Launch R code generation and then its execution
 """
     #print "here thread: "+fshort
@@ -48,32 +47,29 @@ def launch_compil(ft, fshort, cmd_opts):
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
         #print(pycmd)
         p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
-        flog.close()
-        ferr.close()
+        flog.flush()
 
         # execute R code
-        #rcmd="R --vanilla --slave".split()
-        #flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >>"+flog.name+" 2>>"+ferr.name+"\n")
-        #s=fshort+"calcul  : "+now_s()
-        #flog.write(s+"\n")
-        #flog.flush()
-        #print(s)
-        #try:
-        #    p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
-        #except:
-        #    pass
-        #ferr.close()
-        #s=fshort+"end     : "+now_s()
-        #print(s)
-        #flog.write(s+"\n")
-        #if os.path.getsize(ferr.name) > 0:
-        #    s="=>Check "+ferr.name
-        #    print(s)
-        #    flog.write(s+"\n")
-        #flog.close()
-    except:
-        flog.close()
+        rcmd="R --vanilla --slave".split()
+        flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >>"+flog.name+" 2>>"+ferr.name+"\n")
+        s=fshort+"calcul  : "+now_s()
+        flog.write(s+"\n")
+        flog.flush()
+        print(s)
+        try:
+            p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
+        except:
+            pass
         ferr.close()
+        s=fshort+"end     : "+now_s()
+        print(s)
+        flog.write(s+"\n")
+        if os.path.getsize(ferr.name) > 0:
+            s="=>Check "+ferr.name
+            print(s)
+            flog.write(s+"\n")
+        flog.close()
+    except:
         pass
 
 pla=sys.platform
@@ -83,11 +79,8 @@ me=os.path.realpath(sys.argv[0])
 direx=os.path.dirname(me)
 direx="." if not direx else direx
 
-sys.path.append(direx)
-from kvh import escape
-
 # my version
-version=file(os.path.join(direx, "influx_version.txt"), "rb").read().strip()
+version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
 pyopt=set(("--fullsys", "--emu", "--DEBUG"))
@@ -137,8 +130,8 @@ parser.add_option(
 "--clowp",
     help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
 parser.add_option(
-"--np", type="int", default=0,
-    help="""Number of parallel process used in Monte-Carlo simulations on in case of multiple FTBL files submitted simultaneously. Without this option or for NP=0 all available cores in a given node are used""")
+"--np", type="int",
+    help="""Number of parallel process used in Monte-Carlo simulations. Without this option or for NP=0 all available cores in a given node are used""")
 parser.add_option(
 "--ln", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
@@ -179,15 +172,11 @@ if len(args) < 1:
 
 print(" ".join('"'+v+'"' for v in sys.argv))
 
-# add .ftbl where needed
-args=[ft+(".ftbl" if ft[-5:] != ".ftbl" else "") for ft in args]
-todel=[]
-ths=[]
-for ift in range(len(args)):
-    ft=args[ift]
+for ft in args:
+    if ft[-5:] != ".ftbl":
+        ft=ft+".ftbl"
     if not os.path.exists(ft):
         sys.stderr.write("FTBL file '%s' does not exist."%ft)
-        todel.append(ift)
         continue;
     f=ft[:-5]
     fshort="" if len(args) == 1 else os.path.basename(f)+": "
@@ -208,49 +197,5 @@ for ift in range(len(args)):
     cmd_opts=eval(str(cmd_opts))
     cmd_opts=dict((k,v) for k,v in cmd_opts.iteritems() if v is not None)
     #print("cmd_opts=", cmd_opts)
-    th=Thread(target=launch_compil, name=ft, args=(ft, fshort, cmd_opts))
-    th.start()
-    ths.append(th)
-for i in todel:
-    del(args[i])
-
-# wait untill all threads of compilation end
-while True:
-    if any(th.isAlive() for th in ths):
-        # wait 0.1 s and loop again
-        sleep(0.1)
-    else:
-        break
-
-# R source are generated, generate and run par.R
-fpar=open("par.R", "wb")
-fpar.write("""
-library(parallel)
-suppressPackageStartupMessages(library(Matrix))
-fvect=c(%(fvect)s)
-run=function(f) {
-   bn=basename(f)
-   fshort=if (length(fvect) == 1) "" else sub(".R$", ": ", bn)
-   scalc=paste(fshort, "calcul  : ", format(Sys.time(), "%(date)s"), "\\n", collapse="", sep="")
-   source(f)
-   cat(scalc, fshort, "end     : ", format(Sys.time(), "%(date)s"), "\\n", sep="")
-   ferr=sub(".R$", ".err", f)
-   if (file.info(ferr)$size > 0) {
-      cat("=>Check ", ferr, "\\n", sep="")
-   }
-}
-if (substr(R.Version()$os, 1, 5) == "mingw") {
-   cl=makeCluster(%(np)s)
-   clusterExport(cl, "fvect")
-   res=parLapply(cl, fvect, run)
-} else {
-   res=mclapply(fvect, run)
-}
-"""%{
-    "fvect": ", ".join(['"'+escape(ft, "\\")[:-5]+".R"+'"' for ft in args]),
-    "date": "%Y-%m-%d %H:%M:%S",
-    "np": str(cmd_opts["np"]) if cmd_opts.get("np") else "detectCores()"
-})
-fpar.close()
-p=subp.check_call(["R", "--vanilla", "--slave"], stdin=open("par.R", "rb"))
+    Thread(target=launch_job, name=ft, args=(ft, fshort, cmd_opts)).start()
 sys.exit(0)
