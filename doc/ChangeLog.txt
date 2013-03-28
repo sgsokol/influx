@@ -1,7 +1,28 @@
-=======================================
+=======================
 Change Log for influx_s
-=======================================
+=======================
 
+2013-03-28 version 2.3
+----------------------
+New features:
+ - external ``multicore`` R package is replaced by native ``parallel`` package;
+ - convergence information of Monte-Carlo simulations is reported in the result file;
+ - relative SD (rsd) in Monte-Carlo statistics is calculated as SD/abs(mean) and no more as SD/abs(estimated parameter);
+ - if the number of really calculated samples in Monte-Carlo is less than 2, statistics are not calculated;
+ - R code is self sufficient to be executed via source() function, even in parallel way;
+ - with a new option ``--nocalc``, R code is generated but not executed.
+
+Bug fixes:
+ - fixed concurrent access to a global variable in Monte-Carlo parallel execution;
+ - fixed scope issue in Monte-Carlo simulations preventing from update of the current solution;
+ - fixed some redundant warning messages;
+ - fixed placement of .err and .log files if FTBL(s) is (are) given with subdirectories in their names.
+
+2013-03-15 version 2.2.1
+------------------------
+Bug fixes:
+ - fixed a fatal error in Jacobian matrix construction when no measured fluxes are provided in FTBL file (reported by Yanfen Fu, University of Washington);
+ - in the User's manual, added a naming convention for variable growth fluxes.
 
 2013-03-13 version 2.2
 ----------------------
