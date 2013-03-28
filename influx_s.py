@@ -31,10 +31,10 @@ def launch_job(ft, fshort, cmd_opts):
     flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
 
     # code generation
-    s=fshort+"code gen: "+now_s()
-    flog.write(s+"\n")
+    s=fshort+"code gen: "+now_s()+"\n"
+    flog.write(s)
     flog.flush()
-    print(s)
+    sys.stdout.write(s)
 
     try:
         # generate the R code
@@ -48,31 +48,31 @@ def launch_job(ft, fshort, cmd_opts):
         #print(pycmd)
         p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
         flog.flush()
-
-        # execute R code
-        rcmd="R --vanilla --slave".split()
-        flog.write("executing: "+" ".join(rcmd)+" <"+f+".R >>"+flog.name+" 2>>"+ferr.name+"\n")
-        s=fshort+"calcul  : "+now_s()
-        flog.write(s+"\n")
-        flog.flush()
-        print(s)
-        try:
-            p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
-        except:
-            pass
+        
+        if ("nocalc" not in cmd_opts):
+            # execute R code
+            rcmd="R --vanilla --slave".split()
+            flog.write("executing: "+" ".join(rcmd)+" < "+f+".R\n")
+            s=fshort+"calcul  : "+now_s()+"\n"
+            flog.write(s)
+            flog.flush()
+            sys.stdout.write(s)
+            try:
+                p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
+            except:
+                pass
         ferr.close()
-        s=fshort+"end     : "+now_s()
-        print(s)
+        s=fshort+"end     : "+now_s()+"\n"
+        sys.stdout.write(s)
         flog.write(s+"\n")
         if os.path.getsize(ferr.name) > 0:
-            s="=>Check "+ferr.name
-            print(s)
+            s="=>Check "+ferr.name+"\n"
+            sys.stdout.write(s)
             flog.write(s+"\n")
         flog.close()
     except:
         pass
 
-pla=sys.platform
 # my own name
 me=os.path.realpath(sys.argv[0])
 # my exec dir
@@ -131,7 +131,7 @@ parser.add_option(
     help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
 parser.add_option(
 "--np", type="int",
-    help="""Number of parallel process used in Monte-Carlo simulations. Without this option or for NP=0 all available cores in a given node are used""")
+    help="""Number of parallel process used in Monte-Carlo simulations. Without this option or for NP=0 all available cores in a given node are used in Unix environement. On Windows platform, these simulations are run in sequential mode.""")
 parser.add_option(
 "--ln", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
@@ -150,6 +150,9 @@ parser.add_option(
 parser.add_option(
 "--excl_outliers", action='callback', callback=optional_pval(0.01), dest="excl_outliers",
        help="This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.")
+parser.add_option(
+"--nocalc", action="store_true",
+       help="generate an R code but not execute it.")
 parser.add_option(
 "--DEBUG", action="store_true",
     help="developer option")
