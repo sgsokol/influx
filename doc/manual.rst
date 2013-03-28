@@ -80,10 +80,9 @@ Command line options
   --clowp=CLOWP    lower limit for free metabolite pools. Must be positive. Default 1.e-8
   --np=NP          Number of parallel process used in Monte-Carlo simulations
                    Without this option or for NP=0 all available cores in a
-                   given node are used
+                   given node are used in Unix environement. On Windows platform, these simulations are run in sequential mode.
 
-                   At the time of this writing, a third-part R module ``multicore``, on which we are based for parallel execution, is not stable enough on Windows platform. So a Windows user should use this option with argument 1, e.g.
-                   ``influx_s.py --sens mc=100 --np 1 mynetwork``
+                   At the time of this writing, an R module ``parallel``, on which we are based for parallel execution, is not able to fork() on Windows platform. So even if a Windows user use this option with an argument greater than 1, actually only one core will be used.
   --ln             Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
 
                    Jacobian can become rank deficient if provided data are not sufficient to resolve all free fluxes. It can be useful to determine fluxes that can still be resolved by the available measurements. If the Jacobian does not become rank deficient, this option has no influence on the found solution neither on the optimization process. But if the Jacobian does become rank deficient, a warning message is printed in the error file even if the optimization process could go to the end.
@@ -117,7 +116,10 @@ Command line options
                      .. note::
 
                       Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).
-  --DEBUG          developer option
+  --nocalc            generate an R code but not execute it.
+                      
+                      This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
+--DEBUG          developer option
 
                    Produce a lot of run-time information in the log-file and many additional files. This also can slow down the program in a drastic way. Don't use this option unless your know what your are doing.
   --TIMEIT         developer option
@@ -224,6 +226,7 @@ Metabolite names used in this section must be identical to those used in the ``N
 
 One of valuable originality of ``influx_s``, it is a possibility given to
 the user to couple fluxomics and metabolomics in stationary experiments. It can be done because metabolite pools can influence labeling in two ways:
+
  * through metabolite pooling (due to compartmentation and/or coelution during chromatography)
  * through growth fluxes.
 
@@ -258,8 +261,9 @@ At the beginning of the ``mynetwork_res.kvh`` file some system information is pr
 
  net and exchange fluxes
   are prefixed by ``n.`` or ``x.`` respectively
- free, dependent and constrained fluxes
-  are prefixed by ``f.``, ``d.`` and ``c.`` respectively. So, a complete flux name could look like ``f.n.zwf`` which means `free net ZWF flux`.
+ free, dependent, constrained and variable growth fluxes
+  are prefixed by ``f.``, ``d.``, ``c.`` and ``g.`` respectively. So, a complete flux name could look like ``f.n.zwf`` which means `free net ZWF flux`.
+  Growth fluxes which depend on constant metabolite concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with ``_gr`` (as `growth`) string. For example, a flux ``g.n.Cit_gr`` corresponds to a net growth flux of Citrate metabolite. The growth fluxes are all set as non reversible, so all exchange fluxes like ``g.x.X_gr`` or ``c.x.X_gr`` are set to 0.
  scaling factors names
   are formed according to a pattern similar to ``label;Ala;1`` which corresponds to the first group of measurements on Alanine molecule in labeling experiments. Other possible types of experiments are ``peak`` and ``mass``.
  MID vector names
