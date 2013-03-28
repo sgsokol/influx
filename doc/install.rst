@@ -27,13 +27,10 @@ Dependencies
   
   + bitops
   + nnls
-  + multicore (optional. It is needed only if you plan to use Monte-Carlo
-    simulation to estimate confidence intervals on Unix platform.
-    On Windows this option is not working well yet)
 
 To install R modules, as administrator do in R::
 
- > install.packages(c("bitops", "nnls", "multicore"), dep=T)
+ > install.packages(c("bitops", "nnls"), dep=T)
 
 If you are not an administrator of your R installation, you can execute the command above in your own session and install necessary packages in your own disk space. Other users will have to do the same install in their respective sessions if they want to use ``influx_s``.
 
@@ -79,9 +76,9 @@ $ ln -s /path/to/dir/of/influx_s/influx_s.py .
 
 assuming that ``/usr/local/bin`` is already in the PATH.
 
-**********
+********************
 Test of installation
-**********
+********************
 Open a shell window and set your current directory
 to the ``<influx_s_install_dir>/test``.
 To run ``influx_s`` you can type ::
