@@ -409,7 +409,7 @@ for (irun in iseq(nseries)) {
    }
 
    # zero crossing strategy
-   # inequalities to keep sens of net flux on first call to opt_wwrapper()
+   # inequalities to keep sens of net flux on first call to opt_wrapper()
    # if active they are removed on the second call to opt_wrapper()
    fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fallnx
    mi_zc=NULL
@@ -480,12 +480,13 @@ for (irun in iseq(nseries)) {
 
    # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
    # for corresponding measurements
-   vr=param2fl_x(param, cjac=FALSE, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
+   vr=param2fl_x(param, cjac=FALSE, jx_f, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
    if (!is.null(vr$err) && vr$err) {
       cat("param2fl_x", runsuf, ": ", vr$mes, "\n", file=stderr(), sep="")
       close(fkvh)
       next
    }
+   jx_f=vr$jx_f
    if (nb_sc > 0) {
       if (optimize) {
          simvec=jx_f$usimcumom
@@ -546,6 +547,7 @@ for (irun in iseq(nseries)) {
    cat("\\t\\t%s\\n", file=fkvh)
    """%join("\n\t\t", ropts)[1:-1])
     f.write("""
+   obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
    cat("\\tR command line\\n", file=fkvh)
    obj2kvh(opts, "opts", fkvh, indent=2)
 
@@ -590,12 +592,13 @@ for (irun in iseq(nseries)) {
    names(f)=nm_fallnx
    obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
 
-   rres=cumo_resid(param, cjac=TRUE, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   rres=cumo_resid(param, cjac=TRUE, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   jx_f=rres$jx_f
    names(rres$res)=nm_resid
    o=order(names(rres$res))
    obj2kvh(rres$res[o], "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1)
 
-   rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   rcost=cumo_cost(param, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
@@ -644,8 +647,17 @@ for (irun in iseq(nseries)) {
          cat("optim   : ", date(), "\\n", sep="")
       }
       # pass control to the chosen optimization method
-      res=opt_wrapper(measurements)
+      res=opt_wrapper(measurements, jx_f)
+      if (res$err || is.null(res$par)) {
+         warning(res$mes)
+         res$par=rep(NA, length(param))
+         res$cost=NA
+      } else if (nchar(res$mes)) {
+         warning(res$mes)
+      }
+      jx_f=res$retres$jx_f
       if (any(is.na(res$par))) {
+         res$retres$jx_f=NULL # to avoid writing of huge data
          obj2kvh(res, "optimization process informations", fkvh)
          cat("Optimization failed", runsuf, "\n", file=stderr(), sep="")
          close(fkvh)
@@ -693,8 +705,17 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
             }
             # reoptimize
             if (reopt) {
-               res=opt_wrapper(measurements)
+               res=opt_wrapper(measurements, jx_f)
+               jx_f=res$retres$jx_f
+               if (res$err || is.null(res$par)) {
+                  warning(res$mes)
+                  res$par=rep(NA, length(param))
+                  res$cost=NA
+               } else if (nchar(res$mes)) {
+                  warning(res$mes)
+               }
                if (any(is.na(res$par))) {
+                  res$retres$jx_f=NULL # to avoid writing of huge data
                   obj2kvh(res, "optimization process informations", fkvh)
                   cat("Second optimization failed", runsuf, "\\n", file=stderr(), sep="")
                   close(fkvh)
@@ -714,7 +735,12 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
             cat("Excluded outliers at p-value ", excl_outliers, ":\\n",
                paste(nm_resid[iout], collapse="\\n"), "\\n", sep="")
             jx_f_save=jx_f
-            resout=opt_wrapper(measurements)
+            resout=opt_wrapper(measurements, jx_f)
+            if (resout$err || is.null(resout$par)) {
+               warning(resout$mes)
+            } else if (nchar(resout$mes)) {
+               warning(resout$mes)
+            }
             if (any(is.na(resout$par))) {
                cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=stderr(), sep="")
                # continue without outlier exclusion
@@ -725,11 +751,13 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
                param=res$par
                names(param)=nm_par
                obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
+               jx_f=resout$retres$jx_f
             }
          } else {
             warning("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.")
          }
       }
+      res$jacobian=res$retres$jx_f=NULL # to avoid writing huge data
       obj2kvh(res, "optimization process informations", fkvh)
    }
    if (TIMEIT) {
@@ -744,8 +772,9 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    poolall[nm_poolf]=param[nm_poolf]
 
 #browser()
-   rcost=cumo_cost(param, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
-   rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   rres=cumo_resid(param, cjac=T, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   jx_f=rres$jx_f
+   rcost=cumo_cost(param, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
 
    pres[,irun]=param
    costres[irun]=rcost
@@ -788,10 +817,11 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    if (fullsys) {
       nm_flist=nm_list
       nm_flist$rcumo=nm_cumo
-      v=param2fl_x(param, cjac=F, nb_f, nm_flist, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, spAbr_f, emu=F, , pool, measurements, ipooled)
+      v=param2fl_x(param, cjac=F, jx_f, nb_f, nm_flist, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, spAbr_f, emu=F, , pool, measurements, ipooled)
    } else {
-      v=param2fl_x(param, cjac=F, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
+      v=param2fl_x(param, cjac=F, jx_f, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
    }
+   jx_f=v$jx_f
    # set final variable depending on param
    x=v$x
    if (fullsys) {
@@ -833,7 +863,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
 
    # keep last jx_f in jx_f_last
    jx_f_last=jx_f
-   if (sensitive=="mc") {
+   while (sensitive=="mc") {
       if (TIMEIT) {
          cat("monte-ca: ", date(), "\\n", sep="")
       }
@@ -845,24 +875,32 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       simfmn=f[nm_fmn]
       simpool=as.numeric(measurements$mat$pool%*%poolall)
       # parallel execution
-      if (mc_inst) {
-         mc_res=mclapply(1:nmc, mc_sim)
-      } else {
-         mc_res=lapply(1:nmc, mc_sim)
-      }
-      # strip failed mc iterations
-      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost)) { ret=rep(NA, nb_param+1) } else { ret=c(l$cost, l$par) }; ret })
+      mc_res=mclapply(1:nmc, mc_sim)
+      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$res$error) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
          warning("Parallel exectution of Monte-Carlo simulations has failed.")
-         free_mc=matrix(NA, nb_param+1, 0)
+         free_mc=matrix(NA, nb_param+2, 0)
       }
       cost_mc=free_mc[1,]
-      free_mc=free_mc[-1,,drop=F]
+      nmc_real=nmc-sum(is.na(free_mc[4,]))
+      cat("monte-carlo\\n", file=fkvh)
+      cat("\\tsample\\n", file=fkvh)
+      indent=2
+      obj2kvh(nmc, "requested number", fkvh, indent)
+      obj2kvh(nmc_real, "calculated number", fkvh, indent)
+      obj2kvh(nmc-nmc_real, "failed to calculate", fkvh, indent)
+      # convergence section in kvh
+      indent=1
+      mout=rbind(round(free_mc[1:2,,drop=F], 2),
+         format(free_mc[3,,drop=F], di=2, sci=T))
+      dimnames(mout)=list(c("cost", "it.numb", "normp"), iseq(ncol(free_mc)))
+      obj2kvh(mout, "convergence per sample", fkvh, indent)
 #expp      if (nb_poolf) {
 #expp         # from log to natural concentraion
 #expp         free_mc[nb_ff+nb_sc+1:nb_poolf,]=exp(free_mc[nb_ff+nb_sc+1:nb_poolf,])
 #expp      }
       # remove failed m-c iterations
+      free_mc=free_mc[-(1:3),,drop=F]
       ifa=which(is.na(free_mc[1,]))
       if (length(ifa)) {
          if (ncol(free_mc) > length(ifa)) {
@@ -870,17 +908,22 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
          }
          free_mc=free_mc[,-ifa,drop=F]
          cost_mc=cost_mc[-ifa]
-         nmc=length(cost_mc)
+      }
+      if (nmc_real <= 1) {
+         warning("No sufficient calculated monter-carlo samples for statistics.")
+         break
       }
 #browser()
-      dimnames(free_mc)[[1]]=nm_par
-      cat("monte-carlo\\n", file=fkvh)
+      rownames(free_mc)=nm_par
       indent=1
-      obj2kvh(nmc, "sample number", fkvh, indent)
-      avaco= if (mc_inst) multicore:::detectCores() else NA
+      avaco=try(detectCores(), silent=T)
+      if (inherits(avaco, "try-error")) {
+         avaco=NA
+      }
       obj2kvh(avaco, "detected cores", fkvh, indent)
       avaco=max(1, avaco, na.rm=T)
       obj2kvh(min(avaco, options("cores")$cores, na.rm=T), "used cores", fkvh, indent)
+      
       # cost section in kvh
       cat("\\tcost\\n", file=fkvh)
       indent=2
@@ -889,37 +932,28 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       obj2kvh(sd(cost_mc), "sd", fkvh, indent)
       obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent)
       obj2kvh(quantile(cost_mc, c(0.025, 0.975)), "ci", fkvh, indent)
+      
       # free parameters section in kvh
       cat("\\tStatistics\\n", file=fkvh)
       mout=c()
       indent=2
       # param stats
       # mean
-      mout=cbind(mout, mean=apply(free_mc, 1, mean))
-      #obj2kvh(apply(free_mc, 1, mean), "mean", fkvh, indent)
+      parmean=apply(free_mc, 1, mean)
       # median
       parmed=apply(free_mc, 1, median)
-      mout=cbind(mout, median=parmed)
 #browser()
-      #obj2kvh(parmed, "median", fkvh, indent)
       # covariance matrix
       covmc=cov(t(free_mc))
       obj2kvh(covmc, "covariance", fkvh, indent)
       # sd
       sdmc=sqrt(diag(covmc))
-      mout=cbind(mout, sd=sdmc)
-      #obj2kvh(sdmc, "sd", fkvh, indent)
-      #obj2kvh(sdmc*100/abs(param), "rsd (%)", fkvh, indent)
-      mout=cbind(mout, "rsd (%)"=sdmc*100/abs(param))
       # confidence intervals
       ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
       ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
       colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
-      mout=cBind(mout, ci_mc)
-      #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
-      #obj2kvh((ci_mc-cBind(param, param, 0))*100/abs(param),
-      #   "relative 95% confidence intervals (%)", fkvh, indent)
-      mout=cbind(mout, "relative CI (%)"=ci_mc[,3]*100/abs(param))
+      mout=cBind(mout, mean=parmean, median=parmed, sd=sdmc,
+         "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
       obj2kvh(mout, "free parameters", fkvh, indent)
 
       # net-xch01 stats
@@ -929,34 +963,23 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
          dimnames(fallnx_mc)[[1]]=nm_fallnx
          # form a matrix output
          fallout=matrix(0, nrow=nrow(fallnx_mc), ncol=0)
-         #cat("\\tall net-xch01 fluxes\\n", file=fkvh)
          # mean
 #browser()
-         fallout=cBind(fallout, mean=apply(fallnx_mc, 1, mean))
-         #obj2kvh(apply(fallnx_mc, 1, mean), "mean", fkvh, indent)
+         parmean=apply(fallnx_mc, 1, mean)
          # median
          parmed=apply(fallnx_mc, 1, median)
-         fallout=cBind(fallout, median=parmed)
-         #obj2kvh(parmed, "median", fkvh, indent)
          # covariance matrix
          covmc=cov(t(fallnx_mc))
          dimnames(covmc)=list(nm_fallnx, nm_fallnx)
-         #obj2kvh(covmc, "covariance", fkvh, indent)
          # sd
          sdmc=sqrt(diag(covmc))
-         fallout=cBind(fallout, sd=sdmc)
-         #obj2kvh(sdmc, "sd", fkvh, indent)
-         fallout=cBind(fallout, "rsd (%)"=sdmc*100/abs(fallnx))
-         #obj2kvh(sdmc*100/abs(fallnx), "rsd (%)", fkvh, indent)
          # confidence intervals
          ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
          ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(fallnx))
+         ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(parmean))
          colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-         #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
-         fallout=cBind(fallout, ci_mc)
-         #obj2kvh((ci_mc-cBind(fallnx, fallnx, 0))*100/abs(fallnx),
-         #   "relative 95% confidence intervals (%)", fkvh, indent)
+         fallout=cBind(fallout, mean=parmean, median=parmed, sd=sdmc,
+            "rsd (%)"=sdmc*100/abs(fallnx), ci_mc)
          o=order(nm_fallnx)
          obj2kvh(fallout[o,,drop=F], "all net-xch01 fluxes", fkvh, indent)
          obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent)
@@ -965,38 +988,29 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
          fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fwrv)
          dimnames(fwrv_mc)[[1]]=nm_fwrv
          fallout=matrix(0, nrow=nrow(fwrv_mc), ncol=0)
-         #cat("\\tforward-reverse fluxes\\n", file=fkvh)
          # mean
-         fallout=cBind(fallout, mean=apply(fwrv_mc, 1, mean))
-         #obj2kvh(apply(fwrv_mc, 1, mean), "mean", fkvh, indent)
+         parmean=apply(fwrv_mc, 1, mean)
          # median
          parmed=apply(fwrv_mc, 1, median)
-         fallout=cBind(fallout, median=parmed)
-         #obj2kvh(parmed, "median", fkvh, indent)
          # covariance matrix
          covmc=cov(t(fwrv_mc))
          dimnames(covmc)=list(nm_fwrv, nm_fwrv)
-         #obj2kvh(covmc, "covariance", fkvh, indent)
          # sd
          sdmc=sqrt(diag(covmc))
-         fallout=cBind(fallout, sd=sdmc)
-         #obj2kvh(sdmc, "sd", fkvh, indent)
-         fallout=cBind(fallout, "rsd (%)"=sdmc*100/abs(fwrv))
-         #obj2kvh(sdmc*100/abs(fwrv), "rsd (%)", fkvh, indent)
          # confidence intervals
          ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)))
          ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
          ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(fwrv))
          dimnames(ci_mc)[[2]]=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-         #obj2kvh(ci_mc, "95% confidence intervals", fkvh, indent)
-         #obj2kvh((ci_mc-cBind(fwrv, fwrv, 0))*100/abs(fwrv),
-         #   "relative 95% confidence intervals (%)", fkvh, indent)
-         fallout=cBind(fallout, ci_mc)
+         fallout=cBind(fallout, mean=parmean, median=parmed, sd=sdmc,
+            "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
          o=order(nm_fwrv)
          obj2kvh(fallout[o,,drop=F], "forward-reverse fluxes", fkvh, indent)
          obj2kvh(covmc[o,o], "covariance of forward-reverse fluxes", fkvh, indent)
       }
-   } else if (length(sensitive) && nchar(sensitive)) {
+      break
+   }
+   if (length(sensitive) && nchar(sensitive) && sensitive != "mc") {
       warning(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""))
    }
 
@@ -1007,7 +1021,8 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    # reset fluxes and jacobians according to param
    jx_f=jx_f_last
    if (is.null(jx_f$jacobian)) {
-      rres=cumo_resid(param, cjac=T, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+      rres=cumo_resid(param, cjac=T, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+      jx_f=rres$jx_f
    } # else use last calculated jacobian
 
    # covariance matrix of free fluxes
@@ -1143,6 +1158,8 @@ if (TIMEIT) {
 }
 flush(stdout())
 flush(stderr())
+suppressWarnings(sink())
+suppressWarnings(sink())
 """%{
     "org": escape(org, "\\"),
     "d": escape(dirorg, "\\"),
