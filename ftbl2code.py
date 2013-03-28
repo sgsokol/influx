@@ -308,16 +308,15 @@ def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     #    pdb.set_trace()
     res={}
     f.write("""
+fcerr=file("%(errfile)s", "ab")
+sink(fcerr, split=F, type="message")
+sink("%(logfile)s", append=T, split=F, type="output")
 options(warn=1)
 suppressPackageStartupMessages(library(bitops))
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
 suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 options(Matrix.quiet=TRUE)
-#suppressPackageStartupMessages(library(expm, warn=F, verbose=F)); # for sparse matrices
-suppressWarnings(mc_inst <- library(multicore, warn.conflicts=F, verbose=F, logical.return=T, quietly=T))
-if (!mc_inst) {
-   mclapply=lapply
-}
+suppressPackageStartupMessages(library(parallel))
 
 # get some common tools
 source("%(dirx)s/tools_ssg.R")
@@ -435,9 +434,11 @@ nm_list=list()
 """%{
     "dirx": escape(dirx, "\\"),
     "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
-    "proffile": escape(os.path.basename(f.name)[:-1]+"Rprof", "\\"),
+    "proffile": escape(f.name[:-1]+"Rprof", "\\"),
     "prog": os.path.basename(f.name),
-    "ropts": join("\n", ropts)[1:-1]
+    "ropts": join("\n", ropts)[1:-1],
+    "logfile": escape(f.name[:-1]+"log", "\\"),
+    "errfile": escape(f.name[:-1]+"err", "\\"),
 })
     netan2R_fl(netan, org, f)
     d=netan2R_rcumo(netan, org, f)
@@ -485,8 +486,6 @@ nb_f$x=nb_x
 """%{
     "xi": join(", ", netan["rcumo_input"].values()),
     "nm_xi": join(", ", netan["rcumo_input"].keys(), '"', '"'),
-#        "sofile": escape(os.path.basename(ff.name)[:-1]+
-#            ("dll" if platform.system() == "windows" else "so"), "\\"),
     "xiemu": join(", ", netan["emu_input"].values()),
     "nm_xiemu": join(", ", netan["emu_input"].keys(), '"', '"'),
     "nm_emu": join(", ", valval(netan['vemu']), '"', '"'),
