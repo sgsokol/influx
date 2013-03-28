@@ -99,14 +99,15 @@ dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
    return(f)
 }
 
-cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled) {
+cumo_resid=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled) {
    # find x for all weights
    if (is.diff(param, jx_f$param) || is.diff(param, jx_f$paramx, 1.e-14) ||
          (cjac && is.null(jx_f$x_f))) {
-      lres=param2fl_x(param, cjac, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, spAb, emu, pool, measurements, ipooled)
+      lres=param2fl_x(param, cjac, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, spAb, emu, pool, measurements, ipooled)
       if (!is.null(lres$err) && lres$err) {
          return(list(err=1, mes=lres$mes))
       }
+      jx_f=lres$jx_f
 
       # find simulated scaled measure vector scale*(measmat*x)
       simvec=jx_f$usimcumom*c(1.,param)[ir2isc]
@@ -117,19 +118,19 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, 
       res=c((simvec-measurements$vec$labeled), (jx_f$fallnx[measurements$mat$flux]-measurements$vec$flux), as.numeric(measurements$mat$pool%*%pool)-measurements$vec$pool)
       names(res)=nm$resid
       if (is.null(measurements$outlier) || length(measurements$outlier)==0) {
-         jx_f$ures<<-res
-         jx_f$res<<-res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)
+         jx_f$ures <- res
+         jx_f$res <- res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)
       } else {
          # exclude outliers
-         jx_f$ures<<-res[-measurements$outlier]
-         jx_f$res<<-(res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool))[-measurements$outlier]
+         jx_f$ures <- res[-measurements$outlier]
+         jx_f$res <- (res/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool))[-measurements$outlier]
       }
    } # else we have everything in jx_f
    # jacobian
    if (cjac) {
       if (is.diff(param, jx_f$param) || is.null(jx_f$jacobian)) {
          # recalculate it
-         cumo_jacob(param, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl,
+         jx_f=cumo_jacob(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl,
             bp, fc, xi, measurements, ir2isc)
          jacobian=as.matrix(jx_f$udr_dp/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool))
          dimnames(jacobian)=list(nm$resid, nm$par)
@@ -138,11 +139,11 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, 
             # exclude outliers
             jacobian=jacobian[-measurements$outlier,,drop=F]
          }
-         jx_f$jacobian <<- jacobian
+         jx_f$jacobian <- jacobian
          if (nb_f$nb_ff > 0) {
-            jx_f$dr_dff <<- jacobian[,1:nb_f$nb_ff,drop=F]
+            jx_f$dr_dff <- jacobian[,1:nb_f$nb_ff,drop=F]
          } else {
-            jx_f$dr_dff <<- matrix(0., nrow=nrow(jacobian), ncol=0)
+            jx_f$dr_dff <- matrix(0., nrow=nrow(jacobian), ncol=0)
          }
       } else {
          jacobian=jx_f$jacobian
@@ -152,15 +153,16 @@ cumo_resid=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, 
    }
 
    return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x,
-      jacobian=jacobian))
+      jacobian=jacobian, jx_f=jx_f))
 }
-cumo_cost=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled) {
-   resl=cumo_resid(param, cjac=FALSE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled)
+cumo_cost=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled) {
+   # NB! This function does not return jx_f
+   resl=cumo_resid(param, cjac=FALSE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled)
    if (!is.null(resl$err) && resl$err) {
       return(NULL)
    }
    res=resl$res
-   fn=sum(res*res)
+   fn=crossprod(res)[1]
    if (DEBUG) {
       write.matrix(fn, file="dbg_cost.txt", sep="\t")
    }
@@ -191,7 +193,7 @@ param2fl=function(param, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc) {
    return(list(fallnx=fallnx, fwrv=fwrv, flnx=flnx))
 }
 
-param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
+param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
    g2bfl, bp, fc, xi, spAb, emu, pool, measurements, ipooled) {
    # translate free params (fluxes+scales) to fluxes and cumomers
    # or emus
@@ -203,11 +205,11 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
       calcx=FALSE
       if (cjac) {
           if (!is.null(jx_f$x_f) && !is.diff(param, jx_f$param)) {
-             return(list(x=tail(jx_f$x, -nb_xi-1), x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx))
+             return(list(jx_f=jx_f, x=tail(jx_f$x, -nb_xi-1), x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx))
           } # else recalculate it here
       } else {
          # just x, fallnx, ... that are already calculated
-         return(list(x=tail(jx_f$x, -nb_xi-1), x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx))
+         return(list(jx_f=jx_f, x=tail(jx_f$x, -nb_xi-1), x_f=jx_f$x_f, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx))
       }
    }
    nb_ff=nb_f$nb_ff
@@ -222,13 +224,13 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
    # calculate all fluxes from free fluxes
    if (calcx) {
       #cat("param2fl_x: recalc x\n")
-      jx_f$paramx <<- param
-      jx_f$lA <<- list()
+      jx_f$paramx <- param
+      jx_f$lA <- list()
       lf=param2fl(param, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc)
-      jx_f$fallnx <<- lf$fallnx
-      jx_f$fwrv <<- lf$fwrv
-      jx_f$flnx <<- lf$flnx
-      jx_f$lf <<- lf
+      jx_f$fallnx <- lf$fallnx
+      jx_f$fwrv <- lf$fwrv
+      jx_f$flnx <- lf$flnx
+      jx_f$lf <- lf
       # construct the system A*x=b from fluxes
       # and find x for every weight
       # if fj_rhs is not NULL, calculate jacobian x_f
@@ -238,7 +240,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
       #cat("param2fl_x: recalc jac\n")
       # derivation of fwrv fluxes by free parameters: free fluxes+concentrations
       mdf_dffp=df_dffp(param, jx_f$flnx, nb_f)
-      jx_f$df_dffp<<-mdf_dffp
+      jx_f$df_dffp <- mdf_dffp
       if (emu) {
          x_f=matrix(0., nrow=sum(nb_emus), ncol=nb_ff+nb_fg)
       } else {
@@ -340,7 +342,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
          b=lAb$b; # may have several columns if emu is TRUE
          #solve the system A*x=b
          lsolv=trisparse_solv(lAb$A, lAb$b, iw, method="sparse")
-         jx_f$lA[[iw]] <<- lsolv$fA
+         jx_f$lA[[iw]] <- lsolv$fA
          if (!is.null(lsolv$err) && lsolv$err) {
             return(list(err=1, mes=lsolv$mes))
          }
@@ -402,7 +404,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
    } else {
       names(x)=c("one", nm$xi, nm$rcumo)
    }
-   jx_f$x <<- x
+   jx_f$x <- x
    x=tail(x, -nb_xi-1)
    
    # calculate unreduced and unscaled measurements
@@ -419,7 +421,7 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
       })
       mvp=mvp[ipooled$ishort,,drop=F]
    }
-   jx_f$usimcumom <<- as.numeric(mvp)
+   jx_f$usimcumom <- as.numeric(mvp)
 #print(x)
    if (cjac) {
       # unreduced residuals derivated by scale params
@@ -482,14 +484,14 @@ param2fl_x=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl,
          mff=vsc*mff
          mpf=vsc*mpf
       }
+      # store usefull information in global list jx_f
       jacobian=cBind(mff, dur_dsc, mpf)
-      jx_f$param <<- param
-      jx_f$x_f <<- x_f
-      jx_f$ujac <<- jacobian
-      jx_f$jacobian <<- NULL # old jacobian is no more valid
+      jx_f$param <- param
+      jx_f$x_f <- x_f
+      jx_f$ujac <- jacobian
+      jx_f$jacobian <- NULL # old jacobian is no more valid
    }
-   # store usefull information in global list jx_f
-   return(append(list(x=x, x_f=x_f), jx_f$lf))
+   return(append(list(x=x, x_f=x_f, jx_f=jx_f), jx_f$lf))
 }
 
 Tiso2cumo=function(len) {
@@ -662,7 +664,7 @@ cumo2lab=function(x) {
    }
    return(res)
 }
-cumo_gradj=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb) {
+cumo_gradj=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb) {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: mult jacobian by residual 2*jac*resid*invvar
 
@@ -670,19 +672,19 @@ cumo_gradj=function(param, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
    #    t(drf_dff)*(invfmnvar*resfl), 2*(t(dr_dw)%*%rescumo))
 
    # gradient
-   grad=2*t(jx_f$ures*c(measinvvar, invfmnvar))%*%jx_f$udr_dp
-   return(c(grad))
+   grad=2*(jx_f$ures/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)**2)%tmm%jx_f$udr_dp
+   return(as.numeric(grad))
 }
 # cost function for donlp2 solver
 cumo_fn=function(p) {
-   return(cumo_cost(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled))
+   return(cumo_cost(p, jx_f, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled))
 }
 cumo_dfn=function(p) {
-   return(cumo_gradj(p, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb))
+   return(cumo_gradj(p, jx_f, nb_f, nm, nb_rw, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb))
 }
 attr(cumo_fn, "gr")=cumo_dfn
 #cumo_fn@gr=cumo_dfn
-cumo_jacob=function(param, nb_f, nm, nb_cumos,
+cumo_jacob=function(param, jx_f, nb_f, nm, nb_cumos,
    invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc) {
    # calculate jacobian dmeas_dparam and some annexe matrices
    # without applying invvar matrix
@@ -692,40 +694,40 @@ cumo_jacob=function(param, nb_f, nm, nb_cumos,
       # called by this moment.
       # But for some strange reason it didn't happen.
       # So let recalculate the cost and some matricies
-      #res=cumo_cost(param, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu)
+      #res=cumo_cost(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu)
       stopifnot(!is.diff(param, jx_f$param))
    }
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
    
    # store flux part of jacobian for sensitivity matrix
-   jx_f$dfm_dff<<-dfm_dff()
+   jx_f$dfm_dff <- dfm_dff()
    nb_sc=nb_f$nb_sc
    nb_poolf=nb_f$nb_poolf
    nb_poolm=nb_f$nb_poolm
    if (nb_sc > 0 || nb_poolf > 0) {
-      jx_f$dfm_dp <<- cBind(jx_f$dfm_dff, Matrix(0, nrow=nrow(jx_f$dfm_dff), ncol=nb_sc+nb_poolf))
+      jx_f$dfm_dp <- cBind(jx_f$dfm_dff, Matrix(0, nrow=nrow(jx_f$dfm_dff), ncol=nb_sc+nb_poolf))
    } else {
       # scale and pool part is just zero
-      jx_f$dfm_dp <<- jx_f$dfm_dff
+      jx_f$dfm_dp <- jx_f$dfm_dff
    }
    
    # pool part of measurements
    if (nb_poolm > 0) {
-#expp      jx_f$dpm_dp <<- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), measurements$mat$pool[,nm$poolf, drop=F]%mrv%exp(param[nm$poolf]))
-      jx_f$dpm_dp <<- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), measurements$mat$pool[,nm$poolf, drop=F])
+#expp      jx_f$dpm_dp <- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), measurements$mat$pool[,nm$poolf, drop=F]%mrv%exp(param[nm$poolf]))
+      jx_f$dpm_dp <- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), measurements$mat$pool[,nm$poolf, drop=F])
    } else {
-      jx_f$dpm_dp <<- matrix(0, nrow=0, ncol=length(param))
+      jx_f$dpm_dp <- matrix(0, nrow=0, ncol=length(param))
    }
-   rownames(jx_f$dpm_dp) <<- rownames(measurements$mat$pool)
+   rownames(jx_f$dpm_dp) <- rownames(measurements$mat$pool)
    
    #dmx_df=measmat%*%jx_f$x_f
    #drc_dff=c(1.,param)[ir2isc]*(dmx_df%*%jx_f$df_dffp)
    
    # store isotope part of jacobian for sensitivity matrix
-   #jx_f$drc_dff<<-drc_dff
+   #jx_f$drc_dff <- drc_dff
    
    # add flux measures
-   #jx_f$dr_dff<<-rBind(drc_dff, jx_f$dfm_dff)
+   #jx_f$dr_dff <- rBind(drc_dff, jx_f$dfm_dff)
    
    # scale factor part
    #sm=jx_f$usimcumom; # just cumomer measure part
@@ -733,14 +735,14 @@ cumo_jacob=function(param, nb_f, nm, nb_cumos,
    # each column is fullfilled with a part of residual vector
    # corresponding to a given scale parameter
    #if (nb_sc > 0) {
-   #   jx_f$drc_sc<<-apply(t(nb_ff+1+(1:nb_sc)), 2, function(isc){i=ir2isc==isc; v=z; v[i]=sm[i]; v;})
-   #   jx_f$udr_dp<<-cBind(jx_f$dr_dff, rBind(jx_f$drc_sc, matrix(0, nrow=nb_fmn, ncol=nb_sc)))
+   #   jx_f$drc_sc <- apply(t(nb_ff+1+(1:nb_sc)), 2, function(isc){i=ir2isc==isc; v=z; v[i]=sm[i]; v;})
+   #   jx_f$udr_dp <- cBind(jx_f$dr_dff, rBind(jx_f$drc_sc, matrix(0, nrow=nb_fmn, ncol=nb_sc)))
    #} else {
-   #   jx_f$udr_dp<<-jx_f$dr_dff
+   #   jx_f$udr_dp <- jx_f$dr_dff
    #}
    #dimnames(jx_f$udr_dp)=list(names(jx_f$res), nm_par)
-   jx_f$udr_dp <<- rBind(jx_f$ujac, jx_f$dfm_dp, jx_f$dpm_dp)
-   return(NULL)
+   jx_f$udr_dp <- rBind(jx_f$ujac, jx_f$dfm_dp, jx_f$dpm_dp)
+   return(jx_f)
 }
 
 fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
@@ -1082,10 +1084,14 @@ dfm_dff=function() {
    dimnames(res)=list(nm_fmn, nm_ff)
    # derivate free measured fluxes (trivial)
    i=grep("f.n.", nm_fmn, fixed=T)
-   res[i,nm_fmn[i]]=diag(length(i))
+   if (length(i) > 0) {
+      res[i,nm_fmn[i]]=diag(length(i))
+   }
    # derivate dependent measured fluxes
    i=grep("d.n.", nm_fmn, fixed=T, value=T)
-   res[i,]=dfl_dffg[i,1:length(nm_ff)]
+   if (length(i) > 0) {
+      res[i,]=dfl_dffg[i,1:length(nm_ff)]
+   }
    return(res)
 }
 plot_ti=function(ti, x, m=NULL, ...) {
@@ -1267,14 +1273,14 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    }
    return(spemu)
 }
-opt_wrapper=function(measurements, trace=1) {
+opt_wrapper=function(measurements, jx_f, trace=1) {
    if (method == "BFGS") {
       control=list(maxit=500, trace=trace)
       control[names(control_ftbl)]=control_ftbl
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-5, control,
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
-         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
          measurements, ir2isc, spa, emu, pool, ipooled)
    } else if (method == "Nelder-Mead") {
       control=list(maxit=1000, trace=trace)
@@ -1282,7 +1288,7 @@ opt_wrapper=function(measurements, trace=1) {
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
-         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
          measurements, ir2isc, spa, emu, pool, ipooled)
    } else if (method == "SANN") {
       control=list(maxit=1000, trace=trace)
@@ -1290,7 +1296,7 @@ opt_wrapper=function(measurements, trace=1) {
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="SANN", outer.iterations=100, outer.eps=1e-07,
-         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
          measurements, ir2isc, spa, emu, pool, ipooled)
    } else if (method == "nlsic") {
       control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
@@ -1298,16 +1304,9 @@ opt_wrapper=function(measurements, trace=1) {
       control[names(control_ftbl)]=control_ftbl
       res=nlsic(param, cumo_resid, 
          ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
-         nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
+         jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
          measurements, ir2isc,
          spa, emu, pool, ipooled)
-      if (res$err || is.null(res$par)) {
-         warning(res$mes)
-         res$par=rep(NA, length(param))
-         res$cost=NA
-      } else if (nchar(res$mes)) {
-         warning(res$mes)
-      }
    } else if (method == "ipopt") {
       control=list(max_iter=500, print_level=trace*5)
       control[names(control_ftbl)]=control_ftbl
@@ -1334,7 +1333,7 @@ opt_wrapper=function(measurements, trace=1) {
          eval_h_structure=NULL,
          opts=control,
          ipoptr_environment=new.env(),
-         nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
+         jx_f=jx_f, nb_f=nb_f, nm=nm_list, nb_cumos=nb_rcumos,
          invAfl=invAfl, p2bfl=p2bfl, g2bfl=g2bfl, bp=bp, fc=fc, xi=xi,
          measurements=measurements, ir2isc=ir2isc, spAb=spa, emu=emu, pool=pool, ipooled=ipooled)
       res$par=res$solution
@@ -1369,10 +1368,14 @@ mc_sim=function(i) {
    measurements_mc$vec$labeled=meas_mc
    measurements_mc$vec$flux=fmn_mc
    measurements_mc$vec$pool=poolm_mc
-   res=opt_wrapper(measurements_mc, trace=0)
+   jx_f=list()
+   #rres=cumo_resid(param, cjac=T, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements_mc, ir2isc, spa, emu, pool, ipooled)
+   #cat("mc_res=", sqrt(norm2(rres$res)), "\n", sep="")
+   #jx_f=rres$jx_f
+   res=opt_wrapper(measurements_mc, jx_f, trace=0)
    if (nchar(res$mes) > 0) {
       cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=stderr(), sep="")
    }
    # return the solution
-   return(list(cost=sum(jx_f$res*jx_f$res), par=res$par))
+   return(list(cost=sum(res$res*res$res), it=res$it, normp=res$normp, par=res$par, res=res))
 }
