@@ -922,7 +922,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       }
       obj2kvh(avaco, "detected cores", fkvh, indent)
       avaco=max(1, avaco, na.rm=T)
-      obj2kvh(min(avaco, options("cores")$cores, na.rm=T), "used cores", fkvh, indent)
+      obj2kvh(min(avaco, options()$mc.cores, na.rm=T), "used cores", fkvh, indent)
       
       # cost section in kvh
       cat("\\tcost\\n", file=fkvh)
