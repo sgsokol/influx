@@ -4,6 +4,8 @@
 import sys, os, datetime as dt, subprocess as subp
 from optparse import OptionParser
 from threading import Thread
+from multiprocessing import cpu_count
+from Queue import Queue
 
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
@@ -20,6 +22,13 @@ def optional_pval(pval):
             val=pval
         setattr(parser.values,option.dest,val)
     return func
+
+def qworker():
+    while True:
+        item=q.get()
+        #print("item=", item)
+        launch_job(**item)
+        q.task_done()
 
 def launch_job(ft, fshort, cmd_opts):
     r"""Launch R code generation and then its execution
@@ -46,10 +55,15 @@ def launch_job(ft, fshort, cmd_opts):
             + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
         #print(pycmd)
-        p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
+        r_generated=True
+        try:
+            p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
+        except:
+            r_generated=False
+            pass
         flog.flush()
         
-        if ("nocalc" not in cmd_opts):
+        if r_generated and "nocalc" not in cmd_opts:
             # execute R code
             rcmd="R --vanilla --slave".split()
             flog.write("executing: "+" ".join(rcmd)+" < "+f+".R\n")
@@ -61,7 +75,9 @@ def launch_job(ft, fshort, cmd_opts):
                 p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
             except:
                 pass
+        flog.close()
         ferr.close()
+        flog=open(f+".log", "ab")
         s=fshort+"end     : "+now_s()+"\n"
         sys.stdout.write(s)
         flog.write(s+"\n")
@@ -127,11 +143,11 @@ parser.add_option(
 "--cinout", type="float",
     help="lower limit for input/output free and dependent fluxes. Must be non negative. Default: 0")
 parser.add_option(
-"--clowp",
+"--clowp",  type="float",
     help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
 parser.add_option(
 "--np", type="int",
-    help="""Number of parallel process used in Monte-Carlo simulations. Without this option or for NP=0 all available cores in a given node are used in Unix environement. On Windows platform, these simulations are run in sequential mode.""")
+    help="""Number of parallel process used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. Without this option or for NP=0, all available cores in a given node are used for M-C simulations in Unix environement. On Windows platform, M-C simulations are run in sequential mode on one core. Multiple FTBLs are processed in parallel on both platforms.""")
 parser.add_option(
 "--ln", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
@@ -145,7 +161,7 @@ parser.add_option(
 "--iseries",
        help="Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default: '' (empty, i.e. all provided starting points are used)")
 parser.add_option(
-"--seed",
+"--seed", type="int",
        help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis (--sens mc=N) if executed in sequential way (--np=1). Default: current system value, i.e. random drawing will be varying at each run.")
 parser.add_option(
 "--excl_outliers", action='callback', callback=optional_pval(0.01), dest="excl_outliers",
@@ -174,6 +190,15 @@ if len(args) < 1:
     parser.error("At least one FTBL_file expected in argument")
 
 print(" ".join('"'+v+'"' for v in sys.argv))
+#print("cpu=", cpu_count())
+np=eval(str(opts)).get("np") or cpu_count()
+#print("np=", np)
+q=Queue()
+
+for i in range(np):
+    t=Thread(target=qworker)
+    t.daemon=True
+    t.start()
 
 for ft in args:
     if ft[-5:] != ".ftbl":
@@ -200,5 +225,7 @@ for ft in args:
     cmd_opts=eval(str(cmd_opts))
     cmd_opts=dict((k,v) for k,v in cmd_opts.iteritems() if v is not None)
     #print("cmd_opts=", cmd_opts)
-    Thread(target=launch_job, name=ft, args=(ft, fshort, cmd_opts)).start()
+    item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts}
+    q.put(item)
+q.join()
 sys.exit(0)
