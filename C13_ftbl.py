@@ -522,18 +522,26 @@ def ftbl_netan(ftbl):
     netan["flux_free"]={"net":{}, "xch":{}}
     netan["flux_constr"]={"net":{}, "xch":{}}
     flx=ftbl.get("FLUXES")
+    fcd=set(("F", "C", "D"))
     if flx:
         xch=flx.get("XCH")
         net=flx.get("NET")
 ##        aff("net", net)
         # check that all fluxes are defined in network section
         allreac=netan["reac"] | netan["flux_inout"]
-        unk=[ row["NAME"] for row in net if row["NAME"] not in allreac ]
+        unk=[ row["NAME"] for row in net if row["FCD"] in fcd and row["NAME"] not in allreac ]
         if len(unk):
-            raise Exception("The flux name '%s' in the FLUX/NET section is not defined in the NETWORK section."%(unk[0]))
-        unk=[ row["NAME"] for row in xch if row["NAME"] not in allreac ]
+            raise Exception("The flux name(s) '%s' from the FLUX/NET section is (are) not defined in the NETWORK section."%(", ".join(unk)))
+        unk=[ row["NAME"] for row in xch if row["FCD"] in fcd and row["NAME"] not in allreac ]
         if len(unk):
-            raise Exception("The flux name '%s' in the FLUX/XCH section is not defined in the NETWORK section."%(unk[0]))
+            raise Exception("The flux name(s) '%s' from the FLUX/XCH section is (are) not defined in the NETWORK section."%(", ".join(unk)))
+        # check that all reactions from NETWORK are at least in FLUX/NET section
+        fnet=set( row["NAME"] for row in net if row["NAME"] and row["FCD"] in fcd )
+        #print("fnet=", fnet)
+        #print("allreac=", allreac)
+        unk=allreac-fnet-set(netan["flux_growth"]["net"])-set(netan["flux_vgrowth"]["net"])
+        if len(unk):
+            raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
     else:
         werr(os.path.basename(me)+": netan[FLUXES][XCH] is not defined")
         #return None
