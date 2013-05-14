@@ -394,7 +394,7 @@ if ( method == "ipopt") {
 }
 
 if (np) {
-   options(cores=np)
+   options(mc.cores=np)
 }
 lsi_fun=lsi
 if (least_norm) {
