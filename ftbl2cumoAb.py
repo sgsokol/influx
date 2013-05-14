@@ -17,6 +17,7 @@ sys.path.append('/home/sokol/dev/python')
 from tools_ssg import *
 import C13_ftbl
 
+me=os.path.basename(sys.argv[0]);
 def usage():
     print(__doc__)
 def get_net(r, dfc):
