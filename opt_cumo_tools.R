@@ -162,7 +162,9 @@ cumo_cost=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc
       return(NULL)
    }
    res=resl$res
-   fn=crossprod(res)[1]
+   iva=!is.na(res)
+   vres=res[iva]
+   fn=crossprod(vres)[1]
    if (DEBUG) {
       write.matrix(fn, file="dbg_cost.txt", sep="\t")
    }
@@ -1377,5 +1379,7 @@ mc_sim=function(i) {
       cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=stderr(), sep="")
    }
    # return the solution
-   return(list(cost=sum(res$res*res$res), it=res$it, normp=res$normp, par=res$par, res=res))
+   iva=!is.na(res$res)
+   vres=res$res[iva]
+   return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, res=res))
 }
