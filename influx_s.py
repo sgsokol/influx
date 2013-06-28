@@ -107,7 +107,7 @@ parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file1 [FTBL_fi
     version="%prog "+version)
 parser.add_option(
 "--noopt", action="store_true",
-    help="no optimization, just use free parameters as is (after a projection on feasability domain), to calculate dependent fluxes, cumomers, stats and so on")
+    help="no optimization, just use free parameters as is (after a projection on feasibility domain), to calculate dependent fluxes, cumomers, stats and so on")
 parser.add_option(
 "--noscale", action="store_true",
     help="no scaling factors to optimize => all scaling factors are assumed to be 1")
@@ -146,8 +146,8 @@ parser.add_option(
 "--clowp",  type="float",
     help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
 parser.add_option(
-"--np", type="int",
-    help="""Number of parallel process used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. Without this option or for NP=0, all available cores in a given node are used for M-C simulations in Unix environement. On Windows platform, M-C simulations are run in sequential mode on one core. Multiple FTBLs are processed in parallel on both platforms.""")
+"--np", type="float",
+    help="""When integer > 0, it is a number of parallel threads used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. When float between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for M-C simulations in Unix environment or for parallel ftbl processing on all platforms. On Windows platform, M-C simulations are run in sequential mode on one core. Multiple FTBLs are processed in parallel on both platforms.""")
 parser.add_option(
 "--ln", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
@@ -191,7 +191,14 @@ if len(args) < 1:
 
 print(" ".join('"'+v+'"' for v in sys.argv))
 #print("cpu=", cpu_count())
-np=eval(str(opts)).get("np") or cpu_count()
+np=eval(str(opts)).get("np")
+avaco=cpu_count()
+if np > 0 and np < 1:
+    np=int(round(np*avaco))
+elif np > 1:
+    np=int(round(np))
+else:
+    np=avaco
 #print("np=", np)
 q=Queue()
 
