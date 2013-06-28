@@ -393,9 +393,19 @@ if ( method == "ipopt") {
    installed=suppressPackageStartupMessages(library(ipoptr, logical.return=T))
 }
 
-if (np) {
-   options(mc.cores=np)
+avaco=try(detectCores(), silent=T)
+if (inherits(avaco, "try-error")) {
+   avaco=NULL
 }
+if (np > 0 && np < 1) {
+   np=round(avaco*np)
+} else if (np > 1) {
+   np=round(np)
+} else {
+   np=avaco
+}
+options(mc.cores=np)
+
 lsi_fun=lsi
 if (least_norm) {
    lsi_fun=lsi_ln
@@ -422,7 +432,7 @@ opts=commandArgs()
 # get some cumomer tools
 source("%(dirx)s/opt_cumo_tools.R")
 if (TIMEIT) {
-   cat("rinit   : ", date(), "\n", sep="")
+   cat("rinit   : ", date(), "\\n", sep="")
 }
 
 # R profiling
@@ -617,7 +627,7 @@ def netan2R_fl(netan, org, f):
 
     f.write("""
 if (TIMEIT) {
-   cat("r_flux  : ", date(), "\n", sep="")
+   cat("r_flux  : ", date(), "\\n", sep="")
 }
 
 # custom functions
@@ -1035,7 +1045,7 @@ def netan2R_meas(netan, org, f, emu=False):
     # create R equivalent structures with indices for scaling
     f.write("""
 if (TIMEIT) {
-   cat("measure : ", date(), "\n", sep="")
+   cat("measure : ", date(), "\\n", sep="")
 }
 # make place for scaling factors
 """)
@@ -1137,7 +1147,7 @@ ipooled=list(ishort=pmatch(nm_meas, nm_measmat))
         valval(measures[o]["mat"] for o in o_meas)),
         p='"', s='"'),
     "idmeas": join(", ",  valval(measures[o]["ids"] for o in o_meas), p='"', s='"'),
-    "vmeas": join(", ", valval(measures[o]["vec"] for o in o_meas)),
+    "vmeas": join(", ", valval(measures[o]["vec"] for o in o_meas)).replace("nan", "NA"),
     "dev": join(", ", (sd for sd in valval(measures[o]["dev"]
         for o in o_meas))),
     })
@@ -1229,7 +1239,7 @@ ifmn=c(%(ifmn)s)
     "nm_fmn": join(", ", trd(("n."+f for f in netan["vflux_meas"]["net"]),
         netan["nx2dfcg"]), '"', '"'),
     "fmn": join(", ", (netan["flux_measured"][fl]["val"]
-        for fl in netan["vflux_meas"]["net"])),
+        for fl in netan["vflux_meas"]["net"])).replace("nan", "NA"),
     "fmndev": join(", ", (netan["flux_measured"][fl]["dev"]
         for fl in netan["vflux_meas"]["net"])),
     "ifmn": join(", ", (1+netan["vflux_compl"]["net2i"][fl]
@@ -1318,7 +1328,7 @@ def netan2R_cumo(netan, org, f):
     # write R constants and names
     f.write("""
 if (TIMEIT) {
-   cat("cumo   : ", date(), "\n", sep="")
+   cat("cumo   : ", date(), "\\n", sep="")
 }
 
 # weight count
@@ -1351,7 +1361,7 @@ def netan2R_ineq(netan, org, f):
     nb_ineq=len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"])
     f.write("""
 if (TIMEIT) {
-   cat("ineq    : ", date(), "\n", sep="")
+   cat("ineq    : ", date(), "\\n", sep="")
 }
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
