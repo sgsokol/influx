@@ -301,7 +301,7 @@ nm_list$resid=nm_resid
     "nm_poolc": join(", ", netan["vpool"]["constrained"], '"pc:', '"'),
     "nb_poolm": len(netan["metab_measured"]),
     "nm_poolm": join(", ", netan["metab_measured"].keys(), '"pm:', '"'),
-    "v_poolm": join(", ", (item["val"] for item in netan["metab_measured"].values())),
+    "v_poolm": join(", ", (item["val"] for item in netan["metab_measured"].values())).replace("nan", "NA"),
     "poolmdev": join(", ", (item["dev"] for item in netan["metab_measured"].values())),
     "imeasmatpool": join(", ", valval((ir,netan["vpool"]["all2i"][m]) for (ir, ml) in enumerate(netan["metab_measured"].keys()) for m in ml.split("+"))),
 })
@@ -397,7 +397,7 @@ for (irun in iseq(nseries)) {
       if (any(is.na(param))) {
          if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
             # fatal error occured
-            cat("put_inside", runsuf, ": ", attr(param, "mes"), "\n",
+            cat("put_inside", runsuf, ": ", attr(param, "mes"), "\\n",
                file=stderr(), sep="")
             close(fkvh)
             next;
@@ -431,7 +431,7 @@ for (irun in iseq(nseries)) {
          mi_zc[length(ipos)+(1:length(ineg)),ineg]=diag(-1., length(ineg))
       }
       rownames(mi_zc)=nm_izc
-      li_zc=rep(zc, length(nm_izc))
+      li_zc=rep(zc, length(nm_izc)) # that's ok for both pos and neg constraints
       ui_zc=cBind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
          Matrix(0., nrow=nrow(mi_zc), ncol=nb_sc))
       if (nb_fgr > 0) {
@@ -440,6 +440,25 @@ for (irun in iseq(nseries)) {
          ui_zc=cBind(ui_zc, Matrix(0., nrow=nrow(mi_zc), ncol=nb_poolf))
       }
       ci_zc=li_zc-mi_zc%*%mic
+      # remove constant inequalities
+      if (ncol(ui_zc)) {
+         zi=apply(ui_zc,1,function(v){return(max(abs(v))<=1.e-14)})
+      } else {
+         # remove all flux inequalities as there is no free params
+         zi=rep(TRUE, nrow(ui_zc))
+      }
+
+      if (all(ci_zc[zi]<=1.e-10)) {
+         ui_zc=ui_zc[!zi,,drop=F]
+         ci_zc=ci_zc[!zi]
+         nm_izc=nm_izc[!zi]
+         mi_zc=mi_zc[!zi,,drop=F]
+      } else {
+         cat("The following constant inequalities are not satisfied:\\n", file=stderr())
+         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=stderr())
+         stop("See above.")
+      }
+
       # remove redundant/contradictory inequalities
       nb_zc=nrow(ui_zc)
       nb_i=nrow(ui)
@@ -482,7 +501,7 @@ for (irun in iseq(nseries)) {
    # for corresponding measurements
    vr=param2fl_x(param, cjac=FALSE, jx_f, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
    if (!is.null(vr$err) && vr$err) {
-      cat("param2fl_x", runsuf, ": ", vr$mes, "\n", file=stderr(), sep="")
+      cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=stderr(), sep="")
       close(fkvh)
       next
    }
@@ -493,8 +512,13 @@ for (irun in iseq(nseries)) {
          measinvvar=1./measurements$dev$labeled**2
          ms=measvec*simvec*measinvvar
          ss=simvec*simvec*measinvvar
+         # get only valid measurements
+         iva=!is.na(ms)
          for (i in nb_ff+1:nb_sc) {
-            im=(ir2isc==(i+1))
+            im=(ir2isc==(i+1)) & iva
+            if (sum(im) < 2) {
+               stop(sprintf("scaling: no sufficient valid data for scaling factor '%s'", nm_par[i]))
+            }
             param[i]=sum(ms[im])/sum(ss[im])
          }
       } else {
@@ -638,8 +662,8 @@ for (irun in iseq(nseries)) {
          write.matrix(formatC(jx_f$dr_dff, 15), file=fname, sep="\\t")
          cat(paste("Provided measurements (isotopomers and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:
 ", paste(nm_uns, sep=", ", collapse=", "),
-            "\nJacobian dr_dff is dumped in " %s+% fname, sep=""),
-            "\n", file=stderr())
+            "\\nJacobian dr_dff is dumped in " %s+% fname, sep=""),
+            "\\n", file=stderr())
          close(fkvh)
          next
       }
@@ -658,8 +682,8 @@ for (irun in iseq(nseries)) {
       jx_f=res$retres$jx_f
       if (any(is.na(res$par))) {
          res$retres$jx_f=NULL # to avoid writing of huge data
-         obj2kvh(res, "optimization process informations", fkvh)
-         cat("Optimization failed", runsuf, "\n", file=stderr(), sep="")
+         obj2kvh(res, "optimization process information", fkvh)
+         cat("Optimization failed", runsuf, "\\n", file=stderr(), sep="")
          close(fkvh)
          next
       }
@@ -678,7 +702,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
             if (length(ipos)) {
                ipzc=str2ind(ipos, nm_izc)
                ipos=str2ind(ipos, nm_i)
-               ci[ipos]=as.numeric(zzc+mi_zc[ipzc,,drop=F]%*%mic)
+               ci[ipos]=as.numeric(zc+mi_zc[ipzc,,drop=F]%*%mic)
                nm_i[ipos]=sub(">=", "<=-", nm_i[ipos])
             }
             if (length(ineg)) {
@@ -716,7 +740,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
                }
                if (any(is.na(res$par))) {
                   res$retres$jx_f=NULL # to avoid writing of huge data
-                  obj2kvh(res, "optimization process informations", fkvh)
+                  obj2kvh(res, "optimization process information", fkvh)
                   cat("Second optimization failed", runsuf, "\\n", file=stderr(), sep="")
                   close(fkvh)
                   next
@@ -728,12 +752,13 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       names(param)=nm_par
       if (excl_outliers != F) {
          # detect outliers
-         iout=which(rz.pval.bi(res$res) <= excl_outliers)
+         iva=!is.na(res$res)
+         iout=which(rz.pval.bi(res$res) <= excl_outliers | !iva)
          #cat("iout=", iout, "\\n")
          if (length(iout)) {
             measurements$outlier=iout
             cat("Excluded outliers at p-value ", excl_outliers, ":\\n",
-               paste(nm_resid[iout], collapse="\\n"), "\\n", sep="")
+               paste(nm_resid[iout], res$res[iout], sep="\\t", collapse="\\n"), "\\n", sep="")
             jx_f_save=jx_f
             resout=opt_wrapper(measurements, jx_f)
             if (resout$err || is.null(resout$par)) {
@@ -758,7 +783,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
          }
       }
       res$jacobian=res$retres$jx_f=NULL # to avoid writing huge data
-      obj2kvh(res, "optimization process informations", fkvh)
+      obj2kvh(res, "optimization process information", fkvh)
    }
    if (TIMEIT) {
       cat("postopt : ", date(), "\\n", sep="")
@@ -918,7 +943,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       indent=1
       avaco=try(detectCores(), silent=T)
       if (inherits(avaco, "try-error")) {
-         avaco=NA
+         avaco=NULL
       }
       obj2kvh(avaco, "detected cores", fkvh, indent)
       avaco=max(1, avaco, na.rm=T)
@@ -1107,8 +1132,9 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
 
    # khi2 test for goodness of fit
    # goodness of fit (khi2 test)
-   khi2test=list("khi2 value"=rcost, "data points"=length(jx_f$res),
-      "fitted parameters"=nb_param, "degrees of freedom"=length(jx_f$res)-nb_param)
+   nvres=sum(!is.na(jx_f$res))
+   khi2test=list("khi2 value"=rcost, "data points"=nvres,
+      "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
    khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
    khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
    khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
@@ -1159,12 +1185,15 @@ if (TIMEIT) {
 flush(stdout())
 flush(stderr())
 suppressWarnings(sink())
-suppressWarnings(sink())
+suppressWarnings(sink(type="message"))
 """%{
     "org": escape(org, "\\"),
     "d": escape(dirorg, "\\"),
 })
 
     f.close()
-    # make output files just readable to avoid later casual edition
-    os.chmod(n_R, stat.S_IREAD)
+    # try to make output files just readable to avoid later casual edition
+    try:
+	os.chmod(n_R, stat.S_IREAD)
+    except:
+        pass
