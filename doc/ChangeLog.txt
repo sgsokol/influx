@@ -2,6 +2,30 @@
 Change Log for influx_s
 =======================
 
+2013-06-28 version 2.5
+----------------------
+New features:
+ - an argument of the option ``--np=NP`` (number of processes) can be fractional, between 0 and 1 in which case the number of requested cores is calculated as NP*number_of_available_cores
+ - in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more flield names in the output file are described (based on discussions with Yanfen Fu, University of Washington)
+ - missing values in measurements (NA as Non Available) are allowed in FTBL files.
+
+Bug fixes:
+ - fixed a fatal error if the rights of generated R file cannot be changed
+ - fixed a bug for ``--ln`` (least norm) option when without inequalities, increments were not of least norm (reported by Stephane Massou, INSA of Toulouse, France)
+ - fixed an algorithm used in ``--ln``. Now for all inequality systems, both least residual norm and least solution norm are acheaved (before, for some systems it was not the case). **Due to this fix, we highly recomend to update to this version if you use ``--ln`` option**
+ - fixed a bug in "zero crossing" inequalities. Now, inequalities involving only constrained fluxes are canceled.
+
+2013-04-11 version 2.4
+----------------------
+New features:
+ - number of parallel processes (in case of multiple FTBL files) is limited to a number of cores or to an argument of the ``--np`` option
+ - some consistency controls were added on flux names in various FTBL sections.
+
+Bug fixes:
+ - fixed a bug in formating some error messages during FTBL parsing;
+ - fixed an accidental removing of kvh.py file from the previous release;
+ - fixed non signaling to check ``.err`` file while some parsing errors did produce;
+
 2013-03-28 version 2.3
 ----------------------
 New features:
