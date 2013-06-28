@@ -92,7 +92,7 @@ dirx=os.path.dirname(me)
 sys.path.append(dirx)
 
 from tools_ssg import *
-
+NaN=float("nan")
 float_conv=set((
     "VALUE",
     "DEVIATION",
@@ -647,8 +647,12 @@ def ftbl_netan(ftbl):
         if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
             raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["irow"]))
+        try:
+           val=eval(row["VALUE"])
+        except:
+           val=NaN
         netan["flux_measured"][row["FLUX_NAME"]]={\
-                "val": eval(row["VALUE"]), \
+                "val": val, \
                 "dev": eval(row["DEVIATION"])}
     
     # measured concentartions
@@ -663,8 +667,12 @@ def ftbl_netan(ftbl):
             found_neg=found_neg or netan["met_pools"][m] < 0.
         if not found_neg:
             raise Exception("At least one of mesured metabolites `%s` must be defined as free (i.e. having negative starting value) in the METABOLITE_POOLS (row: %d)."%(row["META_NAME"], row["irow"]))
+        try:
+            val=float(eval(row["VALUE"]))
+        except:
+            val=NaN
         netan["metab_measured"][row["META_NAME"]]={\
-                "val": eval(row["VALUE"]), \
+                "val": val, \
                 "dev": eval(row["DEVIATION"])}
     
     # input isotopomers
@@ -813,8 +821,12 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
                 bcumos=[bcumos]
             except:
                 raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row "+row["irow"])
+        try:
+            val=float(eval(row["VALUE"]))
+        except:
+            val=NaN
         netan["label_meas"][metabs][group].append({
-                "val":eval(row["VALUE"]),
+                "val":val,
                 "dev":eval(row["DEVIATION"]),
                 "bcumos":row["CUM_CONSTRAINTS"].split("+"),
                 "id":":".join(["l", metabs, row["CUM_CONSTRAINTS"], str(row["irow"])]),
@@ -869,6 +881,9 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
                dev=row.get("DEVIATION_DD/T","") or row.get("DEVIATION_S")
             try:
                 val=float(eval(val))
+            except:
+                val=NaN
+            try:
                 dev=float(eval(dev))
             except:
                 continue
@@ -877,7 +892,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
                 raise Exception("Deviation is not determined for VALUE_"+suff+" on row "+str(row["irow"]))
             c_no=int(row["PEAK_NO"])
             if c_no > clen0:
-                raise Exception("Carbon number "+str(c_no)+" is gretaer than carbon length "+str(clen0)+" for metabolite '"+metab0+"' on ftbl row "+str(row["irow"]))
+                raise Exception("Carbon number "+str(c_no)+" is greater than carbon length "+str(clen0)+" for metabolite '"+metab0+"' on ftbl row "+str(row["irow"]))
             if suff == "D-" and c_no == 1:
                 raise Exception("Peak D- cannot be set for metabolite "+metab0+", c_no=1 on row "+str(row["irow"]))
             if suff == "D+" and c_no == clen:
@@ -961,8 +976,12 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             raise Exception("Fragment "+frag+" is longer than metabolite length "+str(clen)+" on row="+str(irow))
         netan["mass_meas"].setdefault(m_id, {})
         netan["mass_meas"][m_id].setdefault(mask, {})
+        try:
+            val=float(eval(row["VALUE"]))
+        except:
+            val=NaN
         netan["mass_meas"][m_id][mask][weight]={
-                "val":eval(row["VALUE"]),
+                "val":val,
                 "dev":eval(row["DEVIATION"]),
                 "id":":".join(["m", metabs, frag, row["WEIGHT"], str(row["irow"])]),
                 "irow":str(row["irow"]),
