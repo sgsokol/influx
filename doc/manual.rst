@@ -13,15 +13,15 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
 
 .. note::
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
- Some sections concerning metabolite pools were added to original FTBL format (cf. `Growth flux option`_). Other important difference, is that user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0)
+ Some sections concerning metabolite pools were added to original FTBL format (cf. `Growth flux option`_). Other important difference, is that user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0). Finally, starting from version 2.5, ``NA`` (missing values) are admitted in measurement sections.
 
 moreover we supposed ``influx_s.py`` is in the PATH variable.
 
-In a high throuput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.: ::
+In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.: ::
 
  $ influx_s.py mynetwork1 mynetwork2
 
-and so on. All files are then proceeded in separate independent processes launched almost simultaniously. It is an operating system who is in charge to make a repartition of all these processes among all available CPUs and cores.
+and so on. All files are then proceeded in separate independent processes launched almost simultaneously by a bunch of size equal to the number of available or requested (if an option ``--np=NP`` is used) cores. It is an operating system who is in charge to make a distribution of all these processes among all available CPUs and cores.
 
 Sometimes, particular cases need usage of special options of ``influx_s``. The list of available options can be seen by running::
 
@@ -47,7 +47,7 @@ Command line options
 --------------------
   --version        show program's version number and exit
   -h, --help       show the help message and exit
-  --noopt          no optimization, just use free fluxes as is, to calculate
+  --noopt          no optimization, just use free fluxes as is (after a projection on feasibility domain), to calculate
                    dependent fluxes, cumomers, stats and so on
   --noscale        no scaling factors to optimize => all scaling factors are assumed to be 1
 
@@ -60,7 +60,7 @@ Command line options
                    This option influences only post-optimization treatment. The fitting itself is still done with the reduced cumomer set. See the original paper on ``influx_s`` for more information on the reduced cumomer set.
   --emu            simulate labeling in EMU approach
 
-                   This option should not produce a different result in parameter fitting. It is implemented and provided in the hope that on some network the results can be obtained in a shorter time
+                   This option should not produce a different result in parameter fitting. It is implemented and provided in a hope that on some network the results can be obtained in a shorter time
   --irand          ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries
                    option) and use random values drawn uniformly from [0,1]
                    
@@ -78,11 +78,13 @@ Command line options
   --cinout=CINOUT  lower limit for input/output free and dependent fluxes.
                    Must be non negative. Default: 0
   --clowp=CLOWP    lower limit for free metabolite pools. Must be positive. Default 1.e-8
-  --np=NP          Number of parallel process used in Monte-Carlo simulations
-                   Without this option or for NP=0 all available cores in a
-                   given node are used in Unix environement. On Windows platform, these simulations are run in sequential mode.
-
-                   At the time of this writing, an R module ``parallel``, on which we are based for parallel execution, is not able to fork() on Windows platform. So even if a Windows user use this option with an argument greater than 1, actually only one core will be used.
+  --np=NP            Number of parallel process used in Monte-Carlo (M-C)
+                     simulations or for multiple FTBL inputs. Without this
+                     option or for NP=0, all available cores in a given node
+                     are used for M-C simulations in Unix environment. On
+                     Windows platform, M-C simulations are run in sequential
+                     mode on one core. Multiple FTBLs are processed in
+                     parallel on both platforms.
   --ln             Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
 
                    Jacobian can become rank deficient if provided data are not sufficient to resolve all free fluxes. It can be useful to determine fluxes that can still be resolved by the available measurements. If the Jacobian does not become rank deficient, this option has no influence on the found solution neither on the optimization process. But if the Jacobian does become rank deficient, a warning message is printed in the error file even if the optimization process could go to the end.
@@ -100,7 +102,7 @@ Command line options
                      starting points. Default: '' (empty, i.e. only one
                      starting point from the FTBL file is used)
                      
-                     The file must be formated as plain text file with tab separator. There must be as many columns as starting points and at least as many rows as free parameters assigned in this file. A subset of free parameters can be used in this file. In this case, the rest of parameters take their unique starting values from the FTBL file. The first column must contain the names of free parameters used in this file. If there are extra rows whose names are not in the set of free parameter names, they are simply ignored. The first row must contain the names of starting points. These names can be just numbers from 1 to the number of starting points.
+                     The file must be formatted as plain text file with tab separator. There must be as many columns as starting points and at least as many rows as free parameters assigned in this file. A subset of free parameters can be used in this file. In this case, the rest of parameters take their unique starting values from the FTBL file. The first column must contain the names of free parameters used in this file. If there are extra rows whose names are not in the set of free parameter names, they are simply ignored. The first row must contain the names of starting points. These names can be just numbers from 1 to the number of starting points.
   --iseries=ISERIES  Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default '' (empty, i.e. all provided starting points are used)
                      
                      When used with conjunction with ``--fseries``, this option indicates the starting points to use from FSERIES file. But this option can also be used in conjunction with ``--irand`` to generate a required number of random starting points, e.g. ``influx_s.py --irand --iseries 1:10 mynetwork`` will generate and use 10 random starting points.
@@ -109,7 +111,8 @@ Command line options
   --seed=SEED        Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (``--irand``) but also Monte-Carlo simulations for sensitivity analysis (``--sens mc=N``) if executed in sequential way (``--np=1``). Default: current system value, i.e. the random drawing will be varying at each run.
   --excl_outliers    This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.
 
-                     An optional p-value used here does not give a proportion of residuals that will be excluded from optimization process. If you want to filter out more outliers than with the default p-value, use a value grater than the default value of 0.01, e.g.: ::
+                     Excluded outliers (if any) and their residual values are reported in the ``mytework.log`` file. Non available (``NA``) measurements are considered as outliers for any p-value.
+                     An optional p-value used here does not give a proportion of residuals that will be excluded from optimization process but rather a degree of beeing a valuable measurements. So, closer to zero is the p-value, the less data is filtered out. If in contary, you want to filter out more outliers than with the default p-value, use a value grater than the default value of 0.01, e.g.: ::
 
                       influx_s.py --excl_outliers 0.02 mynetwork.ftbl
 
@@ -181,7 +184,7 @@ All possible options and their default values for NLSIC algorithm follow:
     confidence interval reporting. This option is own to ``nlsic()`` function. It has no impact on the reporting of linear stats information in the result kvh file after the post-optimization treatment. This latter is always done.
 
    history=FALSE
-    return or not (default) the matrices with optimization steps and residual vectors during optimization. These matrices can then be found as part of ``optimization process informations/history`` field in ``mynetwork_res.kvh`` file. Use it with caution, big size matrices can be generated requiring much of memory and disk space.
+    return or not (default) the matrices with optimization steps and residual vectors during optimization. These matrices can then be found as part of ``optimization process information/history`` field in ``mynetwork_res.kvh`` file. Use it with caution, big size matrices can be generated requiring much of memory and disk space.
 
    adaptbt=TRUE
     use (default) or not an adaptive backtracking algorithm.
@@ -257,7 +260,7 @@ Result file fields
 
 Generally speaking, the names of the fields in the result KVH file are chosen to be self explanatory. So there is no so much to say about them. Here, we provide only some key fields and name conventions used in the result file.
 
-At the beginning of the ``mynetwork_res.kvh`` file some system information is provided. Here "system" should be taken in two sens: informatics and biological. The informations are reported in the fields  ``influx`` and  ``system sizes``. These fields are followed by  ``starting point`` information regrouping ``starting free parameters``,  ``starting MID vector`` (MID stands for Mass Isotopomer Distribution),  ``starting cumomer vector``, forward-revers fluxes, net-exchange fluxes, starting residuals and some other subfields. Name conventions used in these and other fields are following:
+At the beginning of the ``mynetwork_res.kvh`` file some system information is provided. Here "system" should be taken in two sens: informatics and biological. The information are reported in the fields  ``influx`` and  ``system sizes``. These fields are followed by  ``starting point`` information regrouping ``starting free parameters``,  ``starting MID vector`` (MID stands for Mass Isotopomer Distribution),  ``starting cumomer vector``, forward-revers fluxes, net-exchange fluxes, starting residuals and some other subfields. Name conventions used in these and other fields are following:
 
  net and exchange fluxes
   are prefixed by ``n.`` or ``x.`` respectively
@@ -280,14 +283,16 @@ At the beginning of the ``mynetwork_res.kvh`` file some system information is pr
      * ``#xx1x`` is a measurement identification
      * ``694`` is a line number in the FTBL file corresponding to this measurement.
 
-The field ``optimization process informations`` is the key field presenting the results of an optimization process. The fitted parameters are in the subfield ``par``. Other subfields provide some additional informations.
+The field ``optimization process information`` is the key field presenting the results of an optimization process. The fitted parameters are in the subfield ``par``. Other subfields provide some additional information.
 
 The final cost value is in the field ``final cost``.
 
 
 The values of vectors derived from free fluxes like dependent fluxes, cumomers, MID and so on are in the corresponding fields whose names can be easily recognized.
 
-Linear stats and Monte-Carlo statistics are presented in their respective fields. The latter field is present only if explicitly requested by the user with ``--sens mc=MC`` option.
+Linear stats and Monte-Carlo statistics are presented in their respective fields. The latter field is present only if explicitly requested by the user with ``--sens mc=MC`` option. In this kvh section, a term ``rsd`` means "relative standard deviation" (in literature, it is often encountered a synonym CV as Coefficient of Variation), it is calculated as SD/Mean and if expressed in percentage then the formula becomes 100%*SD/Mean.
+
+The field ``jacobian dr_dp (without 1/sd_exp)`` report a Jacobian matrix which is defined as a matrix of partial derivatives :math:`\partial{r}/\partial{p}` where *r* is residual vector (Simulated--Measured) and *p* is a free parameter vector including free fluxes, scaling factors (if any) and free metabolite pools (if any). Note that in this definition the residual vector is not yet scaled by standard deviation of measurements. Sometimes, Jacobian is called *sensitivity matrix* in which case a special care should be brought to the sens of derivation. Often, by sensitivity matrix, we intend a matrix expressing how estimated fluxes are sensible to variations in the measurement data. Such definition corresponds to generalized inverse of Jacobian and it is reported in the field ``generalized inverse of jacobian dr_dp (without 1/sd_exp)``
 
 Network values for Cytoscape
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -352,7 +357,7 @@ a message about singular cumomer balance matrix could resemble to::
   Calls: opt_wrapper -> nlsic -> r -> param2fl_x -> trisparse_solv
   Execution stopped
   
-.. note:: In this error message we report cumomers whose balance gave a zero row in the cumomer matrix (here ``PHB:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
+.. note:: In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here ``PHB:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
  
  ``$ influx_s.py --clownr 0.0001 mynetwork``
  
@@ -370,6 +375,96 @@ a message about badly statistically defined network could appear like::
 and so on.
 
 A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun ``influx_s`` to see if other problems are still here. Sometimes, a problem can induce several others. So, correcting the first problem could eliminate some others. Repeat this process, till all the troubles are eliminated.
+
+Problematic cases
+-----------------
+
+Obviously, everyone would like be able just run a flux estimation software and simply get results but unfortunately it does not work in this way every time.
+In this section we review some problematic cases which can be encountered in practice.
+
+Structurally non identifiable fluxes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It can happen that collected data are not sufficient to resolve some fluxes in your network. Due to non linear nature of the problem, this situation can appear for some set of free flux values and disappear for others or be persistent for any free flux values. An error is reported to signal such situation, e.g.::
+
+ lsi: Rank deficient matrix in least squares
+ 1 unsolvable variable(s):
+ f.n.PPDK        7
+
+and execution is stopped.
+
+Several options are then available for a user facing such a problem.
+
+1. Collect more data to resolve lucking fluxes. As a rule of thumb, data must be collected on metabolites which are node of convergence of badly defined fluxes or on metabolites situated downhill of convergence point and preserving labeling pattern. Nature of collected data can be also important. Examples can be constructed where mass data are not sufficient to determine a flux but RMN data can do the job.
+ 
+ Before actual data collection, you can make a "dry run" with ``--noopt`` option and with fictitious values for intended metabolite in the FTBL file to see if with these new data the network becomes well resolved. If the error message disappear and SD values in the the section ``linear stats`` are not very high then chances are that additionally collected data can help to resolve the fluxes.
+ 
+2. Optimize input label. It can happen that you do collect data on a metabolite situated in convergence point for undefined fluxes but incoming fluxes are bringing the same labeling pattern which prevents flux(es) to be resolved. May be changing substrate label can help in this situation. For label optimization you can use a software called IsoDesign, distributed under OpenSource licence and available here http:://metasys.insa-toulouse.fr/software/isodes/ (may be you have received ``influx_s`` as part of IsoDesign package, in which case you have it already).
+ 
+ Naturally, this label optimization should be done before doing actual experiments. See IsoDesing tutorial for more details on how to prepare and make such optimization.
+ 
+ If you don't want or don't have a possibility to use a software for label optimization or you think to have an insight on what should be changed in substrate labeling to better define the fluxes, you can still make a try with ``influx_s.py --noopt new_labeling.ftbl`` option to see if a new labeling will do the job (here ``new_labeling.ftbl`` is an example name for a FTBL file that you will prepare with a new ``LABEL_INPUT`` section.)
+
+3. Use ``--ln`` option. It wont make you fluxes well defined, it will just continue calculation trying to resolve what can be solved and assigning some particular values (issued from so called *least norm* solution for rank deficient matrices) to undefined fluxes. You will still have a warning similar to::
+
+ lsi_ln: Rank deficient matrix in least squares
+ 1 free variable(s):
+ f.n.PPDK        7
+ Least L2-norm solution is provided.
+ 
+informing you that some flux(es) in the network is(are) still undefined.
+This option can be helpful if undefined fluxes are without particular interest for biological question in hand and their actual values can be safely ignored.
+
+4. You can give an arbitrary fixed value to an undefined flux by declaring it as constrained in the FTBL file (letter ``C`` in the column ``FCD`` in the ``FLUXES`` section).
+
+Badly defined fluxes
+~~~~~~~~~~~~~~~~~~~~
+
+Also known as *statistically undefined fluxes*, these fluxes have big or even huge SD values. The difference between these fluxes and structurally undefined fluxes is that the badly defined fluxes can become well defined if the noise is reduced or hypothetically eliminated while the latter will still be undetermined even in the absence of the noise. Despite this difference, all options presented in the previous section are applicable here (all but ``--ln`` which would be without effect here).
+
+An additional measure can be taken which consist in experimental noise reduction. Generally, it can be done by using better protocols, better instruments or simply by increasing the measurement repetition number.
+
+Once again, a use of ``--noopt`` with new hoped DEV values in the FTBL file can help to see if these new measurements with better noise characteristics will resolve or not the problem.
+
+Slow convergence
+~~~~~~~~~~~~~~~~
+
+Slow optimization convergence can manifest by following warnings::
+
+ nlsic: Maximal non linear iteration number is achieved
+
+or/and ::
+
+ nlsic: Maximal backtrack iteration number is achieved
+ 
+Theoretically, user can increase the limit for those two numbers
+(``optctrl_maxit`` and ``optctrl_btmaxit`` respectively in the ``OPTIONS`` section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
+In all cases, a slow convergence is due to high non linearity of the solved problem. What can vary from one situation to another, it is the nature of this non linearity. Depending on this nature, several steps can be undertaken to accelerate optimization::
+
+1. If a non linearity causing the slow convergence is due to the use of function absolute value :math:`|x|` in the calculation of forward and revers fluxes from net and exchange fluxes, then an option ``--zc=ZC`` (zero crossing) can be very efficient. This non linearity can become harmful when during optimization a net flux has to change its sign, in other words it has to cross zero.
+ This option splits the convergence process in two parts. First, a minimum is searched for fluxes under additional constraints to keep the same sign during this step. Second, for fluxes that reached zero after the first step, a sign change is imposed and a second optimization is made with these new constraints.
+ If ``--zc`` option is used with an argument 0 (``--zc=0`` or ``--zc 0``), it can happen that fluxes reaching zero produce a singular (non invertible) cumomer balance matrix. In this case, an execution is aborted with an error starting like::
+ 
+ Error in solve(A, b) : 
+  cs_lu(A) failed: near-singular A (or out of memory)
+ Error in trisparse_solv(lAb$A, lAb$b, iw, method = "sparse") : 
+  Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
+ or constrain some of the fluxes listed below to be non zero
+ ...
+
+ To avoid such situation, an argument to ``--zc`` must be a small positive number, say ``--zc 0.001``. In this case, positive net fluxes are kept over 0.001 and negative fluxes are kept under -0.001 value. In this manner, an exact zero is avoided.
+ 
+2. A high non linearity can appear for some particular set of free fluxes, especially when they take extreme values, e.g. when exchange fluxes are close to 1 or net fluxes take very high values of order 10² or even 10³ (supposing that the main entry flux is normalized to 1). In such a case, user can low this limits (options ``--cupx=CUPX`` and ``--cupn=CUPN`` respectively) or try to exclude outliers (``--excl_outliers P-VALUE``) as outliers can attract the solution in weird zone of free fluxes. In this latter case, the first convergence will continue to be slow and will generate corresponding warnings but the second one (after a possible elimination of outliers) can be much quicker.
+
+Convergence aborted
+~~~~~~~~~~~~~~~~~~~
+This situation is signaled by the error::
+
+ nlsic: LSI returned not descending direction
+ 
+This problem can occur for badly defined network which are very sensible for truncation errors. The effect of such errors can become comparable to the effect of the increment step during optimization. It means that we cannot decrease the norm of residual vector under the values resulting from rounding errors.
+ If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no such many measures that user could take beside to make his system better defined as described in previous sections.
+ .. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`1O^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`1O^{-3}` or :math:`1O^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
 
 Additional tools
 ----------------
