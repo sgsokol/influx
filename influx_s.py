@@ -3,9 +3,10 @@
 """
 import sys, os, datetime as dt, subprocess as subp
 from optparse import OptionParser
-from threading import Thread
+from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
-from Queue import Queue
+from Queue import Queue # threaded parallel jobs
+from glob import glob # wildcard expansion
 
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
@@ -30,7 +31,7 @@ def qworker():
         launch_job(**item)
         q.task_done()
 
-def launch_job(ft, fshort, cmd_opts):
+def launch_job(ft, fshort, cmd_opts, nb_ftbl):
     r"""Launch R code generation and then its execution
 """
     #print "here thread: "+fshort
@@ -40,10 +41,10 @@ def launch_job(ft, fshort, cmd_opts):
     flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
 
     # code generation
-    s=fshort+"code gen: "+now_s()+"\n"
+    s="code gen: "+now_s()+"\n"
     flog.write(s)
     flog.flush()
-    sys.stdout.write(s)
+    sys.stdout.write(fshort+s)
 
     try:
         # generate the R code
@@ -54,38 +55,56 @@ def launch_job(ft, fshort, cmd_opts):
             if v is False else str(v)) for k,v in cmd_opts.iteritems()) + '"'] \
             + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
-        #print(pycmd)
         r_generated=True
         try:
             p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
         except:
             r_generated=False
             pass
-        flog.flush()
-        
-        if r_generated and "nocalc" not in cmd_opts:
-            # execute R code
-            rcmd="R --vanilla --slave".split()
-            flog.write("executing: "+" ".join(rcmd)+" < "+f+".R\n")
-            s=fshort+"calcul  : "+now_s()+"\n"
-            flog.write(s)
-            flog.flush()
-            sys.stdout.write(s)
-            try:
-                p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), stdout=flog, stderr=ferr)
-            except:
-                pass
-        flog.close()
-        ferr.close()
-        flog=open(f+".log", "ab")
-        s=fshort+"end     : "+now_s()+"\n"
-        sys.stdout.write(s)
-        flog.write(s+"\n")
         if os.path.getsize(ferr.name) > 0:
             s="=>Check "+ferr.name+"\n"
             sys.stdout.write(s)
-            flog.write(s+"\n")
+            flog.write(s)
         flog.close()
+        ferr.close()
+        if r_generated:
+            qres.put(f+".R")
+            if "nocalc" in cmd_opts:
+                # we are done, end up all writings
+                flog=open(f+".log", "ab")
+                s="end     : "+now_s()+"\n"
+                flog.write(s)
+                sys.stdout.write(fshort+s)
+                if os.path.getsize(ferr.name) > 0:
+                    s="=>Check "+ferr.name+"\n"
+                    sys.stdout.write(s)
+                    flog.write(s)
+                flog.close()
+                return
+            if nb_ftbl > 1:
+                # if just one ftbl, launch its R here, otherwise //calcul outside
+                return
+            # execute only one R code
+            rcmd="R --vanilla --slave".split()
+            flog=open(f+".log", "ab")
+            flog.write("executing: "+" ".join(rcmd)+" < "+f+".R\n")
+            s="calcul  : "+now_s()+"\n"
+            flog.write(s)
+            flog.close()
+            sys.stdout.write(fshort+s)
+            try:
+                p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), shell=os.name=="nt")
+            except:
+                pass
+            s="end     : "+now_s()+"\n"
+            flog=open(f+".log", "ab")
+            flog.write(s)
+            sys.stdout.write(fshort+s)
+            if os.path.getsize(f+".err") > 0:
+                s="=>Check "+f+".err"+"\n"
+                sys.stdout.write(s)
+                flog.write(s)
+            flog.close()
     except:
         pass
 
@@ -113,7 +132,7 @@ parser.add_option(
     help="no scaling factors to optimize => all scaling factors are assumed to be 1")
 parser.add_option(
 "--meth", type="choice",
-    choices=["BFGS", "Nelder-Mead", "ipopt", "nlsic"],
+    choices=["BFGS", "Nelder-Mead", "nlsic"],
     help="method for optimization, one of nlsic|BFGS|Nelder-Mead. Default: nlsic")
 parser.add_option(
 "--fullsys", action="store_true",
@@ -150,7 +169,10 @@ parser.add_option(
     help="""When integer > 0, it is a number of parallel threads used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. When float between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for M-C simulations in Unix environment or for parallel ftbl processing on all platforms. On Windows platform, M-C simulations are run in sequential mode on one core. Multiple FTBLs are processed in parallel on both platforms.""")
 parser.add_option(
 "--ln", action="store_true",
-    help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
+    help="Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
+parser.add_option(
+"--sln", action="store_true",
+    help="Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient")
 parser.add_option(
 "--zc", type="float",
     help="Apply zero crossing strategy with non negative threshold for net fluxes")
@@ -179,8 +201,14 @@ parser.add_option(
 "--prof", action="store_true",
     help="developer option")
 
+# expand wildcard (for Windows OS)
+
 # parse commande line
 (opts, args) = parser.parse_args()
+# expand wildcard (for Windows OS)
+lglob=[glob(f) or [f] for f in args]
+args=[l for f in lglob for l in f]
+
 #print ("opts=", opts)
 #print ("args=", args)
 # make args unique
@@ -201,18 +229,23 @@ else:
     np=avaco
 #print("np=", np)
 q=Queue()
+qres=Queue()
 
 for i in range(np):
     t=Thread(target=qworker)
     t.daemon=True
     t.start()
 
+nb_ftbl=len(args)
+ftpr=[] # proceeded ftbls
+(cmd_opts, cmd_args) = (opts, args)
 for ft in args:
     if ft[-5:] != ".ftbl":
         ft=ft+".ftbl"
     if not os.path.exists(ft):
-        sys.stderr.write("FTBL file '%s' does not exist."%ft)
+        sys.stderr.write("FTBL file '%s' does not exist.\n"%ft)
         continue;
+    ftpr.append(ft)
     f=ft[:-5]
     fshort="" if len(args) == 1 else os.path.basename(f)+": "
 
@@ -232,7 +265,70 @@ for ft in args:
     cmd_opts=eval(str(cmd_opts))
     cmd_opts=dict((k,v) for k,v in cmd_opts.iteritems() if v is not None)
     #print("cmd_opts=", cmd_opts)
-    item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts}
+    item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "nb_ftbl": nb_ftbl}
     q.put(item)
+if not ftpr:
+    sys.exit(1)
 q.join()
+
+# get names of generated R files
+rfiles=[]
+while not qres.empty():
+    rfiles.append(qres.get())
+
+if "nocalc" not in cmd_opts:
+    # write file parallel.R and launch it
+    if len(rfiles) > 1:
+        # //calcul on cluster
+        fpar=open("parallel.R", "wb")
+        fpar.write("""
+    suppressPackageStartupMessages(library(parallel))
+    suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # to economize this loading in every parallel worker
+    doit=function(fR) {
+       f=substr(fR, 1, nchar(fR)-2)
+       nm_flog=sprintf("%%s.log", f)
+       nm_ferr=sprintf("%%s.err", f)
+       fshort=basename(f)
+       now=Sys.time()
+       flog=file(nm_flog, "ab")
+       cat("calcul  : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
+       close(flog)
+       source(fR)
+       now=Sys.time()
+       flog=file(nm_flog, "ab")
+       cat("end     : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
+       if (file.info(nm_ferr)$size > 0) {
+           cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
+       }
+       close(flog)
+    }
+    nodes=%d
+    if (.Platform$OS.type=="unix") {
+       type="FORK"
+    } else {
+       type="PSOCK"
+       nodes=rep("localhost", nodes)
+    }
+    cl=makeCluster(nodes, type)
+    flist=c(%s)
+    parres=parLapply(cl, flist, doit)
+    """%(np, ", ".join('"'+f+'"' for f in rfiles)))
+        fpar.close()
+        # execute R code on cluster
+        rcmd="R --vanilla --slave".split()
+        s="//calcul: "+now_s()+"\n"
+        sys.stdout.write(s)
+        try:
+            p=subp.check_call(rcmd, stdin=open(fpar.name, "rb"), shell=os.name=="nt")
+        except:
+            pass
+        # end up writing
+        for fR in rfiles:
+            f=fR[:-2]
+            nm_ferr=f+".err"
+            if os.path.getsize(nm_ferr) > 0:
+                s="=>Check "+nm_ferr+"\n"
+                sys.stdout.write(s)
+        s="//end   : "+now_s()+"\n"
+        sys.stdout.write(s)
 sys.exit(0)
