@@ -1,7 +1,7 @@
 #DEBUG=0; # 1 to enable debugging information, 0=disable
 #TIMEIT=0; # 1 to enable time printing at some stages
 if (length(find("TIMEIT")) && TIMEIT) {
-   cat("load    : ", date(), "\n", sep="")
+   cat("load    : ", date(), "\n", sep="", file=fclog)
 }
 jx_f=list()
 trisparse_solv=function(A, b, w, method="dense") {
@@ -48,7 +48,7 @@ trisparse_solv=function(A, b, w, method="dense") {
          stop(mes)
       }
       if (DEBUG) {
-         cat("A=", str(A), "\n", sep="")
+         cat("A=", str(A), "\n", sep="", file=fclog)
       }
       return(list(x=as.matrix(x), fA=A, err=0, mes=NULL))
    } else if (method=="smw") {
@@ -56,7 +56,7 @@ trisparse_solv=function(A, b, w, method="dense") {
       require(matrid, lib.loc="/home/sokol/R/lib")
       atrim=new("matridm", A)
       if (DEBUG) {
-         cat(paste("dim A at weight ", w, ":\n", sep=""))
+         cat(paste("dim A at weight ", w, ":\n", sep="", file=fclog))
          print(dim(A))
          write.matrix(cbind(A,b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t")
       #   print(A)
@@ -666,7 +666,7 @@ cumo2lab=function(x) {
    }
    return(res)
 }
-cumo_gradj=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb) {
+cumo_gradj=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spAb, emu, pool, ipooled) {
    # calculate gradient of cost function for cumomer minimization probleme
    # method: mult jacobian by residual 2*jac*resid*invvar
 
@@ -674,8 +674,9 @@ cumo_gradj=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, f
    #    t(drf_dff)*(invfmnvar*resfl), 2*(t(dr_dw)%*%rescumo))
 
    # gradient
-   grad=2*(jx_f$ures/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)**2)%tmm%jx_f$udr_dp
-   return(as.numeric(grad))
+   #grad=2*(jx_f$ures/c(measurements$dev$labeled, measurements$dev$flux, measurements$dev$pool)**2)%tmm%jx_f$udr_dp
+   grad=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
+   return(grad)
 }
 # cost function for donlp2 solver
 cumo_fn=function(p) {
@@ -1289,7 +1290,7 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
       control[names(control_ftbl)]=control_ftbl
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
-         method="Nelder-Mead", outer.iterations=100, outer.eps=1e-07,
+         method="Nelder-Mead", outer.iterations=100, outer.eps=1e-08,
          jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
          measurements, ir2isc, spa, emu, pool, ipooled)
    } else if (method == "SANN") {
@@ -1297,12 +1298,14 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
       control[names(control_ftbl)]=control_ftbl
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
-         method="SANN", outer.iterations=100, outer.eps=1e-07,
+         method="SANN", outer.iterations=100, outer.eps=1e-08,
          jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi,
          measurements, ir2isc, spa, emu, pool, ipooled)
    } else if (method == "nlsic") {
       control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
-         ci=list(report=F), history=FALSE, adaptbt=TRUE)
+         ci=list(report=F), history=FALSE, adaptbt=TRUE, sln=sln,
+         maxstep=max(sqrt(norm2(param)), 1.)
+      )
       control[names(control_ftbl)]=control_ftbl
       res=nlsic(param, cumo_resid, 
          ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
@@ -1376,7 +1379,7 @@ mc_sim=function(i) {
    #jx_f=rres$jx_f
    res=opt_wrapper(measurements_mc, jx_f, trace=0)
    if (nchar(res$mes) > 0) {
-      cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=stderr(), sep="")
+      cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=fcerr, sep="")
    }
    # return the solution
    iva=!is.na(res$res)
