@@ -307,7 +307,7 @@ nm_list$resid=nm_resid
 })
     f.write("""
 if (TIMEIT) {
-   cat("preopt  : ", date(), "\\n", sep="")
+   cat("preopt  : ", date(), "\\n", sep="", file=fclog)
 }
 #browser()
 names(param)=nm_par
@@ -317,10 +317,11 @@ if (nchar(fseries) > 0) {
    # skip parameters (rows) who's name is not in nm_par
    i=rownames(pstart) %in% nm_par
    if (!any(i)) {
-      stop("Option --fseries is used but no free parameter with known name is found.")
+      cat("Option --fseries is used but no free parameter with known name is found.", "\\n", sep="", file=fcerr)
+      stop()
    }
    pstart=pstart[i,,drop=F]
-   cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="")
+   cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="", file=fclog)
 #expp   # take log of free pools
 #expp   i=grep("^pf:", rownames(pstart))
 #expp   pstart[i,]=log(pstart[i,])
@@ -331,7 +332,8 @@ nm_pseries=rownames(pstart)
 
 nseries=ncol(pstart)
 if (is.null(nseries) || nseries==0) {
-   stop("No starting values in the series file '"%s+%fseries%s+%"'.")
+   cat("No starting values in the series file '"%s+%fseries%s+%"'.", "\\n", sep="", file=fcerr)
+   stop()
 }
 
 # prepare series indexes
@@ -374,7 +376,7 @@ for (irun in iseq(nseries)) {
       runsuf=""
    }
    if (length(nseries) > 0) {
-      cat("Starting point", runsuf, "\\n", sep="")
+      cat("Starting point", runsuf, "\\n", sep="", file=fclog)
    }
    fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) %s+% runsuf %s+% ".kvh", "w");
 
@@ -390,27 +392,29 @@ for (irun in iseq(nseries)) {
    names(ineq)=rownames(ui)
    param_old=param
    if (any(ineq <= -1.e-10)) {
-      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\\n", sep="")
-      print(ineq[ineq<= -1.e-10])
+      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\\n", sep="", file=fclog)
+      i=ineq[ineq<= -1.e-10]
+      cat(paste(names(i), i, sep="\\t", collapse="\\n"), "\\n", sep="", file=fclog)
       # put them inside
-      param=put_inside(param, ui, ci)
+      capture.output(param <- put_inside(param, ui, ci), file=fclog)
       if (any(is.na(param))) {
          if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
             # fatal error occured
             cat("put_inside", runsuf, ": ", attr(param, "mes"), "\\n",
-               file=stderr(), sep="")
+               file=fcerr, sep="")
             close(fkvh)
             next;
          }
       } else if (!is.null(attr(param, "err")) && attr(param, "err")==0) {
          # non fatal problem
-         warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+         cat(paste("put_inside: ", attr(param, "mes"), collapse=""), "\\n", file=fcerr)
       }
    }
 
-   # zero crossing strategy
+   # prepare zero crossing strategy
    # inequalities to keep sens of net flux on first call to opt_wrapper()
    # if active they are removed on the second call to opt_wrapper()
+   # and finaly all zc constraints are relaxed on the last call to opt_wrapper()
    fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fallnx
    mi_zc=NULL
    li_zc=NULL
@@ -454,9 +458,8 @@ for (irun in iseq(nseries)) {
          nm_izc=nm_izc[!zi]
          mi_zc=mi_zc[!zi,,drop=F]
       } else {
-         cat("The following constant inequalities are not satisfied:\\n", file=stderr())
-         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=stderr())
-         stop("See above.")
+         cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
+         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=fcerr)
       }
 
       # remove redundant/contradictory inequalities
@@ -472,7 +475,7 @@ for (irun in iseq(nseries)) {
                   abs(abs(ci[j])-abs(ci_zc[i]))<=1.e-2) {
 #browser()
                   # redundancy
-                  cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\\n", sep="")
+                  cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\\n", sep="", file=fclog)
                   ired=c(ired, i)
                   break
                }
@@ -501,7 +504,7 @@ for (irun in iseq(nseries)) {
    # for corresponding measurements
    vr=param2fl_x(param, cjac=FALSE, jx_f, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
    if (!is.null(vr$err) && vr$err) {
-      cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=stderr(), sep="")
+      cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
       next
    }
@@ -517,7 +520,8 @@ for (irun in iseq(nseries)) {
          for (i in nb_ff+1:nb_sc) {
             im=(ir2isc==(i+1)) & iva
             if (sum(im) < 2) {
-               stop(sprintf("scaling: no sufficient valid data for scaling factor '%s'", nm_par[i]))
+               cat(sprintf("scaling: no sufficient valid data for scaling factor '%s'", nm_par[i]), "\\n", sep="", file=fcerr)
+               stop()
             }
             param[i]=sum(ms[im])/sum(ss[im])
          }
@@ -550,13 +554,13 @@ for (irun in iseq(nseries)) {
    names(ineq)=rownames(ui)
    if (any(abs(ineq)<=1.e-10)) {
       cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point", runsuf, ":\\n",
-         paste(names(ineq[abs(ineq)<=1.e-10]), collapse="\\n"), "\\n", sep="")
+         paste(names(ineq[abs(ineq)<=1.e-10]), collapse="\\n"), "\\n", sep="", file=fclog)
    }
 """)
 
     f.write("""
    if (TIMEIT) {
-      cat("kvh init: ", date(), "\\n", sep="")
+      cat("kvh init: ", date(), "\\n", sep="", file=fclog)
    }
 
 """%{
@@ -632,7 +636,7 @@ for (irun in iseq(nseries)) {
    names(measvec)=nm_meas
    obj2kvh(measvec, "labeled measurement vector", fkvh, indent=1)
 
-   #cat("mass vector:\\n")
+   #cat("mass vector:\\n", file=fclog)
    #print_mass(x)
 
    names(param)=nm_par
@@ -663,30 +667,31 @@ for (irun in iseq(nseries)) {
          cat(paste("Provided measurements (isotopomers and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:
 ", paste(nm_uns, sep=", ", collapse=", "),
             "\\nJacobian dr_dff is dumped in " %s+% fname, sep=""),
-            "\\n", file=stderr())
+            "\\n", file=fcerr)
          close(fkvh)
          next
       }
       if (TIMEIT) {
-         cat("optim   : ", date(), "\\n", sep="")
+         cat("optim   : ", date(), "\\n", sep="", file=fclog)
       }
       # pass control to the chosen optimization method
-      res=opt_wrapper(measurements, jx_f)
-      if (res$err || is.null(res$par)) {
-         warning(res$mes)
+      capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
+      if ((!is.null(res$err) && res$err) || is.null(res$par)) {
+         cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
          res$par=rep(NA, length(param))
          res$cost=NA
-      } else if (nchar(res$mes)) {
-         warning(res$mes)
+      } else if (!is.null(res$mes) && nchar(res$mes)) {
+         cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
       }
       jx_f=res$retres$jx_f
       if (any(is.na(res$par))) {
          res$retres$jx_f=NULL # to avoid writing of huge data
          obj2kvh(res, "optimization process information", fkvh)
-         cat("Optimization failed", runsuf, "\\n", file=stderr(), sep="")
+         cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
          close(fkvh)
          next
       }
+      param=res$par
 #browser()
       if (zerocross && !is.null(mi_zc)) {
          # inverse active "zc" inequalities
@@ -694,8 +699,8 @@ for (irun in iseq(nseries)) {
          i=grep("^zc ", nm_inv, v=T)
          if (length(i) > 0) {
             i=str2ind(i, nm_i)
-            cat("The following inequalities are active after first stage
-of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="")
+            cat("The following inequalities are active after first pass
+of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="", file=fclog)
             ipos=grep(">=", nm_i[i], v=T)
             ineg=grep("<=", nm_i[i], v=T)
             ui[i,]=-ui[i,,drop=F]
@@ -715,59 +720,85 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
             names(ci)=nm_i
             # enforce new inequalities
             reopt=TRUE
-            param=put_inside(res$par, ui, ci)
+            capture.output(param <- put_inside(res$par, ui, ci), file=fclog)
             if (any(is.na(param))) {
                if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
                   # fatal error occured, don't reoptimize
-                  warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+                  cat(paste("put_inside", runsuf, ": ", attr(param, "mes"), "\\n", collapse=""), file=fcerr)
                   param=res$param
                   reopt=FALSE
                }
             } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
                # non fatal problem
-               warning(paste("put_inside: ", attr(param, "mes"), collapse=""))
+               cat(paste("put_inside", runsuf, ": ", attr(param, "mes"), "\\n", collapse=""), file=fcerr)
             }
             # reoptimize
             if (reopt) {
-               res=opt_wrapper(measurements, jx_f)
+               cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
+               capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
                jx_f=res$retres$jx_f
                if (res$err || is.null(res$par)) {
-                  warning(res$mes)
+                  cat("second zero crossing pass: ", res$mes, "\\n", sep="", file=fcerr)
                   res$par=rep(NA, length(param))
                   res$cost=NA
-               } else if (nchar(res$mes)) {
-                  warning(res$mes)
+               } else if (!is.null(res$mes) && nchar(res$mes)) {
+                  cat("second zero crossing pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
                }
                if (any(is.na(res$par))) {
                   res$retres$jx_f=NULL # to avoid writing of huge data
                   obj2kvh(res, "optimization process information", fkvh)
-                  cat("Second optimization failed", runsuf, "\\n", file=stderr(), sep="")
+                  cat("Second zero crossing pass failed", runsuf, "\\n", file=fcerr, sep="")
+                  close(fkvh)
+                  next
+               }
+               param=res$par
+            }
+            # last pass, free all zc constraints
+            i=grep("^zc ", nm_i)
+            if (length(i) > 0) {
+               ui=ui[-i,,drop=F]
+               ci=ci[-i]
+               nm_i=nm_i[-i]
+               cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
+               capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
+               jx_f=res$retres$jx_f
+               if (res$err || is.null(res$par)) {
+                  cat("last zero crossing (free of zc)", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+                  res$par=rep(NA, length(param))
+                  res$cost=NA
+               } else if (!is.null(res$mes) && nchar(res$mes)) {
+                  cat("last zero crossing (free of zc)", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+               }
+               if (any(is.na(res$par))) {
+                  res$retres$jx_f=NULL # to avoid writing of huge data
+                  obj2kvh(res, "optimization process information", fkvh)
+                  cat("Last zero crossing pass failed", runsuf, "\\n", file=fcerr, sep="")
                   close(fkvh)
                   next
                }
             }
          }
-      }	
+      } # end if zero crossing
       param=res$par
       names(param)=nm_par
       if (excl_outliers != F) {
          # detect outliers
          iva=!is.na(res$res)
          iout=which(rz.pval.bi(res$res) <= excl_outliers | !iva)
-         #cat("iout=", iout, "\\n")
+         #cat("iout=", iout, "\\n", file=fclog)
          if (length(iout)) {
             measurements$outlier=iout
             cat("Excluded outliers at p-value ", excl_outliers, ":\\n",
-               paste(nm_resid[iout], res$res[iout], sep="\\t", collapse="\\n"), "\\n", sep="")
+               paste(nm_resid[iout], res$res[iout], sep="\\t", collapse="\\n"), "\\n", sep="", file=fclog)
             jx_f_save=jx_f
-            resout=opt_wrapper(measurements, jx_f)
+            capture.output(resout <- opt_wrapper(measurements, jx_f), file=fclog)
             if (resout$err || is.null(resout$par)) {
-               warning(resout$mes)
-            } else if (nchar(resout$mes)) {
-               warning(resout$mes)
+               cat("wo outliers: ", resout$mes, "\\n", sep="", file=fcerr)
+            } else if (!is.null(resout$mes) && nchar(resout$mes)) {
+               cat("wo outliers: ", resout$mes, "\\n", sep="", file=fcerr)
             }
             if (any(is.na(resout$par))) {
-               cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=stderr(), sep="")
+               cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=fcerr, sep="")
                # continue without outlier exclusion
                measurements$outlier=NULL
                jx_f=jx_f_save
@@ -779,14 +810,14 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
                jx_f=resout$retres$jx_f
             }
          } else {
-            warning("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.")
+            cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
          }
       }
       res$jacobian=res$retres$jx_f=NULL # to avoid writing huge data
       obj2kvh(res, "optimization process information", fkvh)
    }
    if (TIMEIT) {
-      cat("postopt : ", date(), "\\n", sep="")
+      cat("postopt : ", date(), "\\n", sep="", file=fclog)
    }
    # active constraints
    ine=as.numeric(abs(ui%*%param-ci))<1.e-10
@@ -890,7 +921,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    jx_f_last=jx_f
    while (sensitive=="mc") {
       if (TIMEIT) {
-         cat("monte-ca: ", date(), "\\n", sep="")
+         cat("monte-ca: ", date(), "\\n", sep="", file=fclog)
       }
       if(set_seed) {
          set.seed(seed)
@@ -903,7 +934,7 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       mc_res=mclapply(1:nmc, mc_sim)
       free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$res$error) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
-         warning("Parallel exectution of Monte-Carlo simulations has failed.")
+         cat("Parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fcerr)
          free_mc=matrix(NA, nb_param+2, 0)
       }
       cost_mc=free_mc[1,]
@@ -929,13 +960,13 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       ifa=which(is.na(free_mc[1,]))
       if (length(ifa)) {
          if (ncol(free_mc) > length(ifa)) {
-            warning("Some Monte-Carlo iterations failed.")
+            cat("Some Monte-Carlo iterations failed.", "\\n", sep="", file=fcerr)
          }
          free_mc=free_mc[,-ifa,drop=F]
          cost_mc=cost_mc[-ifa]
       }
       if (nmc_real <= 1) {
-         warning("No sufficient calculated monter-carlo samples for statistics.")
+         cat("No sufficient calculated monter-carlo samples for statistics.", "\\n", sep="", file=fcerr)
          break
       }
 #browser()
@@ -1036,11 +1067,11 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
       break
    }
    if (length(sensitive) && nchar(sensitive) && sensitive != "mc") {
-      warning(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""))
+      cat(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""), "\\n", sep="", file=fcerr)
    }
 
    if (TIMEIT) {
-      cat("linstats: ", date(), "\\n", sep="")
+      cat("linstats: ", date(), "\\n", sep="", file=fclog)
    }
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
@@ -1060,8 +1091,8 @@ of zero crossing strategy and will be inverted:\\n", paste(nm_i[i], collapse="\\
    ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
    ibad=unique(unlist(ibad))
    if (length(ibad) > 0) {
-      warning(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
-         paste(nm_par[ibad], collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""))
+      cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
+         paste(nm_par[ibad], collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fcerr)
    }
    # "square root" of covariance matrix (to preserve numerical positive definitness)
    rtcov=(svj$u)%*%(t(svj$v)/svj$d)
@@ -1180,12 +1211,10 @@ cat("row_col\t", file=fco)
 write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
 close(fco)
 if (TIMEIT) {
-   cat("rend    : ", date(), "\\n", sep="")
+   cat("rend    : ", date(), "\\n", sep="", file=fclog)
 }
-flush(stdout())
-flush(stderr())
-suppressWarnings(sink())
-suppressWarnings(sink(type="message"))
+close(fclog)
+close(fcerr)
 """%{
     "org": escape(org, "\\"),
     "d": escape(dirorg, "\\"),
