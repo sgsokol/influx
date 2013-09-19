@@ -1164,13 +1164,16 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # khi2 test for goodness of fit
    # goodness of fit (khi2 test)
    nvres=sum(!is.na(jx_f$res))
-   khi2test=list("khi2 value"=rcost, "data points"=nvres,
-      "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
-   khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
-   khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
-   khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
-   obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
-
+   if (nvres >= nb_param) {
+      khi2test=list("khi2 value"=rcost, "data points"=nvres,
+         "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
+      khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
+      khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
+      khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
+      obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
+   } else {
+      cat(sprintf("khi2: Measurment number %d is lower than parameter number %d. Khi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
+   }
    if (prof) {
       Rprof(NULL)
    }
