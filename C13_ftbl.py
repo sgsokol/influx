@@ -2080,7 +2080,7 @@ def rcumo_sys(netan, emu=False):
                 cumo_i+=1
                 if cumo in used:
                     continue
-                # add this cumo used
+                # add this cumo to used
                 used.add(cumo)
                 (metab, icumo)=cumo.split(":")
                 if metab in netan["output"]:
@@ -2184,8 +2184,8 @@ def cumo_infl(netan, cumo):
                     in_cumo=in_metab+":"+str(in_icumo)
                     res.append((in_cumo, "fwd."+reac, imetab, iin_metab))
     # run through input reverse fluxes of this metab
-    #for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
-    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]):
+    #for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]):
+    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
         # get all cstr for given metab
         for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["left"])
             if m==metab):
