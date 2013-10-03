@@ -1351,6 +1351,7 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
 
 # wrapper for Monte-Carlo simulations
 mc_sim=function(i) {
+   #set.seed(seeds[i])
    # random measurement generation
    if (nb_meas) {
       meas_mc=rnorm(nb_meas, simcumom, measurements$dev$labeled)
@@ -1378,11 +1379,11 @@ mc_sim=function(i) {
    #cat("mc_res=", sqrt(norm2(rres$res)), "\n", sep="")
    #jx_f=rres$jx_f
    res=opt_wrapper(measurements_mc, jx_f, trace=0)
-   if (nchar(res$mes) > 0) {
+   if (!is.null(res$mes) && nchar(res$mes) > 0) {
       cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=fcerr, sep="")
    }
    # return the solution
    iva=!is.na(res$res)
    vres=res$res[iva]
-   return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, res=res))
+   return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, error=res$error))
 }
