@@ -931,7 +931,22 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       simfmn=f[nm_fmn]
       simpool=as.numeric(measurements$mat$pool%*%poolall)
       # parallel execution
-      mc_res=mclapply(1:nmc, mc_sim)
+      # prepare cluster
+      if (.Platform$OS.type=="unix") {
+         type="FORK"
+         nodes=np
+      } else {
+         type="PSOCK"
+         nodes=rep("localhost", np)
+      }
+      seeds=sample(1L:10000L, nmc)
+      #cl=makeCluster(nodes, type)
+      if (.Platform$OS.type!="unix") {
+         #clusterExport(cl, c("seeds", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper"))
+         #clusterExport(cl, ls())
+      }
+      mc_res=mclapply(1L:nmc, mc_sim)
+      #stopCluster(cl)
       free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$res$error) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
          cat("Parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fcerr)
@@ -972,10 +987,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 #browser()
       rownames(free_mc)=nm_par
       indent=1
-      avaco=try(detectCores(), silent=T)
-      if (inherits(avaco, "try-error")) {
-         avaco=NULL
-      }
       obj2kvh(avaco, "detected cores", fkvh, indent)
       avaco=max(1, avaco, na.rm=T)
       obj2kvh(min(avaco, options()$mc.cores, na.rm=T), "used cores", fkvh, indent)
