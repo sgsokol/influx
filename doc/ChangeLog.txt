@@ -2,6 +2,20 @@
 Change Log for influx_s
 =======================
 
+2013-10-02 version 2.6
+----------------------
+New features:
+ - added option ``--sln`` (solution least norm) which applies 'least norm' to the whole solution vector of free parameters, not just to the increment vector (like ``--ln`` does)
+ - a parallel calculation of multiple FTBLs is moved from python to R code. In such a way, some economies of repeated R starting up and library loading are made
+ - when zero crossing is used (``--zc=ZC``) a third pass is added without any zc constraint.
+ - added an option ``maxstep`` to control list of nlsic(). In some situations, it can make the convergence more stable at early iterations.
+
+Bug fixes:
+ - fixed a fatal error preventing from using BFGS optimization method
+ - fixed an error in calculating reduced size of cumomer or EMU systems. It did not impact the results (at least for well defined network) but made calculations a little bit longer (reported by Stephane Mottelet, University of Compiegne, France).
+ - a more explicit error message is generated when a given choice of free fluxes leads to a square but singular flux (stoichiometric) matrix.
+ - some error messages were printed on standart output instead of ``.err`` file.
+
 2013-06-28 version 2.5
 ----------------------
 New features:
