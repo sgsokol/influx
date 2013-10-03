@@ -312,7 +312,8 @@ if "nocalc" not in cmd_opts:
     cl=makeCluster(nodes, type)
     flist=c(%s)
     parres=parLapply(cl, flist, doit)
-    """%(np, ", ".join('"'+f+'"' for f in rfiles)))
+    stopCluster(cl)
+"""%(np, ", ".join('"'+f+'"' for f in rfiles)))
         fpar.close()
         # execute R code on cluster
         rcmd="R --vanilla --slave".split()
