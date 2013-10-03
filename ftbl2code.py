@@ -312,6 +312,8 @@ fcerr=file("%(errfile)s", "ab")
 fclog=file("%(logfile)s", "ab")
 
 options(warn=1)
+#options(show.error.messages=F)
+
 suppressPackageStartupMessages(library(bitops))
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
 suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
@@ -374,36 +376,46 @@ if (substring(sensitive, 1, 3)=="mc=") {
 # cupx==0 means no upper limit => cupx=1
 cupx=ifelse(cupx, cupx, 1)
 if (cupx < 0 || cupx > 1) {
-   stop(paste("Option '--cupx N' must have N in the interval [0,1]\n",
-      "Instead, the value ", cupx, " si given.", sep=""))
+   cat(paste("Option '--cupx N' must have N in the interval [0,1]\n",
+      "Instead, the value ", cupx, " si given.", sep=""), file=fcerr)
+   q("no", status=1)
 }
 if (cinout < 0) {
-   stop(paste("Option '--cinout N' must have N non negative\n",
-      "Instead, the value ", cinout, " si given.", sep=""))
+   cat(paste("Option '--cinout N' must have N non negative\n",
+      "Instead, the value ", cinout, " si given.", sep=""), file=fcerr)
+   q("no", status=1)
 }
 # minimization method
 validmethods=list("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic")
 if (! method %%in%% validmethods) {
-   cat(paste("method", method, "is not known. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
+   cat(paste("Wraning: method", method, "is not known. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
    method="nlsic"
 }
-if ( method == "ipopt") {
+if (method == "ipopt") {
    installed=suppressPackageStartupMessages(library(ipoptr, logical.return=T))
+   if (!installed) {
+      cat("An optimization method ipopt is requested but available in this R installation", file=fcerr)
+      q("no", status=1)
+   }
 }
 if (least_norm && sln) {
-   stop("Options --ln and --sln cannot be activated simultaniously.")
+   cat("Options --ln and --sln cannot be activated simultaniously.", file=fcerr)
+   q("no", status=1)
 }
 
-avaco=try(detectCores(), silent=T)
+avaco=try(detectCores(logical=F), silent=T)
 if (inherits(avaco, "try-error")) {
    avaco=NULL
 }
-if (np > 0 && np < 1) {
+if (np > 0L && np < 1L) {
    np=round(avaco*np)
-} else if (np > 1) {
+} else if (np > 1L) {
    np=round(np)
 } else {
    np=avaco
+}
+if (is.null(np) || np <= 0L) {
+   np=1L
 }
 options(mc.cores=np)
 
@@ -416,7 +428,8 @@ if (zc==-.Machine$double.xmax) {
    zerocross=F
 } else {
    if (zc < 0.) {
-      stop(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""))
+      cat(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""), file=fcerr)
+      q("no", status=1)
    }
    zerocross=T
 }
@@ -872,33 +885,45 @@ if (TIMEIT) {
 }
 
 qrAfl=qr(Afl, LAPACK=T)
-d=diag(qrAfl$qr)
-qrAfl$rank=sum(abs(d)>=abs(d[1]*1.e-10))
+d=abs(diag(qrAfl$qr))
+qrAfl$rank=sum(d > d[1]*1.e-10)
+rank=qrAfl$rank
 #browser()
-if (nrow(Afl) != ncol(Afl)) {
+if (nrow(Afl) != rank) {
    #write.table(Afl)
    if (nrow(Afl) < ncol(Afl)) {
       mes=paste("Candidate(s) for free flux(es):\\n",
-         paste(colnames(Afl)[-qrAfl$pivot[1:nrow(Afl)]], collapse="\\n"), sep="")
-   } else {
-      nextra=nrow(Afl)-ncol(Afl)
-      comb=combn(nb_ffn, nextra)
-      i=which.min(apply(comb, 2, function(i)kappa(cBind(Afl, p2bfl[,i]))))[1]
-      i=comb[,i]
-      ka=kappa(cBind(Afl, p2bfl[,i]))
-      if (ka!=Inf) {
-         prop=paste("Proposal to delcare dependent flux(es) is:\\n",
-            paste(nm_ffn[i], collapse="\\n"), "\\n", sep="")
+         paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"), sep="")
+   } else if (nrow(Afl) > rank) {
+      nextra=nrow(Afl)-rank
+      comb=combn(c(nm_ffn, colnames(Afl)[-qrAfl$pivot[1L:rank]]), nextra)
+      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank]], -p2bfl)
+      colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl))
+      ara=Afl[,qrAfl$pivot[1L:rank]]
+      i=which.min(apply(comb, 2, function(i) kappa(cBind(ara, aextra[,i]))))[1L]
+      nm_tmp=comb[,i]
+      ka=kappa(cBind(ara, aextra[,nm_tmp]))
+      if (ka < 1.e10) {
+         prop=paste("Proposal to declare dependent flux(es) is:\\n",
+            paste(nm_tmp, collapse="\\n"), "\\n", sep="")
+         if (rank < ncol(Afl)) {
+            prop=prop%%s+%%"Moreover, the following dependent flux(es) should be declared free or constraint:\\n"%%s+%%join("\\n", colnames(Afl)[-qrAfl$pivot[1L:rank]])%%s+%%"\\n"
+         }
       } else {
-         # test constraint candidate
+         # add constraint fluxes to candidate list
          if (nb_fcn > 0) {
-            comb=combn(nb_fcn, nextra)
-            i=which.min(apply(comb, 2, function(i)kappa(cBind(Afl, c2bfl[,i]))))[1]
-            i=comb[,i]
-            ka=kappa(cBind(Afl, c2bfl[,i]))
-            if (ka!=Inf) {
-               prop=paste("Proposal to delcare dependent flux(es) is:\\n",
-               paste(nm_fcn[i], collapse="\\n"), "\\n", sep="")
+            aextra=as.matrix(cBind(Afl, -p2bfl, -c2bfl))
+            colnames(aextra)=c(colnames(Afl), colnames(p2bfl), colnames(c2bfl))
+            qae=qr(aextra, LAPACK=T)
+            d=abs(diag(qae$qr))
+            ranke=sum(d > d[1L]*1.e-10)
+            if (ranke == nrow(Afl)) {
+               prop=paste("Proposal to declare dependent flux(es) is:\\n",
+               join("\\n", colnames(aextra)[qae$pivot[1L:ranke]]), "\\n",
+               "while free and constrained fluxes should be:\\n",
+               join("\\n", colnames(aextra)[-qae$pivot[1L:ranke]]), "\\n",
+               sep="")
+               ka=kappa(aextra[,qae$pivot[1L:ranke]])
             } else {
                prop="No proposal for dependent fluxes could be made.\\n"
             }
@@ -906,7 +931,7 @@ if (nrow(Afl) != ncol(Afl)) {
             prop="No proposal for dependent fluxes could be made.\\n"
          }
       }
-      prop=paste(prop, "Condition number of stoechiometric matrix would be ", ka, "\\n", sep="")
+      prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
       mes=paste("There is (are) probably ", nextra,
          " extra free flux(es) among the following:\\n",
          paste(nm_ffn, collapse="\\n"), "\\n",
@@ -914,9 +939,10 @@ if (nrow(Afl) != ncol(Afl)) {
          "\\nAnother option could be an elimination of some equalities.",
          sep="")
    }
-   stop(paste("Flux matrix is not square: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
+   cat(paste("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
       "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
-      mes, sep=""))
+      mes, sep=""), file=fcerr)
+   q("no", status=1)
 }
 
 # make sure that free params choice leads to not singular matrix
@@ -945,7 +971,7 @@ if (qrAfl$rank != nb_fl) {
       mes=paste(mes, "\\nNo suggested free fluxes could be found", sep="")
    }
    cat(mes, file=fcerr)
-   stop()
+   q("no", status=1)
 }
 
 # inverse flux matrix
@@ -1567,7 +1593,7 @@ if (all(ci[zi]<=1.e-10)) {
 } else {
    cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
    cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=fcerr)
-   stop("see above.")
+   q("no", status=1)
 }
 
 # complete ui by zero columns corresponding to scale params
