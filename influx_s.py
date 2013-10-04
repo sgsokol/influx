@@ -166,7 +166,7 @@ parser.add_option(
     help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
 parser.add_option(
 "--np", type="float",
-    help="""When integer > 0, it is a number of parallel threads used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. When float between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for M-C simulations in Unix environment or for parallel ftbl processing on all platforms. On Windows platform, M-C simulations are run in sequential mode on one core. Multiple FTBLs are processed in parallel on both platforms.""")
+    help="""When integer >= 1, it is a number of parallel threads (on Unix) or subprocesses (on Windows) used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. When NP is a float number between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for M-C simulations.""")
 parser.add_option(
 "--ln", action="store_true",
     help="Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
@@ -184,7 +184,7 @@ parser.add_option(
        help="Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default: '' (empty, i.e. all provided starting points are used)")
 parser.add_option(
 "--seed", type="int",
-       help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis (--sens mc=N) if executed in sequential way (--np=1). Default: current system value, i.e. random drawing will be varying at each run.")
+       help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis. Default: none, i.e. current system value is used, so random drawing will be varying at each run.")
 parser.add_option(
 "--excl_outliers", action='callback', callback=optional_pval(0.01), dest="excl_outliers",
        help="This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.")
