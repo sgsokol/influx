@@ -51,7 +51,7 @@ Command line options
                    dependent fluxes, cumomers, stats and so on
   --noscale        no scaling factors to optimize => all scaling factors are assumed to be 1
 
-                   This option can be useful if your measurements are already scaled to sum up to 1 which is often the case of MS data. Then, the user saves some free parameters corresponding to scaling factors. This option can become mandatory if the user wants to prevent scaling factors to be adjusted by optimization process.
+                   This option can be useful if your measurements are already scaled to sum up to 1 which is often the case of MS data. Then, user saves some free parameters corresponding to scaling factors. This option can become mandatory if user wants to prevent scaling factors to be adjusted by optimization process.
   --meth=METH      method for optimization, one of nlsic|BFGS|Nelder-Mead.
                    Default: nlsic
   --fullsys        calculate all cumomer set (not just the reduced one
@@ -78,13 +78,13 @@ Command line options
   --cinout=CINOUT  lower limit for input/output free and dependent fluxes.
                    Must be non negative. Default: 0
   --clowp=CLOWP    lower limit for free metabolite pools. Must be positive. Default 1.e-8
-  --np=NP            Number of parallel process used in Monte-Carlo (M-C)
-                     simulations or for multiple FTBL inputs. Without this
-                     option or for NP=0, all available cores in a given node
-                     are used for M-C simulations in Unix environment. On
-                     Windows platform, M-C simulations are run in sequential
-                     mode on one core. Multiple FTBLs are processed in
-                     parallel on both platforms.
+  --np=NP            When integer >= 1, it is a number of parallel threads (on
+                     Unix) or subprocesses (on Windows) used in Monte-Carlo
+                     (M-C) simulations or for multiple FTBL inputs. When NP is
+                     a float number between 0 and 1, it gives a fraction of
+                     available cores (rounded to closest integer) to be used.
+                     Without this option or for NP=0, all available cores in a
+                     given node are used for M-C simulations.
   --ln             Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
 
                    Jacobian can become rank deficient if provided data are not sufficient to resolve all free fluxes. It can be useful to determine fluxes that can still be resolved by the available measurements. If the Jacobian does not become rank deficient, this option has no influence on the found solution neither on the optimization process. But if the Jacobian does become rank deficient, a warning message is printed in the error file even if the optimization process could go to the end.
@@ -108,8 +108,16 @@ Command line options
                      When used with conjunction with ``--fseries``, this option indicates the starting points to use from FSERIES file. But this option can also be used in conjunction with ``--irand`` to generate a required number of random starting points, e.g. ``influx_s.py --irand --iseries 1:10 mynetwork`` will generate and use 10 random starting points.
                      
                      For both ``--fseries`` and ``--iseries``, one result file is generated per starting point, e.g. ``mynetwork_res.V1.kvh``, ``mynetwork_res.V2.kvh`` and so on. If starting points comes from a ``--fseries`` then the suffixes ``V1``, ``V2``, ... are replaced by the column names from this file. In addition, a file ``mynetwork.pres.csv`` resuming all estimated parameters and final cost values is written.
-  --seed=SEED        Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (``--irand``) but also Monte-Carlo simulations for sensitivity analysis (``--sens mc=N``) if executed in sequential way (``--np=1``). Default: current system value, i.e. the random drawing will be varying at each run.
-  --excl_outliers    This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.
+  --seed=SEED        Integer (preferably a prime integer) used for
+                     reproducible random number generating. It makes
+                     reproducible random starting points (--irand) but also
+                     Monte-Carlo simulations for sensitivity analysis.
+                     Default: none, i.e. current system value is used, so
+                     random drawing will be varying at each run.
+  --excl_outliers    This option takes an optional argument, a p-value between
+                     0 and 1 which is used to filter out measurement outliers.
+                     The filtering is based on Z statistics calculated on
+                     reduced residual distribution. Default: 0.01.
 
                      Excluded outliers (if any) and their residual values are reported in the ``mytework.log`` file. Non available (``NA``) measurements are considered as outliers for any p-value.
                      An optional p-value used here does not give a proportion of residuals that will be excluded from optimization process but rather a degree of beeing a valuable measurements. So, closer to zero is the p-value, the less data is filtered out. If in contary, you want to filter out more outliers than with the default p-value, use a value grater than the default value of 0.01, e.g.: ::
@@ -227,8 +235,7 @@ Finally, the metabolite concentrations by a unit of biomass are reported in a se
 
 Metabolite names used in this section must be identical to those used in the ``NETWORK`` section and others. Negative value is used as indicator of a variable metabolite pool. Such varying metabolites are part of fitted parameters. Absolute values from this section are used as their starting values in the optimization process.
 
-One of valuable originality of ``influx_s``, it is a possibility given to
-the user to couple fluxomics and metabolomics in stationary experiments. It can be done because metabolite pools can influence labeling in two ways:
+One of valuable originality of ``influx_s``, it is a possibility to couple fluxomics and metabolomics in stationary experiments. It can be done because metabolite pools can influence labeling in two ways:
 
  * through metabolite pooling (due to compartmentation and/or coelution during chromatography)
  * through growth fluxes.
@@ -290,7 +297,7 @@ The final cost value is in the field ``final cost``.
 
 The values of vectors derived from free fluxes like dependent fluxes, cumomers, MID and so on are in the corresponding fields whose names can be easily recognized.
 
-Linear stats and Monte-Carlo statistics are presented in their respective fields. The latter field is present only if explicitly requested by the user with ``--sens mc=MC`` option. In this kvh section, a term ``rsd`` means "relative standard deviation" (in literature, it is often encountered a synonym CV as Coefficient of Variation), it is calculated as SD/Mean and if expressed in percentage then the formula becomes 100%*SD/Mean.
+Linear stats and Monte-Carlo statistics are presented in their respective fields. The latter field is present only if explicitly requested by user with ``--sens mc=MC`` option. In this kvh section, a term ``rsd`` means "relative standard deviation" (in literature, it is often encountered a synonym CV as Coefficient of Variation), it is calculated as SD/Mean and if expressed in percentage then the formula becomes 100%*SD/Mean.
 
 The field ``jacobian dr_dp (without 1/sd_exp)`` report a Jacobian matrix which is defined as a matrix of partial derivatives :math:`\partial{r}/\partial{p}` where *r* is residual vector (Simulated--Measured) and *p* is a free parameter vector including free fluxes, scaling factors (if any) and free metabolite pools (if any). Note that in this definition the residual vector is not yet scaled by standard deviation of measurements. Sometimes, Jacobian is called *sensitivity matrix* in which case a special care should be brought to the sens of derivation. Often, by sensitivity matrix, we intend a matrix expressing how estimated fluxes are sensible to variations in the measurement data. Such definition corresponds to generalized inverse of Jacobian and it is reported in the field ``generalized inverse of jacobian dr_dp (without 1/sd_exp)``
 
