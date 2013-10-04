@@ -25,7 +25,7 @@ A basic work-flow with ``influx_s`` is composed of the following steps:
  ``mynetwork.log``
    containing the run-time output from various scripts, in particular,
    it contains a report on convergence history during the fitting process.
-   It can be helpfull for identifying potential problems but if everything
+   It can be helpful for identifying potential problems but if everything
    is going well, the user does not have to examine the content of this file;
  ``mynetwork.err``
   containing the warning and error messages.
