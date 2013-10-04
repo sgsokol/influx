@@ -1344,7 +1344,11 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
       res$par=res$solution
       names(res$par)=nm_par
    } else {
-      stop(paste("Unknown minimization method '", method, "'", sep=""))
+      cat(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
+      q("no", status=1)
+   }
+   if (is.null(res$err)) {
+      res$err=0L
    }
    return(res)
 }
@@ -1379,11 +1383,15 @@ mc_sim=function(i) {
    #cat("mc_res=", sqrt(norm2(rres$res)), "\n", sep="")
    #jx_f=rres$jx_f
    res=opt_wrapper(measurements_mc, jx_f, trace=0)
+   #save(res, file=sprintf("mc_%d.RData", i))
    if (!is.null(res$mes) && nchar(res$mes) > 0) {
       cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=fcerr, sep="")
+      if (res$err) {
+         return(list(cost=NA, it=res$it, normp=res$normp, par=res$par, err=res$err))
+      }
    }
    # return the solution
    iva=!is.na(res$res)
    vres=res$res[iva]
-   return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, error=res$error))
+   return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, err=res$err))
 }
