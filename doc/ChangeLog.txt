@@ -2,6 +2,16 @@
 Change Log for influx_s
 =======================
 
+2013-10-?? version 2.7
+----------------------
+New features:
+ - Monte-Cralo similations are done in parallel on Windows platform too (needs R package ``snow``)
+ - if the option ``--seed=SEED`` is used, Monte-Carlo simulations are now reproducible even if run in parallel on multiple cores
+
+Bug fixes:
+ - fixed a bug preventing to report partial Monte-Carlo results if some simulations failed and some not
+ - fixed a bug making to use all available cores when ``NP`` was set to 1.
+
 2013-10-02 version 2.6
 ----------------------
 New features:
