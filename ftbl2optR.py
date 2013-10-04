@@ -107,6 +107,7 @@ if __name__ == "__main__":
     import getopt
 
     me=os.path.realpath(sys.argv[0])
+    dirx=os.path.dirname(me)
     sys.path.append(os.path.dirname(me))
     me=os.path.basename(me)
 
@@ -926,28 +927,51 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       if(set_seed) {
          set.seed(seed)
       }
-      # Monte-Carlo simulation in parallel way
+      # Monte-Carlo simulation in parallel way (if asked and possible)
       simcumom=c(1.,param)[ir2isc]*jx_f$usimcumom
       simfmn=f[nm_fmn]
       simpool=as.numeric(measurements$mat$pool%*%poolall)
-      # parallel execution
-      # prepare cluster
-      if (.Platform$OS.type=="unix") {
-         type="FORK"
-         nodes=np
+      if (np > 1L) {
+         # parallel execution
+         # prepare cluster
+         if (.Platform$OS.type=="unix") {
+            type="FORK"
+            nodes=np
+         } else {
+            type="PSOCK"
+            nodes=rep("localhost", np)
+         }
+         #seeds=sample(1L:10000L, nmc)
+         cl=makeCluster(nodes, type)
+         if (.Platform$OS.type!="unix") {
+            if (TIMEIT) {
+               cat("cl init : ", date(), "\\n", sep="", file=fclog)
+            }
+            clusterEvalQ(cl, c(require(bitops), require(nnls), require(Matrix)))
+""")
+    f.write("""
+            if (TIMEIT) {
+               cat("cl sourc: ", date(), "\\n", sep="", file=fclog)
+            }
+            clusterEvalQ(cl, c(source("%(dirx)s/tools_ssg.R"), source("%(dirx)s/nlsic.R")))
+"""%{"dirx": escape(dirx, "\\")})
+    f.write("""
+            if (TIMEIT) {
+               cat("cl expor: ", date(), "\\n", sep="", file=fclog)
+            }
+            clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "dfm_dff", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "dfl_dffg", "crv_fg", "cfw_fg", "crv_ff", "cfw_ff", "crv_fl", "cfw_fl", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "param2fl_x", "is.diff", "cumo_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper"))
+            if (TIMEIT) {
+               cat("cl optim: ", date(), "\\n", sep="", file=fclog)
+            }
+         }
+         #mc_res=mclapply(1L:nmc, mc_sim)
+         clusterSetRNGStream(cl)
+         mc_res=parLapply(cl, 1L:nmc, mc_sim)
+         stopCluster(cl)
       } else {
-         type="PSOCK"
-         nodes=rep("localhost", np)
+         mc_res=lapply(1L:nmc, mc_sim)
       }
-      seeds=sample(1L:10000L, nmc)
-      #cl=makeCluster(nodes, type)
-      if (.Platform$OS.type!="unix") {
-         #clusterExport(cl, c("seeds", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper"))
-         #clusterExport(cl, ls())
-      }
-      mc_res=mclapply(1L:nmc, mc_sim)
-      #stopCluster(cl)
-      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$res$error) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
+      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
          cat("Parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fcerr)
          free_mc=matrix(NA, nb_param+2, 0)
