@@ -403,13 +403,13 @@ if (least_norm && sln) {
    q("no", status=1)
 }
 
-avaco=try(detectCores(logical=F), silent=T)
+avaco=try(detectCores(), silent=T)
 if (inherits(avaco, "try-error")) {
    avaco=NULL
 }
 if (np > 0L && np < 1L) {
    np=round(avaco*np)
-} else if (np > 1L) {
+} else if (np >= 1L) {
    np=round(np)
 } else {
    np=avaco
