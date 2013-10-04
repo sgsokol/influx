@@ -27,10 +27,11 @@ Dependencies
   
   + bitops
   + nnls
+  + snow
 
 To install R modules, as administrator do in R::
 
- > install.packages(c("bitops", "nnls"), dep=T)
+ > install.packages(c("bitops", "nnls", "snow"), dep=T)
 
 If you are not an administrator of your R installation, you can execute the command above in your own session and install necessary packages in your own disk space. Other users will have to do the same install in their respective sessions if they want to use ``influx_s``.
 
@@ -101,6 +102,8 @@ output looking like: ::
  calcul  : 2013-02-15 16:42:44
  end     : 2013-02-15 16:43:06
 
+The meaning of this output is quit simple. First, from FTBL file an R code is  generated then it is executed till it ends. Time moments at which these three events occur are reported.
+
 The result file will be in ``e_coli_res.kvh``.
 It should be almost identical to the same file in ``ok/`` subdirectory.
 On Unix you can do ::
@@ -112,27 +115,20 @@ values can be ok. They might come from variations in versions of R and
 underlying numerical libraries (BLAS, LAPACK and so on).
 
 If something get wrong, check the error messages in ``e_coli.err``,
-interpret them and try figure out and correct corresponding errors.
+interpret them, try to figure out why the errors occurred and correct them.
 
-In high throughput context, you can find usefull to run ``influx_s`` in parallel
-on many FTBL files. It can be done just by providing more than one FTBL file in argument. For example, with two FTBL provided with the package you can run: ::
+In high throughput context, you can find useful to run ``influx_s`` in parallel on many FTBL files. It can be done just by providing more than one FTBL file in argument. For example, with two of FTBLs provided with the package you can run: ::
 
  $ ../influx_s.py e_coli.ftbl e_coli_growth.ftbl
 
 In this case, the output looks sightly different than in one by one run: ::
+ "../influx_s.py" "e_coli.ftbl" "e_coli_growth.ftbl"
+ e_coli: code gen: 2013-10-04 16:07:51
+ e_coli_growth: code gen: 2013-10-04 16:07:51
+ //calcul: 2013-10-04 16:07:55
+ //end   : 2013-10-04 16:08:24
 
- "../influx_s.py" "e_coli" "e_coli_growth"
- e_coli: code gen: 2013-02-22 18:23:10
- e_coli_growth: code gen: 2013-02-22 18:23:10
- e_coli_growth: calcul  : 2013-02-22 18:23:13
- e_coli: calcul  : 2013-02-22 18:23:18
- e_coli: end     : 2013-02-22 18:23:42
- e_coli_growth: end     : 2013-02-22 18:23:48
-
-The time moments for code generation, calculation and end of program
-are preceded by a short version of FTBL file names. As all files are
-proceeded in parallel, there is no a predefined order in which all these
-records can appear in the log console.
+The time moments for code generation is preceded by a short version of FTBL file names. The symbol ``//`` means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.
 
 It is the operating system that dispatches and equilibrates the charge
 among available CPUs and cores, not ``influx_s`` who simply launches these processes.
