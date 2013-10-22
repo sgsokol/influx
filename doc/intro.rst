@@ -31,32 +31,34 @@ is the usage of NLSIC algorithm
 for fitting purposes. This algorithm provides:
 
  - more reliable convergence which results in better numerical precision, i.e. even started from random initial points, it converges to the same solution if no local minima are present. So the spread of final solutions is close to zero.
- - better accuracy, i.e. the found numerical solution lies closer to the theoretical solution than solutions provided by concurent minimization algorithms. Thus, ``influx_s`` provides better numerical accuracy.
+ - better accuracy, i.e. the found numerical solution lies closer to the theoretical solution than solutions provided by concurrent minimization algorithms. Thus, ``influx_s`` provides better numerical accuracy.
+
+Moreover, ``influx_s`` provides:
+
+ - a possibility to deal with metabolic pools appearing either in compartmentation or in coelution
+ - a command line interface letting an easy integration in automatic processing chains
+ - short time execution and design for many core computers. So it facilitates high throughput flux calculations.
  
-For more details, see the paper on ``influx_s`` cited here before.
+For more details, see the paper on ``influx_s`` cited above.
 
 Changes brought to this new version and bug fixes are resumed in
-the chapter :doc:`Change Log<changelog>`.
+the next chapter :doc:`Change Log<changelog>`.
 
-This documentation is organized as follows. :doc:`Installation <install>`
-chapter provides brief instructions for software installation. :doc:`Quick start
-<quick>` chapter gives an opportunity to a user to quickly start and
-evaluate the software and to see if it corresponds to what he is looking for. A
-more detailed but short :doc:`User's manual <manual>` precedes a
-:doc:`Programmer's documentation <progdoc>`. The latter chapter can be safely
-skipped by a user not interested in developing new features or fixing some
-problems in ``influx_s``. A small collection of :doc:`How to... <howto>` and
-:doc:`Troubleshooting <trouble>` notice are concluding the documentation.
+The rest of the documentation is organized as follows. :doc:`Installation <install>` chapter provides brief instructions for software installation. :doc:`Quick start <quick>` chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short :doc:`User's manual <manual>` precedes a :doc:`Programmer's documentation <progdoc>`. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in ``influx_s``. A small collection of :doc:`How to... <howto>` and :doc:`Troubleshooting <trouble>` notice are concluding the documentation.
 
 Licensing
 ---------
 
-The original version of ``influx_s`` software was developed in the MetaSys team
-in the LISBP, Toulouse, FRANCE.
+The original version of ``influx_s`` software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.
 
 The software is licensed under the Educational Community License, Version
-2.0 (the "License"); you may not use this software and documentation except in compliance with the
-License. You may obtain a copy of the License :doc:`here <license>` or at
+2.0 (the "License"); you may not use this software and documentation except in compliance with the License.
+
+If you publish results obtained with ``influx_s`` you have to cite the original paper in Bioinformatics 2012 (cf. above)
+
+If you re-distribute ``influx_s`` alone or included in other software packages, you have to ensure that the end user abide to the terms of this license.
+
+You may obtain a copy of the License :doc:`here <license>` or at
 
 http://www.opensource.org/licenses/ECL-2.0
 
