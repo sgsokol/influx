@@ -2,15 +2,20 @@
 Change Log for influx_s
 =======================
 
-2013-10-?? version 2.7
+2013-10-22 version 2.7
 ----------------------
 New features:
- - Monte-Cralo similations are done in parallel on Windows platform too (needs R package ``snow``)
+ - Monte-Carlo simulations are done in parallel on Windows platform too (needs R package ``snow``)
  - if the option ``--seed=SEED`` is used, Monte-Carlo simulations are now reproducible even if run in parallel on multiple cores
-
+ - for rank deficient Jacobian, the inequalities are now better enforced
+ - starting value for ``maxstep`` parameter is set to :math:`10||p||` instead of :math:`||p||` where *p* is a vector of starting values for free parameters to fit.
 Bug fixes:
  - fixed a bug preventing to report partial Monte-Carlo results if some simulations failed and some not
- - fixed a bug making to use all available cores when ``NP`` was set to 1.
+ - fixed a bug making to use all available cores instead of only one when ``NP`` was set to 1
+ - fixed a fatal error when inequality enforcement fails
+ - error and log messages during zero cross passes are made more explicit
+ - fixed sending some error messages on standard output instead of ``.err`` file
+ - when cumomer matrix is singular, fixed an error message about zero fluxes
 
 2013-10-02 version 2.6
 ----------------------
@@ -23,20 +28,20 @@ New features:
 Bug fixes:
  - fixed a fatal error preventing from using BFGS optimization method
  - fixed an error in calculating reduced size of cumomer or EMU systems. It did not impact the results (at least for well defined network) but made calculations a little bit longer (reported by Stephane Mottelet, University of Compiegne, France).
- - a more explicit error message is generated when a given choice of free fluxes leads to a square but singular flux (stoichiometric) matrix.
- - some error messages were printed on standart output instead of ``.err`` file.
+ - a more explicit error message is generated when a given choice of free fluxes leads to a square but singular flux (stoechiometric) matrix.
+ - some error messages were printed on standard output instead of ``.err`` file.
 
 2013-06-28 version 2.5
 ----------------------
 New features:
  - an argument of the option ``--np=NP`` (number of processes) can be fractional, between 0 and 1 in which case the number of requested cores is calculated as NP*number_of_available_cores
- - in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more flield names in the output file are described (based on discussions with Yanfen Fu, University of Washington)
+ - in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more field names in the output file are described (based on discussions with Yanfen Fu, University of Washington)
  - missing values in measurements (NA as Non Available) are allowed in FTBL files.
 
 Bug fixes:
  - fixed a fatal error if the rights of generated R file cannot be changed
  - fixed a bug for ``--ln`` (least norm) option when without inequalities, increments were not of least norm (reported by Stephane Massou, INSA of Toulouse, France)
- - fixed an algorithm used in ``--ln``. Now for all inequality systems, both least residual norm and least solution norm are acheaved (before, for some systems it was not the case). **Due to this fix, we highly recomend to update to this version if you use ``--ln`` option**
+ - fixed an algorithm used in ``--ln``. Now for all inequality systems, both least residual norm and least solution norm are achieved (before, for some systems it was not the case). **Due to this fix, we highly recommend to update to this version if you use ``--ln`` option**
  - fixed a bug in "zero crossing" inequalities. Now, inequalities involving only constrained fluxes are canceled.
 
 2013-04-11 version 2.4
@@ -46,7 +51,7 @@ New features:
  - some consistency controls were added on flux names in various FTBL sections.
 
 Bug fixes:
- - fixed a bug in formating some error messages during FTBL parsing;
+ - fixed a bug in formatting some error messages during FTBL parsing;
  - fixed an accidental removing of kvh.py file from the previous release;
  - fixed non signaling to check ``.err`` file while some parsing errors did produce;
 
@@ -97,14 +102,14 @@ Bug fix:
 ----------------------
 
 New features:
- - metabolite pooling is modeled. Such pooling can appear due to compartmentation phenomenon or due to isomer coelutions in chromatography. Starting from this version, metabolite concentrations can be part of fitted parameters;
+ - metabolite pooling is modeled. Such pooling can appear due to compartmentation phenomenon or due to isomer coelution in chromatography. Starting from this version, metabolite concentrations can be part of fitted parameters;
  - adaptive backtracking algorithm is introduced to NLSIC algorithm;
  - history of convergence during minimization can be retrieved;
  - symbolic equations for dependent fluxes expressed as functions of free and constrained fluxes are generated by ftbl2cumoAb.py script;
  - METAB_MEASUREMENTS section is added to FTBL format;
  - added :math:`\chi^2` test for evaluating the goodness of fit;
  - removed ``metab_scale`` field from OPTIONS section in FTBL format;
- - "dead end" internal metabolites are allowed in a network without being an output metabolite. As consequence, input-output fluxes must be explicitly declared as non reversibles in the FTBL;
+ - "dead end" internal metabolites are allowed in a network without being an output metabolite. As consequence, input-output fluxes must be explicitly declared as non reversible in the FTBL;
  - added optional EMU framework (``--emu``);
  - added optional series of starting points, fixed or randomly generated
    (``--fseries``, ``--iseries``);
@@ -113,7 +118,7 @@ New features:
  - outdated R package ``fUtilities`` is no more required;
 
 Bug fixes:
- - fixed stoichiometric matrix construction when for a given metabolite;
+ - fixed stoechiometric matrix construction when for a given metabolite;
    all fluxes are free or constrained;
  - fixed candidate propositions for free fluxes;
  - fixed standard deviation value for a ``DD/T`` field in ``PEAK_MEASUREMENTS`` section.
