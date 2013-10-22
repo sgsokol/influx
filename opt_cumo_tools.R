@@ -4,7 +4,7 @@ if (length(find("TIMEIT")) && TIMEIT) {
    cat("load    : ", date(), "\n", sep="", file=fclog)
 }
 jx_f=list()
-trisparse_solv=function(A, b, w, method="dense") {
+trisparse_solv=function(A, b, w, fwrv, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
       n=ncol(A)
@@ -33,7 +33,7 @@ trisparse_solv=function(A, b, w, method="dense") {
       if (inherits(x, "try-error")) {
          # find 0 rows if any
          izc=apply(A, 1, function(v)sum(abs(v))<=1.e-10)
-         izf=names(which(abs(jx_f$fwrv)<1.e-7))
+         izf=names(which(abs(fwrv)<1.e-7))
          if (sum(izc) || length(izf)) {
             mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
                "Zero rows in cumomer matrix A at weight ", w, ":\n",
@@ -45,7 +45,7 @@ trisparse_solv=function(A, b, w, method="dense") {
             mes="Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3."
          }
 #browser()
-         stop(mes)
+         return(list(x=NULL, fA=A, err=1L, mes=mes))
       }
       if (DEBUG) {
          cat("A=", str(A), "\n", sep="", file=fclog)
@@ -64,7 +64,7 @@ trisparse_solv=function(A, b, w, method="dense") {
       x=qr.solve(atrim,b)
       return(x)
    } else {
-      stop(paste("Unknown method '", method, "'", sep=""))
+      return(list(x=NULL, fA=A, err=1, mes=paste("Unknown method '", method, "'", sep="")))
    }
 }
 
@@ -188,9 +188,9 @@ param2fl=function(param, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc) {
    if (DEBUG) {
       write.matrix(p2bfl%*%head(param, nb_f$nb_ff)+bp, file="dbg_bfl.txt", sep="\t")
       n=length(fwrv)
-      names(fwrv)=nm_fwrv
-      write.matrix(fwrv, file="dbg_fwrv.txt", sep="\t")
-      write.matrix(cbind(1:n, nm_fallnx, fallnx), file="dbg_fallnx.txt", sep="\t")
+      names(fwrv)=nm$fwrv
+      write.matrix(cbind(1:n, nm$fwrv, fwrv), file="dbg_fwrv.txt", sep="\t")
+      write.matrix(cbind(1:n, nm$fallnx, fallnx), file="dbg_fallnx.txt", sep="\t")
    }
    return(list(fallnx=fallnx, fwrv=fwrv, flnx=flnx))
 }
@@ -343,7 +343,7 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
          A=lAb$A
          b=lAb$b; # may have several columns if emu is TRUE
          #solve the system A*x=b
-         lsolv=trisparse_solv(lAb$A, lAb$b, iw, method="sparse")
+         lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
          jx_f$lA[[iw]] <- lsolv$fA
          if (!is.null(lsolv$err) && lsolv$err) {
             return(list(err=1, mes=lsolv$mes))
@@ -1304,7 +1304,7 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
    } else if (method == "nlsic") {
       control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
          ci=list(report=F), history=FALSE, adaptbt=TRUE, sln=sln,
-         maxstep=max(sqrt(norm2(param)), 1.)
+         maxstep=max(10.*sqrt(norm2(param)), 1.)
       )
       control[names(control_ftbl)]=control_ftbl
       res=nlsic(param, cumo_resid, 
