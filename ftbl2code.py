@@ -15,6 +15,7 @@ import time
 import copy
 import os
 import sys
+#import pdb
 from operator import itemgetter
 from itertools import groupby
 
@@ -701,6 +702,7 @@ nm_fallnx=c(%(nm_fallnx)s)
 
 # edge to netflux name translator
 edge2fl=c(%(edge2fl)s)
+names(edge2fl)=c(%(nedge2fl)s)
 
 # initialize the linear system Afl*flnx=bfl (0-weight cumomers)
 # unknown net flux names
@@ -725,7 +727,8 @@ if (nb_fl) {
     "nm_fallnx": join(", ", (join(".", (t[1],t[2],t[0])) for t in tfallnx), '"', '"'),
     "nm_fln": join(", ", netan["vflux"]["net"], '"d.n.', '"'),
     "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
-    "edge2fl": join(", ", ('"'+e+'"="'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
+    "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
+    "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.iteritems() for e in l)),
 })
     for (i,row) in enumerate(netan["Afl"]):
         f.write(
@@ -1035,8 +1038,8 @@ def netan2R_meas(netan, org, f, emu=False):
     o_meas=measures.keys(); # ordered measure types
     o_meas.sort()
 
-    if DEBUG:
-        pdb.set_trace()
+    #if DEBUG:
+    #    pdb.set_trace()
 
     ir2isc={"label": [], "mass": [], "peak": []}; # for mapping measure rows indexes on scale index
     # we want to use it in python like isc[meas]=ir2isc[meas][ir]
@@ -1066,8 +1069,8 @@ def netan2R_meas(netan, org, f, emu=False):
         # measured value vector is in measures[meas]["vec"]
         # measured dev vector is in measures[meas]["dev"]
 
-    if DEBUG:
-        pdb.set_trace()
+    #if DEBUG:
+    #    pdb.set_trace()
 
     # create R equivalent structures with indices for scaling
     f.write("""
@@ -1132,8 +1135,8 @@ nb_f$nb_sc=nb_sc
     # get the full dict of non zero cumomers involved in measures
     # cumo=metab:icumo where icumo is in [1;2^Clen]
     # or emu=metab:ifrag+Mi
-    if DEBUG:
-        pdb.set_trace()
+    #if DEBUG:
+    #    pdb.set_trace()
     meas_cumos={}
     for meas in o_meas:
         for row in measures[meas]["mat"]:
