@@ -105,6 +105,7 @@ if __name__ == "__main__":
     import time
     import copy
     import getopt
+    #import pdb
 
     me=os.path.realpath(sys.argv[0])
     dirx=os.path.dirname(me)
@@ -180,8 +181,8 @@ if __name__ == "__main__":
     #org="ex3"
     #org="PPP_exact"
     #DEBUG=True
-    if DEBUG:
-        import pdb
+    #if DEBUG:
+    #    import pdb
 
 
     n_ftbl=fullorg+".ftbl"
@@ -687,12 +688,13 @@ for (irun in iseq(nseries)) {
       jx_f=res$retres$jx_f
       if (any(is.na(res$par))) {
          res$retres$jx_f=NULL # to avoid writing of huge data
-         obj2kvh(res, "optimization process information", fkvh)
+         obj2kvh(res, "failed first pass optimization process information", fkvh)
          cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
          close(fkvh)
          next
       }
       param=res$par
+      res_save=res
 #browser()
       if (zerocross && !is.null(mi_zc)) {
          # inverse active "zc" inequalities
@@ -726,7 +728,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
                   # fatal error occured, don't reoptimize
                   cat(paste("put_inside", runsuf, ": ", attr(param, "mes"), "\\n", collapse=""), file=fcerr)
-                  param=res$param
+                  param=res_save$par
                   reopt=FALSE
                }
             } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
@@ -745,14 +747,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                } else if (!is.null(res$mes) && nchar(res$mes)) {
                   cat("second zero crossing pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
                }
+               if(!res$err && !is.null(res$par) && !any(is.na(res$par))) {
+                  param=res$par
+                  res_save=res
+               }
                if (any(is.na(res$par))) {
                   res$retres$jx_f=NULL # to avoid writing of huge data
-                  obj2kvh(res, "optimization process information", fkvh)
-                  cat("Second zero crossing pass failed", runsuf, "\\n", file=fcerr, sep="")
-                  close(fkvh)
-                  next
+                  obj2kvh(res, "failed second pass optimization process information", fkvh)
+                  cat("Second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fcerr, sep="")
                }
-               param=res$par
             }
             # last pass, free all zc constraints
             i=grep("^zc ", nm_i)
@@ -770,16 +773,21 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                } else if (!is.null(res$mes) && nchar(res$mes)) {
                   cat("last zero crossing (free of zc)", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
                }
+               if(!res$err && !is.null(res$par) && !any(is.na(res$par))) {
+                  param=res$par
+                  res_save=res
+               }
                if (any(is.na(res$par))) {
                   res$retres$jx_f=NULL # to avoid writing of huge data
-                  obj2kvh(res, "optimization process information", fkvh)
-                  cat("Last zero crossing pass failed", runsuf, "\\n", file=fcerr, sep="")
-                  close(fkvh)
-                  next
+                  obj2kvh(res, "failed last pass optimization process information", fkvh)
+                  cat("Last zero crossing pass failed. Keep free parameters from previous passes", runsuf, "\\n", file=fcerr, sep="")
                }
             }
+         } else {
+            cat("After the first optimization, no zero crossing equality was activated. So no reptimization", runsuf, "\\n", sep="", file=fclog)
          }
       } # end if zero crossing
+      res=res_save
       param=res$par
       names(param)=nm_par
       if (excl_outliers != F) {
