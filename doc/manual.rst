@@ -85,7 +85,7 @@ Command line options
                      available cores (rounded to closest integer) to be used.
                      Without this option or for NP=0, all available cores in a
                      given node are used for M-C simulations.
-  --ln             Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
+  --ln             Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
 
                    Jacobian can become rank deficient if provided data are not sufficient to resolve all free fluxes. It can be useful to determine fluxes that can still be resolved by the available measurements. If the Jacobian does not become rank deficient, this option has no influence on the found solution neither on the optimization process. But if the Jacobian does become rank deficient, a warning message is printed in the error file even if the optimization process could go to the end.
 
@@ -93,7 +93,8 @@ Command line options
 
                    A correct way to deal with badly defined metabolic network is to provide additional data that can help to resolve all the fluxes, not just put ``--ln`` option and cross the fingers.
 
-                   .. warning:: The notion of "least norm" is applied to increments during the optimization, not to the final solution. So undetermined fluxes could vary from one run to another if the optimization process is started from different points while well determined fluxes should keep stable values.
+                   .. warning:: In this option, the notion of "least norm" is applied to *increments* during the optimization, not to the final solution. So undetermined fluxes could vary from one run to another if the optimization process is started from different points while well determined fluxes should keep stable values.
+  --sln            Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient
   --zc=ZC          Apply zero crossing strategy with non negative threshold
                    for net fluxes
                    
@@ -127,18 +128,18 @@ Command line options
                      .. note::
 
                       Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).
-  --nocalc            generate an R code but not execute it.
+  --nocalc          generate an R code but not execute it.
                       
-                      This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
---DEBUG          developer option
+                    This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
+  --DEBUG           developer option
 
-                   Produce a lot of run-time information in the log-file and many additional files. This also can slow down the program in a drastic way. Don't use this option unless your know what your are doing.
-  --TIMEIT         developer option
+                    Produce a lot of run-time information in the log-file and many additional files. This also can slow down the program in a drastic way. Don't use this option unless your know what your are doing.
+  --TIMEIT          developer option
 
-                   Some portions of code are timed and the results is printed in the log-file. A curious user can use this option without any harm.
-  --prof           developer option
+                    Some portions of code are timed and the results is printed in the log-file. A curious user can use this option without any harm.
+  --prof            developer option
 
-                   This option provides much more detailed profiling of the execution than ``--TIMEIT`` option. Only developers can be interested in using such information.
+                    This option provides much more detailed profiling of the execution than ``--TIMEIT`` option. Only developers can be interested in using such information.
 
 All command line options can be also provided in the FTBL file. A user can put them in the field ``commandArgs`` in the ``OPTIONS`` section. The corresponding portion of the FTBL file could look like
 
