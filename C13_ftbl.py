@@ -2184,8 +2184,14 @@ def cumo_infl(netan, cumo):
                     in_cumo=in_metab+":"+str(in_icumo)
                     res.append((in_cumo, "fwd."+reac, imetab, iin_metab))
     # run through input reverse fluxes of this metab
-    #for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]):
-    for reac in set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]):
+    fluxset=set(netan["sto_m_r"][metab]["left"])
+    if (clownr):
+        # non reversible reactions are all positive
+        fluxset=fluxset.difference(netan["notrev"])
+    else:
+        # non reversible reactions can chage sens => keep reverse flux just in case
+        fluxset=fluxset.difference(netan["flux_inout"])
+    for reac in fluxset:
         # get all cstr for given metab
         for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["left"])
             if m==metab):
