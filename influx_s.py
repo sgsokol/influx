@@ -118,7 +118,7 @@ direx="." if not direx else direx
 version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
-pyopt=set(("--fullsys", "--emu", "--DEBUG"))
+pyopt=set(("--fullsys", "--emu", "--clownr", "--DEBUG"))
 
 # create a parser for command line options
 parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file1 [FTBL_file2 [...]]",
