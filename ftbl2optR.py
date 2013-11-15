@@ -125,11 +125,11 @@ if __name__ == "__main__":
         pass
 
     def usage():
-        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--DEBUG] [--ropts ROPTS] network_name[.ftbl]\n")
+        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--DEBUG] [--ropts ROPTS] network_name[.ftbl]\n")
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "DEBUG", "ropts="])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "DEBUG", "ropts="])
     except getopt.GetoptError, err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -139,19 +139,20 @@ if __name__ == "__main__":
     fullsys=False
     DEBUG=False
     emu=False
+    clownr=False
     ropts=['""']
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit(0)
-        elif o=="--cost":
-            cost=True
         elif o=="--fullsys":
             fullsys=True
         elif o=="--emu":
             emu=True
         elif o=="--DEBUG":
             DEBUG=True
+        elif o=="--clownr":
+            clownr=True
         elif o=="--ropts":
             ropts=a.split("; ") if len(a) else ['""']
         else:
@@ -178,6 +179,7 @@ if __name__ == "__main__":
     #DEBUG=True
     import ftbl2code
     ftbl2code.DEBUG=DEBUG
+    C13_ftbl.clownr=clownr
     #org="ex3"
     #org="PPP_exact"
     #DEBUG=True
