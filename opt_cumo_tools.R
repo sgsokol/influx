@@ -173,9 +173,9 @@ cumo_cost=function(param, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc
 
 param2fl=function(param, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc) {
    # claculate all fluxes from free fluxes
-   fg=numeric(nb_f$nb_fg)
+   fg=numeric(nb_f$nb_fgr)
    names(fg)=nm$fgr
-   if (nb_f$nb_fg > 0) {
+   if (nb_f$nb_fgr > 0) {
 #expp      fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*exp(param[nm$poolf])
       fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
    }
@@ -183,7 +183,7 @@ param2fl=function(param, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc) {
    names(flnx)=nm$flnx
    fallnx=c(dfcg2fallnx(nb_f, flnx, param, fc, fg))
    names(fallnx)=nm$fallnx
-   fwrv=c(fallnx2fwrv(fallnx))
+   fwrv=c(fallnx2fwrv(fallnx, nb_f))
    names(fwrv)=nm$fwrv
    if (DEBUG) {
       write.matrix(p2bfl%*%head(param, nb_f$nb_ff)+bp, file="dbg_bfl.txt", sep="\t")
@@ -216,8 +216,8 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
    }
    nb_ff=nb_f$nb_ff
    nb_poolf=nb_f$nb_poolf
-   nb_fg=(if (nb_f$include_growth_flux) nb_poolf else 0)
-   fg=numeric(nb_fg)
+   nb_fgr=nb_f$nb_fgr
+   fg=numeric(nb_f$nb_fgr)
    names(fg)=nm$fgr
 #expp   fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*exp(param[nm$poolf])
    fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
@@ -241,12 +241,12 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
    if (cjac) {
       #cat("param2fl_x: recalc jac\n")
       # derivation of fwrv fluxes by free parameters: free fluxes+concentrations
-      mdf_dffp=df_dffp(param, jx_f$flnx, nb_f)
+      mdf_dffp=df_dffp(param, jx_f$flnx, nb_f, nm)
       jx_f$df_dffp <- mdf_dffp
       if (emu) {
-         x_f=matrix(0., nrow=sum(nb_emus), ncol=nb_ff+nb_fg)
+         x_f=matrix(0., nrow=sum(nb_emus), ncol=nb_ff+nb_fgr)
       } else {
-         x_f=matrix(0., nrow=sum(nb_cumos), ncol=nb_ff+nb_fg)
+         x_f=matrix(0., nrow=sum(nb_cumos), ncol=nb_ff+nb_fgr)
       }
    } else {
       x_f=NULL
@@ -374,7 +374,7 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
                dim(j_rhsw)=c(nb_c, iw*ncol(x_f))
                xf=solve(jx_f$lA[[iw]], j_rhsw)
                dimnames(xf)=list(NULL, NULL)
-               xf=array(as.numeric(xf), c(nb_c, iw, nb_ff+nb_fg))
+               xf=array(as.numeric(xf), c(nb_c, iw, nb_ff+nb_fgr))
                x_f[ba_x+(1:(iw*nb_c)),]=xf
                # m+N component
                x_f[ba_x+iw*nb_c+(1:nb_c),]= -apply(xf, c(1,3), sum)
@@ -410,7 +410,11 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
    x=tail(x, -nb_xi-1)
    
    # calculate unreduced and unscaled measurements
-   mv=mema1%*%x+memaonep
+   if (length(x) == ncol(mema1)) {
+      mv=mema1%*%x+memaonep
+   } else {
+      mv=mema1%*%x[nm$rcumo_in_cumo]+memaonep
+   }
    mvp=mv # ponderated by relative pools
    if (length(ipooled) > 0) {
       lapply(names(ipooled), function(nmpo) {
@@ -438,7 +442,7 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
       }
 #browser()
       # free flux part of jacobian (and partially free pools if present in x_f)
-      if (nb_ff+nb_fg > 0) {
+      if (nb_ff+nb_fgr > 0) {
          mffg=mema1%*%x_f
          if (length(ipooled) > 1) {
             lapply(names(ipooled), function(nmpo) {
@@ -455,6 +459,8 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
          mffg=Matrix(0., nrow=nb_meas, ncol=0)
       }
       # free pool part of jacobian
+      mff=mffg
+      mpf=matrix(0., nrow=nb_meas, ncol=nb_f$nb_poolf)
       if (nb_f$nb_poolf > 0) {
          if (length(dpwei) > 0) {
             # derivation of pool ponderation factor
@@ -469,8 +475,8 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
             })
             mpf=dur_dpf[ipooled$ishort,,drop=F]
             # growth flux depending on free pools
-            if (nb_fg > 0) {
-               mpf=mpf+mffg[,nb_ff+1:nb_fg,drop=F]
+            if (nb_fgr > 0) {
+               mpf=mpf+mffg[,nb_ff+1:nb_fgr,drop=F]
                mff=mffg[,1:nb_ff]
             } else {
                mff=mffg
@@ -478,9 +484,6 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
 #expp            # exponential part of poolf jacobian
 #expp            mpf=as.matrix(mpf%mrv%pool[nm$poolf])
          }
-      } else {
-         mff=mffg
-         mpf=matrix(0., nrow=nb_meas, ncol=0)
       }
       if (nb_sc > 0) {
          mff=vsc*mff
@@ -870,7 +873,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    }
    
    # prepare b_x
-   if (all(dim(ind_bx) > 0)) {
+   if (all(dim(spAbr$ind_bx) > 0)) {
       if (emu) {
          ind_bx=spAbr$ind_bx_emu
          b_x=sparseMatrix(
@@ -922,7 +925,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       j_rhswp=NULL
       b_xp=NULL
    }
-   return(list(j_rhsw=b_f-a_fx, b_x=b_x, j_rhswp=j_rhswp, b_xp=b_xp))
+   return(list(j_rhsw=b_f-a_fx, b_f=b_f, a_fx=a_fx, b_x=b_x, j_rhswp=j_rhswp, b_xp=b_xp))
 }
 
 put_inside=function(param, ui, ci) {
@@ -1023,10 +1026,10 @@ fwrv2sp=function(fwrv, spAbr, x, xp=NULL, gets=TRUE) {
    }
    return(list(s=s, sp=sp))
 }
-df_dffp=function(param, flnx, nb_f) {
+df_dffp=function(param, flnx, nb_f, nm_list) {
    # derivation of fwrv by free_fluxes+poolf (and not growth fluxes neither log(poolf))
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
-   nb_fwrv=length(nm_fwrv)
+   nb_fwrv=nb_f$nb_fwrv
    nm_par=names(param)
    i_fln=grep("d.n.", names(flnx), fixed=T)
    i_flx=grep("d.x.", names(flnx), fixed=T)
@@ -1040,8 +1043,8 @@ df_dffp=function(param, flnx, nb_f) {
    i_fgx=c(); #grep("g.x.", nm_par, fixed=T) # must be always empty
    nb_ff=length(i_ffn)+length(i_ffx)
    nb_fgr=length(i_fgn)+length(i_fgx)
-   df_dfl=Matrix(0., length(nm_fwrv), length(flnx))
-   df_dffd=Matrix(0., length(nm_fwrv), nb_ff+nb_fgr)
+   df_dfl=Matrix(0., nb_fwrv, length(flnx))
+   df_dffd=Matrix(0., nb_fwrv, nb_ff+nb_fgr)
    # derivation by dependent fluxes
    # net part
    net=flnx[i_fln]
@@ -1053,9 +1056,9 @@ df_dffp=function(param, flnx, nb_f) {
    xch=1./(1.-xch)**2
    
    # forward fluxes
-   df_dfl[cfw_fl]=c(hnet, xch)
+   df_dfl[nb_f$cfw_fl]=c(hnet, xch)
    # reverse fluxes
-   df_dfl[crv_fl]=c(hnet-1., xch)
+   df_dfl[nb_f$crv_fl]=c(hnet-1., xch)
    
    # derivation by free fluxes
    # net part
@@ -1067,22 +1070,23 @@ df_dffp=function(param, flnx, nb_f) {
    xch=param[i_ffx]
    xch=1./(1.-xch)**2
    # forward fluxes
-   df_dffd[cfw_ff]=c(hnet, xch)
+   df_dffd[nb_f$cfw_ff]=c(hnet, xch)
    # reverse fluxes
-   df_dffd[crv_ff]=c(hnet-1., xch)
+   df_dffd[nb_f$crv_ff]=c(hnet-1., xch)
    
    # derivation by growth fluxes
    # forward fluxes
-   df_dffd[cfw_fg]=rep.int(1., length(i_fgn))
+   df_dffd[nb_f$cfw_fg]=rep.int(1., length(i_fgn))
    # reverse fluxes
-   df_dffd[crv_fg]=0.
+   df_dffd[nb_f$crv_fg]=0.
    
-   res=(df_dfl%*%dfl_dffg+df_dffd)%mrv%c(rep.int(1., nb_ff), rep(nb_f$mu, nb_fgr))
-   dimnames(res)=list(nm_fwrv, names(param)[c(i_ffn, i_ffx, i_fgn, i_fgx)])
+   res=(df_dfl%*%nb_f$dfl_dffg+df_dffd)%mrv%c(rep.int(1., nb_ff), rep(nb_f$mu, nb_fgr))
+   dimnames(res)=list(nm_list$fwrv, names(param)[c(i_ffn, i_ffx, i_fgn, i_fgx)])
    return(res)
 }
 dfm_dff=function() {
    # measured fluxes derivation
+   # todo: avoid global vars
    res=Matrix(0., length(nm_fmn), length(nm_ff))
    dimnames(res)=list(nm_fmn, nm_ff)
    # derivate free measured fluxes (trivial)
@@ -1394,4 +1398,16 @@ mc_sim=function(i) {
    iva=!is.na(res$res)
    vres=res$res[iva]
    return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, err=res$err))
+}
+fallnx2fwrv=function(fallnx, nb_f) {
+   n=length(fallnx)
+   # extract and reorder in fwrv order
+   net=fallnx[nb_f$inet2ifwrv]
+   xch=fallnx[nb_f$ixch2ifwrv]
+   # expansion 0;1 -> 0;+inf of xch (second half of fallnx)
+   xch=xch/(1-xch)
+   # fw=xch-min(-net,0)
+   # rv=xch-min(net,0)
+   fwrv=c(xch-pmin(-net,0),xch-pmin(net,0))
+   return(fwrv)
 }
