@@ -679,11 +679,11 @@ def ftbl_netan(ftbl):
     for row in ftbl.get("LABEL_INPUT",[]):
         metab=row.get("META_NAME", "") or metab
         if metab not in netan["Clen"]:
-            raise Exception("Input metabolite `%s` is not defined."%metab)
+            raise Exception("Input metabolite `%s` is not defined (row: %d)."%(metab, row["irow"]))
         ilen=len(row.get("ISOTOPOMER", ""))-1; # -1 for '#' sign
         if ilen != netan["Clen"][metab]:
-            raise Exception("Input isotopomer `%s` has bad length. A length of %d is expected."%
-                (row.get("ISOTOPOMER", ""), netan["Clen"][metab]))
+            raise Exception("Input isotopomer `%s` has bad length. A length of %d is expected (row: %d)."%
+                (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), netan["Clen"][metab], row["irow"]))
         iiso=strbit2int(row["ISOTOPOMER"])
         if metab not in netan["iso_input"]:
             netan["iso_input"][metab]={}
