@@ -55,6 +55,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl):
             if v is False else str(v)) for k,v in cmd_opts.iteritems()) + '"'] \
             + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
+        flog.write("executing: "+" ".join(pycmd)+"\n")
         r_generated=True
         try:
             p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
@@ -65,6 +66,10 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl):
             s="=>Check "+ferr.name+"\n"
             sys.stdout.write(s)
             flog.write(s)
+            flog.close()
+            ferr.close()
+            # stop here because of error(s)
+            return
         flog.close()
         ferr.close()
         if r_generated:
