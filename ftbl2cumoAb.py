@@ -29,7 +29,7 @@ def get_net(r, dfc):
     return res
 # get arguments
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "DEBUG", "emu"])
+    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "clownr", "DEBUG", "emu"])
 except getopt.GetoptError, err:
     print str(err)
     usage()
@@ -37,6 +37,7 @@ except getopt.GetoptError, err:
 DEBUG=False
 reduced=False
 emu=False
+clownr=False
 for o,a in opts:
     if o in ("-h", "--help"):
         usage()
@@ -47,11 +48,14 @@ for o,a in opts:
         reduced=True
     elif o=="--emu":
         emu=True
+    elif o=="--clownr":
+        clownr=True
     else:
         assert False, "unhandled option"
 if not args:
     sys.stderr("Expecting ftbl file name\n")
     usage()
+C13_ftbl.clownr=clownr
 fftbl=args[0] if len(args) else ""
 if fftbl and fftbl[-5:] != ".ftbl":
     fftbl+=".ftbl"

@@ -11,13 +11,14 @@ if __name__ == "__main__":
         print(__doc__)
 
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "DEBUG"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr" "DEBUG"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
         sys.exit(1)
     DEBUG=False
     emu=False
+    clownr=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -26,8 +27,11 @@ if __name__ == "__main__":
             emu=True
         elif o=="--DEBUG":
             DEBUG=True
+        elif o=="--clownr":
+            clownr=True
         else:
             assert False, "unhandled option"
+    C13_ftbl.clownr=clownr
     fftbl=args[0] if len(args) else ""
     if fftbl and fftbl[-5:] != ".ftbl":
         fftbl+=".ftbl"
