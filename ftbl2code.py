@@ -161,7 +161,7 @@ if (nb_c > 0) {
    l$ind_b=ind_b
    
    # jacobian b_x
-   i=ind_b[,"indx2"]!=1 # exclude from derivation plain input entries
+   i=ind_b[,"indx1"]>ba_x # exclude from derivation plain input entries
    tmp=ind_b[i,,drop=F]
    
    # term of d/d_x1 ( is garanted to be internal, not input cumomer)
@@ -644,42 +644,22 @@ def netan2R_fl(netan, org, f):
 if (TIMEIT) {
    cat("r_flux  : ", date(), "\\n", sep="", file=fclog)
 }
-
-# custom functions
-# produce fw-rv fluxes from fallnx
-fallnx2fwrv=function(fallnx) {
-   n=length(fallnx)
-   # extract and reorder in fwrv order
-   net=fallnx[c(%(inet2ifwrv)s)]
-   xch=fallnx[c(%(ixch2ifwrv)s)]
-   # expansion 0;1 -> 0;+inf of xch (second half of fallnx)
-   xch=xch/(1-xch)
-   # fw=xch-min(-net,0)
-   # rv=xch-min(net,0)
-   fwrv=c(xch-pmin(-net,0),xch-pmin(net,0))
-   if (DEBUG) {
-      n=length(fwrv)
-      library(MASS)
-      names(fwrv)=nm_fwrv
-      write.matrix(fwrv, file="dbg_fwrv.txt", sep="\\t")
-   }
-   return(fwrv)
-}
-""" % {
+""")
+# % {
 #dyn.load("%(sofile)s")
-        "inet2ifwrv": join(", ", (1+
-        (netan["vflux"]["net2i"][fl[4:]] if fl[4:] in netan["vflux"]["net2i"]
-        else nb_fln+netan["vflux_free"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["net2i"]
-        else nb_fln+nb_ffn+netan["vflux_constr"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["net2i"]
-        else nb_fln+nb_ffn+nb_fcn+netan["vflux_growth"]["net2i"][fl[4:]])
-        for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
-        "ixch2ifwrv": join(", ", (1+len(netan["vflux_fwrv"]["fwrv"])/2+
-        (netan["vflux"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux"]["xch2i"]
-        else nb_flx+netan["vflux_free"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["xch2i"]
-        else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["xch2i"]
-        else nb_flx+nb_ffx+nb_fcx+netan["vflux_growth"]["xch2i"][fl[4:]])
-        for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
-    })
+#        "inet2ifwrv": join(", ", (1+
+#        (netan["vflux"]["net2i"][fl[4:]] if fl[4:] in netan["vflux"]["net2i"]
+#        else nb_fln+netan["vflux_free"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["net2i"]
+#        else nb_fln+nb_ffn+netan["vflux_constr"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["net2i"]
+#        else nb_fln+nb_ffn+nb_fcn+netan["vflux_growth"]["net2i"][fl[4:]])
+#        for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
+#        "ixch2ifwrv": join(", ", (1+len(netan["vflux_fwrv"]["fwrv"])/2+
+#        (netan["vflux"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux"]["xch2i"]
+#        else nb_flx+netan["vflux_free"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["xch2i"]
+#        else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["xch2i"]
+#        else nb_flx+nb_ffx+nb_fcx+netan["vflux_growth"]["xch2i"][fl[4:]])
+#        for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
+#    })
     # auxiliary dict for edge-flux coupling
     f2edge=dict()
     for (fl,lr) in netan["sto_r_m"].iteritems():
@@ -835,6 +815,10 @@ nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
         for fl in netan["vflux_growth"]["net"]]),
 })
     f.write("""
+# translation from n-x to fw-rv
+nb_f$inet2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.n\\\\.%s$", substring(f, 5)), nm_fallnx))
+nb_f$ixch2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.x\\\\.%s$", substring(f, 5)), nm_fallnx))
+
 # prepare p2bfl, c2bfl, g2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
 # c2bfl%*%fc+g2bfl%*%fgr+cnst2bfl=bfl
 # replace f.[nx].flx by corresponding param coefficient
@@ -892,7 +876,7 @@ d=abs(diag(qrAfl$qr))
 qrAfl$rank=sum(d > d[1]*1.e-10)
 rank=qrAfl$rank
 #browser()
-if (nrow(Afl) != rank) {
+if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    #write.table(Afl)
    if (nrow(Afl) < ncol(Afl)) {
       mes=paste("Candidate(s) for free flux(es):\\n",
@@ -994,6 +978,7 @@ if (nb_fgr) {
    dfl_dffg=cBind(dfl_dffg, invAfl%*%g2bfl)
 }
 dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
+nb_f$dfl_dffg=dfl_dffg
 
 # prepare mf, md, mc and mg matrices
 # such that mf%*%ff+md%*%fl+mc%*%fc+mg%*%fgr gives fallnx
@@ -1008,10 +993,16 @@ dimnames(mc)=list(nm_fallnx, nm_fc)
 mg=Matrix(0., nb_fallnx, nb_fgr)
 dimnames(mg)=list(nm_fallnx, nm_fgr)
 
-mf[nm_ff, nm_ff]=diag(1., nb_ff)
-md[nm_fl, nm_fl]=diag(1., nb_fl)
-mc[nm_fc, nm_fc]=diag(1., nb_fc)
-if (nb_fgr) {
+if (nb_ff > 0) {
+   mf[nm_ff, nm_ff]=diag(1., nb_ff)
+}
+if (nb_fl > 0) {
+   md[nm_fl, nm_fl]=diag(1., nb_fl)
+}
+if (nb_fc > 0) {
+   mc[nm_fc, nm_fc]=diag(1., nb_fc)
+}
+if (nb_fgr > 0) {
    mg[nm_fgr, nm_fgr]=diag(1., nb_fgr)
 }
 """)
@@ -1344,14 +1335,14 @@ nm_list$rcumo=nm_rcumo
 
 def netan2R_cumo(netan, org, f):
     """netan2R_cumo(netan, org, f)->dict
-    generate data structures for cumoemr matrices
+    generate data structures for full cumomer matrices
     """
     # prepare cumo2i
     # translate cumoname like A:7 to its index in R vector of cumomers
     cumos=list(valval(netan["vcumo"]))
     cumo2i=dict((c,i+1) for (i,c) in enumerate(cumos))
     # composite cumomer vector
-    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["rcumo_input"].keys()+cumos))
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"].keys()+cumos))
 
     netan2Abcumo_spr("spAbr_f", netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
         netan["vcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1)
