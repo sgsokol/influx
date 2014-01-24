@@ -706,7 +706,7 @@ cumo_jacob=function(param, jx_f, nb_f, nm, nb_cumos,
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
    
    # store flux part of jacobian for sensitivity matrix
-   jx_f$dfm_dff <- dfm_dff()
+   jx_f$dfm_dff <- dfm_dff(nb_f, nm)
    nb_sc=nb_f$nb_sc
    nb_poolf=nb_f$nb_poolf
    nb_poolm=nb_f$nb_poolm
@@ -1084,20 +1084,19 @@ df_dffp=function(param, flnx, nb_f, nm_list) {
    dimnames(res)=list(nm_list$fwrv, names(param)[c(i_ffn, i_ffx, i_fgn, i_fgx)])
    return(res)
 }
-dfm_dff=function() {
+dfm_dff=function(nb_f, nm_list) {
    # measured fluxes derivation
-   # todo: avoid global vars
-   res=Matrix(0., length(nm_fmn), length(nm_ff))
-   dimnames(res)=list(nm_fmn, nm_ff)
+   res=Matrix(0., length(nm_list$fmn), length(nm_list$ff))
+   dimnames(res)=list(nm_list$fmn, nm_list$ff)
    # derivate free measured fluxes (trivial)
-   i=grep("f.n.", nm_fmn, fixed=T)
+   i=grep("f.n.", nm_list$fmn, fixed=T)
    if (length(i) > 0) {
-      res[i,nm_fmn[i]]=diag(length(i))
+      res[i,nm_list$fmn[i]]=diag(length(i))
    }
    # derivate dependent measured fluxes
-   i=grep("d.n.", nm_fmn, fixed=T, value=T)
+   i=grep("d.n.", nm_list$fmn, fixed=T, value=T)
    if (length(i) > 0) {
-      res[i,]=dfl_dffg[i,1:length(nm_ff)]
+      res[i,]=nb_f$dfl_dffg[i,1:length(nm_list$ff)]
    }
    return(res)
 }
