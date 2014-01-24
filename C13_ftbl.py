@@ -80,6 +80,7 @@ Restrictions:
 # 2012-11-08 sokol: added variable growth fluxes depending on variable
 #                   concentrations (flux_vgrowth, vflux_growth.[net])
 # 2012-11-23 sokol: added concentration measurements
+# 2014-01-22 sokol: added possibility of unknown fluxes in EQUALITY section
 import numpy as np
 import re
 import copy
@@ -512,6 +513,24 @@ def ftbl_netan(ftbl):
     netan["flux_out"]=set(valval(netan["sto_m_r"][m]["right"] for m in netan["output"]))
     netan["flux_inout"]=netan["flux_in"] | netan["flux_out"]
     #print "fl in + out="+str(netan["flux_in"])+"+"+str( netan["flux_out"]);##
+    
+    # get possible additional fluxes (i.e. from cofactors) from EQAULITY section (eqflux)
+    # flux equalities
+    # list of tuples (value,dict) where dict is flux:coef
+    # net fluxes
+    for row in ftbl.get("EQUALITIES",{}).get("NET",[]):
+        #print row;##
+        netan["flux_equal"]["net"].append((
+                eval(row["VALUE"]),
+                formula2dict(row["FORMULA"])))
+    # xch fluxes
+    for row in ftbl.get("EQUALITIES",{}).get("XCH",[]):
+        #print row;##
+        netan["flux_equal"]["xch"].append((
+                eval(row["VALUE"]),
+                formula2dict(row["FORMULA"])))
+    netan["eqflux"]=set(f for row in netan["flux_equal"]["net"] for f in row[1].keys()) | set(f for row in netan["flux_equal"]["xch"] for f in row[1].keys())
+    eqflux=netan["eqflux"]
 
     # analyse reaction reversibility
     # free fluxes(dictionary flux->init value for simulation or minimization)
@@ -529,12 +548,13 @@ def ftbl_netan(ftbl):
 ##        aff("net", net)
         # check that all fluxes are defined in network section
         allreac=netan["reac"] | netan["flux_inout"]
-        unk=[ row["NAME"] for row in net if row["FCD"] in fcd and row["NAME"] not in allreac ]
+        unk=[ row["NAME"] for row in net if row["FCD"] in fcd and row["NAME"] not in allreac|eqflux ]
         if len(unk):
-            raise Exception("The flux name(s) '%s' from the FLUX/NET section is (are) not defined in the NETWORK section."%(", ".join(unk)))
-        unk=[ row["NAME"] for row in xch if row["FCD"] in fcd and row["NAME"] not in allreac ]
+            raise Exception("The flux name(s) '%s' from the FLUX/NET section is (are) not defined in the NETWORK neither EQUALITY section."%(", ".join(unk)))
+        unk=[ row["NAME"] for row in xch if row["FCD"] in fcd and row["NAME"] not in allreac|eqflux ]
         if len(unk):
-            raise Exception("The flux name(s) '%s' from the FLUX/XCH section is (are) not defined in the NETWORK section."%(", ".join(unk)))
+            raise Exception("The flux name(s) '%s' from the FLUX/XCH section is (are) not defined in the NETWORK neither EQUALITY section."%(", ".join(unk)))
+
         # check that all reactions from NETWORK are at least in FLUX/NET section
         fnet=set( row["NAME"] for row in net if row["NAME"] and row["FCD"] in fcd )
         #print("fnet=", fnet)
@@ -542,13 +562,19 @@ def ftbl_netan(ftbl):
         unk=allreac-fnet-set(netan["flux_growth"]["net"])-set(netan["flux_vgrowth"]["net"])
         if len(unk):
             raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
+
+        # check that all reactions from EQUALITY are at least in FLUX/NET/XCH section
+        fnetxch=set( row["NAME"] for row in net+xch if row["NAME"] and row["FCD"] in fcd )
+        unk=eqflux-fnet-set(netan["flux_growth"]["net"])-set(netan["flux_vgrowth"]["net"])
+        if len(unk):
+            raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
     else:
-        werr(os.path.basename(me)+": netan[FLUXES][XCH] is not defined")
+        werr(os.path.basename(me)+": netan[FLUXES] is not defined")
         #return None
     #print "list reac=", netan["reac"];##
     try:
         #print( netan["reac"] | netan["flux_inout"])
-        for reac in netan["reac"] | netan["flux_inout"]:
+        for reac in netan["reac"] | netan["flux_inout"] | eqflux:
             #print("reac=", reac)
             # get xch condition for this reac
             cond=[row for row in xch if row["NAME"]==reac]
@@ -732,38 +758,18 @@ def ftbl_netan(ftbl):
     for (afftype, ftype) in (("Net", "net"), ("Exchange", "xch")):
         for row in netan["flux_inequal"][ftype]:
             for fl in row[2]:
-                if fl not in netan["reac"]:
-                   raise Exception("%s flux `%s` in the inequality\n%s\nis not defined."%
-                       (afftype, fl, join("", row)))
+                if fl not in netan["reac"]|eqflux:
+                    raise Exception("%s flux `%s` in the inequality\n%s\nis not defined in NETWORK neither EQUALITY sections."%
+                        (afftype, fl, join("", row)))
 
-    # flux equalities
-    # list of tuples (value,dict) where dict is flux:coef
-    # net fluxes
-    for row in ftbl.get("EQUALITIES",{}).get("NET",[]):
-        #print row;##
-        netan["flux_equal"]["net"].append((
-                eval(row["VALUE"]),
-                formula2dict(row["FORMULA"])))
-    # xch fluxes
-    for row in ftbl.get("EQUALITIES",{}).get("XCH",[]):
-        #print row;##
-        netan["flux_equal"]["xch"].append((
-                eval(row["VALUE"]),
-                formula2dict(row["FORMULA"])))
-    for (afftype, ftype) in (("Net", "net"), ("Exchange", "xch")):
-        for row in netan["flux_equal"][ftype]:
-            for fl in row[1]:
-                if fl not in netan["reac"]:
-                   raise Exception("%s flux `%s` in the equality\n%s\nis not defined."%
-                       (afftype, fl, join("=", row)))
-    # Check that fluxes are all in reactions
-    # and form nx2dfcg dictionary
+    # Check that fluxes are all in reactions and eqflux
+    # then form nx2dfcg dictionary
     for (affnx, nx, nxsh) in (("net", "net", "n."), ("exchange", "xch", "x.")):
         for (affdfcg, dfcg, dfcgsh) in (("Dependent", "flux_dep", "d."), ("Free", "flux_free", "f."), ("Constrained", "flux_constr", "c."), ("Variable growth", "flux_vgrowth", "g.")):
             #print netan[dfcg][nx];##
             for fl in netan[dfcg][nx]:
-                if fl not in netan["reac"]:
-                   raise Exception("%s %s flux `%s` is not defined."%
+                if fl not in netan["reac"]|eqflux:
+                   raise Exception("%s %s flux `%s` is not defined in NETWORK neither EQUALITY sections."%
                        (affdfcg, affnx, fl))
                 netan["nx2dfcg"][nxsh+fl]=dfcgsh+nxsh+fl
 
@@ -1157,11 +1163,11 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
 
     # ordered unknown flux lists
     # get all reactions which are not constrained, not free and not growth
-    netan["vflux"]["net"].extend(reac for reac in netan["reac"]
+    netan["vflux"]["net"].extend(reac for reac in netan["reac"]|eqflux
         if reac not in netan["flux_constr"]["net"] and
         reac not in netan["flux_free"]["net"] and
         reac not in netan["flux_vgrowth"]["net"])
-    netan["vflux"]["xch"].extend(reac for reac in netan["reac"]
+    netan["vflux"]["xch"].extend(reac for reac in netan["reac"]|eqflux
         if reac not in netan["flux_constr"]["xch"] and
         reac not in netan["flux_free"]["xch"] and
         reac not in netan["flux_vgrowth"]["xch"])
@@ -1381,12 +1387,12 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             # check qry
             if qry==[0]*len(qry):
                 # degenerated equality
-                raise Exception("Equality is zero in "+nx+" section: "+str(eq)+"\n")
+                raise Exception("Equality is zero in "+nx.upper()+" section: "+str(eq)+"\n")
                 continue
             # check if this line was already entered before
             for row in res:
                 if row==qry:
-                    raise Exception("An equality in "+nx+" section is redundant. eq:"+str(eq)+
+                    raise Exception("An equality in "+nx.upper()+" section is redundant. eq:"+str(eq)+
                         "\nqry="+str(qry)+"\nrow="+str(row))
             res.append(qry)
             netan["vrowAfl"].append("eq "+nx+": "+str(eq[1]))
