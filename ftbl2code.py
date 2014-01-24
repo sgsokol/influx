@@ -879,14 +879,16 @@ rank=qrAfl$rank
 if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    #write.table(Afl)
    if (nrow(Afl) < ncol(Afl)) {
-      mes=paste("Candidate(s) for free flux(es):\\n",
-         paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"), sep="")
+      mes=paste("Candidate(s) for free or constrained flux(es):\\n",
+         paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"),
+         "\\nFor this choice, condition number of stoechiometric matrix will be ",
+         kappa(Afl[,qrAfl$pivot[1L:nrow(Afl)],drop=F]), "\\n", sep="")
    } else if (nrow(Afl) > rank) {
       nextra=nrow(Afl)-rank
       comb=combn(c(nm_ffn, colnames(Afl)[-qrAfl$pivot[1L:rank]]), nextra)
-      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank]], -p2bfl)
+      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank],drop=F], -p2bfl)
       colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl))
-      ara=Afl[,qrAfl$pivot[1L:rank]]
+      ara=Afl[,qrAfl$pivot[1L:rank],drop=F]
       i=which.min(apply(comb, 2, function(i) kappa(cBind(ara, aextra[,i]))))[1L]
       nm_tmp=comb[,i]
       ka=kappa(cBind(ara, aextra[,nm_tmp]))
@@ -1529,16 +1531,33 @@ if (clownr!=0.) {
    }
 }
 nb_fn=nb_fln+nb_ffn
-if (cupn != 0 && nb_fn) {
+if (cupn != 0 && nb_fn > 0) {
    # add upper limits on [df].net <= cupn for net fluxes
-   nb_tmp=nrow(mi)
-   mi=rbind(mi, matrix(0, nrow=nb_fn, ncol=nb_fallnx))
-   if (nb_fln)
-      nm_i=c(nm_i, paste(nm_fln, "<=", cupn, sep=""))
-   if (nb_ffn)
-      nm_i=c(nm_i, paste(nm_ffn, "<=", cupn, sep=""))
-   li=c(li, rep(-cupn, nb_fn))
-   mi[nb_tmp+(1:nb_fn),c(nm_fln, nm_ffn)]=diag(-1., nb_fn)
+   # explicit inequalities take precedence over generic ones
+   # so eliminate net fluxes which are already in inequalities
+   nm_tmp=c(nm_ffn, nm_fln) # all not fixed net fluxes
+   nm_itmp=paste("n:.+>=", substring(nm_tmp, 5), sep="")
+   i=sapply(seq(along=nm_itmp), function(k) {
+      j=grep(nm_itmp[k], nm_i)
+      #cat(nm_itmp[k], "->", nm_i[j], "\\n", file=fclog)
+      if (length(j)==0) {
+         return(0)
+      } else {
+         return(k)
+      }
+   })
+   i=i[i!=0]
+   if (length(i) > 0) {
+      nm_tmp=nm_tmp[-i]
+   }
+   len_tmp=length(nm_tmp)
+   if (len_tmp > 0) {
+      nb_tmp=nrow(mi)
+      mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx))
+      nm_i=c(nm_i, paste(nm_tmp, "<=", cupn, sep=""))
+      li=c(li, rep(-cupn, len_tmp))
+      mi[nb_tmp+(1:len_tmp),nm_tmp]=diag(-1., len_tmp)
+   }
 }
 
 """%{
