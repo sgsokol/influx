@@ -2,6 +2,22 @@
 Change Log for influx_s
 =======================
 
+2014-01-27 version 2.8
+----------------------
+New features:
+ - ``EQUALITY`` section in FTBL file may include fluxes absent in ``NETWORK`` section, e.g. fluxes involved in non carbon carrying reactions (requested by Roland Nilsson, Karolinska Institutet, Sweden)
+ - when a meaningful partition between free and dependent fluxes cannot be made, a proposition is made as to stoechiometric equations to be eliminated by hand (requested by Roland Nilsson, idem) 
+ - when ``--clownr`` option is used, reduced size of cumomer system is more efficient than without this option (replace a fix in 2.6 version)
+
+Bug fixes:
+ - fixed useless memory consumption during ftbl parsing when ``--emu`` option is used and very long molecules (say >20 carbons) are present (reported by Roland Nilsson, idem)
+ - some error messages are made more explicit during FTBL parsing
+ - fixed Jacobian calculation for condensing input reaction
+ - fixed matrix constructions when no free flux is defined
+ - fixed b term for full cumomer system
+ - fixed inequality enforcement when adaptive backtracking is used in NLSIC
+ - fixed inequality precedence, now specific inequalities from FTBL file prevail on ``--cupn=CUPN`` option 
+
 2013-10-22 version 2.7
 ----------------------
 New features:
@@ -41,7 +57,7 @@ New features:
 Bug fixes:
  - fixed a fatal error if the rights of generated R file cannot be changed
  - fixed a bug for ``--ln`` (least norm) option when without inequalities, increments were not of least norm (reported by Stephane Massou, INSA of Toulouse, France)
- - fixed an algorithm used in ``--ln``. Now for all inequality systems, both least residual norm and least solution norm are achieved (before, for some systems it was not the case). **Due to this fix, we highly recommend to update to this version if you use ``--ln`` option**
+ - fixed an algorithm used in ``--ln``. Now for all inequality systems, both least residual norm and least solution norm are achieved (before, for some systems it was not the case). **Due to this fix, we highly recommend to update to this version if you use** ``--ln`` **option**
  - fixed a bug in "zero crossing" inequalities. Now, inequalities involving only constrained fluxes are canceled.
 
 2013-04-11 version 2.4
