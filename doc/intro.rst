@@ -72,4 +72,4 @@ Software and documentation author:
 
   Serguei SOKOL, INRA, France <sokol [at] insa-toulouse.fr>
 
-Copyright 2012, 2013, INRA, France
+Copyright 2012-2014, INRA, France
