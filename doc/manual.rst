@@ -5,17 +5,21 @@
 User's manual
 =============
 
-``influx_s`` is designed to run without any option on most common cases. So its usage can be as simple as::
+``influx_s`` can be run without any option on most common cases. So its usage can be as simple as::
 
  $ influx_s.py mynetwork
 
-we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork.ftbl`` was created
+we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork.ftbl`` was created. Moreover, we supposed ``influx_s.py`` is in the PATH variable.
 
 .. note::
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
- Some sections concerning metabolite pools were added to original FTBL format (cf. `Growth flux option`_). Other important difference, is that user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0). Finally, starting from version 2.5, ``NA`` (missing values) are admitted in measurement sections.
+ For some specific features of ``influx_s``, the FTBL format was extended. Here is complete list of such extensions:
+  - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
+  - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0). It is recommended to add corresponding inequalities to ensure that input-output net fluxes be positive;
+  - starting from version 2.5, ``NA`` (missing values) are admitted in measurement sections;
+  - starting from version 2.8, new fluxes (i.e. absent in ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections.
 
-moreover we supposed ``influx_s.py`` is in the PATH variable.
+
 
 In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.: ::
 
@@ -75,6 +79,8 @@ Command line options
   --cupp=CUPP      upper limit for metabolite pool. Default: 1.e5
   --clownr=CLOWNR  lower limit for not reversible free and dependent fluxes.
                    Zero value (default) means no lower limit
+
+                   A byproduct of this option is that it can drastically reduce  cumomer system sizes. As it ensures that non reversible fluxes cannot change the sign, revers fluxes can be eliminated from pathways leading to observable cumomers. 
   --cinout=CINOUT  lower limit for input/output free and dependent fluxes.
                    Must be non negative. Default: 0
   --clowp=CLOWP    lower limit for free metabolite pools. Must be positive. Default 1.e-8
@@ -91,7 +97,7 @@ Command line options
 
                    .. note:: Use this option with caution, in particular, when used in conjunction with Monte-Carlo simulations. As undetermined fluxes will be given some particular value, this value can be more or less stable from one Monte-Carlo simulation to another. This can create an illusion that a flux is well determined. See the linearized statistics in the result file to decide which fluxes are badly resolved.
 
-                   A correct way to deal with badly defined metabolic network is to provide additional data that can help to resolve all the fluxes, not just put ``--ln`` option and cross the fingers.
+                   A correct way to deal with badly defined metabolic network is to provide additional data that can help to resolve all the fluxes and/or to optimize input label, not just put ``--ln`` option and cross the fingers.
 
                    .. warning:: In this option, the notion of "least norm" is applied to *increments* during the optimization, not to the final solution. So undetermined fluxes could vary from one run to another if the optimization process is started from different points while well determined fluxes should keep stable values.
   --sln            Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient
@@ -346,26 +352,25 @@ a message about badly structurally defined network could be similar to::
   Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
   Execution stopped
 
-a message about singular cumomer balance matrix could resemble to::
+a message *on console* about singular cumomer balance matrix could resemble to::
 
-  Error in solve(A, b) : 
-    cs_lu(A) failed: near-singular A (or out of memory)
-  Error in trisparse_solv(lAb$A, lAb$b, iw, method = "sparse") : 
-    Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
+  Error in .solve.dgC(a, as(b, "denseMatrix"), tol = tol, sparse = sparse) :                             
+     cs_lu(A) failed: near-singular A (or out of memory)
+
+while a message in the ``mynetwork.err`` file will look like::
+
+  Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
   or constrain some of the fluxes listed below to be non zero
   Zero rows in cumomer matrix A at weight 1:
-  PHB:4
-  PHB:1
-  PHB:2
-  PHB:8
+  asp:2
+  asp:8
+  asp:1
+  asp:4
   Zero fluxes are:
-  fwd.AACOAR_1
-  fwd.ACOAAT
+  fwd.BM_ASP
   ...
-  Calls: opt_wrapper -> nlsic -> r -> param2fl_x -> trisparse_solv
-  Execution stopped
   
-.. note:: In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here ``PHB:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
+.. note:: In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here ``asp:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
  
  ``$ influx_s.py --clownr 0.0001 mynetwork``
  
@@ -452,14 +457,10 @@ In all cases, a slow convergence is due to high non linearity of the solved prob
 1. If a non linearity causing the slow convergence is due to the use of function absolute value :math:`|x|` in the calculation of forward and revers fluxes from net and exchange fluxes, then an option ``--zc=ZC`` (zero crossing) can be very efficient. This non linearity can become harmful when during optimization a net flux has to change its sign, in other words it has to cross zero.
  This option splits the convergence process in two parts. First, a minimum is searched for fluxes under additional constraints to keep the same sign during this step. Second, for fluxes that reached zero after the first step, a sign change is imposed and a second optimization is made with these new constraints.
  If ``--zc`` option is used with an argument 0 (``--zc=0`` or ``--zc 0``), it can happen that fluxes reaching zero produce a singular (non invertible) cumomer balance matrix. In this case, an execution is aborted with an error starting like::
- 
- Error in solve(A, b) : 
-  cs_lu(A) failed: near-singular A (or out of memory)
- Error in trisparse_solv(lAb$A, lAb$b, iw, method = "sparse") : 
-  Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
- or constrain some of the fluxes listed below to be non zero
- ...
 
+   Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
+   or constrain some of the fluxes listed below to be non zero
+   ...
  To avoid such situation, an argument to ``--zc`` must be a small positive number, say ``--zc 0.001``. In this case, positive net fluxes are kept over 0.001 and negative fluxes are kept under -0.001 value. In this manner, an exact zero is avoided.
  
 2. A high non linearity can appear for some particular set of free fluxes, especially when they take extreme values, e.g. when exchange fluxes are close to 1 or net fluxes take very high values of order 10² or even 10³ (supposing that the main entry flux is normalized to 1). In such a case, user can low this limits (options ``--cupx=CUPX`` and ``--cupn=CUPN`` respectively) or try to exclude outliers (``--excl_outliers P-VALUE``) as outliers can attract the solution in weird zone of free fluxes. In this latter case, the first convergence will continue to be slow and will generate corresponding warnings but the second one (after a possible elimination of outliers) can be much quicker.
@@ -469,10 +470,11 @@ Convergence aborted
 This situation is signaled by the error::
 
  nlsic: LSI returned not descending direction
- 
+
 This problem can occur for badly defined network which are very sensible for truncation errors. The effect of such errors can become comparable to the effect of the increment step during optimization. It means that we cannot decrease the norm of residual vector under the values resulting from rounding errors.
- If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no such many measures that user could take beside to make his system better defined as described in previous sections.
- .. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`1O^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`1O^{-3}` or :math:`1O^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
+If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no such many measures that user could undertake beside to make his system better defined as described in previous sections.
+
+.. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`1O^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`1O^{-3}` or :math:`1O^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
 
 Additional tools
 ----------------
