@@ -16,7 +16,7 @@ How to ...
 
 .. describe:: ... accelerate calculations?
 
- You can relax stopping criterion and pass from 1.e-5 (by default) to, for example, 1.e-2 if this precision is sufficient for you. Use ``optctrl_errx`` option in FTBL file (section OPTIONS) for this.
+ You can relax stopping criterion and pass from 1.e-5 (by default) to, for example, 1.e-2 if this precision is sufficient for you. Use ``optctrl_errx`` option in FTBL file (section ``OPTIONS``) for this.
 
  If you mean to accelerate Monte-Carlo simulations in Unix environment, you can use a hardware with many cores. In this case, the wall clock time can be reduced significantly. Note that distant nodes, even inside of the same cluster, are not used in the such kind of Monte-Carlo simulations.
 
