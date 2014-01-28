@@ -41,7 +41,7 @@ if __name__ == "__main__":
     fftbl=open(fftbl, "r") if fftbl else sys.stdin
 
     ftbl=C13_ftbl.ftbl_parse(fftbl)
-    netan=C13_ftbl.ftbl_netan(ftbl)
+    netan=C13_ftbl.ftbl_netan(ftbl, emu)
     tools_ssg.dict2kvh(netan)
     # calculate measure matrices
     if "measures" not in netan:
@@ -56,7 +56,9 @@ if __name__ == "__main__":
     tools_ssg.dict2kvh({"vrcumo": netan["vrcumo"]})
     tools_ssg.dict2kvh({"rcumo2i0": netan["rcumo2i0"]})
     tools_ssg.dict2kvh({"rcumo_input": netan["rcumo_input"]})
-    tools_ssg.dict2kvh({"vemu_input": netan["vemu_input"]})
-    tools_ssg.dict2kvh({"vemu": netan["vemu"]})
-    tools_ssg.dict2kvh({"emu2i0": netan["emu2i0"]})
+    if emu:
+        tools_ssg.dict2kvh({"emu_input": netan["emu_input"]})
+        tools_ssg.dict2kvh({"vemu_input": netan["vemu_input"]})
+        tools_ssg.dict2kvh({"vemu": netan["vemu"]})
+        tools_ssg.dict2kvh({"emu2i0": netan["emu2i0"]})
     sys.exit(0)
