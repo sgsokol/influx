@@ -368,8 +368,10 @@ param2fl_x=function(param, cjac=TRUE, jx_f, nb_f, nm, nb_cumos, invAfl, p2bfl,
          j_b_x=fx2jr(jx_f$fwrv, spAb[[iw]], nb_f, x)
          j_rhsw=j_b_x$j_rhsw%*%mdf_dffp
          b_x=j_b_x$b_x
-         if (iw > 1 && ba_x > 0) {
-            j_rhsw=j_rhsw+b_x%*%x_f[1:ba_x,,drop=F]
+         if (iw > 1) {
+            if (ba_x > 0) {
+               j_rhsw=j_rhsw+b_x%*%x_f[1:ba_x,,drop=F]
+            }
             if (emu) {
                dim(j_rhsw)=c(nb_c, iw*ncol(x_f))
                xf=solve(jx_f$lA[[iw]], j_rhsw)
@@ -1348,7 +1350,11 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
       names(res$par)=nm_par
    } else {
       cat(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
-      q("no", status=1)
+      if (isatty(stdin())) {
+         stop()
+      } else {
+         q("no", status=1)
+      }
    }
    if (is.null(res$err)) {
       res$err=0L
