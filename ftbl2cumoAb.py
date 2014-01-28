@@ -197,7 +197,7 @@ dep.flux=f(cnst,net,xch)\n
     for (ir,row) in enumerate(fcv2dep.A):
         nz=abs(row) >= 1.e-10
         formula=join("", ( (("+" if v > 0 else "-") if abs(abs(v)-1.) < 1.e-10 and f != "" else ("+" if v > 0 else "") + "%s"% Frac.from_float(v).limit_denominator(100)) + ("*" if f != "" and abs(abs(v)-1) > 1.e-10 else "") + f for (v,f) in zip(row[nz],i2fcv[nz])))
-        formula=formula if formula[0] != "+" else formula[1:]
+        formula=formula if not formula or formula[0] != "+" else formula[1:]
         f.write("%(dep)s=%(formula)s\n"%{
             "dep": "d.n."+netan["vflux"]["net"][ir] if ir < ndn else "d.x."+netan["vflux"]["xch"][ir-ndn],
             "formula": formula,
