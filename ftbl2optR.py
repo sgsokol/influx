@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # analyse network
     # reload(C13_ftbl)
 
-    netan=C13_ftbl.ftbl_netan(ftbl)
+    netan=C13_ftbl.ftbl_netan(ftbl, emu)
     # prepare rcumo system
     if emu:
         rAb=C13_ftbl.rcumo_sys(netan, C13_ftbl.ms_frag_gath(netan))
@@ -586,6 +586,7 @@ for (irun in iseq(nseries)) {
    obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
    cat("\\tR command line\\n", file=fkvh)
    obj2kvh(opts, "opts", fkvh, indent=2)
+   cat("\\t\\texecution date\t", date(), "\\n", sep="", file=fkvh)
 
    # resume system sizes
    obj2kvh(nb_sys, "system sizes", fkvh)
