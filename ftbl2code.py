@@ -103,7 +103,7 @@ nb_fwrv=%(n)d
         c2i=dict((c,i) for (i,c) in enumerate(cumos))
         #d=[c for c in netan['cumo_sys']['A'][w-1] if not c in cumos]
         if ncumo != len(A):
-            raise Exceptiopn("wrongCumomerNumber")
+            raise Exception("wrongCumomerNumber: ncumo=%d, nrow(A)=%d"%(ncumo, len(A)))
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
         nb_maxfa=0; # how many fluxes in an off-diagonal term in a
@@ -379,12 +379,20 @@ cupx=ifelse(cupx, cupx, 1)
 if (cupx < 0 || cupx > 1) {
    cat(paste("Option '--cupx N' must have N in the interval [0,1]\n",
       "Instead, the value ", cupx, " si given.", sep=""), file=fcerr)
-   q("no", status=1)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
 }
 if (cinout < 0) {
    cat(paste("Option '--cinout N' must have N non negative\n",
       "Instead, the value ", cinout, " si given.", sep=""), file=fcerr)
-   q("no", status=1)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
 }
 # minimization method
 validmethods=list("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic")
@@ -396,12 +404,20 @@ if (method == "ipopt") {
    installed=suppressPackageStartupMessages(library(ipoptr, logical.return=T))
    if (!installed) {
       cat("An optimization method ipopt is requested but available in this R installation", file=fcerr)
-      q("no", status=1)
+      if (isatty(stdin())) {
+         stop()
+      } else {
+         q("no", status=1)
+      }
    }
 }
 if (least_norm && sln) {
    cat("Options --ln and --sln cannot be activated simultaniously.", file=fcerr)
-   q("no", status=1)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
 }
 
 avaco=try(detectCores(), silent=T)
@@ -430,7 +446,11 @@ if (zc==-.Machine$double.xmax) {
 } else {
    if (zc < 0.) {
       cat(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""), file=fcerr)
-      q("no", status=1)
+      if (isatty(stdin())) {
+         stop()
+      } else {
+         q("no", status=1)
+      }
    }
    zerocross=T
 }
@@ -896,8 +916,9 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          prop=paste("Proposal to declare dependent flux(es) is:\\n",
             paste(nm_tmp, collapse="\\n"), "\\n", sep="")
          if (rank < ncol(Afl)) {
-            prop=prop%%s+%%"Moreover, the following dependent flux(es) should be declared free or constraint:\\n"%%s+%%join("\\n", colnames(Afl)[-qrAfl$pivot[1L:rank]])%%s+%%"\\n"
+            prop=prop%%s+%%"While the following dependent flux(es) should be declared free or constrained:\\n"%%s+%%join("\\n", colnames(Afl)[-qrAfl$pivot[1L:rank]])%%s+%%"\\n"
          }
+         prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
       } else {
          # add constraint fluxes to candidate list
          if (nb_fcn > 0) {
@@ -913,25 +934,35 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
                join("\\n", colnames(aextra)[-qae$pivot[1L:ranke]]), "\\n",
                sep="")
                ka=kappa(aextra[,qae$pivot[1L:ranke]])
+               prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
             } else {
-               prop="No proposal for dependent fluxes could be made.\\n"
+               prop="No proposal for partition dependent/free fluxes could be made.\\n"
+               qt=qr(t(aextra))
+               d=abs(diag(qt$qr))
+               rankr=sum(d > d[1L]*1.e-10)
+               prop=sprintf("%%sFrom %%d equations (rows), %%d are redundant and must be eliminated by hand.\\n", prop, nrow(Afl), nrow(Afl)-rankr)
+               prop=paste(prop, "Candidate(s) for elimination is (are):\\n",
+                  paste(rownames(Afl)[qt$pivot[-(1:rankr)]], sep="", collapse="\\n"),
+                  "\\n", sep="")
             }
          } else {
             prop="No proposal for dependent fluxes could be made.\\n"
          }
       }
-      prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
       mes=paste("There is (are) probably ", nextra,
          " extra free flux(es) among the following:\\n",
          paste(nm_ffn, collapse="\\n"), "\\n",
          prop,
-         "\\nAnother option could be an elimination of some equalities.",
          sep="")
    }
    cat(paste("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
       "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
       mes, sep=""), file=fcerr)
-   q("no", status=1)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
 }
 
 # make sure that free params choice leads to not singular matrix
@@ -960,7 +991,11 @@ if (qrAfl$rank != nb_fl) {
       mes=paste(mes, "\\nNo suggested free fluxes could be found", sep="")
    }
    cat(mes, file=fcerr)
-   q("no", status=1)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
 }
 
 # inverse flux matrix
@@ -1606,7 +1641,11 @@ if (all(ci[zi]<=1.e-10)) {
 } else {
    cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
    cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=fcerr)
-   q("no", status=1)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
 }
 
 # complete ui by zero columns corresponding to scale params
