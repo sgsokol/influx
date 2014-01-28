@@ -238,7 +238,7 @@ def ftbl_parse(f):
         f.close()
     return ftbl
 
-def ftbl_netan(ftbl):
+def ftbl_netan(ftbl, emu_framework=False):
     """
     analyse ftbl dictionary to find
      
@@ -264,6 +264,7 @@ def ftbl_netan(ftbl):
      - variable growth fluxes (flux_vgrowth)
      - input isotopomers (iso_input)
      - input cumomers (cumo_input)
+     - input reduced cumomers (rcumo_input)
      - flux inequalities (flux_ineqal)
      - flux equalities (flux_eqal)
      - label measurements, H1 (label_meas)
@@ -304,7 +305,6 @@ def ftbl_netan(ftbl):
         "iso_input":{},
         "cumo_input":{},
         "rcumo_input":{},
-        "emu_input_all":{},
         "emu_input":{},
         "flux_inequal":{"net":[], "xch":[]},
         "flux_equal":{"net":[], "xch":[]},
@@ -522,13 +522,15 @@ def ftbl_netan(ftbl):
         #print row;##
         netan["flux_equal"]["net"].append((
                 eval(row["VALUE"]),
-                formula2dict(row["FORMULA"])))
+                formula2dict(row["FORMULA"]),
+                row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     # xch fluxes
     for row in ftbl.get("EQUALITIES",{}).get("XCH",[]):
         #print row;##
         netan["flux_equal"]["xch"].append((
                 eval(row["VALUE"]),
-                formula2dict(row["FORMULA"])))
+                formula2dict(row["FORMULA"]),
+                row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     netan["eqflux"]=set(f for row in netan["flux_equal"]["net"] for f in row[1].keys()) | set(f for row in netan["flux_equal"]["xch"] for f in row[1].keys())
     eqflux=netan["eqflux"]
 
@@ -715,22 +717,9 @@ def ftbl_netan(ftbl):
             netan["iso_input"][metab]={}
         netan["iso_input"][metab][iiso]=eval(row["VALUE"])
     if set(netan["iso_input"].keys()) != set(netan["input"]):
-        werr("LabelInput: Label input section must contain all network input metabolites and only them\n"+
-            "label_input: "+str(netan["iso_input"].keys())+"\n"+
-            "network input: "+str(netan["input"])+"\n")
-    
-    # translate input iso to input cumo
-    for metab in netan["iso_input"]:
-        for icumo in xrange(1, 1<<(netan["Clen"][metab])):
-            cumo=metab+":"+str(icumo)
-            netan["cumo_input"][cumo]=iso2cumo(netan["Clen"][metab], icumo, netan["iso_input"][metab])
-    # translate input iso to input emu
-    for metab in netan["iso_input"]:
-        #print (metab, netan["iso_input"][metab])
-        for mask in xrange(1, 1<<(netan["Clen"][metab])):
-            for iemu in xrange(sumbit(mask)+1):
-                emu=metab+":"+str(mask)+"+"+str(iemu)
-                netan["emu_input_all"][emu]=sum(netan["iso_input"][metab].get(i, 0) for i in xrange(1<<netan["Clen"][metab]) if sumbit(i&mask)==iemu)
+        werr("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them\n"+
+            "LABEL_INPUT: "+str(netan["iso_input"].keys())+"\n"+
+            "NETWORK input: "+str(netan["input"])+"\n")
     
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
@@ -1053,7 +1042,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     res["b"]=[{} for i in xrange(Cmax)]
     try:
         # run through all reactions and update bilan of involved cumomers
-        for (reac,lrdict) in netan["carbotrans"].iteritems():
+        for (reac,lrdict) in []: #netan["carbotrans"].iteritems():
             # run through metabs
             ## aff("lrdict", lrdict);#
             for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
@@ -1115,13 +1104,9 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                                     res["b"][w-1][cumo][flux]={}
                                 if imetab not in res["b"][w-1][cumo][flux]:
                                     res["b"][w-1][cumo][flux][imetab]=[]
-                                if in_cumo in netan["cumo_input"]:
-                                    #fract=netan["cumo_input"][in_cumo]
-                                    pass
-                                else:
-                                    raise Exception("LabelInput", in_cumo+" should be in input section of ftbl file:\n"+
-                                        str(netan["input"])+"\n"+str(netan["cumo_input"]))
-                                #res["b"][w-1][cumo][flux][imetab].append(fract)
+                                if in_cumo not in netan["cumo_input"]:
+                                    # put this in_cumo ih the dict
+                                    netan["cumo_input"][in_cumo]=iso2cumo(in_icumo, netan["iso_input"][in_metab])
                                 res["b"][w-1][cumo][flux][imetab].append(in_cumo)
                             else:
                                 if in_cumo not in res["A"][w-1][cumo]:
@@ -1395,7 +1380,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                     raise Exception("An equality in "+nx.upper()+" section is redundant. eq:"+str(eq)+
                         "\nqry="+str(qry)+"\nrow="+str(row))
             res.append(qry)
-            netan["vrowAfl"].append("eq "+nx+": "+str(eq[1]))
+            netan["vrowAfl"].append("eq "+nx+": "+eq[2])
             netan["bfl"].append({"":eq[0]})
             dtmp=netan["bfl"][-1]
             # pass free fluxes to rhs
@@ -1627,10 +1612,12 @@ def cumo_iw(w,nlen):
             for subi in cumo_iw(w-1,w+i-1):
                 yield movbit+subi
             movbit<<=1
-def iso2cumo(Clen, icumo, iso_dic):
+def iso2cumo(icumo, iso_dic):
     """calculate cumomer fraction from isotopomer ones"""
-    return sum(iso_dic.get(iiso,0.)
-        for iiso in icumo2iiso(icumo, Clen))
+    #return sum(iso_dic.get(iiso,0.)
+    #    for iiso in icumo2iiso(icumo, Clen))
+    w=sumbit(icumo)
+    return sum(val for (iso, val) in iso_dic.iteritems() if sumbit(iso&icumo) == w)
 def formula2dict(f):
     """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
@@ -1658,7 +1645,7 @@ def formula2dict(f):
             res[var]=sign*coef
             sign=next_sign
         else:
-            raise Exception("Not parsed term '"+term+"'")
+            raise Exception("Not parsed term '"+term+"' in formula '"+f+"'.")
     return res
 def label_meas2matrix_vec_dev(netan):
     """use netan["label_meas"] to construct a corresponding measure matrix matx_lab
@@ -2049,7 +2036,7 @@ def rcumo_sys(netan, emu=False):
         for meas in measures:
             for row in measures[meas]["mat"]:
                 metab=row["metab"]
-                meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() if i[:2]!="0+")
+                meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() if i[:2]!="+0")
     else:
         for meas in measures:
             for row in measures[meas]["mat"]:
@@ -2108,9 +2095,13 @@ def rcumo_sys(netan, emu=False):
                     if inmetab not in netan["input"] and inw != 0 and incumo not in to_visit[inw]:
                         to_visit[inw].append(incumo)
                     if inmetab in netan["input"]:
-                        netan["rcumo_input"][incumo]=netan["cumo_input"][incumo]
-                        emus=[incumo+"+"+str(i) for i in xrange(inw+1)]
-                        netan["emu_input"].update((e,netan["emu_input_all"][e]) for e in emus)
+                        if emu:
+                            # tuple emu (mask, m+i, string)
+                            emus=[(inicumo, i, incumo+"+"+str(i)) for i in xrange(inw+1)]
+                            netan["emu_input"].update((e,iso2emu(netan, inmetab, mask, mpi)) for (mask, mpi, e) in emus)
+                        if incumo not in netan["rcumo_input"]:
+                            netan["rcumo_input"][incumo]=iso2cumo(inicumo, netan["iso_input"][inmetab])
+                        #netan["rcumo_input"][incumo]=netan["cumo_input"][incumo]
                     # main part: write equations
                     if inw==w :
                         # equal weight => A
@@ -2145,15 +2136,7 @@ def rcumo_sys(netan, emu=False):
                     A[w-1][cumo][cumo]+=b[w-1][cumo].keys()
     #aff("to_v", to_visit);##
     # make ordered list for reduced cumomer set
-    netan["vrcumo"]=copy.deepcopy(netan["vcumo"])
-    for i in xrange(len(netan["vrcumo"]),len(A),-1):
-        del(netan["vrcumo"][i-1])
-    for (iw,cumol) in enumerate(netan["vrcumo"]):
-        for i in xrange(len(cumol), 0, -1):
-            i-=1
-            if cumol[i] not in A[iw]:
-                #print "prune", i, cumol[i];##
-                del(cumol[i])
+    netan["vrcumo"]=[a.keys() for a in A]
     netan["rcumo2i0"]=dict((cumo,i) for (i, cumo) in enumerate(valval(netan["vrcumo"])))
     netan["rcumo_sys"]={"A": A, "b": b}
     # make order list for emu_input
@@ -2291,3 +2274,9 @@ def ms_frag_gath(netan):
             to_visit.update(incumo for (incumo,fl,imetab,iinmetab) in cumo_infl(netan, frag))
             break
     return(frags)
+def iso2emu(netan, inmetab, mask, mpi):
+    """calculate emu fraction from isotopomer dict in netan["iso_input"].
+    The fraction corresponds to a fragment defined by a mask and the mass component mpi.
+    Return a real number in [0; 1] interval.
+    """
+    return(sum([val for (frag, val) in netan["iso_input"][inmetab].iteritems() if sumbit(frag&mask) == mpi]))
