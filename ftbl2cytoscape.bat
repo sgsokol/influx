@@ -1,1 +1,1 @@
-ftbl2rsif.py PPP.ftbl
+ftbl2xgmml.py PPP.ftbl
