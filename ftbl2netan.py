@@ -11,7 +11,7 @@ if __name__ == "__main__":
         print(__doc__)
 
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr" "DEBUG"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr", "fullsys", "DEBUG"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -19,6 +19,7 @@ if __name__ == "__main__":
     DEBUG=False
     emu=False
     clownr=False
+    fullsys=True
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -29,6 +30,8 @@ if __name__ == "__main__":
             DEBUG=True
         elif o=="--clownr":
             clownr=True
+        elif o=="--fullsys":
+            fullsys=True
         else:
             assert False, "unhandled option"
     C13_ftbl.clownr=clownr
@@ -41,7 +44,7 @@ if __name__ == "__main__":
     fftbl=open(fftbl, "r") if fftbl else sys.stdin
 
     ftbl=C13_ftbl.ftbl_parse(fftbl)
-    netan=C13_ftbl.ftbl_netan(ftbl, emu)
+    netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
     tools_ssg.dict2kvh(netan)
     # calculate measure matrices
     if "measures" not in netan:
