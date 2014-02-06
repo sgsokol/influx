@@ -25,7 +25,7 @@ In a high throughput context, it can be useful to proceed many FTBL files in par
 
  $ influx_s.py mynetwork1 mynetwork2
 
-and so on. All files are then proceeded in separate independent processes launched almost simultaneously by a bunch of size equal to the number of available or requested (if an option ``--np=NP`` is used) cores. It is an operating system who is in charge to make a distribution of all these processes among all available CPUs and cores.
+and so on. All files are then proceeded in separate independent processes launched almost simultaneously by a bunch of size equal to the number of available or requested cores (if an option ``--np=NP`` is used). It is an operating system who is in charge to make a distribution of all these processes among all available CPUs and cores.
 
 Sometimes, particular cases need usage of special options of ``influx_s``. The list of available options can be seen by running::
 
@@ -312,7 +312,7 @@ Network values for Cytoscape
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Several network values formatted for cytoscape are written by ``influx_s`` to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of any of them. All these files are written at the end of calculations so if an error has interrupted this process, no such file will be produced. Take care to don't use an outdated copy of these files.
 
-A file named ``edge.netflux.mynetwork`` can help to map net flux values on edges of a studied network. A file ``edge.xchflux.mynetwork`` do the same with exchange fluxes. And finally, ``node.log2pool.mynetwork`` provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.
+A file named ``edge.netflux.mynetwork.attrs`` can help to map net flux values on edges of a studied network. A file ``edge.xchflux.mynetwork.attrs`` do the same with exchange fluxes. And finally, ``node.log2pool.mynetwork.attrs`` provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.
 
 See `Additional tools`_ section, `Cytoscape view`_ paragraph to know how to produce files importable in Cytoscape from a given FTBL file. User's manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.
 
@@ -474,49 +474,44 @@ This situation is signaled by the error::
 This problem can occur for badly defined network which are very sensible for truncation errors. The effect of such errors can become comparable to the effect of the increment step during optimization. It means that we cannot decrease the norm of residual vector under the values resulting from rounding errors.
 If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no such many measures that user could undertake beside to make his system better defined as described in previous sections.
 
-.. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`1O^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`1O^{-3}` or :math:`1O^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
+.. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`10^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`10^{-3}` or :math:`10^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
 
 Additional tools
 ----------------
 
 Tools described in this section are not strictly necessary for running ``influx_s`` and calculate the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
 
-Cytoscape view
-~~~~~~~~~~~~~~
+ftbl2xgmml: cytoscape view
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once a valid FTBL file is generated, a user can visualize a graph representing his metabolic network in `Cytoscape <http://www.cytoscape.org>`_ program. To produce necessary graph files, user can run::
 
- $ ftbl2rsif.py mynetwork
+ $ ftbl2xgmml.py mynetwork
 
-or drag and drop ``mynetwork.ftbl`` icon on ``ftbl2rsif.py`` icon.
+or drag and drop ``mynetwork.ftbl`` icon on ``ftbl2xgmml.py`` icon.
 
-This will produce a series of files in the directory of ``mynetwork.ftbl``:
+This will produce a file in XGMML format ``mynetwork.xgmml`` in the directory of ``mynetwork.ftbl``:
 
- .. describe:: mynetwork.sif
+Once a generated file ``mynetwork.ftbl`` is imported in cytoscape, a user can use one of automatic cytoscape layouts or edit node's disposition in the graph by hand.
 
-   this file has to be imported in Cytoscape (File > Import > Network (Multiple File Types)...)
+Graphical conventions used in the generated XGMML are following:
+ - metabolite are presented as rounded square nodes;
+ - simple (one to one) reaction are represented by simple edges;
+ - condensing and/or splitting reactions are represented by edges converging and/or diverging from additional almost invisible node having a label with the reaction name;
+ - all nodes and edges have tool tips, i.e. when a pointer is put over their name (metabolite or reaction) appears in a tiny pop-up window;
+ - non reversible reaction are represented by a single solid line, have an arrow on the target end (i.e. produced metabolite) and nothing on the source end (i.e. consumed metabolite);
+ - reversible reactions are represented by a double parallel line and have a solid circle on the source end;
+ - color code for arrows:
+  + green for free net flux;
+  + blue for dependent net flux;
+  + black for constrained net flux;
+ - color code for solid circles:
+  + green for free exchange flux;
+  + blue for dependent exchange flux;
+  + black for constrained exchange flux.
 
- .. describe:: edge.targetArrowShape.mynetwork
-
- .. describe:: edge.targetArrowColor.mynetwork
-
- .. describe:: edge.sourceArrowShape.mynetwork
-
- .. describe:: edge.sourceArrowColor.mynetwork
-
- .. describe:: edge.label.mynetwork
-
-   these files define graphical attributes of edges and should be imported via ``File > Import > Edge Attributes ...``
- .. describe:: node.shape.mynetwork
-
- .. describe:: node.fillColor.mynetwork
-
-   these files define node visual attributes and should be imported via ``File > Import > Node Attributes ...``
-
-Once all import finished, a user can use one of automatic cytoscape layouts or edit node's disposition in the graph by hand.
-
-FTBL parsing
-~~~~~~~~~~~~
+ftbl2netan: FTBL parsing
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 To see how an FTBL file is parsed and what the parsing module "understands" in a given FTBL, a following command can be run::
 
@@ -524,19 +519,63 @@ To see how an FTBL file is parsed and what the parsing module "understands" in a
 
 The end part of the command ``> mynetwork_netan.kvh`` means that the standard output (typically a console display) will be redirected to a file named ``mynetwork_netan.kvh``. A user can examine this file which has an hierarchical structure and where the values are Python objects converted to strings.
 
-Human readable equations
-~~~~~~~~~~~~~~~~~~~~~~~~
+ftbl2cumoAb: human readable equations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes, it can be helpful to examine visually the equations used by ``influx_s``. These equations can be produced in human readable form by running::
 
  $ ftbl2cumoAb.py -r mynetwork > mynetwork.sys
 
-The result file ``mynetwork.sys`` will contain systems of stoichiometric and cumomer balance equations as well as a symbolic inversion of stoichiometric matrix, i.e. dependent fluxes are represented as linear combination of free and constrained fluxes and an optional constant value. In the example above, the option ``-r`` stands for "reduced cumomer set". If a full cumomer set has to be examined, just omit ``-r`` option. Keep in mind that on real-world networks this can produce more than thousand equations by cumomer weight which could hardly be qualified as *human* readable form. So use it with caution.
+or::
 
-For the sake of brevity, cumomer names are encoded in decimal integer form. For example, a cumomer ``Metab#xx1x`` will be referred as ``Metab:2`` because a binary number ``0010`` corresponds to a decimal number ``2``. The binary mask ``0010`` is obtained from the cumomer mask ``xx1x`` by a plain replacement of every ``x`` by ``0`` .
+ $ ftbl2cumoAb.py --emu mynetwork > mynetwork.sys
+
+The result file ``mynetwork.sys`` will contain systems of stoichiometric and cumomer balance equations as well as a symbolic inversion of stoichiometric matrix, i.e. dependent fluxes are represented as linear combination of free and constrained fluxes and an optional constant value. In the examples above, the option ``-r`` stands for "reduced cumomer set" and ``--emu`` stands for "generate EMU framework equations". In this last case, only isotopologues of mass+0 in each EMU are reported in ``mynetwork.sys`` file. For other mass weights, equations does not change and the right hand side term could get longer for condensation reactions but involves the same EMUs as in mass+0 weight.
+
+If a full cumomer set has to be examined, just omit all options. Keep in mind that on real-world networks this can produce more than thousand equations by cumomer weight which could hardly be qualified as *human* readable form. So use it with caution.
+
+For the sake of brevity, cumomer names are encoded in decimal integer form. For example, a cumomer ``Metab#xx1x`` will be referred as ``Metab:2`` because a binary number ``0010`` corresponds to a decimal number ``2``. The binary mask ``0010`` is obtained from the cumomer mask ``xx1x`` by a plain replacement of every ``x`` by ``0``.
 
 For a given cumomer weight, the equations are sorted alphabetically.
 
-An option ``--emu`` will generate symbolic equations for EMU framework instead of cumomer ones. Only isotopologues of mass+0 in each EMU are reported in this file. For other mass weights, equations does not change and the right hand side term could gets longer for condensation reactions but involves the same EMUs as in mass+0 weight.
+expa2ftbl: non carbon carrying fluxes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some reactions of carbon metabolism require cofactor usage like ATP/ADP and some others. A mass balance on cofactors can produce additional useful constraints on the stoechiometric system. Since the version 2.8, such mass balance equation on non carbon carrying metabolites can be put in ``EQUATION`` section of FTBL file. A utility ``expa2ftbl.R`` can be helpful for this purpose if a user has already a full set of reactions in `expa <http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis>`_ format.
+To extract additional equation from an expa file, ``expa2ftbl.R`` can be used as::
+
+ $ R --vanilla --slave --args file.expa < expa2ftbl.R > file.ftbl_eq
+
+Then an information for the generated ``file.ftbl_eq`` has to be manually copy/pasted to a corresponding FTBL file.
+
+Note that ``expa2ftbl.R`` uses a Unix command ``grep`` and another utility described here above ``ftbl2netan.py``.
+
+res2ftbl_meas: simulated data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+During preparation of a study, one of questions that biologist can ask is "Will the intended collected data be sufficient for flux resolution in a given network?"
+Some clue can be obtained by making "dry runs" of ``influx_s`` with ``--noopt`` (i.e. no optimization) option. User can prepare an FTBL file with a given network and supposed data to be collected. At first, the measurement values can be replaced by NAs while the SD values for measurements must be given in realistic manner. After running::
+
+ $ influx_s.py --noopt mynetwork
+
+a utility ``res2ftbl_meas.py`` can be practical for preparing FTBL files with obtained simulated measurements::
+
+ $ res2ftbl_meas.py res2ftbl_meas.py mynetwork_res[.kvh] > mynetwork.ftbl_meas
+
+(here ``.kvh`` suffix is optional). The information from the generated file ``mynetwork.ftbl_meas`` has to be manually copy/pasted into corresponding FTBL file.
+Getting an ftbl file with real values instead of NAs in measurement sections gives an opportunity to explore optimization behavior near a simulated point like convergence speed and/or convergence stability to cite few of them.
+
+ffres2ftbl: import free fluxes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This utility imports free flux values from a result file _res.kvh and inject them into an FTBL file. Usage::
+
+ $ ffres2ftbl.sh mynetwork_res.kvh [base.ftbl] > new.ftbl
+
+If an optional argument ``base.ftbl`` is omitted, then the free flux values are injected into an FTBL file corresponding to the _res.kvh file (here ``mynetwork.ftbl``). This script can be used on a Unix (e.g. Linux, MacOS) or on a cygwin (unix tools on Windows) platform. It makes use of another utility written in python ``ff2ftbl.py``
+
+IsoDesign: optimizing input label
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One of means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` solving this problem was developed by Pierre Millard. It is not part of ``influx_s`` distribution and can be downloaded at http://metasys.insa-toulouse.fr/software/isodes/. In a nutshell, it works by scanning all possible input label compositions with a defined step, running ``influx_s`` on each of them then collecting the SD information on all fluxes for all label compositions and finally selecting an input label optimal in some sens (according to a criterion chosen by a user).
 
 .. _Cytoscape: http://www.cytoscape.org
