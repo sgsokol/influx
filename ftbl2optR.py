@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # analyse network
     # reload(C13_ftbl)
 
-    netan=C13_ftbl.ftbl_netan(ftbl, emu)
+    netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
     # prepare rcumo system
     if emu:
         rAb=C13_ftbl.rcumo_sys(netan, C13_ftbl.ms_frag_gath(netan))
@@ -1241,14 +1241,14 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 """)
     f.write("""
    # write edge.netflux property
-   fedge=file("%(d)s/edge.netflux.%(org)s" %%s+%% runsuf, "w")
+   fedge=file("%(d)s/edge.netflux.%(org)s" %%s+%% runsuf %%s+%% ".attrs", "w")
    cat("netflux (class=Double)\\n", sep="", file=fedge)
    nm_edge=names(edge2fl)
    cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge)
    close(fedge)
 
    # write edge.xchflux property
-   fedge=file("%(d)s/edge.xchflux.%(org)s" %%s+%% runsuf, "w")
+   fedge=file("%(d)s/edge.xchflux.%(org)s" %%s+%% runsuf %%s+%% ".attrs", "w")
    flxch=paste(".x", substring(edge2fl, 4), sep="")
    ifl=charmatch(flxch, substring(names(fallnx), 2))
    cat("xchflux (class=Double)\\n", sep="", file=fedge)
@@ -1257,7 +1257,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # write node.log2pool property
    if (length(poolall)> 0) {
-      fnode=file("%(d)s/node.log2pool.%(org)s" %%s+%% runsuf, "w")
+      fnode=file("%(d)s/node.log2pool.%(org)s" %%s+%% runsuf %%s+%% ".attrs", "w")
       cat("log2pool (class=Double)\\n", sep="", file=fnode)
       nm_node=substring(names(poolall), 4)
       cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)
