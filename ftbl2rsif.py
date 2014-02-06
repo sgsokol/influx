@@ -4,9 +4,6 @@ r"""
 read a .ftbl file from stdin and translate it to .sif file for Cytoscape
 on stdout. Two substrates or two products reactions are represented as
 diamond nodes. Node attributes are written in node.<attribute>.fnetw file
-usage: ./ftbl2rsif.py < fnetw.ftbl > fnetw.sif
-or: ./ftbl2rsif.py fnetw.ftbl (in this case node.<attribute>.fnetw are silently
-rewritten)
 
 usage: ./ftbl2rsif [-h|--help|--DEBUG] mynetwork[.ftbl]
 Take an ftbl file and produce a .cif and attribute files for
@@ -46,7 +43,7 @@ if __name__ == "__main__":
 
     werr=sys.stderr.write
 
-    # determin colour of metabolite (in, out or plain)
+    # determine colour of metabolite (in, out or plain)
     def color(m, netan, nc):
         return nc['i'] if m in netan['input'] \
             else nc['o'] if m in netan['output'] else \
