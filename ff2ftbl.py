@@ -3,7 +3,7 @@
 """
 This program gets free flux and free pool values from kvh file
 and put them in a ftbl file after rounding values to 7 digits
-(default value but can be change with -r option).
+(default value but can be changed with -r option).
 
 Names in kvh are like "f.n.FLX" or "f.x.FLX" or "pf:Glc6P"
 Names in ftbl are like "FLX" in corresponding NET or XCH section
