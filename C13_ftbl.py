@@ -238,7 +238,7 @@ def ftbl_parse(f):
         f.close()
     return ftbl
 
-def ftbl_netan(ftbl, emu_framework=False):
+def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
     """
     analyse ftbl dictionary to find
      
@@ -1042,7 +1042,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     res["b"]=[{} for i in xrange(Cmax)]
     try:
         # run through all reactions and update bilan of involved cumomers
-        for (reac,lrdict) in []: #netan["carbotrans"].iteritems():
+        for (reac,lrdict) in netan["carbotrans"].iteritems() if fullsys else []:
             # run through metabs
             ## aff("lrdict", lrdict);#
             for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
