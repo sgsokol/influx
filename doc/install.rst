@@ -40,7 +40,7 @@ If you are not an administrator of your R installation, you can execute the comm
   + numpy
 - cytoscape is optional (http://www.cytoscape.org).
   It can be used to visualize your networks
-  by intermediate of ftbl2cytoscape utility.
+  by intermediate of ``ftbl2xgmml.py`` utility.
   You can also map flux values returned by ``influx_s`` on some
   graphical parameter like edge width for visualizing purposes.
 
@@ -59,10 +59,10 @@ Add this new directory to your (or system wide) PATH variable
 (if you don't know what does it mean or how to do it,
 ask for help from your computer service).
 This step is optional but if you don't do it, you
-need to type all the path to ``influx_s`` every time you run
-it. It can be as cumbersome as ::
+need to type all the path to ``influx_s`` and their utilities
+every time you run it. It can be as cumbersome as ::
 
-$ /home/joe/soft/bio/flux/influx_s-v2.2/influx_s.py mynetwork.ftbl
+$ /home/joe/soft/bio/flux/influx_s-v2.9/influx_s.py mynetwork.ftbl
 
 instead of simple ::
 
@@ -73,7 +73,7 @@ modifying the PATH variable, add a symbolic link in a directory
 which is already in PATH. For example, as root you can do ::
 
 $ cd /usr/local/bin
-$ ln -s /path/to/dir/of/influx_s/influx_s.py .
+$ ln -s /path/to/dir/of/influx_s/{influx_s.py} .
 
 assuming that ``/usr/local/bin`` is already in the PATH.
 
