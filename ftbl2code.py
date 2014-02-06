@@ -687,10 +687,14 @@ if (TIMEIT) {
            f2edge[fl]=[lr["left"][0]+" ("+fl+") "+lr["right"][0]]
         else:
            f2edge[fl]=[]
-           for m in lr["left"]:
-               f2edge[fl].append(m+" ("+fl+") "+fl)
-           for m in lr["right"]:
-               f2edge[fl].append(fl+" ("+fl+") "+m)
+           subs=lr["left"] # substrates
+           prods=lr["right"] # products
+           same_subs=len(subs)==2 and subs[0]==subs[1]
+           same_prods=len(prods)==2 and prods[0]==prods[1]
+           for (i, m) in enumerate(subs):
+               f2edge[fl].append(m+" ("+fl+(str(i+1) if same_subs else "")+") "+fl)
+           for (i, m) in enumerate(prods):
+               f2edge[fl].append(fl+" ("+fl+(str(i+1) if same_prods else "")+") "+m)
     #sys.stderr.write(str(f2edge)+"\n")
     #sys.stderr.write(str(netan["f2dfcg_nx_f"]["net"])+"\n")
     f.write("""
