@@ -28,9 +28,9 @@ ftbl2optR
 .. automodule:: ftbl2optR
  :members:
 
-ftbl2rsif
+ftbl2xgmml
 ---------
-.. automodule:: ftbl2rsif
+.. automodule:: ftbl2xgmml
  :members:
 
 kvh
