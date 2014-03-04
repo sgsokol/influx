@@ -81,7 +81,7 @@ def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
 #   @i runs over lighter cumomers
 
 if (TIMEIT) {
-   cat("spAbr   : ", date(), "\\n", sep="", file=fclog)
+   cat("spAbr   : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 
 nb_fwrv=%(n)d
@@ -134,7 +134,7 @@ nb_fwrv=%(n)d
         f.write(
 """
 if (TIMEIT) {
-   cat("weight %(w)d: ", date(), "\\n", sep="", file=fclog)
+   cat("weight %(w)d: ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 w=%(w)d
 nb_c=%(nbc)d
@@ -313,6 +313,7 @@ fcerr=file("%(errfile)s", "ab")
 fclog=file("%(logfile)s", "ab")
 
 options(warn=1)
+options(digits.secs=2)
 #options(show.error.messages=F)
 
 suppressPackageStartupMessages(library(bitops))
@@ -467,7 +468,7 @@ opts=commandArgs()
 # get some cumomer tools
 source("%(dirx)s/opt_cumo_tools.R")
 if (TIMEIT) {
-   cat("rinit   : ", date(), "\\n", sep="", file=fclog)
+   cat("rinit   : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 
 # R profiling
@@ -662,7 +663,7 @@ def netan2R_fl(netan, org, f):
 
     f.write("""
 if (TIMEIT) {
-   cat("r_flux  : ", date(), "\\n", sep="", file=fclog)
+   cat("r_flux  : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 """)
 # % {
@@ -892,7 +893,7 @@ bp=as.numeric(c2bfl%*%fc+cnst2bfl)
 
     f.write("""
 if (TIMEIT) {
-   cat("Afl qr(): ", date(), "\\n", sep="", file=fclog)
+   cat("Afl qr(): ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 
 qrAfl=qr(Afl, LAPACK=T)
@@ -1011,7 +1012,7 @@ invAfl=solve(qrAfl)
     f.write("""
 # intermediate jacobian
 if (TIMEIT) {
-   cat("dfl_dffg: ", date(), "\\n", sep="", file=fclog)
+   cat("dfl_dffg: ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 
 dfl_dffg=invAfl %*% p2bfl
@@ -1107,7 +1108,7 @@ def netan2R_meas(netan, org, f, emu=False):
     # create R equivalent structures with indices for scaling
     f.write("""
 if (TIMEIT) {
-   cat("measure : ", date(), "\\n", sep="", file=fclog)
+   cat("measure : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 # make place for scaling factors
 """)
@@ -1390,7 +1391,7 @@ def netan2R_cumo(netan, org, f):
     # write R constants and names
     f.write("""
 if (TIMEIT) {
-   cat("cumo   : ", date(), "\\n", sep="", file=fclog)
+   cat("cumo   : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 
 # weight count
@@ -1423,7 +1424,7 @@ def netan2R_ineq(netan, org, f):
     nb_ineq=len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"])
     f.write("""
 if (TIMEIT) {
-   cat("ineq    : ", date(), "\\n", sep="", file=fclog)
+   cat("ineq    : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
