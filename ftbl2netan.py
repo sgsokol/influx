@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Parse ftbl file from stdin or from first parameter
 and write netan in kvh format on stdout
-usage: ftbl2netan.py [network[.ftbl]] > netan.txt
+usage: ftbl2netan.py network[.ftbl] [> network.netan]
 """
 if __name__ == "__main__":
-    import sys, os, getopt
+    import sys, os, getopt, stat
     import tools_ssg
     import C13_ftbl
     def usage():
@@ -34,34 +34,43 @@ if __name__ == "__main__":
             fullsys=True
         else:
             assert False, "unhandled option"
+    if not args:
+        sys.stderr("Expecting ftbl file name\n")
+        usage()
+        
     C13_ftbl.clownr=clownr
-    fftbl=args[0] if len(args) else ""
+    fftbl=args[0]
     if fftbl and fftbl[-5:] != ".ftbl":
         fftbl+=".ftbl"
-    if fftbl and not os.path.exists(fftbl):
+    if not os.path.exists(fftbl):
         sys.stderr.write(me+": file '"+fftbl+"' does not exist.\n")
         sys.exit(1)
+
+    # what kind of output we have?
+    mode=os.fstat(1).st_mode
+    f=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(fftbl[:-4]+"netan", "w")
+    
     fftbl=open(fftbl, "r") if fftbl else sys.stdin
 
     ftbl=C13_ftbl.ftbl_parse(fftbl)
     netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
-    tools_ssg.dict2kvh(netan)
+    tools_ssg.dict2kvh(netan, f)
     # calculate measure matrices
     if "measures" not in netan:
         measures=dict()
         for meas in ("label", "mass", "peak"):
             measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas)
-        tools_ssg.dict2kvh({"measures": measures})
+        tools_ssg.dict2kvh({"measures": measures}, f)
     if emu:
-        tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan, emu)})
+        tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan, emu)}, f)
     else:
-        tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan)})
-    tools_ssg.dict2kvh({"vrcumo": netan["vrcumo"]})
-    tools_ssg.dict2kvh({"rcumo2i0": netan["rcumo2i0"]})
-    tools_ssg.dict2kvh({"rcumo_input": netan["rcumo_input"]})
+        tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan)}, f)
+    tools_ssg.dict2kvh({"vrcumo": netan["vrcumo"]}, f)
+    tools_ssg.dict2kvh({"rcumo2i0": netan["rcumo2i0"]}, f)
+    tools_ssg.dict2kvh({"rcumo_input": netan["rcumo_input"]}, f)
     if emu:
-        tools_ssg.dict2kvh({"emu_input": netan["emu_input"]})
-        tools_ssg.dict2kvh({"vemu_input": netan["vemu_input"]})
-        tools_ssg.dict2kvh({"vemu": netan["vemu"]})
-        tools_ssg.dict2kvh({"emu2i0": netan["emu2i0"]})
+        tools_ssg.dict2kvh({"emu_input": netan["emu_input"]}, f)
+        tools_ssg.dict2kvh({"vemu_input": netan["vemu_input"]}, f)
+        tools_ssg.dict2kvh({"vemu": netan["vemu"]}, f)
+        tools_ssg.dict2kvh({"emu2i0": netan["emu2i0"]}, f)
     sys.exit(0)

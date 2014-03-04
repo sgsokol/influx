@@ -10,7 +10,7 @@ are just edges.
 Node and edge attributes are written in respective xml attributes.
 Compatibility: cytoscape v2.8.3 and v3.0
 
-usage: ftbl2xgmml.py [-h|--help|--DEBUG] mynetwork.ftbl
+usage: ftbl2xgmml.py [-h|--help|--DEBUG] mynetwork.ftbl [> mynetwork.xgmml]
 
 OPTIONS
 -h, --help print this message and exit
@@ -26,11 +26,12 @@ License: Gnu Public License (GPL) v3 http://www.gnu.org/licenses/gpl.html
 """
 
 # 2008-01-24 sokol. First trial (not working)
-# 2014-01-29 sokol. Revamped into working state (based on ftbl2rsif.py
+# 2014-01-29 sokol. Revamped into working state (based on ftbl2rsif.py)
 
 if __name__ == "__main__":
     import sys
     import os
+    import stat
     import getopt
     import re
     import math
@@ -117,6 +118,11 @@ if __name__ == "__main__":
         base=base[:-5]
     path_ftbl=base+".ftbl"
     #-->
+    
+    # what kind of output we have?
+    mode=os.fstat(1).st_mode
+    fout=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(path_ftbl[:-4]+"xgmml", "w")
+
     # define where to read and write
     # input file is an argument
     fdir=os.path.dirname(base) or "."
@@ -124,7 +130,6 @@ if __name__ == "__main__":
     short_ftbl=base+".ftbl"
     ##    print base
     ##    print 'open files'
-    fout=open(os.path.sep.join((fdir, base+".xgmml")), "w")
 
     # Parse .ftbl file
     try:
