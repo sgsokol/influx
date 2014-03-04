@@ -311,7 +311,7 @@ nm_list$resid=nm_resid
 })
     f.write("""
 if (TIMEIT) {
-   cat("preopt  : ", date(), "\\n", sep="", file=fclog)
+   cat("preopt  : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 #browser()
 names(param)=nm_par
@@ -568,7 +568,7 @@ for (irun in iseq(nseries)) {
 
     f.write("""
    if (TIMEIT) {
-      cat("kvh init: ", date(), "\\n", sep="", file=fclog)
+      cat("kvh init: ", format(Sys.time()), "\\n", sep="", file=fclog)
    }
 
 """%{
@@ -586,7 +586,7 @@ for (irun in iseq(nseries)) {
    obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
    cat("\\tR command line\\n", file=fkvh)
    obj2kvh(opts, "opts", fkvh, indent=2)
-   cat("\\t\\texecution date\t", date(), "\\n", sep="", file=fkvh)
+   cat("\\t\\texecution date\t", format(Sys.time()), "\\n", sep="", file=fkvh)
 
    # resume system sizes
    obj2kvh(nb_sys, "system sizes", fkvh)
@@ -681,7 +681,7 @@ for (irun in iseq(nseries)) {
          next
       }
       if (TIMEIT) {
-         cat("optim   : ", date(), "\\n", sep="", file=fclog)
+         cat("optim   : ", format(Sys.time()), "\\n", sep="", file=fclog)
       }
       # pass control to the chosen optimization method
       capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
@@ -833,7 +833,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       obj2kvh(res, "optimization process information", fkvh)
    }
    if (TIMEIT) {
-      cat("postopt : ", date(), "\\n", sep="", file=fclog)
+      cat("postopt : ", format(Sys.time()), "\\n", sep="", file=fclog)
    }
    # active constraints
    ine=as.numeric(abs(ui%*%param-ci))<1.e-10
@@ -946,7 +946,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    jx_f_last=jx_f
    while (sensitive=="mc") {
       if (TIMEIT) {
-         cat("monte-ca: ", date(), "\\n", sep="", file=fclog)
+         cat("monte-ca: ", format(Sys.time()), "\\n", sep="", file=fclog)
       }
       if(set_seed) {
          set.seed(seed)
@@ -970,23 +970,23 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          cl=makeCluster(nodes, type)
          if (.Platform$OS.type!="unix") {
             if (TIMEIT) {
-               cat("cl init : ", date(), "\\n", sep="", file=fclog)
+               cat("cl init : ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
             clusterEvalQ(cl, c(require(bitops), require(nnls), require(Matrix)))
 """)
     f.write("""
             if (TIMEIT) {
-               cat("cl sourc: ", date(), "\\n", sep="", file=fclog)
+               cat("cl sourc: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
             clusterEvalQ(cl, c(source("%(dirx)s/tools_ssg.R"), source("%(dirx)s/nlsic.R")))
 """%{"dirx": escape(dirx, "\\")})
     f.write("""
             if (TIMEIT) {
-               cat("cl expor: ", date(), "\\n", sep="", file=fclog)
+               cat("cl expor: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
             clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "dfm_dff", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "param2fl_x", "is.diff", "cumo_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper"))
             if (TIMEIT) {
-               cat("cl optim: ", date(), "\\n", sep="", file=fclog)
+               cat("cl optim: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
          }
          #mc_res=mclapply(1L:nmc, mc_sim)
@@ -1131,7 +1131,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    }
 
    if (TIMEIT) {
-      cat("linstats: ", date(), "\\n", sep="", file=fclog)
+      cat("linstats: ", format(Sys.time()), "\\n", sep="", file=fclog)
    }
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
@@ -1274,7 +1274,7 @@ cat("row_col\t", file=fco)
 write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
 close(fco)
 if (TIMEIT) {
-   cat("rend    : ", date(), "\\n", sep="", file=fclog)
+   cat("rend    : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 close(fclog)
 close(fcerr)

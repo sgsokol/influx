@@ -1,7 +1,7 @@
 #DEBUG=0; # 1 to enable debugging information, 0=disable
 #TIMEIT=0; # 1 to enable time printing at some stages
 if (length(find("TIMEIT")) && TIMEIT) {
-   cat("load    : ", date(), "\n", sep="", file=fclog)
+   cat("load    : ", format(Sys.time()), "\n", sep="", file=fclog)
 }
 jx_f=list()
 trisparse_solv=function(A, b, w, fwrv, method="dense") {
