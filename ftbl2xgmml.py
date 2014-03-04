@@ -111,6 +111,7 @@ if __name__ == "__main__":
             DEBUG=True
     #aff("args", args);##
     if len(args) != 1:
+        sys.stderr("Expecting exactly one ftbl file name\n")
         usage()
         exit(1)
     base=args[0]
