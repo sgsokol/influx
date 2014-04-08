@@ -2,16 +2,19 @@
 Change Log for influx_s
 =======================
 
-2014-03-?? version 2.10
+2014-04-08 version 2.10
 -----------------------
 New features:
+ - added an option --tikhreg which is an alternative for --ln option. In case of rank deficient Jacobian, it calculates an increment step of the smallest norm in  *approximative* way. It is done by Tikhonov regularization
+ - added an option ``--ffguess`` which makes to ignore the partition between free and dependent fluxes defined in FTBL file(s) and automatically guess a new free/dependent flux partition (suggested by Roland Nilsson, Karolinska Institutet, Sweden)
  - added utility ``ftbl2kvh.py`` which is useful for debugging purposes only
  - utilities ``ftbl2xgmml.py``, ``ftbl2cumoAb.py``, ``ftbl2netan.py`` and ``ftbl2kvh.py`` are rewritten in such a way that if no output redirection
- (with operands '>' or '|') occurs on the command line, the name of the output file is automatically derived from the input one. The suffix ``.ftbl`` is simply replaced with ``.xgmml``, ``.sys``, ``.netan`` or ``.kvh`` respectively. Thus a plain drug-and-drop can work with these utilities.
- - option ``--TIMEIT`` reports times with subsecond precision. The actual precision depends on the platform but typically a 0.01 s precision should be available. On Windows, the precision is usually 1/60 of a second.
-
+ (with operands '>' or '|') occurs on the command line, the name of the output file is automatically derived from the input one. The suffix ``.ftbl`` is simply replaced with ``.xgmml``, ``.sys``, ``.netan`` or ``.kvh`` respectively. Thus a plain drug-and-drop can work with these utilities
+ - option ``--TIMEIT`` reports times with subsecond precision. The actual precision depends on the platform but typically a 0.01 s precision should be available. On Windows, the precision is usually 1/60 of a second
+ 
 Bug fixes:
  - fixed ``include_growth_flux`` option for ``ftbl2cumoAb.py`` utility (reported by Marc Carnicer, INSA of Toulouse, France)
+ - fixed a bug preventing from checking for a linear dependence between rows of stoechiometric matrix if no constrained net flux is defined in the FTBL file (reported by Roland Nilsson, idem)
 
 2014-02-05 version 2.9
 ----------------------
