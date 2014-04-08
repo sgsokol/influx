@@ -179,8 +179,14 @@ parser.add_option(
 "--sln", action="store_true",
     help="Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient")
 parser.add_option(
+"--tikhreg", action="store_true",
+    help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
+parser.add_option(
 "--zc", type="float",
     help="Apply zero crossing strategy with non negative threshold for net fluxes")
+parser.add_option(
+"--ffguess", action="store_true",
+       help="Don't use free/dependent flux definitions from FTBL file(s). Make an automatic guess."),
 parser.add_option(
 "--fseries",
        help="File name with free parameter values for multiple starting points. Default: '' (empty, i.e. only one starting point from the FTBL file is used)"),
