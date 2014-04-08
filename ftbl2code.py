@@ -344,8 +344,10 @@ cinout=0
 clowp=1.e-8
 np=0
 ln=F
+tikhreg=F
 sln=F
 zc=-.Machine$double.xmax
+ffguess=F
 fseries=""
 iseries=""
 seed=-.Machine$integer.max
@@ -437,9 +439,19 @@ if (is.null(np) || np <= 0L) {
 }
 options(mc.cores=np)
 
+if (least_norm && tikhreg) {
+   cat("Options --ln and --tikhreg cannot be activated simultaneously", file=fcerr)
+   if (isatty(stdin())) {
+      stop()
+   } else {
+      q("no", status=1)
+   }
+}
 lsi_fun=lsi
 if (least_norm || sln) {
    lsi_fun=lsi_ln
+} else if (tikhreg) {
+   lsi_fun=lsi_reg
 }
 if (zc==-.Machine$double.xmax) {
    # no zero scrossing to apply
@@ -702,9 +714,6 @@ if (TIMEIT) {
 # fwd-rev flux names
 nm_fwrv=c(%(nm_fwrv)s)
 
-# net-xch flux names
-nm_fallnx=c(%(nm_fallnx)s)
-
 # edge to netflux name translator
 edge2fl=c(%(edge2fl)s)
 names(edge2fl)=c(%(nedge2fl)s)
@@ -720,7 +729,6 @@ nm_fl=c(nm_fln, nm_flx)
 nb_fl=nb_fln+nb_flx
 # gather flux names in a list
 nm_list$flnx=nm_fl
-nm_list$fallnx=nm_fallnx
 nm_list$fwrv=nm_fwrv
 # flux matrix
 nb_flr=%(nb_flr)d
@@ -729,7 +737,6 @@ if (nb_fl) {
 """%{
     "nb_flr": len(netan["Afl"]),
     "nm_fwrv": join(", ", netan["vflux_fwrv"]["fwrv"], '"', '"'),
-    "nm_fallnx": join(", ", (join(".", (t[1],t[2],t[0])) for t in tfallnx), '"', '"'),
     "nm_fln": join(", ", netan["vflux"]["net"], '"d.n.', '"'),
     "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
     "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
@@ -752,6 +759,7 @@ if (DEBUG) {
    library(MASS)
    write.matrix(Afl, file="dbg_Afl.txt", sep="\\t")
 }
+#browser()
 # prepare param (\Theta) vector
 # order: free flux net, free flux xch, scale label, scale mass, scale peak
 param=numeric(0)
@@ -772,11 +780,12 @@ param=c(param, c(%(ffx)s))
 if (nb_ffx) {
    nm_par=c(nm_par, nm_ffx)
 }
+names(param)=nm_par
 nm_ff=c(nm_ffn, nm_ffx)
 nm_list$ff=nm_ff
 nb_param=length(param)
 if (initrand) {
-   param=runif(nb_param)
+   param[]=runif(nb_param)
 }
 # scaling factors are added to param later
 
@@ -840,10 +849,6 @@ nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
         for fl in netan["vflux_growth"]["net"]]),
 })
     f.write("""
-# translation from n-x to fw-rv
-nb_f$inet2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.n\\\\.%s$", substring(f, 5)), nm_fallnx))
-nb_f$ixch2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.x\\\\.%s$", substring(f, 5)), nm_fallnx))
-
 # prepare p2bfl, c2bfl, g2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
 # c2bfl%*%fc+g2bfl%*%fgr+cnst2bfl=bfl
 # replace f.[nx].flx by corresponding param coefficient
@@ -892,6 +897,98 @@ bp=as.numeric(c2bfl%*%fc+cnst2bfl)
 """)
 
     f.write("""
+if (ffguess) {
+   # make an automatic guess for free/dependent flux partition
+   afd=as.matrix(cBind(Afl, -p2bfl))
+   qafd=qr(afd, LAPACK=T)
+   d=abs(diag(qafd$qr))
+   rank=sum(d > d[1]*1.e-10)
+   qrow=qr(t(afd))
+   rankr=qrow$rank
+   if (rank != rankr) {
+      mes="Weird error: column and row ranks are not equal.\\n"
+      cat(mes, file=fcerr)
+      if (isatty(stdin())) {
+         stop(mes)
+      } else {
+         q("no", status=1)
+      }
+   }
+   irows=qrow$pivot[iseq(rankr)]
+   if (rank==0) {
+      cat("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.\\n", file=fcerr)
+      if (isatty(stdin())) {
+         stop()
+      } else {
+         q("no", status=1)
+      }
+   }
+   Afl=afd[irows, qafd$pivot[1:rank], drop=F]
+   ka=kappa(Afl)
+   if (ka > 1.e7) {
+      mes=sprintf("Error: No working free/dependent flux partition could be proposed. Stoechiometric matrix has condition number %g.\\n", ka)
+      cat(mes, file=fcerr)
+      if (isatty(stdin())) {
+         stop(mes)
+      } else {
+         q("no", status=1)
+      }
+   }
+   p2bfl=-afd[irows, qafd$pivot[-(1:rank)], drop=F]
+   c2bfl=c2bfl[irows, , drop=F]
+   g2bfl=g2bfl[irows, , drop=F]
+   cnst2bfl=cnst2bfl[irows]
+   bp=bp[irows]
+   
+   # replace names
+   nm_fl=sub("f.", "d.", colnames(Afl), fixed=T)
+   colnames(Afl)=nm_fl # both net and xch
+   nm_fln=sort(grep("^d.n.", nm_fl, v=T))
+   nm_flx=sort(grep("^d.x.", nm_fl, v=T))
+   nm_fl=c(nm_fln, nm_flx)
+   Afl=Afl[, nm_fl, drop=F]
+   
+   nm_ff=sub("d.", "f.", colnames(p2bfl), fixed=T) # both net and xch
+   colnames(p2bfl)=nm_ff
+   nm_ffn=sort(grep("^f.n.", nm_ff, v=T))
+   nm_ffx=sort(grep("^f.x.", nm_ff, v=T))
+   nm_ff=c(nm_ffn, nm_ffx)
+   p2bfl=p2bfl[, nm_ff, drop=F]
+   
+   # remake param vector
+   param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-iseq(nb_ff)])
+   names(param)[seq(along=nm_ff)]=nm_ff
+   
+#browser()
+}
+nm_list$flnx=nm_fl
+nm_fallnx=c(nm_fln, nm_ffn, nm_fcn, nm_fgr, nm_flx, nm_ffx, nm_fcx, sub(".n.", ".x.", nm_fgr, fixed=T))
+nm_list$fallnx=nm_fallnx
+nm_net=c(nm_fln, nm_ffn, nm_fcn)
+names(nm_net)=substring(nm_net, 5)
+nm_xch=c(nm_flx, nm_ffx, nm_fcx)
+names(nm_xch)=substring(nm_xch, 5)
+edge2fl[]=nm_net[substring(edge2fl, 5)]
+nm_list$ff=nm_ff
+
+# accounting numbers
+nb_flr=nrow(Afl)
+nb_param=length(param)
+nb_ffn=length(nm_ffn)
+nb_ffx=length(nm_ffx)
+nb_ff=nb_ffn+nb_ffx
+nb_fln=length(nm_fln)
+nb_flx=length(nm_flx)
+nb_fl=nb_fln+nb_flx
+nm_par=names(param)
+
+for (item in c("nb_fln", "nb_flx", "nb_fl", "nb_ffn", "nb_ffx", "nb_ff")) {
+   nb_f[item]=get(item)
+}
+# translation from n-x to fw-rv
+nb_f$inet2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.n\\\\.%s$", substring(f, 5)), nm_fallnx))
+nb_f$ixch2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.x\\\\.%s$", substring(f, 5)), nm_fallnx))
+
 if (TIMEIT) {
    cat("Afl qr(): ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
@@ -900,10 +997,26 @@ qrAfl=qr(Afl, LAPACK=T)
 d=abs(diag(qrAfl$qr))
 qrAfl$rank=sum(d > d[1]*1.e-10)
 rank=qrAfl$rank
+aful=as.matrix(cBind(Afl, -p2bfl, -c2bfl))
+qrow=qr(t(aful))
+rankr=qrow$rank
 #browser()
+# first check the presence of lindep rows
+if (nrow(Afl) > rankr) {
+   prop=sprintf("Error: Among %d equations (rows), %d are redundant and must be eliminated by hand.\\n", nrow(Afl), nrow(Afl)-rankr)
+   prop=paste(prop, "Candidate(s) for elimination is (are):\\n",
+      paste(rownames(Afl)[qrow$pivot[-(1:rankr)]], sep="", collapse="\\n"),
+               "\\n", sep="")
+   cat(prop, file=fcerr)
+   if (isatty(stdin())) {
+      stop(prop)
+   } else {
+      q("no", status=1)
+   }
+}
 if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    #write.table(Afl)
-   if (nrow(Afl) < ncol(Afl)) {
+   if (nrow(Afl) < rank) {
       mes=paste("Candidate(s) for free or constrained flux(es):\\n",
          paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"),
          "\\nFor this choice, condition number of stoechiometric matrix will be ",
@@ -917,41 +1030,33 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
       i=which.min(apply(comb, 2, function(i) kappa(cBind(ara, aextra[,i]))))[1L]
       nm_tmp=comb[,i]
       ka=kappa(cBind(ara, aextra[,nm_tmp]))
-      if (ka < 1.e10) {
+      if (ka < 1.e7) {
          prop=paste("Proposal to declare dependent flux(es) is:\\n",
             paste(nm_tmp, collapse="\\n"), "\\n", sep="")
          if (rank < ncol(Afl)) {
-            prop=prop%%s+%%"While the following dependent flux(es) should be declared free or constrained:\\n"%%s+%%join("\\n", colnames(Afl)[-qrAfl$pivot[1L:rank]])%%s+%%"\\n"
+            prop=prop%s+%"While the following dependent flux(es) should be declared free or constrained:\\n"%s+%join("\\n", colnames(Afl)[-qrAfl$pivot[1L:rank]])%s+%"\\n"
          }
          prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
       } else {
          # add constraint fluxes to candidate list
          if (nb_fcn > 0) {
-            aextra=as.matrix(cBind(Afl, -p2bfl, -c2bfl))
-            colnames(aextra)=c(colnames(Afl), colnames(p2bfl), colnames(c2bfl))
-            qae=qr(aextra, LAPACK=T)
-            d=abs(diag(qae$qr))
-            ranke=sum(d > d[1L]*1.e-10)
-            if (ranke == nrow(Afl)) {
-               prop=paste("Proposal to declare dependent flux(es) is:\\n",
-               join("\\n", colnames(aextra)[qae$pivot[1L:ranke]]), "\\n",
-               "while free and constrained fluxes should be:\\n",
-               join("\\n", colnames(aextra)[-qae$pivot[1L:ranke]]), "\\n",
-               sep="")
-               ka=kappa(aextra[,qae$pivot[1L:ranke]])
-               prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
-            } else {
-               prop="No proposal for partition dependent/free fluxes could be made.\\n"
-               qt=qr(t(aextra))
-               d=abs(diag(qt$qr))
-               rankr=sum(d > d[1L]*1.e-10)
-               prop=sprintf("%%sFrom %%d equations (rows), %%d are redundant and must be eliminated by hand.\\n", prop, nrow(Afl), nrow(Afl)-rankr)
-               prop=paste(prop, "Candidate(s) for elimination is (are):\\n",
-                  paste(rownames(Afl)[qt$pivot[-(1:rankr)]], sep="", collapse="\\n"),
-                  "\\n", sep="")
-            }
+            aextra=as.matrix(cBind(Afl[,-qrAfl$pivot[1L:rank],drop=F], -p2bfl, -c2bfl))
+            colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl), colnames(c2bfl))
+         }
+         aextended=aful
+         qae=qr(aextended, LAPACK=T)
+         d=abs(diag(qae$qr))
+         ranke=sum(d > d[1L]*1.e-10)
+         if (ranke == nrow(Afl)) {
+            prop=paste("Proposal to declare dependent flux(es) is:\\n",
+            join("\\n", colnames(aexented)[qae$pivot[1L:ranke]]), "\\n",
+            "while free and constrained fluxes should be:\\n",
+            join("\\n", colnames(aextended)[-qae$pivot[1L:ranke]]), "\\n",
+            sep="")
+            ka=kappa(aextra[,qae$pivot[1L:ranke]])
+            prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
          } else {
-            prop="No proposal for dependent fluxes could be made.\\n"
+            prop="No proposal for partition dependent/free fluxes could be made.\\n"
          }
       }
       mes=paste("There is (are) probably ", nextra,
@@ -959,7 +1064,8 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          paste(nm_ffn, collapse="\\n"), "\\n",
          prop,
          sep="")
-   }
+   }""")
+    f.write("""
    cat(paste("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
       "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
       mes, sep=""), file=fcerr)
@@ -1120,6 +1226,7 @@ if (TIMEIT) {
 # initial values for scales are set later
 param=c(param,%(sc)s)
 nm_par=c(nm_par,c(%(sc_names)s))
+names(param)=nm_par
 """ % {
         "meas": meas,
         "sc": join(", ", (scale[meas][sc] for sc in o_sc[meas])),
@@ -1282,10 +1389,10 @@ names(memaone)=nm_measmat
 })
     f.write("""
 # prepare flux measurements
-nb_fmn=%(nb_fmn)d
-nb_f$nb_fmn=nb_fmn
-nm_fmn=c(%(nm_fmn)s)
+nm_fmn=nm_net[c(%(nm_fmn)s)]
 nm_list$fmn=nm_fmn
+nb_fmn=length(nm_fmn)
+nb_f$nb_fmn=nb_fmn
 
 # measured values
 fmn=c(%(fmn)s)
@@ -1296,16 +1403,12 @@ fmndev=c(%(fmndev)s)
 # indices for measured fluxes
 # fallnx[ifmn]=>fmn, here fallnx is complete net|xch flux vector
 # combining unknown (dependent), free, constrainded and groth fluxes
-ifmn=c(%(ifmn)s)
+ifmn=match(nm_fmn, nm_fallnx)
 """%{
-    "nb_fmn": len(netan["vflux_meas"]["net"]),
-    "nm_fmn": join(", ", trd(("n."+f for f in netan["vflux_meas"]["net"]),
-        netan["nx2dfcg"]), '"', '"'),
+    "nm_fmn": join(", ", netan["vflux_meas"]["net"], '"', '"'),
     "fmn": join(", ", (netan["flux_measured"][fl]["val"]
         for fl in netan["vflux_meas"]["net"])).replace("nan", "NA"),
     "fmndev": join(", ", (netan["flux_measured"][fl]["dev"]
-        for fl in netan["vflux_meas"]["net"])),
-    "ifmn": join(", ", (1+netan["vflux_compl"]["net2i"][fl]
         for fl in netan["vflux_meas"]["net"])),
     })
     return {
@@ -1448,25 +1551,25 @@ dimnames(mi)=list(nm_i, nm_fallnx)
     
     for (i, ineq) in enumerate(netan["flux_inequal"]["net"]):
         f.write(
-"""mi[%(i)s, c(%(f)s)]=%(sign)sc(%(coef)s)
+"""mi[%(i)s, nm_net[c(%(f)s)]]=%(sign)sc(%(coef)s)
 li[%(i)s]=%(sign)s%(li)g
 """%{
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", trd(ineq[2].keys(), f2dfcg_nx_f["net"]), p='"', s='"'),
+    "f": join(", ", ineq[2].keys(), p='"', s='"'),
     "coef": join(", ", ineq[2].values()),
     "li": ineq[0],
     })
     for (i, ineq) in enumerate(netan["flux_inequal"]["xch"]):
         f.write(
-"""mi[%(i)s, c(%(f)s)]=%(sign)sc(%(coef)s)
+"""mi[%(i)s, nm_xch[c(%(f)s)]=%(sign)sc(%(coef)s)
 li[%(i)s]=%(sign)s%(li)g
 """%{
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": len(netan["flux_inequal"]["net"])+i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", trd(ineq[2].keys(), f2dfcg_nx_f["xch"]), p='"', s='"'),
+    "f": join(", ", ineq[2].keys(), p='"', s='"'),
     "coef": join(", ", ineq[2].values()),
     "li": ineq[0],
     })
@@ -1495,11 +1598,11 @@ if (nb_fx) {
     
     nb_notrev=len(netan["notrev"])
     f.write("""
-nb_inout=%(nb_inout)d
+nm_inout=grep("^[^c]\\\\.", nm_net[c(%(nm_inout)s)], v=T) # strip out constrained fluxes
+nb_inout=length(nm_inout)
 if (nb_inout > 0) {
    # add cinout low limits on inout net fluxes
    nb_tmp=nrow(mi)
-   nm_inout=c(%(nm_inout)s)
    # explicit inequalities take precedence over generic ones
    # so eliminate inout fluxes which are already in inequalities
    nm_itmp=paste("n:.+<=", substring(nm_inout, 5), sep="")
@@ -1529,7 +1632,7 @@ if (nb_inout > 0) {
 if (clownr!=0.) {
    # add low limits on net >= clownr for not reversible reactions
    nb_tmp=nrow(mi)
-   nm_tmp=c(%(nm_notrev)s)
+   nm_tmp=nm_net[c(%(nm_notrev)s)]
    # explicit inequalities take precedence over generic ones
    # so eliminate notrev fluxes which are already in inequalities
    nm_itmp=paste("n:.+<=", substring(nm_tmp, 5), sep="")
@@ -1603,16 +1706,8 @@ if (cupn != 0 && nb_fn > 0) {
 """%{
 #   "nb_notrev": len([fli for (fli,t,nxi) in tfallnx
 #      if nxi=="n" and t!="c" and fli in netan["notrev"]]),
-   "nm_notrev": join(", ", (t+"."+nxi+"."+fli
-      for (fli,t,nxi) in tfallnx
-      if nxi=="n" and t!="c" and fli in netan["notrev"]),
-      p='"', s='"'),
-   "nb_inout": len([fli for (fli,t,nxi) in tfallnx
-      if nxi=="n" and t!="c" and fli in netan["flux_inout"]]),
-   "nm_inout": join(", ", (t+"."+nxi+"."+fli
-      for (fli,t,nxi) in tfallnx
-      if nxi=="n" and t!="c" and fli in netan["flux_inout"]),
-      p='"', s='"'),
+   "nm_notrev": join(", ", netan["notrev"], p='"', s='"'),
+   "nm_inout": join(", ", netan["flux_inout"], p='"', s='"'),
 })
 
     f.write("nb_ineq=NROW(li);\n")
