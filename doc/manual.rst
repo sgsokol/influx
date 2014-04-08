@@ -15,7 +15,7 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
  For some specific features of ``influx_s``, the FTBL format was extended. Here is complete list of such extensions:
   - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
-  - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (allowed since the version 2.0). It is recommended to add corresponding inequalities to ensure that input-output net fluxes be positive;
+  - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0). It is recommended to add corresponding inequalities to ensure that input-output net fluxes be positive;
   - starting from version 2.5, ``NA`` (missing values) are admitted in measurement sections;
   - starting from version 2.8, new fluxes (i.e. absent in ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections.
 
@@ -101,10 +101,19 @@ Command line options
 
                    .. warning:: In this option, the notion of "least norm" is applied to *increments* during the optimization, not to the final solution. So undetermined fluxes could vary from one run to another if the optimization process is started from different points while well determined fluxes should keep stable values.
   --sln            Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient
+  --tikhreg        Approximate least norm solution is used for increments
+                   during the non-linear iterations when Jacobian is rank
+                   deficient
+                   
+                   To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only on of the options --ln and --tikhreg can be activated in a given run.
   --zc=ZC          Apply zero crossing strategy with non negative threshold
                    for net fluxes
                    
                    This option can accelerate convergence in situations when a net flux has to change its sign during the optimization iterations. Once such flux is identified, it is better to write the corresponding reaction in an opposite sens in the FTBL file or to give a starting value with a correct sign to avoid such zero crossing situation.
+  --ffguess        Don't use free/dependent flux definitions from FTBL
+                   file(s). Make an automatic guess.
+                   
+                   The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1[ interval). An option --seed can be useful to make the results reproducible.
   --fseries=FSERIES  File name with free parameter values for multiple
                      starting points. Default: '' (empty, i.e. only one
                      starting point from the FTBL file is used)
@@ -479,22 +488,27 @@ If it happens for relatively small increments then the results of convergence ar
 Additional tools
 ----------------
 
-Tools described in this section are not strictly necessary for running ``influx_s`` and calculate the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
+Tools described in this section are not strictly necessary for running ``influx_s`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
+
+Most of the utilities produce an output written on standard output or in a file who's name is derived from the input file name. This latter situation is signaled with a phrase "The output redirection is optional" and in the usage examples the output redirection is taken in square brackets ``[> output.txt]`` which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.
 
 ftbl2xgmml: cytoscape view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once a valid FTBL file is generated, a user can visualize a graph representing his metabolic network in `Cytoscape <http://www.cytoscape.org>`_ program. To produce necessary graph files, user can run::
 
- $ ftbl2xgmml.py mynetwork
+ $ ftbl2xgmml.py mynetwork[.ftbl] [> mynetwotk.xgmml]
 
 or drag and drop ``mynetwork.ftbl`` icon on ``ftbl2xgmml.py`` icon.
 
-This will produce a file in XGMML format ``mynetwork.xgmml`` in the directory of ``mynetwork.ftbl``:
+The output redirection is optional.
+
+This will produce a file in the XGMML format ``mynetwork.xgmml`` in the directory of ``mynetwork.ftbl``:
 
 Once a generated file ``mynetwork.ftbl`` is imported in cytoscape, a user can use one of automatic cytoscape layouts or edit node's disposition in the graph by hand.
+For those who use `CySBML <http://apps.cytoscape.org/apps/cysbml>`_ plugin, a saving of a particular layout in a file can be practical for later applying it to a new network.
 
-Graphical conventions used in the generated XGMML are following:
+Graphical conventions used in the generated XGMML are the following:
  - metabolite are presented as rounded square nodes;
  - simple (one to one) reaction are represented by simple edges;
  - condensing and/or splitting reactions are represented by edges converging and/or diverging from additional almost invisible node having a label with the reaction name;
@@ -513,24 +527,28 @@ Graphical conventions used in the generated XGMML are following:
 ftbl2netan: FTBL parsing
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-To see how an FTBL file is parsed and what the parsing module "understands" in a given FTBL, a following command can be run::
+To see how an FTBL file is parsed and what the parsing module "understands" in the network, a following command can be run::
 
- $ ftbl2netan.py mynetwork > mynetwork_netan.kvh
+ $ ftbl2netan.py mynetwork[.ftbl] [> mynetwork.netan]
 
-The end part of the command ``> mynetwork_netan.kvh`` means that the standard output (typically a console display) will be redirected to a file named ``mynetwork_netan.kvh``. A user can examine this file which has an hierarchical structure and where the values are Python objects converted to strings.
+The output redirection is optional.
+
+A user can examine ``mynetwork.netan`` in a plain text editor (not like Word) or in spreadsheet software. It has an hierarchical structure, the fields are separated by tabulations and the field values are Python objects converted to strings.
 
 ftbl2cumoAb: human readable equations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes, it can be helpful to examine visually the equations used by ``influx_s``. These equations can be produced in human readable form by running::
 
- $ ftbl2cumoAb.py -r mynetwork > mynetwork.sys
+ $ ftbl2cumoAb.py -r mynetwork[.ftbl] [> mynetwork.sys]
 
 or::
 
- $ ftbl2cumoAb.py --emu mynetwork > mynetwork.sys
+ $ ftbl2cumoAb.py --emu mynetwork[.ftbl] [> mynetwork.sys]
+ 
+The output redirection is optional.
 
-The result file ``mynetwork.sys`` will contain systems of stoichiometric and cumomer balance equations as well as a symbolic inversion of stoichiometric matrix, i.e. dependent fluxes are represented as linear combination of free and constrained fluxes and an optional constant value. In the examples above, the option ``-r`` stands for "reduced cumomer set" and ``--emu`` stands for "generate EMU framework equations". In this last case, only isotopologues of mass+0 in each EMU are reported in ``mynetwork.sys`` file. For other mass weights, equations does not change and the right hand side term could get longer for condensation reactions but involves the same EMUs as in mass+0 weight.
+The result file ``mynetwork.sys`` will contain systems of stoichiometric and cumomer balance equations as well as a symbolic inversion of stoichiometric matrix, i.e. dependent fluxes are represented as linear combination of free and constrained fluxes and an optional constant value. In the examples above, the option ``-r`` stands for "reduced cumomer set" and ``--emu`` stands for "generate EMU framework equations". In this latter case, only isotopologues of mass+0 in each EMU are reported in ``mynetwork.sys`` file. For other mass weights, equations does not change and the right hand side term could get longer for condensation reactions but involves the same EMUs as in mass+0 weight.
 
 If a full cumomer set has to be examined, just omit all options. Keep in mind that on real-world networks this can produce more than thousand equations by cumomer weight which could hardly be qualified as *human* readable form. So use it with caution.
 
@@ -572,6 +590,14 @@ This utility imports free flux values from a result file _res.kvh and inject the
  $ ffres2ftbl.sh mynetwork_res.kvh [base.ftbl] > new.ftbl
 
 If an optional argument ``base.ftbl`` is omitted, then the free flux values are injected into an FTBL file corresponding to the _res.kvh file (here ``mynetwork.ftbl``). This script can be used on a Unix (e.g. Linux, MacOS) or on a cygwin (unix tools on Windows) platform. It makes use of another utility written in python ``ff2ftbl.py``
+
+ftbl2kvh: check ftbl parsing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This utility simply parses a ftbl file and write what was "understood" in a kvh file. No network analysis occurs here unlike in ``ftbl2netan`` utility. Usage::
+
+ $ ftbl2kvh.py mynetwork[.ftbl] [> mynetwork.kvh]
+
+The output redirection is optional.
 
 IsoDesign: optimizing input label
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
