@@ -105,7 +105,7 @@ Command line options
                    during the non-linear iterations when Jacobian is rank
                    deficient
                    
-                   To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only on of the options --ln and --tikhreg can be activated in a given run.
+                   To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only one of the options --ln and --tikhreg can be activated in a given run.
   --zc=ZC          Apply zero crossing strategy with non negative threshold
                    for net fluxes
                    
@@ -113,7 +113,7 @@ Command line options
   --ffguess        Don't use free/dependent flux definitions from FTBL
                    file(s). Make an automatic guess.
                    
-                   The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1[ interval). An option --seed can be useful to make the results reproducible.
+                   The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1[ interval). An option ``--seed`` can be useful to make the results reproducible.
   --fseries=FSERIES  File name with free parameter values for multiple
                      starting points. Default: '' (empty, i.e. only one
                      starting point from the FTBL file is used)
