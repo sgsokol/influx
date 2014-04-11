@@ -1,3 +1,234 @@
+param2fl_usm_ode=function(param, cjac=TRUE, emu=FALSE, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc, xi, spAb, pool, ti, measurements, ipooled, x0=NULL) {
+   # translate free params (fluxes+scales+pools) to fluxes and
+   # unscaled simulated measurements (usm) for labeling propagation.
+   # 
+   # R function desolve::ode() is used.
+   # jacobian is obtained by ODE solving
+   # If the label state at t=0 is null (x0=NULL) then the system is supposed
+   # to be zero labeled. Otherwise, x0 must be the full cumo- or emu- vector
+   # describing the label at t=0.
+   
+   # derivated from param2fl_usm_eul() with implicit euler scheme.
+   # 2014-04-09 sokol
+   
+   # recalculate or not the labeling?
+   nb_w=length(spAb)
+   calcx=is.diff(param, jx_f$param, tol=1.e-14) ||
+      (length(jx_f$x)!=(spAb[[nb_w]]$nb_cl+spAb[[nb_w]]$nb_c+nb_xi+1))
+   if (!calcx) {
+      if (cjac) {
+         if (!is.null(jx_f$ujaclab)) {
+            return(list(usm=jx_f$usm, x=jx_f$x, ujaclab=jx_f$ujaclab, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, flnx=jx_f$flnx))
+         } # else recalculate it here
+      } else {
+         # just x, fallnx, ... that are already calculated
+         return(list(usm=jx_f$usm, x=jx_f$x, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv))
+      }
+   }
+   # here calcx==T or (calcx==F && cjac==T && is.null(jx_f$ujaclab))
+   # so recalculate what is not in the cache jx_f
+   nb_ti=length(ti)
+   if (nb_ti < 2) {
+      return(list(err=1, mes="Number of time points is less than 2"))
+   }
+   if (calcx) {
+      cat("param2fl_usm_ode: recalculate labprop\n")
+   }
+   
+   dt=diff(ti)
+   stopifnot(all(dt > 0.))
+   nb_ti=length(ti)
+   
+   # cumulated sum
+   nb_x=nb_f$x
+   nbc_x=c(0, cumsum(nb_x))
+   nb_ff=nb_f$nb_ff
+   nb_poolf=nb_f$nb_poolf
+   
+   # calculate all fluxes from free fluxes
+   fgr=numeric(nb_f$nb_fgr)
+   names(fgr)=nm$nm_fgr
+#expp   fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*exp(param[nm$poolf])
+   fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
+   lf=param2fl(param, nb_f, nm, invAfl, p2bfl, g2bfl, bp, fc)
+   jx_f$fallnx <<- lf$fallnx
+   jx_f$fwrv <<- lf$fwrv
+   jx_f$flnx <<- lf$flnx
+   nb_fwrv=length(lf$fwrv)
+   nb_xi=length(xi)
+   nb_poolf=nb_f$nb_poolf
+   nb_meas=length(ipooled$ishort)
+   nb_sc=nb_f$nb_sc
+   vsc=c(1.,param)[ir2isc]
+   # fullfill pool with free pools
+   if (nb_poolf > 0) {
+#expp      pool[nm$poolf]=exp(param[nm$poolf])
+      pool[nm$poolf]=param[nm$poolf]
+   }
+   
+   nb_mcol=ncol(measmat)
+   # ponderate measmat by relative pool concentrations for pooled measurements
+   collect_pools=c()
+   lapply(names(ipooled), function(nmp) {
+      if (nmp=="ishort") {
+         return(NULL)
+      }
+      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
+      collect_pools <<- c(collect_pools, metabs)
+   })
+   collect_pools=unique(collect_pools)
+   pwei=list()
+   dpwei=list() # derivatives for jacobian
+   nm_metabs=matrix(sapply(names(pool), function(nm) {
+      strsplit(nm, ":")[[1]]
+   }), nrow=2)[2,]
+   if (cjac && nb_poolf > 0) {
+      nm_metabf=matrix(sapply(nm$poolf, function(nm) {
+         strsplit(nm, ":")[[1]]
+      }), nrow=2)[2,]
+      # matrix of ponderation derivation
+      fpw2m=Matrix(0., nrow=nrow(measmat), ncol=nb_poolf)
+   }
+   for (metabs in collect_pools) {
+      metabv=strsplit(metabs, "+", fix=T)[[1]]
+      ime=match(metabv, nm_metabs)
+      vp=pool[ime]
+      vs=sum(vp)
+      pwei[[metabs]]=pool[ime]/vs # pool is assumed non negative, non zero vector
+      # auxiliary matrix for jacobian part depending on ponderation by pools
+      if (cjac && nb_poolf > 0) {
+         in_pf=match(metabv, nm_metabf)
+         imef=which(!is.na(in_pf))
+         if (length(imef)==0) {
+            next
+         }
+         in_pf=in_pf[!is.na(in_pf)]
+         icoupl=cbind(imef, in_pf)
+         vd=-vp%o%rep(1., nb_poolf)
+         vd[,-in_pf]=0.
+         vd[icoupl]=vd[icoupl]+vs
+         dpwei[[metabs]]=vd/(vs*vs)
+      }
+   }
+   # ponderation itself
+   measmatp=measmat
+   memaonep=memaone
+   for (nmp in names(ipooled)) {
+      if (nmp=="ishort") {
+         next
+      }
+      i=ipooled[[nmp]]
+      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
+      measmatp[i,]=measmat[i,,drop=F]*pwei[[metabs]]
+      memaonep[i]=memaone[i]*pwei[[metabs]]
+      # auxiliary matrix for jacobian itself
+      if (cjac && nb_poolf > 0 && !is.null(dpwei[[metabs]])) {
+         fpw2m[i,]=dpwei[[metabs]]
+      }
+   }
+   #mema1=measmatp[,-nb_mcol,drop=F]
+   #memaone=measmatp[,nb_mcol]
+   mema1=measmatp
+   
+   #irmeas_xi=irmeas+nb_xi+1
+   # prepare inverse of pool vectors
+   invpool=1./pool
+   # invm has the same length as full label vector
+   invm=invpool[nb_f$ip2ix]
+   invmw=lapply(1:nb_w, function(iw)invm[nbc_x[iw]+(1:nb_x[iw])])
+#browser()
+   # prepare vectors at t1=0 (by default with zero label)
+   if (calcx) {
+      # incu, xi is supposed to be in [0; 1]
+      if (is.null(x0)) {
+         incu0=c(1., xi, rep(0., nbc_x[nb_w+1]))
+      } else {
+         incu0=c(1., xi, x0)
+      }
+      # unscaled simulated measurements (placeholder)
+      usm=matrix(0., nrow=nb_meas, ncol=nb_ti-1)
+      # construct the matrices invm*A in the systems pool*dx_dt=A*x+s from fluxes
+      lwA=mclapply(1:nb_w, function(iw) {
+         if (emu) {
+            return(fwrv2Abr(lf$fwrv, spAb[[iw]], incu0, nm$emu[(nbc_cumos[iw]+1):nbc_cumos[iw+1]], emu=emu)$A*invmw[[iw]])
+         } else {
+            return(fwrv2Abr(lf$fwrv, spAb[[iw]], incu0, nm$rcumo[(nbc_x[iw]+1):nbc_x[iw+1]], getb=F)$A*invmw[[iw]])
+         }
+      })
+      xsim=matrix(0., nrow=length(incu0), ncol=nb_ti)
+      xsim[,1L]=incu
+   } else {
+      xsim=jx_f$xsim
+      lwA=jx_f$lwA
+      usm=jx_f$usm
+      
+      incu0=xsim[,1L]
+   }
+   if (cjac) {
+      cat("param2fl_usm_ode: recalculate jacobian\n")
+      mdf_dffp=df_dffp(param, lf$flnx, nb_f)
+      jx_f$df_dffp <<- mdf_dffp
+      if (nb_poolf > 0L) {
+         dur_dpf=Matrix(0., nrow=nrow(measmat), ncol=nb_poolf) # we expect this matrix sparse
+      }
+#browser()
+   } else {
+      jacobian=jx_f$ujaclab
+   }
+
+   # time run (ODE solve)
+   if (calcx) {
+      sim=ode(y = xw1, func = labsys, times = ti, parms = list(nb_w=nb_w, nb_x=nb_x, nbc_x=nbc_x, nb_xi=nb_xi, xi=xi, lf=lf, lwA=lwA, spAb=spAb, invmw=invmw, emu=emu))
+   }
+   if (F && cjac) {
+      # prepare jacobian ff
+      sj=fx2jr(lf$fwrv, spAb[[iw]], nb_f, x2)
+      if (nb_ff > 0) {
+         sj$jrhs=(-invmw[[iw]])*(sj$j_rhsw%*%mdf_dffp)
+         if (iw > 1) {
+            # add lighter cumomers to jacobian source term
+            sj$jrhs=sj$jrhs-invmw[[iw]]*(sj$b_x%*%xff2[1:nbc_cumos[iw],])
+         }
+         xff2[icw,]=as.matrix(inviadt[[dtr]][[iw]]%*%(dt[iti-1]*sj$jrhs+xff1[icw,]))
+      }
+      # prepare jacobian poolf
+      if (nb_poolf > 0) {
+         spf=matrix(0., nrow=nb_cumos[iw], ncol=nb_poolf)
+         i2x=nb_f$iparpf2ix[[iw]]
+         spf[i2x]=-(lwA[[iw]]%*%xw2+sw2)[i2x[,1]]
+         if (iw > 1) {
+            # add lighter cumomers to jacobian
+            spf=spf-sj$b_x%*%xpf2[1:nbc_cumos[iw],,drop=F]
+         }
+         spf=(dt[iti-1]*invmw[[iw]])*spf
+         spf=xpf1[icw,]+spf
+         xpf2[icw,]=as.matrix(inviadt[[dtr]][[iw]]%*%spf)
+      }
+   }
+   usm=mema1%*%sim+memaonep
+   if (length(ipooled) > 1L) {
+      # treat pooled measurements
+      lapply(names(ipooled), function(nmpo) {
+         if (nmpo=="ishort") {
+            return(NULL)
+         }
+         po=ipooled[[nmpo]]
+         m2[po[1L],] <<- colSums(usm[po,])
+         return(NULL)
+      })
+      usm=usm[ipooled$ishort,,drop=F]
+   }
+#browser()
+   #cat("dim(xsim)=", dim(xsim), "len(tifull)=", length(tifull), "\n", sep=" ")
+   dimnames(usm)=list(rownames(measmat)[ipooled$ishort], ti)
+#print(x)
+   # store usefull information in global list jx_f
+   jx_f$param<<-param
+   jx_f$usm<<-usm
+   jx_f$lwA<<-lwA
+   jx_f$x <<- sim
+   return(append(list(usm=usm, x=sim), lf))
+}
 param2fl_usm_eul=function(param, cjac=TRUE, nb_f, nm, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi, spAb, pool, ti, measurements, ipooled, tifull=ti) {
    # translate free params (fluxes+scales) to fluxes and
    # unscaled simulated measurements (usm) for labeling propagation.
@@ -1129,4 +1360,75 @@ expm_quad_step=function(inva, dt, expadt, s1, s2, sp1, sp2, x1) {
    dx=inva%*%(expadt%*%tmp1-tmp2)
    res=expadt%*%x1+dx
    return(res)
+}
+labsys=function(t, x, parms) {
+   # It is a callback function from ode() call.
+   # Calculate first derivatives of label vector for all weights.
+   # Return a list with a single item, the vector of first derivative
+   # for all weights
+   for (item in names(parms)) {
+      # get local variables from parms list
+      assign(item, parms[[item]])
+   }
+   xfull=c(1., xi, x)
+   dx=double(length(x))
+   for (iw in 1:nb_w) {
+      icw=nbc_x[iw]+(1L:nb_x[iw])
+      ixw=1L+nb_xi+icw
+      xw=if (emu) matrix(xfull[ixw], nrow=nb_rcumos[iw], ncol=iw+1L) else xfull[ixw]
+      s=as.double(fwrv2sp(lf$fwrv, spAb[[iw]], xfull)$s, emu)*invmw[[iw]]
+      dxw=lwA[[iw]]%*%xw+s
+      if (emu) {
+         dxw=c(dxw, -rowSums(dxw)) # complete the last weight of emu
+      }
+      dx[icw]=dtmp
+   }
+   return(list(dx))
+}
+fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
+   # calculate s and ds/dt in A*x+s (where x is cumomer vector
+   # and xp its first derivative in time)
+   # from fields of the spAbr
+   # according to conventions explained in comments to python function
+   # netan2Abcumo_spr() generating spAbr
+   # return a list with s and sp
+   # 2012-03-07 sokol
+   # 2014-04-11 sokol, added emu option
+   
+   # construct the sources s and its derivatives (if xp not null)
+   # for this weight
+   nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
+   w=spAbr$w # cumomer weight
+   
+   if (gets) {
+      if (nb_c == 0) {
+         s=Matrix(0., nb_c, 1)
+         return(list(s=s), sp=if (is.null(incup)) NULL else s)
+      }
+      if (emu) {
+         ind_b=spAbr[["ind_b_emu"]]
+         s=fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
+         s=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"iwe"], x=s, dims=c(nb_c, w))
+      } else {
+         ind_b=spAbr[["ind_b"]]
+         s=fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
+         s=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=s, dims=c(nb_c, 1))
+      }
+   } else {
+      s=NULL
+   }
+   # sp
+   if (!is.null(incup)) {
+      if (emu) {
+         ind_b=spAbr[["ind_b_emu"]]
+         sp=fwrv[ind_b[,"indf"]]*(incup[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]] + incu[ind_b[,"indx1"]]*incup[ind_b[,"indx2"]])
+      } else {
+         ind_b=spAbr[["ind_b"]]
+         sp=fwrv[ind_b[,"indf"]]*(xp[ind_b[,"indx1"]]*x[ind_b[,"indx2"]] + x[ind_b[,"indx1"]]*xp[ind_b[,"indx2"]])
+         sp=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=sp, dims=c(nb_c, 1))
+      }
+   } else {
+      sp=NULL
+   }
+   return(list(s=s, sp=sp))
 }
