@@ -999,35 +999,6 @@ put_inside=function(param, ui, ci) {
    }
    return(param)
 }
-fwrv2sp=function(fwrv, spAbr, x, xp=NULL, gets=TRUE) {
-   # calculate s and ds/dt in A*x+s (where x is cumomer vector
-   # and xp its first derivative in time)
-   # from fields of the spAbr
-   # according to conventions explained in comments to python function
-   # netan2Abcumo_spr() generating spAbr
-   # return a list s and sp
-   # 2012-03-07 sokol
-   
-   # construct the sources s and its derivatives (if xp not null)
-   # for this weight
-   nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
-   if (gets) {
-      ind_b=spAbr[["ind_b"]]
-      s=fwrv[ind_b[,1]]*x[ind_b[,2]]*x[ind_b[,3]]
-      s=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=s, dims=c(nb_c, 1))
-   } else {
-      s=NULL
-   }
-   # sp
-   if (!is.null(xp)) {
-      ind_b=spAbr[["ind_b"]]
-      sp=fwrv[ind_b[,1]]*(xp[ind_b[,2]]*x[ind_b[,3]]+x[ind_b[,2]]*xp[ind_b[,3]])
-      sp=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=sp, dims=c(nb_c, 1))
-   } else {
-      sp=NULL
-   }
-   return(list(s=s, sp=sp))
-}
 df_dffp=function(param, flnx, nb_f, nm_list) {
    # derivation of fwrv by free_fluxes+poolf (and not growth fluxes neither log(poolf))
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
