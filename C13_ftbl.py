@@ -787,10 +787,12 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             raise Exception("Metabolite(s) '%s' is present twice or more on row %d"%(join(", ", notuniq), row["irow"]))
 
         metab0=metabl[0] if metabl else ""
+        if not metab0 in netan["metabs"]:
+            raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS on row %d"%(metab0, row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
         for metab in metabl:
             if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '"+metab+"' in LABEL_MEASUREMENTS")
+                raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS on row %d"%(metab, row["irow"]))
             if metab in netan["output"]:
                 raise Exception("""Measured metabolites have to be internal to network (found in output metabolites).
 You can add a fictious metabolite in your network immediatly after '"""+metab+"' (seen in LABEL_MEASUREMENTS).")
@@ -855,10 +857,12 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             raise Exception("Metabolite(s) '%s' is present twice or more on row %d"%(join(", ", notuniq), row["irow"]))
 
         metab0=metabl[0] if metabl else ""
+        if not metab0 in netan["metabs"]:
+            raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS on row %d"%(metab0, row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
         for metab in metabl:
             if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '"+metab+"' in PEAK_MEASUREMENTS")
+                raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS on row %d"%(metab, row["irow"]))
             if metab in netan["output"]:
                 raise Exception("""Measured metabolites have to be internal to network (seen in output metabolites).
 You can add a fictious metabolite in your network immediatly after '"""+metab+"' (seen in PEAK_MEASUREMENTS).")
@@ -928,13 +932,15 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             raise Exception("Metabolite(s) '%s' is present twice or more on row %d"%(join(", ", notuniq), row["irow"]))
 
         metab0=metabl[0] if metabl else ""
+        if not metab0 in netan["metabs"]:
+            raise Exception("Unknown metabolite name '%s' in MASS_MEASUREMENTS on row %d"%(metab0, row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
         frag=row["FRAGMENT"] or frag
         for metab in metabl:
             clen=netan["Clen"][metab]
             # test the validity
             if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '"+metab+"' in MASS_SPECTROMETRY")
+                raise Exception("Unknown metabolite name '%s' in MASS_SPECTROMETRY on row %d"%(metab, row["irow"]))
             if metab in netan["output"]:
                 raise Exception("""Measured metabolites have to be internal to network.
 You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
