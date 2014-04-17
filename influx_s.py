@@ -53,7 +53,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl):
             ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
             if isinstance(v, type("")) else "T" if v is True else "F" \
             if v is False else str(v)) for k,v in cmd_opts.iteritems()) + '"'] \
-            + [ft]
+            + (["--case_i"] if case_i else []) + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
         flog.write("executing: "+" ".join(pycmd)+"\n")
         r_generated=True
@@ -118,6 +118,14 @@ me=os.path.realpath(sys.argv[0])
 # my exec dir
 direx=os.path.dirname(me)
 direx="." if not direx else direx
+me=os.path.basename(sys.argv[0])
+if me[:8]=="influx_i":
+    case_i=True
+elif me[:8]=="influx_s":
+    case_i=False
+else:
+    raise Exception("""Cannot determine wether we are in 's' or 'i' case.
+My basename must start with 'influx_s' or 'influx_i' instead of '%s'."""%me[:8])
 
 # my version
 version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
