@@ -479,6 +479,17 @@ opts=commandArgs()
 
 # get some cumomer tools
 source("%(dirx)s/opt_cumo_tools.R")
+"""%{
+    "dirx": escape(dirx, "\\"),
+    "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
+    "prog": os.path.basename(f.name),
+    "ropts": join("\n", ropts)[1:-1],
+    "logfile": escape(f.name[:-1]+"log", "\\"),
+    "errfile": escape(f.name[:-1]+"err", "\\"),
+})
+    if case_i:
+        f.write("""source("%(dirx)s/opt_icumo_tools.R")\n"""%{"dirx": escape(dirx, "\\")})
+    f.write("""
 if (TIMEIT) {
    cat("rinit   : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
@@ -490,13 +501,7 @@ if (prof) {
 
 nm_list=list()
 """%{
-    "dirx": escape(dirx, "\\"),
-    "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
     "proffile": escape(f.name[:-1]+"Rprof", "\\"),
-    "prog": os.path.basename(f.name),
-    "ropts": join("\n", ropts)[1:-1],
-    "logfile": escape(f.name[:-1]+"log", "\\"),
-    "errfile": escape(f.name[:-1]+"err", "\\"),
 })
     netan2R_fl(netan, org, f)
     d=netan2R_rcumo(netan, org, f)
