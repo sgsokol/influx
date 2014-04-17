@@ -5,16 +5,19 @@ Transform an ftbl to R code which will solve an optimization of flux analysis
 problem :math:`\arg \min_{\Theta} S`, where :math:`S=||\mathrm{Predicted}-\mathrm{Observed}||^{2}_{\Sigma}`
 and :math:`\Theta` is a vector of parameters to fit: free fluxes (net+xch), scaling parameters and metabolite concentrations
 pools.
-Predicted vector is obtained from cumomer vector x (calculated from
+Two variants of R code can be generated: "s" and "i" for stationary and isotopically
+nonstationary labeling.
+Predicted vector is obtained from cumomer or emu vector x (calculated from
 free fluxes and divided in chunks according to the cumo weight) by
 multiplying it by the measurement matrices, weighted by metabolite
-pools (in case of pooling) and scale factor, boths coming
-from ftbl file. Observed values vector xo is extracted from ftbl file.
-it is composed of flux and cumomer measurements.
+pools (in case of pooling) and scale factor (for stationary case only),
+boths coming from ftbl file. Observed values vector xo is extracted from ftbl
+file for "s" case and from special text file for "i" case.
+It is composed of flux, label measurements and metabolite pools.
 :math:`\Sigma^2`, covariance diagonal matrices sigma[flux|mass|label|peak|metab.pool]
 is orginated from the ftbl file.
 
-usage: ./ftbl2optR.py organism
+usage: ./ftbl2optRi.py [opts] organism
 where organism is the ftbl informative part of file name
 (before .ftbl), e.g. organism.ftbl
 after execution a file organism.R will be created.
@@ -22,6 +25,7 @@ If it already exists, it will be silently overwritten.
 The system Afl*flnx=bfl is created from the ftbl file.
 
 Important python variables:
+   * case_i - if True, the case is "i" otherwise it is the "s" case
 
 Collections:
    * netan - (dict) ftbl structured content
@@ -97,6 +101,7 @@ Functions:
 # 2008-07-11 sokol: initial version
 # 2009-03-18 sokol: interface homogenization for influx_sim package
 # 2010-10-16 sokol: fortran code is no more generated, R Matrix package is used for sparse matrices.
+# 2014-04-14 sokol:adapted for both "s" and "i" cases
 
 if __name__ == "__main__":
     import sys
@@ -129,7 +134,7 @@ if __name__ == "__main__":
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "DEBUG", "ropts="])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "DEBUG", "ropts=", "case_i"])
     except getopt.GetoptError, err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -141,6 +146,7 @@ if __name__ == "__main__":
     emu=False
     clownr=False
     ropts=['""']
+    case_i=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -155,6 +161,8 @@ if __name__ == "__main__":
             clownr=True
         elif o=="--ropts":
             ropts=a.split("; ") if len(a) else ['""']
+        elif o=="--case_i":
+            case_i=True
         else:
             #assert False, "unhandled option"
             # unknown options can come from shell
@@ -179,6 +187,7 @@ if __name__ == "__main__":
     #DEBUG=True
     import ftbl2code
     ftbl2code.DEBUG=DEBUG
+    ftbl2code.case_i=case_i
     C13_ftbl.clownr=clownr
     #org="ex3"
     #org="PPP_exact"
@@ -269,7 +278,7 @@ if (nb_poolf > 0) {
    names(ci)=nm_i
    colnames(ui)=nm_par
 }
-# prepare metabolite measurements
+# prepare metabolite pools measurements
 nb_poolm=%(nb_poolm)d
 nb_f$nb_poolm=nb_poolm
 nm_poolm=c(%(nm_poolm)s)
@@ -279,7 +288,7 @@ nm_list$poolm=nm_poolm
 vecpoolm=c(%(v_poolm)s)
 names(vecpoolm)=nm_poolm
 
-# inverse of variance for flux measurements
+# inverse of variance for pool measurements
 poolmdev=c(%(poolmdev)s)
 
 # simulated metabolite measurements are calculated as
@@ -289,15 +298,10 @@ dimnames(measmatpool)=list(nm_poolm, nm_poolall)
 i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=T)
 measmatpool[i]=1.
 
-# gather all measurement information
-measurements=list(
-   vec=list(labeled=measvec, flux=fmn, pool=vecpoolm),
-   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev),
-   mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
-   one=list(labeled=memaone)
-)
-nm_resid=c(nm_meas, nm_fmn, nm_poolm)
-nm_list$resid=nm_resid
+# tokens for case_s
+measvecti=NULL
+ti=NULL
+
 """%{
     "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
     "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"'),
@@ -309,7 +313,103 @@ nm_list$resid=nm_resid
     "poolmdev": join(", ", (item["dev"] for item in netan["metab_measured"].values())),
     "imeasmatpool": join(", ", valval((ir,netan["vpool"]["all2i"][m]) for (ir, ml) in enumerate(netan["metab_measured"].keys()) for m in ml.split("+"))),
 })
+    if case_i:
+        f.write("""
+## variables for isotopomer kinetics
+tstart=0.
+tmax=%(tmax)f
+if (tmax < 0) {
+   stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g)", tmax), fcerr)
+}
+dt=%(dt)f
+if (dt <= 0) {
+   stop_mes(sprintf("The parameter dt must be positive (dt=%%g)", dt), fcerr)
+}
+# read measvecti from a file specified in ftbl
+flabcin="%(flabcin)s"
+if (nchar(flabcin)) {
+   measvecti=as.matrix(read.table(flabcin, header=T, row.names=1, sep="\t", check=F, comment=""))
+   nm_row=rownames(measvecti)
+   # put in the same row order as simulated measurements
+   # check if nm_meas are all in rownames
+   if (all(nm_meas %%in%% nm_row)) {
+      measvecti=measvecti[nm_meas,,drop=F]
+   } else {
+      # try to strip row number from measure id
+      nm_strip=sapply(strsplit(nm_meas, ":"), function(v) {
+         v[length(v)]=""
+         paste(v, sep="", collapse=":")
+      })
+      im=pmatch(nm_strip, nm_row)
+      ina=is.na(im)
+      if (any(ina)) {
+         mes=paste("Cannot match the following measurement(s) in the file '", flabcin, "':\\n", paste(nm_meas[ina], sep="", collapse="\\n"), "\\n", sep="", collapse="")
+         cat(mes, file=fcerr)
+         if (isatty(stdin())) {
+            stop(mes)
+         } else {
+            q("no", status=1)
+         }
+      }
+      measvecti=measvecti[im,,drop=F]
+      #stopifnot(all(!is.na(measvecti)))
+      stopifnot(typeof(measvecti)=="double")
+   }
+   ti=as.double(colnames(measvecti))
+   if (any(is.na(ti))) {
+      mes=sprintf("All time moments (in column names) could not be converted to real numbers in the file '%%s'\\nConverted times:\\n%%s", flabcin, join("\\n", ti))
+      stop_mes(mes, file=fcerr)
+   }
+   if (length(ti) < 1L) {
+      mes=sprintf("No column found in the file '%%s'\\n", flabcin)
+      stop_mes(mes, file=fcerr)
+   }
+   if (!all(diff(ti) > 0.)) {
+      mes=sprintf("Time moments (in column names) are not monotonously increasing in the file '%%s'\\n", flabcin)
+      stop_mes(mes, file=fcerr)
+   }
+   if (ti[1L] < 0.) {
+      mes=sprintf("The first time moment cannot be negative in the file '%%s'\\n", flabcin)
+      stop_mes(mes, file=fcerr)
+   }
+   if (ti[1L] != 0.) {
+      ti=c(tstart, ti)
+   }
+   i=which(ti<=tmax)
+   ti=ti[i]
+   measvecti=measvecti[,i[-1]-1,drop=F]
+   nb_ti=length(ti)
+   if (nb_ti < 2) {
+      mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.\\n", nb_ti)
+      stop_mes(mes, file=fcerr)
+   }
+} else {
+   measvecti=NULL
+   ti=seq(tstart, tmax, by=dt)
+   tifull=ti
+   if (optimize) {
+      cat("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in the ftbl file.
+The fitting is ignored as if '--noopt' option were asked.", file=fcerr)
+      optimize=F
+   }
+}
+nb_ti=length(ti)
+"""%{
+    "dt": netan["opt"]["dt"],
+    "tmax": netan["opt"]["tmax"],
+    "flabcin": netan["opt"].get("file_labcin", ""),
+})
     f.write("""
+# gather all measurement information
+measurements=list(
+   vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=measvecti),
+   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev),
+   mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
+   one=list(labeled=memaone)
+)
+nm_resid=c(nm_meas, nm_fmn, nm_poolm)
+nm_list$resid=nm_resid
+
 if (TIMEIT) {
    cat("preopt  : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
@@ -321,14 +421,10 @@ if (nchar(fseries) > 0) {
    # skip parameters (rows) who's name is not in nm_par
    i=rownames(pstart) %in% nm_par
    if (!any(i)) {
-      cat("Option --fseries is used but no free parameter with known name is found.", "\\n", sep="", file=fcerr)
-      stop()
+      stop_mes("Option --fseries is used but no free parameter with known name is found.\\n")
    }
    pstart=pstart[i,,drop=F]
    cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="", file=fclog)
-#expp   # take log of free pools
-#expp   i=grep("^pf:", rownames(pstart))
-#expp   pstart[i,]=log(pstart[i,])
 } else {
    pstart=as.matrix(param)
 }
@@ -352,7 +448,6 @@ if (nchar(iseries) > 0) {
       pstart[]=runif(nb_param*max(iseries))
       # take log of free pools
       i=grep("^pf:", rownames(pstart))
-#expp      pstart[i,]=log(pstart[i,])
    }
    iseries=iseries[iseries<=nseries]
    pstart=pstart[,iseries, drop=F]
@@ -365,6 +460,35 @@ pres=matrix(NA, nb_param, nseries)
 rownames(pres)=nm_par
 colnames(pres)=colnames(pstart)
 costres=rep.int(NA, nseries)
+
+# prepare flux index conversion
+ifwrv=1:nb_fwrv
+names(ifwrv)=nm_fwrv
+ifl_in_fw=ifwrv[paste("fwd", substring(c(nm_fln, nm_flx), 4), sep="")]
+iff_in_fw=ifwrv[paste("fwd", substring(c(nm_ffn, nm_ffx), 4), sep="")]
+if (nb_fgr > 0) {
+   ifg_in_fw=ifwrv[paste("fwd", substring(nm_fgr, 4), sep="")]
+} else {
+   ifg_in_fw=numeric(0)
+}
+# index couples for jacobian df_dfl, df_dffd
+cfw_fl=crv_fl=cBind(ifl_in_fw, 1:nb_fl)
+cfw_ff=crv_ff=cBind(iff_in_fw, 1:nb_ff)
+cfw_fg=crv_fg=cBind(ifg_in_fw, tail(1:(nb_ff+nb_fgr), nb_fgr))
+crv_fl[,1]=(nb_fwrv/2)+crv_fl[,1]
+crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
+crv_fg[,1]=(nb_fwrv/2)+crv_fg[,1]
+
+# store it in nb_f
+nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
+   crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
+
+# prepare argument list for passing to label simulating functions
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti")
+labargs=vars2list(nm_labargs)
+labargs[["nm"]]=labargs[["nm_list"]]
+labargs[["spAb"]]=labargs[["spa"]]
+labargs[["nb_cumos"]]=labargs[["nb_x"]]
 """)
     f.write("""
 # formated output in kvh file
@@ -372,6 +496,7 @@ fkvh_saved="%s_res.kvh"
 """%escape(fullorg, "\\"))
     f.write("""
 for (irun in iseq(nseries)) {
+   jx_f=labargs$jx_f=list()
    param[nm_pseries]=pstart[nm_pseries, irun]
    # prepare kvh file name
    if (nseries > 1) {
@@ -419,7 +544,7 @@ for (irun in iseq(nseries)) {
    # inequalities to keep sens of net flux on first call to opt_wrapper()
    # if active they are removed on the second call to opt_wrapper()
    # and finaly all zc constraints are relaxed on the last call to opt_wrapper()
-   fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fallnx
+   fallnx=param2fl(param, labargs)$fallnx
    mi_zc=NULL
    li_zc=NULL
    if (zerocross && length(grep("[df].n.", nm_fallnx))>0) {
@@ -500,19 +625,46 @@ for (irun in iseq(nseries)) {
          nm_i=c(nm_i, nm_izc)
          mi=rBind(mi, mi_zc)
       }
-   #print(ui)
-   #print(ci)
    }
-
-   # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
-   # for corresponding measurements
-   vr=param2fl_x(param, cjac=FALSE, jx_f, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
+""")
+    if case_i:
+        f.write("""
+   vr=icumo_resid(param, cjac=F, labargs)
+   jx_f=labrags$jx_f=vr$jx_f
    if (!is.null(vr$err) && vr$err) {
       cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
       next
    }
-   jx_f=vr$jx_f
+   if (nb_sc && !is.null(measvecti)) {
+      # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+      # for corresponding measurements
+      # unscaled simulated measurements (usm) [imeas, itime]
+      #browser()
+      inna=which(!is.na(measvecti))
+      simvec=vr$usm
+      ms=(measvecti*simvec*measinvvar)[inna]
+      ss=(simvec*simvec*measinvvar)[inna]
+      for (i in nb_ff+1:nb_sc) {
+         im=outer(ir2isc==(i+1), rep(T, nb_ti), "&")[inna]
+         param[i]=sum(ms[im])/sum(ss[im])
+      }
+   } else if (nb_sc > 0) {
+      # we dont have measurements yet, just set all scalings to 1.
+      param[nb_ff+1:nb_sc]=1.
+   }
+""")
+    else:
+        f.write("""
+   # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+   # for corresponding measurements
+   vr=param2fl_x(param, cjac=FALSE, labargs)
+   jx_f=labargs$jx_f=vr$jx_f
+   if (!is.null(vr$err) && vr$err) {
+      cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
+      close(fkvh)
+      next
+   }
    if (nb_sc > 0) {
       if (optimize) {
          simvec=jx_f$usimcumom
@@ -524,8 +676,8 @@ for (irun in iseq(nseries)) {
          for (i in nb_ff+1:nb_sc) {
             im=(ir2isc==(i+1)) & iva
             if (sum(im) < 2) {
-               cat(sprintf("scaling: no sufficient valid data for scaling factor '%s'", nm_par[i]), "\\n", sep="", file=fcerr)
-               stop()
+               mes=sprintf("scaling: no sufficient valid data for scaling factor '%s'\\n", nm_par[i])
+               stop_mes(mes, fcerr)
             }
             param[i]=sum(ms[im])/sum(ss[im])
          }
@@ -534,29 +686,8 @@ for (irun in iseq(nseries)) {
          param[nb_ff+1:nb_sc]=1.
       }
    }
-
-   # prepare flux index conversion
-   ifwrv=1:nb_fwrv
-   names(ifwrv)=nm_fwrv
-   ifl_in_fw=ifwrv[paste("fwd", substring(c(nm_fln, nm_flx), 4), sep="")]
-   iff_in_fw=ifwrv[paste("fwd", substring(c(nm_ffn, nm_ffx), 4), sep="")]
-   if (nb_fgr > 0) {
-      ifg_in_fw=ifwrv[paste("fwd", substring(nm_fgr, 4), sep="")]
-   } else {
-      ifg_in_fw=numeric(0)
-   }
-   # index couples for jacobian df_dfl, df_dffd
-   cfw_fl=crv_fl=cBind(ifl_in_fw, 1:nb_fl)
-   cfw_ff=crv_ff=cBind(iff_in_fw, 1:nb_ff)
-   cfw_fg=crv_fg=cBind(ifg_in_fw, tail(1:(nb_ff+nb_fgr), nb_fgr))
-   crv_fl[,1]=(nb_fwrv/2)+crv_fl[,1]
-   crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
-   crv_fg[,1]=(nb_fwrv/2)+crv_fg[,1]
-   
-   # store it in nb_f
-   nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
-      crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
-
+""")
+    f.write("""
    # see if there are any active inequalities at starting point
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
@@ -570,10 +701,7 @@ for (irun in iseq(nseries)) {
    if (TIMEIT) {
       cat("kvh init: ", format(Sys.time()), "\\n", sep="", file=fclog)
    }
-
-"""%{
-    "fullorg": escape(fullorg, "\\"),
-})
+""")
     # main part: call optimization
     f.write("""
    cat("influx\\n", file=fkvh)
@@ -629,13 +757,13 @@ for (irun in iseq(nseries)) {
    names(f)=nm_fallnx
    obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
 
-   rres=cumo_resid(param, cjac=TRUE, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
-   jx_f=rres$jx_f
+   rres=cumo_resid(param, cjac=TRUE, labargs)
+   jx_f=labargs$jx_f=rres$jx_f
    names(rres$res)=nm_resid
    o=order(names(rres$res))
    obj2kvh(rres$res[o], "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1)
 
-   rcost=cumo_cost(param, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   rcost=cumo_cost(param, labargs)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
@@ -661,7 +789,7 @@ for (irun in iseq(nseries)) {
 #browser()
       qrj=qr(jx_f$dr_dff, LAPACK=T)
       d=diag(qrj$qr)
-      qrj$rank=sum(abs(d)>abs(d[1])*1.e-14)
+      qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
       if (qrj$rank) {
          nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
       } else {
@@ -692,7 +820,7 @@ for (irun in iseq(nseries)) {
       } else if (!is.null(res$mes) && nchar(res$mes)) {
          cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
       }
-      jx_f=res$retres$jx_f
+      jx_f=labargs$jx_f=res$retres$jx_f
       if (any(is.na(res$par))) {
          res$retres$jx_f=NULL # to avoid writing of huge data
          obj2kvh(res, "failed first pass optimization process information", fkvh)
@@ -746,7 +874,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             if (reopt) {
                cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
                capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
-               jx_f=res$retres$jx_f
+               jx_f=labargs$jx_f=res$retres$jx_f
                if (res$err || is.null(res$par)) {
                   cat("second zero crossing pass: ", res$mes, "\\n", sep="", file=fcerr)
                   res$par=rep(NA, length(param))
@@ -772,7 +900,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                nm_i=nm_i[-i]
                cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
                capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
-               jx_f=res$retres$jx_f
+               jx_f=labargs$jx_f=res$retres$jx_f
                if (res$err || is.null(res$par)) {
                   cat("last zero crossing (free of zc)", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
                   res$par=rep(NA, length(param))
@@ -817,13 +945,13 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=fcerr, sep="")
                # continue without outlier exclusion
                measurements$outlier=NULL
-               jx_f=jx_f_save
+               jx_f=labargs$jx_f=jx_f_save
             } else {
                res=resout
                param=res$par
                names(param)=nm_par
                obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
-               jx_f=resout$retres$jx_f
+               jx_f=labargs$jx_f=resout$retres$jx_f
             }
          } else {
             cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
@@ -840,13 +968,12 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (any(ine)) {
       obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
    }
-#expp   poolall[nm_poolf]=exp(param[nm_poolf])
    poolall[nm_poolf]=param[nm_poolf]
 
 #browser()
-   rres=cumo_resid(param, cjac=T, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
-   jx_f=rres$jx_f
-   rcost=cumo_cost(param, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
+   rres=cumo_resid(param, cjac=T, labargs)
+   jx_f=labargs$jx_f=rres$jx_f
+   rcost=cumo_cost(param, labargs)
 
    pres[,irun]=param
    costres[irun]=rcost
@@ -898,11 +1025,13 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
     f.write("""
       names(xi_f)=nm_xi_f
       nm_flist$xi=nm_xi_f
-      v=param2fl_x(param, cjac=F, jx_f, nb_f, nm_flist, nb_cumos, invAfl, p2bfl, g2bfl, bp, fc, xi_f, spAbr_f, emu=F, pool, measurements, ipooled)
+      labargs$emu=F
+      v=param2fl_x(param, cjac=F, labargs)
+      labargs$emu=emu
    } else {
-      v=param2fl_x(param, cjac=F, jx_f, nb_f, nm_list, nb_x, invAfl, p2bfl, g2bfl, bp, fc, xi, spa, emu, pool, measurements, ipooled)
+      v=param2fl_x(param, cjac=F, labargs)
    }
-   jx_f=v$jx_f
+   jx_f=labargs$jx_f=v$jx_f
    # set final variable depending on param
    x=v$x
    if (fullsys) {
@@ -984,7 +1113,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             if (TIMEIT) {
                cat("cl expor: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
-            clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "dfm_dff", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "param2fl_x", "is.diff", "cumo_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper"))
+            clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "dfm_dff", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "param2fl_x", "is.diff", "cumo_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper", "labargs"))
             if (TIMEIT) {
                cat("cl optim: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
@@ -1015,10 +1144,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          format(free_mc[3,,drop=F], di=2, sci=T))
       dimnames(mout)=list(c("cost", "it.numb", "normp"), iseq(ncol(free_mc)))
       obj2kvh(mout, "convergence per sample", fkvh, indent)
-#expp      if (nb_poolf) {
-#expp         # from log to natural concentraion
-#expp         free_mc[nb_ff+nb_sc+1:nb_poolf,]=exp(free_mc[nb_ff+nb_sc+1:nb_poolf,])
-#expp      }
       # remove failed m-c iterations
       free_mc=free_mc[-(1:3),,drop=F]
       ifa=which(is.na(free_mc[1,]))
@@ -1073,8 +1198,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       obj2kvh(mout, "free parameters", fkvh, indent)
 
       # net-xch01 stats
-      fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fallnx)
-      fallnx=param2fl(param, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fallnx
+      fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fallnx)
+      fallnx=param2fl(param, labargs)$fallnx
       if (length(fallnx_mc)) {
          dimnames(fallnx_mc)[[1]]=nm_fallnx
          # form a matrix output
@@ -1101,7 +1226,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent)
 
          # fwd-rev stats
-         fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, nb_f, nm_list, invAfl, p2bfl, g2bfl, bp, fc)$fwrv)
+         fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fwrv)
          dimnames(fwrv_mc)[[1]]=nm_fwrv
          fallout=matrix(0, nrow=nrow(fwrv_mc), ncol=0)
          # mean
@@ -1135,10 +1260,10 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    }
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
-   jx_f=jx_f_last
+   jx_f=labargs$jx_f=jx_f_last
    if (is.null(jx_f$jacobian)) {
-      rres=cumo_resid(param, cjac=T, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements, ir2isc, spa, emu, pool, ipooled)
-      jx_f=rres$jx_f
+      rres=cumo_resid(param, cjac=T, labargs)
+      jx_f=labargs$jx_f=rres$jx_f
    } # else use last calculated jacobian
 
    # covariance matrix of free fluxes
@@ -1201,10 +1326,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (nb_poolf > 0) {
       # covariance matrix of free pools
       # "square root" of covariance matrix (to preserve numerical positive definitness)
-#expp      poolall[nm_poolf]=exp(param[nm_poolf])
       poolall[nm_poolf]=param[nm_poolf]
-#expp      # cov wrt exp(pf)=pool
-#expp      covpf=crossprod(rtcov[,nb_ff+nb_sc+1:nb_poolf, drop=F]%mrv%poolall[nm_poolf])
       # cov poolf
       covpf=crossprod(rtcov[,nb_ff+nb_sc+1:nb_poolf, drop=F])
       dimnames(covpf)=list(nm_poolf, nm_poolf)
@@ -1265,9 +1387,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    }
 }
 
-#expp # back from log in pres
-#expp i=grep("^pf:", nm_par)
-#expp pres[i,]=exp(pres[i,])
 pres=rBind(cost=costres, pres)
 fco=file("%(d)s/%(org)s.pres.csv", open="w")
 cat("row_col\t", file=fco)
