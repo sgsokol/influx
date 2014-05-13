@@ -88,6 +88,7 @@ import os
 import sys
 
 werr=sys.stderr.write
+wout=sys.stdout.write
 me=os.path.realpath(sys.argv[0])
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
@@ -344,6 +345,15 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             raise Exception("Metabolite '%s' is present twice or more in the\nftbl secion METABOLITE_POOLS (second appearance on row %d)"%(metab, row["irow"]))
         netan["met_pools"][metab]=eval(row["META_SIZE"])
 
+    # check the presence of fields "NAME", "FCD" and maybe "VALUE(F/C)"
+    for suf in ["NET", "XCH"]:
+        for row in ftbl.get("FLUXES", {}).get(suf, {}):
+            if not "NAME" in row:
+                raise Exception("No requied field NAME in section FLUX/%s (row: %d)"%(suf, row["irow"]))
+            if not "FCD" in row:
+                raise Exception("No requied field FCD in section FLUX/%s (row: %d)"%(suf, row["irow"]))
+            if (row["FCD"]=="F" or row["FCD"]=="C") and not "VALUE(F/C)" in row:
+                raise Exception("For flux '%s' in section FLUX/%s, the field 'VALUE(F/C)' is requiered but is absent (row: %d)"%(row["NAME"], suf, row["irow"]))
     # quick consistency check between net and xch fluxes
     fnet=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("NET", {}))
     fxch=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}))
@@ -1350,11 +1360,11 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         # check if this line was already entered before
         for (i,row) in enumerate(res):
             if row==qry:
-                werr("Warning: when trying to add a balance equation for "+metab+
+                wout("Warning: when trying to add a balance equation for "+metab+
                     " got the same equation as for "+netan["vrowAfl"][i]+"\n")
-                werr("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
-                werr(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
-                werr(metab+":\t"+join("\t", qry)+"\n")
+                wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
+                wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
+                wout(metab+":\t"+join("\t", qry)+"\n")
                 break
         else:
             # identique row is not found, add it
