@@ -276,7 +276,7 @@ def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     #    ui - inequality matrix (ready for param use)
     #    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measurements
     # Functions:
-    #    param2fl_x - translate param to flux and cumomer vector (initial approximation)
+    #    lab_sim - translate param to flux and cumomer vector (initial approximation)
     #    cumo_cost - cost function (khi2)
     #    cumo_grad - finite difference gradient
     #    fallnx2fwrv - produce fw-rv fluxes from fallnx
@@ -355,6 +355,7 @@ excl_outliers=F
 DEBUG=F
 TIMEIT=F
 prof=F
+case_i=F
 
 # get runtime arguments
 %(ropts)s
@@ -390,7 +391,7 @@ if (cupx < 0 || cupx > 1) {
 }
 if (cinout < 0) {
    cat(paste("Option '--cinout N' must have N non negative\n",
-      "Instead, the value ", cinout, " si given.", sep=""), file=fcerr)
+      "Instead, the value ", cinout, " is given.", sep=""), file=fcerr)
    if (isatty(stdin())) {
       stop()
    } else {
@@ -479,6 +480,8 @@ opts=commandArgs()
 
 # get some cumomer tools
 source("%(dirx)s/opt_cumo_tools.R")
+lab_resid=cumo_resid
+lab_sim=param2fl_x
 """%{
     "dirx": escape(dirx, "\\"),
     "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
@@ -488,7 +491,12 @@ source("%(dirx)s/opt_cumo_tools.R")
     "errfile": escape(f.name[:-1]+"err", "\\"),
 })
     if case_i:
-        f.write("""source("%(dirx)s/opt_icumo_tools.R")\n"""%{"dirx": escape(dirx, "\\")})
+        f.write("""
+source("%(dirx)s/opt_icumo_tools.R")
+
+lab_resid=icumo_resid
+lab_sim=param2fl_usm_ode
+"""%{"dirx": escape(dirx, "\\")})
     f.write("""
 if (TIMEIT) {
    cat("rinit   : ", format(Sys.time()), "\\n", sep="", file=fclog)
@@ -789,9 +797,6 @@ names(param)=nm_par
 nm_ff=c(nm_ffn, nm_ffx)
 nm_list$ff=nm_ff
 nb_param=length(param)
-if (initrand) {
-   param[]=runif(nb_param)
-}
 # scaling factors are added to param later
 
 nb_ff=nb_ffn+nb_ffx
@@ -1116,7 +1121,6 @@ if (qrAfl$rank != nb_fl) {
 
 # inverse flux matrix
 invAfl=solve(qrAfl)
-
 """ % {
     "n_ftbl": escape(org+".ftbl", "\\"),
     })
@@ -1341,8 +1345,8 @@ ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
     "rowid": metpool[0],
     "ind": join(", ", metpool[1:]),
     "basep": base_pooled,
-}
-)
+    }
+            )
         base_pooled=base_pooled+len(measures[meas]["vec"])
     # preepare measmat indexes and values : ir, ic, val
     f.write("""
@@ -1356,6 +1360,8 @@ if (nb_sc > 0) {
       return(NULL)
    })
    nb_f$is2m=ipaire
+   # place holder for scale part of jacobian
+   jx_f$dr_dsc=Matrix(0., nrow=length(ir2isc), ncol=nb_sc)
 }
 # prepare measmat indexes and values : ir, ic, val
 ind_mema=matrix(c(
@@ -1374,16 +1380,11 @@ ind_mema=matrix(c(
 """%{
     "iricval": join(", ", valval((i, lab2i0[metab+":"+str(k)]+1, v)
         for (k, v) in row[fcoef].iteritems() if k != onelab))
-    #"i": i,
-    #"cumos": join(", ", ((metab+":"+str(k))
-    #    for k in row["emuco"].keys()), p='"', s='"') if emu else join(", ", ((metab+":"+str(k) if k else "#x*")
-    #    for k in row["coefs"].keys()), p='"', s='"'),
-    #"coefs": join(", ", row["emuco"].values()) if emu else join(", ", row["coefs"].values()),
 })
 
     f.write("""
 NULL), ncol=3, byrow=T); # close ind_mema creation
-measmat[ind_mema[,1:2]]=ind_mema[,3]
+measmat[ind_mema[,1:2,drop=F]]=ind_mema[,3]
 
 memaone=c(%(memaone)s)
 names(memaone)=nm_measmat
@@ -1773,7 +1774,7 @@ if (nb_i > 0) {
       for (j in setdiff((i+1):nb_i, ired)) {
          if (all(ui[j,]==ui[i,]) && ci[i]==ci[j]) {
             # redundancy
-            cat("inequality ", nm_i[j], " redundant with ", nmref, " is removed.\n", sep="", file=fclog)
+            cat("inequality '", nm_i[j], "' redundant with '", nmref, "' is removed.\n", sep="", file=fclog)
             ired=c(ired, j)
          }
       }
