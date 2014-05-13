@@ -31,7 +31,7 @@ def qworker():
         launch_job(**item)
         q.task_done()
 
-def launch_job(ft, fshort, cmd_opts, nb_ftbl):
+def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """
     #print "here thread: "+fshort
@@ -52,8 +52,9 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl):
         opt4py=list(pyopt.intersection("--"+kc for kc in cmd_opts.keys())) + \
             ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
             if isinstance(v, type("")) else "T" if v is True else "F" \
-            if v is False else str(v)) for k,v in cmd_opts.iteritems()) + '"'] \
-            + (["--case_i"] if case_i else []) + [ft]
+            if v is False else str(v)) for k,v in cmd_opts.iteritems()) + \
+            ('; case_i=T' if case_i else '') + '"'] + \
+            (["--case_i"] if case_i else []) + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
         flog.write("executing: "+" ".join(pycmd)+"\n")
         r_generated=True
@@ -284,7 +285,7 @@ for ft in args:
     cmd_opts=eval(str(cmd_opts))
     cmd_opts=dict((k,v) for k,v in cmd_opts.iteritems() if v is not None)
     #print("cmd_opts=", cmd_opts)
-    item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "nb_ftbl": nb_ftbl}
+    item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "nb_ftbl": nb_ftbl, "case_i": case_i}
     q.put(item)
 if not ftpr:
     sys.exit(1)
