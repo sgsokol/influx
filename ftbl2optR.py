@@ -93,7 +93,7 @@ Matrices:
    * measmat - for measmat*x+memaone=vec of simulated not-yet-scaled measurements
 
 Functions:
-   * param2fl_x - translate param to flux and cumomer vector (initial approximation)
+   * lab_sim - translate param to flux and cumomer vector (initial approximation)
    * cumo_cost - cost function (khi2)
    * cumo_gradj - implicit derivative gradient
 """
@@ -300,7 +300,9 @@ measmatpool[i]=1.
 
 # tokens for case_s
 measvecti=NULL
-ti=NULL
+ti=0.
+nb_ti=1
+x0=NULL
 
 """%{
     "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
@@ -315,6 +317,13 @@ ti=NULL
 })
     if case_i:
         f.write("""
+# prepare mapping of metab pools on cumomers
+nminvm=matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1]
+ipc2ix=match(paste("pc", nminvm, sep=":"), nm_poolall, nomatch=0)
+ipf2ix=match(paste("pf", nminvm, sep=":"), nm_poolall, nomatch=0)
+ip2ix=ipc2ix+ipf2ix
+nb_f$ip2ix=ip2ix
+nb_f$ipf2ix=ipf2ix
 ## variables for isotopomer kinetics
 tstart=0.
 tmax=%(tmax)f
@@ -386,13 +395,14 @@ if (nchar(flabcin)) {
 } else {
    measvecti=NULL
    ti=seq(tstart, tmax, by=dt)
-   tifull=ti
    if (optimize) {
       cat("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in the ftbl file.
 The fitting is ignored as if '--noopt' option were asked.", file=fcerr)
       optimize=F
    }
 }
+# label state at t=0 (by default=0 but later it should be able to be specified by user)
+x0=NULL
 nb_ti=length(ti)
 """%{
     "dt": netan["opt"]["dt"],
@@ -403,11 +413,11 @@ nb_ti=length(ti)
 # gather all measurement information
 measurements=list(
    vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=measvecti),
-   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev),
+   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev, kin=rep(measdev, nb_ti-1)),
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
-nm_resid=c(nm_meas, nm_fmn, nm_poolm)
+nm_resid=c(outer(nm_meas, ti[-1L], paste, sep=", t="), nm_fmn, nm_poolm)
 nm_list$resid=nm_resid
 
 if (TIMEIT) {
@@ -439,21 +449,20 @@ if (is.null(nseries) || nseries==0) {
 # prepare series indexes
 if (nchar(iseries) > 0) {
    iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
-   if (initrand) {
-      if (nchar(fseries)==0) {
-         nseries=max(iseries)
-         pstart=matrix(0., nb_param, nseries)
-         dimnames(pstart)=list(nm_par, "V" %s+% iseq(nseries))
-      }
-      pstart[]=runif(nb_param*max(iseries))
-      # take log of free pools
-      i=grep("^pf:", rownames(pstart))
+   if (nchar(fseries)==0) {
+      nseries=max(iseries)
+      pstart=matrix(0., nb_param, nseries)
+      dimnames(pstart)=list(nm_par, "V" %s+% iseq(nseries))
    }
    iseries=iseries[iseries<=nseries]
    pstart=pstart[,iseries, drop=F]
    nseries=ncol(pstart)
 } else {
    iseries=iseq(nseries)
+   
+}
+if (initrand) {
+   pstart[]=runif(pstart)
 }
 
 pres=matrix(NA, nb_param, nseries)
@@ -464,17 +473,14 @@ costres=rep.int(NA, nseries)
 # prepare flux index conversion
 ifwrv=1:nb_fwrv
 names(ifwrv)=nm_fwrv
-ifl_in_fw=ifwrv[paste("fwd", substring(c(nm_fln, nm_flx), 4), sep="")]
-iff_in_fw=ifwrv[paste("fwd", substring(c(nm_ffn, nm_ffx), 4), sep="")]
-if (nb_fgr > 0) {
-   ifg_in_fw=ifwrv[paste("fwd", substring(nm_fgr, 4), sep="")]
-} else {
-   ifg_in_fw=numeric(0)
-}
+ifl_in_fw=if (nb_fln) ifwrv[paste("fwd", substring(c(nm_fln, nm_flx), 4), sep="")] else integer(0)
+iff_in_fw=if (nb_ff > 0) ifwrv[paste("fwd", substring(c(nm_ffn, nm_ffx), 4), sep="")] else integer(0)
+ifg_in_fw=if (nb_fgr > 0) ifwrv[paste("fwd", substring(nm_fgr, 4), sep="")] else integer(0)
+
 # index couples for jacobian df_dfl, df_dffd
-cfw_fl=crv_fl=cBind(ifl_in_fw, 1:nb_fl)
-cfw_ff=crv_ff=cBind(iff_in_fw, 1:nb_ff)
-cfw_fg=crv_fg=cBind(ifg_in_fw, tail(1:(nb_ff+nb_fgr), nb_fgr))
+cfw_fl=crv_fl=cBind(ifl_in_fw, iseq(nb_fl))
+cfw_ff=crv_ff=cBind(iff_in_fw, iseq(nb_ff))
+cfw_fg=crv_fg=cBind(ifg_in_fw, nb_ff+iseq(nb_fgr))
 crv_fl[,1]=(nb_fwrv/2)+crv_fl[,1]
 crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
 crv_fg[,1]=(nb_fwrv/2)+crv_fg[,1]
@@ -483,12 +489,25 @@ crv_fg[,1]=(nb_fwrv/2)+crv_fg[,1]
 nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
    crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
 
+nb_w=length(spa)
+nbc_x=c(0, cumsum(nb_x))
+
+# fixed part of jacobian (unreduced by SD)
+# measured fluxes
+dufm_dp=cBind(dufm_dff(nb_f, nm_list), Matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_poolf))
+dimnames(dufm_dp)=list(nm_fmn, nm_par)
+
+# measured pools
+dupm_dp <- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), if (nb_poolf > 0) measurements$mat$pool[,nm_list$poolf, drop=F] else NULL)
+dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
+
+#browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti")
-labargs=vars2list(nm_labargs)
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp")
+labargs=new.env()
+tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
 labargs[["spAb"]]=labargs[["spa"]]
-labargs[["nb_cumos"]]=labargs[["nb_x"]]
 """)
     f.write("""
 # formated output in kvh file
@@ -629,10 +648,10 @@ for (irun in iseq(nseries)) {
 """)
     if case_i:
         f.write("""
-   vr=icumo_resid(param, cjac=F, labargs)
-   jx_f=labrags$jx_f=vr$jx_f
+   vr=lab_resid(param, cjac=F, labargs)
+   jx_f=labargs$jx_f=vr$jx_f
    if (!is.null(vr$err) && vr$err) {
-      cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
+      cat("lab_resid", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
       next
    }
@@ -649,6 +668,11 @@ for (irun in iseq(nseries)) {
          im=outer(ir2isc==(i+1), rep(T, nb_ti), "&")[inna]
          param[i]=sum(ms[im])/sum(ss[im])
       }
+      # prepare is2mti which is extension of is2m ti times
+      nb_f$is2mti=array(0., dim=c(dim(nb_f$is2m), nb_ti))
+      nb_f$is2mti[]=nb_f$is2m
+      nb_f$is2mti[,1L,]=nb_f$is2m[,1L]+rep((0:(nb_ti-1))*nb_meas, each=nrow(nb_f$is2m))
+browser()
    } else if (nb_sc > 0) {
       # we dont have measurements yet, just set all scalings to 1.
       param[nb_ff+1:nb_sc]=1.
@@ -658,10 +682,10 @@ for (irun in iseq(nseries)) {
         f.write("""
    # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
    # for corresponding measurements
-   vr=param2fl_x(param, cjac=FALSE, labargs)
+   vr=lab_sim(param, cjac=FALSE, labargs)
    jx_f=labargs$jx_f=vr$jx_f
    if (!is.null(vr$err) && vr$err) {
-      cat("param2fl_x", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
+      cat("lab_sim", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
       next
    }
@@ -706,6 +730,7 @@ for (irun in iseq(nseries)) {
     f.write("""
    cat("influx\\n", file=fkvh)
    cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="")
+   cat("\\tlabeling\\t", if (case_i) "instationary" else "stationary", "\\n", file=fkvh, sep="")
    # save options of command line
    cat("\\truntime options\\n", file=fkvh)
    cat("\\t\\t%s\\n", file=fkvh)
@@ -723,12 +748,12 @@ for (irun in iseq(nseries)) {
    cat("starting point\\n", file=fkvh)
    names(param)=nm_par
    obj2kvh(param, "starting free parameters", fkvh, indent=1)
-
-   x=vr$x
-   names(x)=nm_x
+#browser()
+   x=as.matrix(vr$x)
+   rownames(x)=nm_x
    obj2kvh(cumo2mass(x), "starting MID vector", fkvh, indent=1)
    # replace :i by #x1's
-   nm_mask=t(sapply(strsplit(names(x), "[:+]"), function(v) {
+   nm_mask=t(sapply(strsplit(nm_x, "[:+]"), function(v) {
       n=length(v)
       metab=v[1]
       mask=int2bit(v[2], len=clen[metab])
@@ -743,9 +768,9 @@ for (irun in iseq(nseries)) {
    } else {
       nm_mask=tmp
    }
-   names(nm_mask)=names(x)
-   names(x)=nm_mask
-   obj2kvh(x[o], "starting cumomer vector", fkvh, indent=1)
+   names(nm_mask)=nm_x
+   rownames(x)=nm_mask
+   obj2kvh(x[o,], "starting cumomer vector", fkvh, indent=1)
 
    fwrv=vr$fwrv
    n=length(fwrv)
@@ -757,7 +782,7 @@ for (irun in iseq(nseries)) {
    names(f)=nm_fallnx
    obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
 
-   rres=cumo_resid(param, cjac=TRUE, labargs)
+   rres=lab_resid(param, cjac=TRUE, labargs)
    jx_f=labargs$jx_f=rres$jx_f
    names(rres$res)=nm_resid
    o=order(names(rres$res))
@@ -767,7 +792,12 @@ for (irun in iseq(nseries)) {
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
-   btmp=as.numeric(p2bfl%*%param[1:nb_f$nb_ff]+bp)
+   fg=numeric(nb_f$nb_fgr)
+   names(fg)=nm_list$fgr
+   if (nb_f$nb_fgr > 0) {
+      fg[paste("g.n.", substring(nm_list$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm_list$poolf]
+   }
+   btmp=as.numeric(p2bfl%*%param[iseq(nb_f$nb_ff)]+bp+g2bfl%*%fg)
    names(btmp)=dimnames(Afl)[[1]]
    obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
    names(measvec)=nm_meas
@@ -957,6 +987,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
          }
       }
+#browser()
+      
       res$jacobian=res$retres$jx_f=NULL # to avoid writing huge data
       obj2kvh(res, "optimization process information", fkvh)
    }
@@ -971,8 +1003,12 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    poolall[nm_poolf]=param[nm_poolf]
 
 #browser()
-   rres=cumo_resid(param, cjac=T, labargs)
-   jx_f=labargs$jx_f=rres$jx_f
+   if (is.null(jx_f$jacobian)) {
+      rres=lab_resid(param, cjac=T, labargs)
+      jx_f=labargs$jx_f=rres$jx_f
+   } else {
+      rres=res
+   }
    rcost=cumo_cost(param, labargs)
 
    pres[,irun]=param
@@ -1026,24 +1062,24 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       names(xi_f)=nm_xi_f
       nm_flist$xi=nm_xi_f
       labargs$emu=F
-      v=param2fl_x(param, cjac=F, labargs)
+      v=lab_sim(param, cjac=F, labargs)
       labargs$emu=emu
    } else {
-      v=param2fl_x(param, cjac=F, labargs)
+      v=lab_sim(param, cjac=F, labargs)
    }
    jx_f=labargs$jx_f=v$jx_f
    # set final variable depending on param
-   x=v$x
+   x=as.matrix(v$x)
    if (fullsys) {
-      names(x)=nm_cumo
+      rownames(x)=nm_cumo
    } else {
-      names(x)=nm_x
+      rownames(x)=nm_x
    }
 
    # write some info in result kvh
    obj2kvh(cumo2mass(x), "MID vector", fkvh)
    # replace decimal :i by binary :x1's
-   nm_mask=t(sapply(strsplit(names(x), "[:+]"), function(v) {
+   nm_mask=t(sapply(strsplit(nm_x, "[:+]"), function(v) {
       metab=v[1]
       v[2]=int2bit(v[2], len=clen[metab])
       v
@@ -1056,8 +1092,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    } else {
       nm_mask=paste(nm_mask[,1], nm_mask[,2], sep="#")
    }
-   names(x)=nm_mask
-   obj2kvh(x[o], "labeling vector", fkvh)
+   rownames(x)=nm_mask
+   obj2kvh(x[o,], "labeling vector", fkvh)
 
    fwrv=v$fwrv
    names(fwrv)=nm_fwrv
@@ -1113,7 +1149,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             if (TIMEIT) {
                cat("cl expor: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
-            clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "dfm_dff", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "param2fl_x", "is.diff", "cumo_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper", "labargs"))
+            clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper", "labargs"))
             if (TIMEIT) {
                cat("cl optim: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
@@ -1251,6 +1287,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       }
       break
    }
+#browser()
    if (length(sensitive) && nchar(sensitive) && sensitive != "mc") {
       cat(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""), "\\n", sep="", file=fcerr)
    }
@@ -1262,7 +1299,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # reset fluxes and jacobians according to param
    jx_f=labargs$jx_f=jx_f_last
    if (is.null(jx_f$jacobian)) {
-      rres=cumo_resid(param, cjac=T, labargs)
+      rres=lab_resid(param, cjac=T, labargs)
       jx_f=labargs$jx_f=rres$jx_f
    } # else use last calculated jacobian
 
@@ -1294,6 +1331,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       sdfl=sqrt(diag(covfl))
    } else {
       sdfl=rep(0., nb_fl)
+      covfl=matrix(0., nb_fl, nb_fl)
    }
    fl=c(head(param, nb_ff), fgr, flnx)
    mtmp=cBind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
