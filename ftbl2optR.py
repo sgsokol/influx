@@ -353,12 +353,7 @@ if (nchar(flabcin)) {
       ina=is.na(im)
       if (any(ina)) {
          mes=paste("Cannot match the following measurement(s) in the file '", flabcin, "':\\n", paste(nm_meas[ina], sep="", collapse="\\n"), "\\n", sep="", collapse="")
-         cat(mes, file=fcerr)
-         if (isatty(stdin())) {
-            stop(mes)
-         } else {
-            q("no", status=1)
-         }
+         stop_mes(mes, file=fcerr)
       }
       measvecti=measvecti[im,,drop=F]
       #stopifnot(all(!is.na(measvecti)))
@@ -417,7 +412,7 @@ measurements=list(
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
-nm_resid=c(outer(nm_meas, ti[-1L], paste, sep=", t="), nm_fmn, nm_poolm)
+nm_resid=c(if (case_i) outer(nm_meas, ti[-1L], paste, sep=", t=") else nm_meas, nm_fmn, nm_poolm)
 nm_list$resid=nm_resid
 
 if (TIMEIT) {
@@ -435,34 +430,50 @@ if (nchar(fseries) > 0) {
    }
    pstart=pstart[i,,drop=F]
    cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="", file=fclog)
-} else {
-   pstart=as.matrix(param)
-}
-nm_pseries=rownames(pstart)
-
-nseries=ncol(pstart)
-if (is.null(nseries) || nseries==0) {
-   cat("No starting values in the series file '"%s+%fseries%s+%"'.", "\\n", sep="", file=fcerr)
-   stop()
-}
-
-# prepare series indexes
-if (nchar(iseries) > 0) {
-   iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
-   if (nchar(fseries)==0) {
-      nseries=max(iseries)
-      pstart=matrix(0., nb_param, nseries)
-      dimnames(pstart)=list(nm_par, "V" %s+% iseq(nseries))
+   nseries=ncol(pstart)
+   if (initrand) {
+      # fill the rest of rows with random values
+      i=nm_par %in% rownames(pstart)
+      n=sum(!i)
+      pstart=rbind(pstart, matrix(runif(n*nseries), n, nseries))
+      rownames(pstart)=c(rownames(pstart)[iseq(nb_param-n)], nm_par[!i])
    }
-   iseries=iseries[iseries<=nseries]
+   if (nchar(iseries) > 0) {
+      iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
+      iseries=iseries[iseries<=nseries]
+      # subsample
+      pstart=pstart[,iseries, drop=F]
+      nseries=ncol(pstart)
+   } else {
+      iseries=iseq(nseries)
+   }
+} else if (nchar(iseries) > 0) {
+   # first construct pstart then if needed fill it with random values
+   # and only then subsample
+   iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
+   nseries=max(iseries)
+   pstart=matrix(rep(param, nseries), nrow=nb_param, ncol=nseries)
+   dimnames(pstart)=list(nm_par, paste("V", iseq(nseries), sep=""))
+   if (initrand) {
+      # fill pstart with random values
+      pstart[]=runif(length(pstart))
+   }
+   # subsample
    pstart=pstart[,iseries, drop=F]
    nseries=ncol(pstart)
 } else {
-   iseries=iseq(nseries)
-   
+   iseries=1L
+   pstart=as.matrix(param)
+   nseries=1L
+   if (initrand) {
+      # fill pstart with random values
+      pstart[]=runif(length(pstart))
+   }
 }
-if (initrand) {
-   pstart[]=runif(pstart)
+nm_pseries=rownames(pstart)
+
+if (is.null(nseries) || nseries==0) {
+   stop_mes(sprintf("No starting values in the series file '%s' or --iseries is empty.\\n", fseries),  file=fcerr)
 }
 
 pres=matrix(NA, nb_param, nseries)
@@ -481,9 +492,9 @@ ifg_in_fw=if (nb_fgr > 0) ifwrv[paste("fwd", substring(nm_fgr, 4), sep="")] else
 cfw_fl=crv_fl=cBind(ifl_in_fw, iseq(nb_fl))
 cfw_ff=crv_ff=cBind(iff_in_fw, iseq(nb_ff))
 cfw_fg=crv_fg=cBind(ifg_in_fw, nb_ff+iseq(nb_fgr))
-crv_fl[,1]=(nb_fwrv/2)+crv_fl[,1]
-crv_ff[,1]=(nb_fwrv/2)+crv_ff[,1]
-crv_fg[,1]=(nb_fwrv/2)+crv_fg[,1]
+crv_fl[,1L]=(nb_fwrv/2)+crv_fl[,1L]
+crv_ff[,1L]=(nb_fwrv/2)+crv_ff[,1L]
+crv_fg[,1L]=(nb_fwrv/2)+crv_fg[,1L]
 
 # store it in nb_f
 nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
@@ -498,7 +509,7 @@ dufm_dp=cBind(dufm_dff(nb_f, nm_list), Matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_pool
 dimnames(dufm_dp)=list(nm_fmn, nm_par)
 
 # measured pools
-dupm_dp <- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), if (nb_poolf > 0) measurements$mat$pool[,nm_list$poolf, drop=F] else NULL)
+dupm_dp <- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), if (nb_poolf > 0L) measurements$mat$pool[,nm_list$poolf, drop=F] else NULL)
 dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
@@ -1023,11 +1034,11 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    obj2kvh(rres$res[o], "(simulated-measured)/sd_exp", fkvh)
 
    # simulated measurements -> kvh
-   obj2kvh(cBind(value=jx_f$usimcumom,sd=measurements$dev$labeled), "simulated unscaled labeling measurements", fkvh)
+   obj2kvh(cBind(value=jx_f$usimcumom,sd=measurements$dev$labeled), "simulated unscaled label measurements", fkvh)
    if (nb_sc > 0) {
       val=jx_f$usimcumom*c(1.,param)[ir2isc]
       names(val)=nm_meas
-      obj2kvh(cBind(value=val,sd=measurements$dev$labeled), "simulated scaled labeling measurements", fkvh)
+      obj2kvh(cBind(value=val,sd=measurements$dev$labeled), "simulated scaled label measurements", fkvh)
    }
    if (nb_fmn) {
       obj2kvh(cBind(value=jx_f$fallnx[nm_fmn], sd=measurements$dev$flux), "simulated flux measurements", fkvh)
@@ -1093,7 +1104,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       nm_mask=paste(nm_mask[,1], nm_mask[,2], sep="#")
    }
    rownames(x)=nm_mask
-   obj2kvh(x[o,], "labeling vector", fkvh)
+   obj2kvh(x[o,], "label vector", fkvh)
 
    fwrv=v$fwrv
    names(fwrv)=nm_fwrv
