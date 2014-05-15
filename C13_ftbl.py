@@ -727,7 +727,7 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             netan["iso_input"][metab]={}
         netan["iso_input"][metab][iiso]=eval(row["VALUE"])
     if set(netan["iso_input"].keys()) != set(netan["input"]):
-        werr("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them\n"+
+        raise Exception("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them\n"+
             "LABEL_INPUT: "+str(netan["iso_input"].keys())+"\n"+
             "NETWORK input: "+str(netan["input"])+"\n")
     
@@ -740,9 +740,10 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
         dicf=formula2dict(row["FORMULA"])
         fl=dicf.keys()[0]
         if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
-            werr("Inequalities: in NET section, the formula '"+
+            wout("Warning: Inequalities: in NET section, the formula '"+
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+"' involves a constrained flux\n"+
-                " having a value "+str(netan["flux_constr"]["net"][fl])+". The inequality is ignored as meaningless.\n")
+                " having a value "+str(netan["flux_constr"]["net"][fl])+". The inequality is ignored as meaningless (row: %d).\n"%row["irow"])
+            continue
         netan["flux_inequal"]["net"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
@@ -768,7 +769,7 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             #print netan[dfcg][nx];##
             for fl in netan[dfcg][nx]:
                 if fl not in netan["reac"]|eqflux:
-                   raise Exception("%s %s flux `%s` is not defined in NETWORK neither EQUALITY sections."%
+                    raise Exception("%s %s flux `%s` is not defined in NETWORK neither EQUALITY sections."%
                        (affdfcg, affnx, fl))
                 netan["nx2dfcg"][nxsh+fl]=dfcgsh+nxsh+fl
 
@@ -1360,8 +1361,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         # check if this line was already entered before
         for (i,row) in enumerate(res):
             if row==qry:
-                wout("Warning: when trying to add a balance equation for "+metab+
-                    " got the same equation as for "+netan["vrowAfl"][i]+"\n")
+                wout("Warning: when trying to add a balance equation for metabolite '"+metab+
+                    "', got the same equation as for '"+netan["vrowAfl"][i]+"'\n")
                 wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
                 wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
                 wout(metab+":\t"+join("\t", qry)+"\n")
