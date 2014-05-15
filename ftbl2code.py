@@ -968,7 +968,6 @@ if (ffguess) {
    # remake param vector
    param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-iseq(nb_ff)])
    names(param)[seq(along=nm_ff)]=nm_ff
-   
 #browser()
 }
 nm_list$flnx=nm_fl
@@ -1347,7 +1346,7 @@ ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
     "basep": base_pooled,
     }
             )
-        base_pooled=base_pooled+len(measures[meas]["vec"])
+        base_pooled=base_pooled+len(measures[meas]["vec"])+sum(len(item)-2 for item in measures[meas]["pooled"])
     # preepare measmat indexes and values : ir, ic, val
     f.write("""
 ir2isc=ir2isc[ipooled$ishort]
