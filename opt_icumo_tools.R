@@ -14,7 +14,6 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
    # derivated from param2fl_usm_eul() with implicit euler scheme.
    # 2014-04-09 sokol
    
-   cjac=F # to remove in the final version
 #browser()
    # from labargs to local vars
    for (item in ls(labargs)) {
@@ -36,7 +35,7 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
    fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
    lf=param2fl(param, labargs)
    jx_f$fallnx=lf$fallnx
-   jx_f$fwrv=lf$fwrv
+   jx_f$fwrv=labargs$fwrv=lf$fwrv
    jx_f$flnx=lf$flnx
    nb_fwrv=length(lf$fwrv)
    nb_xi=length(xi)
@@ -65,33 +64,12 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
    nm_metabs=matrix(sapply(names(pool), function(nm) {
       strsplit(nm, ":")[[1]]
    }), nrow=2)[2,]
-   if (cjac && nb_poolf > 0) {
-      nm_metabf=matrix(sapply(nm$poolf, function(nm) {
-         strsplit(nm, ":")[[1]]
-      }), nrow=2)[2,]
-      # matrix of ponderation derivation
-      fpw2m=Matrix(0., nrow=nrow(measmat), ncol=nb_poolf)
-   }
    for (metabs in collect_pools) {
       metabv=strsplit(metabs, "+", fix=T)[[1]]
       ime=match(metabv, nm_metabs)
       vp=pool[ime]
       vs=sum(vp)
       pwei[[metabs]]=pool[ime]/vs # pool is assumed non negative, non zero vector
-      # auxiliary matrix for jacobian part depending on ponderation by pools
-      if (cjac && nb_poolf > 0) {
-         in_pf=match(metabv, nm_metabf)
-         imef=which(!is.na(in_pf))
-         if (length(imef)==0) {
-            next
-         }
-         in_pf=in_pf[!is.na(in_pf)]
-         icoupl=cbind(imef, in_pf)
-         vd=-vp%o%rep(1., nb_poolf)
-         vd[,-in_pf]=0.
-         vd[icoupl]=vd[icoupl]+vs
-         dpwei[[metabs]]=vd/(vs*vs)
-      }
    }
    # ponderation itself
    measmatp=measmat
@@ -104,10 +82,6 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
       metabs=strsplit(nmp, ":", fix=T)[[1]][2]
       measmatp[i,]=measmat[i,,drop=F]*pwei[[metabs]]
       memaonep[i]=memaone[i]*pwei[[metabs]]
-      # auxiliary matrix for jacobian itself
-      if (cjac && nb_poolf > 0 && !is.null(dpwei[[metabs]])) {
-         fpw2m[i,]=dpwei[[metabs]]
-      }
    }
    #mema1=measmatp[,-nb_mcol,drop=F]
    #memaone=measmatp[,nb_mcol]
@@ -138,16 +112,6 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
    labargs$lf=lf
    labargs$invmw=invmw
    labargs$lwA=lwA
-   # prepare jaclab=dx'/dx
-   jaclab=matrix(0., nrow=length(x0), ncol=length(x0))
-   for (iw in nb_w) {
-      if (nb_x[iw] == 0) {
-         next
-      }
-      i=nbc_x[iw]+1:nb_x[iw]
-      jaclab[i,i]=as.matrix(lwA[[iw]])
-   }
-   labargs$jaclab=jaclab
 #browser()
    sim=ode(y=x0, func=cb_labsys, times=ti, parms=labargs, jactype="fullusr", jacfunc=cb_jaclab)
    usm=as.matrix(mema1%mmt%sim[-1L,-1L,drop=F]+memaonep) # trip row t=0 and the whole time column
@@ -381,9 +345,9 @@ with(labargs, {
          xw1=x1[ixw]
          # prepare s
          if (calcx) {
-            sw2=as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x2)$s)*invmw[[iw]]
+            sw2=as.numeric(fwrv2sp(lf$fwrv, spAb[[iw]], x2)$s)*invmw[[iw]]
             # make a time step for xw
-            xw2=as.double(inviadt[[dtr]][[iw]]%*%(xw1+dt[iti-1]*sw2))
+            xw2=as.numeric(inviadt[[dtr]][[iw]]%*%(xw1+dt[iti-1]*sw2))
             
             # subdivide or not time step ?
             if (!subdiv && (any(xw2 < -1.e-3) || any(xw2 > 1.001))) {
@@ -402,7 +366,7 @@ with(labargs, {
          } else {
             xw2=x2[ixw]
             if (cjac) {
-               sw2=as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x2)$s)*invmw[[iw]]
+               sw2=as.numeric(fwrv2sp(lf$fwrv, spAb[[iw]], x2)$s)*invmw[[iw]]
             }
          }
          if (cjac) {
@@ -845,11 +809,11 @@ with(labrags, {
          return(ai)
       })
       # s
-      s1=lapply(1:nb_w, function(iw) {as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1)$s)*invmw[[iw]]})
+      s1=lapply(1:nb_w, function(iw) {as.numeric(fwrv2sp(lf$fwrv, spAb[[iw]], x1)$s)*invmw[[iw]]})
       # xp first derivative of x
       xp1=c(rep(0., nb_xi+1), unlist(s1)) # A*x1 is omited as x1==0
       # sp first derivative of s
-      sp1=lapply(1:nb_w, function(iw) as.double(fwrv2sp(lf$fwrv, spAb[[iw]], x1, xp1, gets=F)$sp)*invmw[[iw]])
+      sp1=lapply(1:nb_w, function(iw) as.numeric(fwrv2sp(lf$fwrv, spAb[[iw]], x1, xp1, gets=F)$sp)*invmw[[iw]])
       expadt=list()
       xsim=matrix(0., nrow=length(x1), ncol=nb_tifu)
       xpsim=matrix(0., nrow=length(xp1), ncol=nb_tifu)
@@ -987,8 +951,8 @@ with(labrags, {
             swp1=sp1[[iw]]
             if (iw > 1) {
                ssp=fwrv2sp(lf$fwrv, spAb[[iw]], x2, xp2)
-               sw2=as.double(ssp$s)*invmw[[iw]]
-               swp2=as.double(ssp$sp)*invmw[[iw]]
+               sw2=as.numeric(ssp$s)*invmw[[iw]]
+               swp2=as.numeric(ssp$sp)*invmw[[iw]]
             } else {
                # for the first weight the source is constant in pulse experiment
                sw2=sw1
@@ -999,13 +963,13 @@ with(labrags, {
 
             # make a time step for xw
             if (iw == 1) {
-               xw2=as.double(expm_const_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, xw1))
+               xw2=as.numeric(expm_const_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, xw1))
             } else if (F && !subdiv) {
                # in the hope that the s curve is smooth enough
-               xw2=as.double(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, swp1, swp2, xw1))
+               xw2=as.numeric(expm_cub_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, swp1, swp2, xw1))
             } else {
                # for a steep step subdivide and low order to preserve monotony
-               xw2=as.double(expm_lin_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, xw1))
+               xw2=as.numeric(expm_lin_step(lwinva[[iw]], dt[iti-1], expadt[[dtr]][[iw]], sw1, sw2, xw1))
             }
             # subdivide or not time step ?
             if (!subdiv && (any(xw2 < -1.e-3) || any(xw2 > 1.001))) {
@@ -1020,7 +984,7 @@ with(labrags, {
             # bring to interval [0; 1]
             #xw2[xw2<0.]=0.
             #xw2[xw2>1.]=1.
-            xwp2=as.double(lwA[[iw]]%*%xw2)+sw2
+            xwp2=as.numeric(lwA[[iw]]%*%xw2)+sw2
             x2=c(x2, xw2)
             xp2=c(xp2, xwp2)
          } else {
@@ -1320,12 +1284,12 @@ cb_labsys=function(t, x, parms) {
    nbc_x=parms$nbc_x
    
    xfull=c(1., parms$xi, x)
-   dx=double(length(x))
+   dx=numeric(length(x))
    for (iw in 1:parms$nb_w) {
       icw=nbc_x[iw]+(1L:nb_x[iw])
       ixw=1L+parms$nb_f$xi+icw
       xw=if (parms$emu) matrix(xfull[ixw], nrow=parms$nb_rcumos[iw], ncol=iw+1L) else xfull[ixw]
-      s=as.double(fwrv2sp(parms$lf$fwrv, parms$spAb[[iw]], xfull)$s, emu)*parms$invmw[[iw]]
+      s=as.numeric(fwrv2sp(parms$lf$fwrv, parms$spAb[[iw]], xfull)$s, emu)*parms$invmw[[iw]]
       dxw=parms$lwA[[iw]]%*%xw+s
       if (emu) {
          dxw=c(dxw, -rowSums(dxw)) # complete the last weight of emu
@@ -1335,10 +1299,24 @@ cb_labsys=function(t, x, parms) {
    }
    return(list(dx))
 }
-cb_jaclab=function(t, x, parms) {
+cb_jaclab=function(t, x, p) {
    # this is a call back function for ode() call.
    # It returns a full jacobian matrix dx'/dx
-   return(parms$jaclab)
+   incu=c(1., p$xi, x)
+   # prepare jaclab=dx'/dx
+   jaclab=matrix(0., nrow=length(x), ncol=length(x))
+   for (iw in p$nb_w) {
+      if (p$nb_x[iw] == 0) {
+         next
+      }
+      i=p$nbc_x[iw]+1L:p$nb_x[iw]
+      jaclab[i,i]=as.matrix(p$lwA[[iw]])
+      iprev=iseq(p$nbc_x[iw])
+      if (length(iprev)) {
+         jaclab[i,iprev]=as.matrix(-fx2jr(p$fwrv, p$spAb[[iw]], p$nb_f, incu)$b_x)
+      }
+   }
+   return(jaclab)
 }
 fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
    # calculate s and ds/dt in A*x+s (where x is cumomer vector
@@ -1407,5 +1385,5 @@ dusm_dffpf=function(param, labargs) {
       nb_ff=labargs$nb_f$nb_ff
       p=param[-(nb_ff+1:nb_sc)]
    }
-   return(jacobian(get_usm, p, method="simple", method.args=list(), labargs))
+   return(jacobian(get_usm, p, method="Richardson", method.args=list(), labargs))
 }
