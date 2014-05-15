@@ -684,7 +684,7 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
          #for (iwe in 1:iwc) {
          #   b_pre[[iwe]]@x=fwrv[spAbr$ind_fbe[[iwe]]]*incu[spAbr$ind_xe1[[iwe]]]*incu[spAbr$ind_xe2[[iwe]]]
          #}
-         #b=-vapply(b_pre, colSums, double(nb_c))
+         #b=-vapply(b_pre, colSums, numeric(nb_c))
          ind_b=spAbr[["ind_b_emu"]]
          x=-fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
          b=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"iwe"], x=x, dims=c(nb_c, w))
