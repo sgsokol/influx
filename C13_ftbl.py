@@ -737,6 +737,8 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
     # net fluxes
     for row in ftbl.get("INEQUALITIES",{}).get("NET",[]):
         #print row;##
+        if row["COMP"] not in (">=", "=>", "<=", "=<"):
+            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
         dicf=formula2dict(row["FORMULA"])
         fl=dicf.keys()[0]
         if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
@@ -751,6 +753,8 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
     # xch fluxes
     for row in ftbl.get("INEQUALITIES",{}).get("XCH",[]):
         #print row;##
+        if row["COMP"] not in (">=", "=>", "<=", "=<"):
+            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
         netan["flux_inequal"]["xch"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
@@ -761,6 +765,28 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
                 if fl not in netan["reac"]|eqflux:
                     raise Exception("%s flux `%s` in the inequality\n%s\nis not defined in NETWORK neither EQUALITY sections."%
                         (afftype, fl, join("", row)))
+    # metabolite inequalities (like the flux ones)
+    netan["metab_inequal"]=list()
+    for row in ftbl.get("INEQUALITIES",{}).get("METAB",[]):
+        dicf=formula2dict(row["FORMULA"])
+        if row["COMP"] not in (">=", "=>", "<=", "=<"):
+            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
+        for m in dicf:
+            if m not in netan["metabint"]:
+                raise Exception("Metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
+            if m not in netan["met_pools"]:
+                raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+        if len(dicf)==1:
+            m=dicf.keys()[0]
+            if netan["met_pools"][m] > 0:
+                raise Exception("To be alone in INEQUALITIES/METAB section, the  metabolite `%s` must be declared as variable, i.e. having negative value in the section METABOLITE_POOLS (row: %d)."%(m, row["irow"]))
+            if m not in netan["met_pools"]:
+                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+        netan["metab_inequal"].append((
+                eval(row["VALUE"]),
+                row["COMP"],
+                dicf,
+                row["VALUE"]+row["COMP"]+row["FORMULA"]))
 
     # Check that fluxes are all in reactions and eqflux
     # then form nx2dfcg dictionary
@@ -1669,7 +1695,7 @@ def formula2dict(f):
             coef=1. if coef==None or not len(coef) else float(coef)
             var=m.group("var")
             sign=-1 if sign==-1 else 1
-            res[var]=sign*coef
+            res[var]=res.get(var, 0.)+sign*coef
             sign=next_sign
         else:
             raise Exception("Not parsed term '"+term+"' in formula '"+f+"'.")
