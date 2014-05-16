@@ -225,59 +225,63 @@ if __name__ == "__main__":
 
     f.write("""
 #browser()
-# metabolite pools are : all (poolall) which is divided in free (poolf) and
-# constrained (poolc)
-
-# constrained pool
-poolc=c(%(poolc)s)
-nm_poolc=c(%(nm_poolc)s)
-names(poolc)=nm_poolc
-
-# starting values for free pool
-poolf=c(%(poolf)s)
-nm_poolf=c(%(nm_poolf)s)
-names(poolf)=nm_poolf
-nb_poolf=length(poolf)
-nb_f$nb_poolf=nb_poolf
-
-nm_poolall=c(nm_poolf, nm_poolc)
-poolall=as.numeric(c(poolf, poolc))
-names(poolall)=nm_poolall
-pool=poolall
 
 # extend param vector by free pools
 if (nb_poolf > 0) {
-#expp   param=c(param, log(poolf))
    param=c(param, poolf)
    nm_par=c(nm_par, nm_poolf)
    nb_param=length(param)
 }
 nm_list$par=nm_par
 
-nm_list$poolf=nm_poolf
-nm_list$poolc=nm_poolc
-nm_list$poolall=nm_poolall
-
 #browser()
 if (nb_poolf > 0) {
-#expp   # extend inequalities ui, ci by log(cupp) >= poolf >= log(clowp)
-# extend inequalities ui, ci by cupp>= poolf >= clowp
+   # extend inequalities ui, ci by uip, cip
    nb_row=nrow(ui)
    nb_col=ncol(ui)
-   ui=cBind(ui, Matrix (0., nrow=nrow(ui), ncol=nb_poolf))
-   ui=rBind(ui, Matrix (0., nrow=2*nb_poolf, ncol=ncol(ui)))
-   ui[nb_row+1:nb_poolf,nb_col+1:nb_poolf]=diag(1., nb_poolf)
-   ui[nb_row+nb_poolf+1:nb_poolf,nb_col+1:nb_poolf]=diag(-1., nb_poolf)
-#expp   ci=c(ci, rep(log(clowp), nb_poolf))
-#expp   ci=c(ci, rep(-log(cupp), nb_poolf))
-   ci=c(ci, rep(clowp, nb_poolf))
-   ci=c(ci, rep(-cupp, nb_poolf))
-   nm_i=c(nm_i, paste(nm_poolf, ">=", clowp, sep=""))
-   nm_i=c(nm_i, paste(nm_poolf, "<=", cupp, sep=""))
-   rownames(ui)=nm_i
-   names(ci)=nm_i
+   ui=cBind(ui, Matrix (0., nrow=nb_row, ncol=nb_poolf)) # add 0-columns
+   ui=rBind(ui, cBind(Matrix(0., nrow(uip), ncol=nb_col), uip))
+   ci=c(ci, cip)
+   
+   # extend inequalities ui, ci by cupp>= poolf >= clowp
+   # but exclude metabolites that are individually set in the uip (FTBL)
+   met_low=met_up=c()
+   # number of non zero entries per row in uip
+   i_nz=rowSums(abs(uip) != 0.)
+   # number of positive coeffs for alone metabs (i.e. low limit is set)
+   i_pos=colSums(uip[i_nz > 0,,drop=F] > 0)
+   met_low=nm_poolf[i_pos > 0]
+   # number of negative coeffs for alone metabs (i.e. upper limit is set)
+   i_neg=colSums(uip[i_nz > 0,,drop=F] < 0)
+   met_up=nm_poolf[i_neg > 0]
+
+   # add low limit
+   nb_add=nb_poolf-length(met_low)
+   if (nb_add > 0) {
+      nm_add=nm_poolf[!nm_poolf %in% met_low]
+      ui_add=Matrix(0., nrow=nb_add, ncol=ncol(ui))
+      ui_add[,nb_col+pmatch(nm_add, nm_poolf)]=diag(1., nb_add)
+      rownames(ui_add)=paste(nm_add, ">=", clowp, sep="")
+      ui=rBind(ui, ui_add)
+      ci=c(ci, rep(clowp, nb_add))
+   }
+
+   # add upper limit
+   nb_add=nb_poolf-length(met_up)
+   if (nb_add > 0) {
+      nm_add=nm_poolf[!nm_poolf %in% met_up]
+      ui_add=Matrix(0., nrow=nb_add, ncol=ncol(ui))
+      ui_add[,nb_col+pmatch(nm_add, nm_poolf)]=diag(-1., nb_add)
+      rownames(ui_add)=paste(nm_add, "<=", cupp, sep="")
+      ui=rBind(ui, ui_add)
+      ci=c(ci, rep(-cupp, nb_add))
+   }
+
+   names(ci)=rownames(ui)
    colnames(ui)=nm_par
 }
+""")
+    f.write("""
 # prepare metabolite pools measurements
 nb_poolm=%(nb_poolm)d
 nb_f$nb_poolm=nb_poolm
@@ -305,10 +309,6 @@ nb_ti=1
 x0=NULL
 
 """%{
-    "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
-    "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"'),
-    "poolc": join(", ", (netan["met_pools"][m] for m in netan["vpool"]["constrained"])),
-    "nm_poolc": join(", ", netan["vpool"]["constrained"], '"pc:', '"'),
     "nb_poolm": len(netan["metab_measured"]),
     "nm_poolm": join(", ", netan["metab_measured"].keys(), '"pm:', '"'),
     "v_poolm": join(", ", (item["val"] for item in netan["metab_measured"].values())).replace("nan", "NA"),
