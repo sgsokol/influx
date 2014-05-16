@@ -508,6 +508,7 @@ if (prof) {
 }
 
 nm_list=list()
+nb_f=list()
 """%{
     "proffile": escape(f.name[:-1]+"Rprof", "\\"),
 })
@@ -599,9 +600,6 @@ nb_sys=list(
       reduced=c(%(lnrcumo)s)
    )
 )
-# carbon length of metabolites
-clen=c(%(clen)s)
-names(clen)=c(%(nm_metab)s)
 """%{
     "rrev": len(netan["reac"])-len(netan["notrev"]),
     "rnonrev": len(netan["notrev"]),
@@ -619,15 +617,12 @@ names(clen)=c(%(nm_metab)s)
     "eqi": len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"]),
     "lncumo": ",".join(str(len(a)) for a in netan["cumo_sys"]["A"]),
     "lnrcumo": ",".join(str(len(a)) for a in netan["rcumo_sys"]["A"]),
-    
-    "clen": join(",", netan["Clen"].values()),
-    "nm_metab": join(",", netan["Clen"].keys(), '"', '"')
     })
     return res
 
 def netan2R_fl(netan, org, f):
     """netan2R_fl(netan, org, f)
-    generate R code for flux part
+    generate R code for flux and pool part
     for more details cf. netan2Rinit()
     """
     # dependent flux counts
@@ -743,6 +738,36 @@ nb_fl=nb_fln+nb_flx
 # gather flux names in a list
 nm_list$flnx=nm_fl
 nm_list$fwrv=nm_fwrv
+
+# carbon length of metabolites
+clen=c(%(clen)s)
+names(clen)=c(%(nm_metab)s)
+
+# metabolite pools are : all (poolall) which is divided in free (poolf) and
+# constrained (poolc)
+
+# constrained pool
+poolc=c(%(poolc)s)
+nm_poolc=c(%(nm_poolc)s)
+names(nm_poolc)=substring(nm_poolc, 4)
+names(poolc)=nm_poolc
+
+# starting values for free pool
+poolf=c(%(poolf)s)
+nm_poolf=c(%(nm_poolf)s)
+names(nm_poolf)=substring(nm_poolf, 4)
+names(poolf)=nm_poolf
+nb_poolf=length(poolf)
+nb_f$nb_poolf=nb_poolf
+
+nm_poolall=c(nm_poolf, nm_poolc)
+poolall=as.numeric(c(poolf, poolc))
+names(poolall)=nm_poolall
+pool=poolall
+nm_list$poolf=nm_poolf
+nm_list$poolc=nm_poolc
+nm_list$poolall=nm_poolall
+
 # flux matrix
 nb_flr=%(nb_flr)d
 if (nb_fl) {
@@ -754,6 +779,12 @@ if (nb_fl) {
     "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
     "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
     "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.iteritems() for e in l)),
+    "clen": join(",", netan["Clen"].values()),
+    "nm_metab": join(",", netan["Clen"].keys(), '"', '"'),
+    "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
+    "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"'),
+    "poolc": join(", ", (netan["met_pools"][m] for m in netan["vpool"]["constrained"])),
+    "nm_poolc": join(", ", netan["vpool"]["constrained"], '"pc:', '"'),
 })
     for (i,row) in enumerate(netan["Afl"]):
         f.write(
@@ -826,13 +857,13 @@ nb_fallnx=nb_fl+nb_ff+nb_fc+nb_fgr+nb_fgr
 nb_fwrv=nb_fallnx
 
 # all flux cardinals
-nb_f=list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
+nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
    nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,
    nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,
    nb_fallnx=nb_fallnx, nb_fwrv=nb_fwrv,
    nb_fgr=nb_fgr,
    include_growth_flux=%(inc_gr_f)s,
-   mu=%(mu)s)
+   mu=%(mu)s))
 """%{
     "nm_rows": join(", ", netan["vrowAfl"], '"', '"'),
     "nb_ffn": nb_ffn,
@@ -1673,7 +1704,7 @@ if (clownr!=0.) {
    len_tmp=length(nm_tmp)
    if (len_tmp > 0) {
       mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx))
-      nm_i=c(nm_i, paste(nm_tmp, ">=", clownr))
+      nm_i=c(nm_i, paste(nm_tmp, ">=", clownr, sep=""))
       mi[nb_tmp+(1:len_tmp), nm_tmp]=diag(1., len_tmp)
       li=c(li, rep(clownr, len_tmp))
    }
@@ -1724,10 +1755,56 @@ names(li)=nm_i
 # it is composed of explicite inequalities from ftbl
 # and permanent inequalities 0<=xch<=0.999 and scale>=0
 
-# constraints such that ui%*%param[1:nb_ff]-ci>=0
+# constraints such that ui%*%param-ci>=0
+# first flux part
 ui=mi%*%(md%*%invAfl%*%p2bfl+mf)
 mic=(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc)
 ci=as.numeric(li-mi%*%mic)
+""")
+    f.write("""
+# finaly, metab part
+uip=Matrix(0, %(nb_ip)d, ncol=nb_poolf)
+colnames(uip)=nm_poolf
+# ind: irow, metab, coef, rhs, name
+uip_ind=matrix(c(
+"""%{
+    "nb_ip": len(netan["metab_inequal"]),
+})
+    st=""
+    for (i, (rhs, comp, d, name)) in enumerate(netan["metab_inequal"]):
+        si=-1. if comp == ">=" or comp == "=>" else 1.
+        rhs*=si
+        for (m, coef) in d.iteritems():
+            # ind4 (str): irow, metab, coef, rhs, name
+            coef*=si
+            if netan["met_pools"][m] > 0:
+                rhs-=netan["met_pools"][m]*coef
+                m=""
+                coef=0.
+            st=st+"""   "%d", "%s", "%g", "%g", "%s",
+"""%(i+1, m, coef, rhs, name)
+            rhs=0.
+    f.write("""%s
+   ), byrow=T, ncol=5L)
+"""%st[:-2]+"\n")
+
+    f.write("""
+colnames(uip_ind)=c("irow", "metab", "coef", "rhs", "name")
+
+# rhs are summed up for the same irow by sparseMatrix()
+irow=as.integer(uip_ind[,"irow"])
+cip=as.double(sparseMatrix(i=irow, j=rep(1, nrow(uip_ind)), x=as.double(uip_ind[,"rhs"])))
+for (i in iseq(nrow(uip_ind))) {
+   row=uip_ind[i,]
+   if (nchar(row["metab"])==0) {
+      next
+   }
+   uip[irow[i], nm_poolf[row["metab"]]]=as.double(row["coef"])
+}
+if (nrow(uip) > 0) {
+   rownames(uip)=paste("m:", uip_ind[pmatch(iseq(nrow(uip)), irow),"name"], sep="")
+}
+
 #browser() # before null inequality removing
 # remove all zero rows in ui (constrained fluxes with fixed values)
 # find zero indexes
