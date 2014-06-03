@@ -516,7 +516,7 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
         mdif=netan["metabint"].difference(netan["met_pools"])
         if len(mdif) :
             # unknown metabolite(s)
-            raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK are not defined in the METABOLITE_POOLS section.")
+            raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK, are not defined in the METABOLITE_POOLS section.")
     
     # input and output flux names
     netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]))
@@ -528,21 +528,56 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
     # flux equalities
     # list of tuples (value,dict) where dict is flux:coef
     # net fluxes
+    
+    # temporary list of constrained net fluxes
+    fcnstr=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("NET", []) if row["FCD"] == "C")
     for row in ftbl.get("EQUALITIES",{}).get("NET",[]):
-        #print row;##
+        dicf=formula2dict(row["FORMULA"])
+        # number of non constrained fluxes in a formula
+        nb_nonc=sum(fl not in fcnstr for fl in dicf)
+        if nb_nonc==0:
+            wout("Warning: in EQUALITIES/NET section, the formula '"+
+                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (row: %d).\n"%row["irow"])
+            continue
         netan["flux_equal"]["net"].append((
                 eval(row["VALUE"]),
-                formula2dict(row["FORMULA"]),
+                dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     # xch fluxes
+    # temporary list of constrained xch fluxes
+    fcnstr=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", []) if row["FCD"] == "C")
     for row in ftbl.get("EQUALITIES",{}).get("XCH",[]):
-        #print row;##
+        dicf=formula2dict(row["FORMULA"])
+        # number of non constrained fluxes in a formula
+        nb_nonc=sum(fl not in fcnstr for fl in dicf)
+        if nb_nonc==0:
+            wout("Warning: in EQUALITIES/XCH section, the formula '"+
+                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (row: %d).\n"%row["irow"])
+            continue
         netan["flux_equal"]["xch"].append((
                 eval(row["VALUE"]),
-                formula2dict(row["FORMULA"]),
+                dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     netan["eqflux"]=set(f for row in netan["flux_equal"]["net"] for f in row[1].keys()) | set(f for row in netan["flux_equal"]["xch"] for f in row[1].keys())
     eqflux=netan["eqflux"]
+    # metab EQAULITIES
+    netan["metab_equal"]=list()
+    for row in ftbl.get("EQUALITIES",{}).get("METAB",[]):
+        #print row;##
+        dicf=formula2dict(row["FORMULA"])
+        nb_neg=0
+        for m in dicf:
+            if m not in netan["metabint"]:
+                raise Exception("Metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
+            if m not in netan["met_pools"]:
+                raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+            nb_neg+=netan["met_pools"][m]<0
+        if nb_neg==0:
+            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (row: %d)."%("', '".join(dicf.keys()), row["irow"]))
+        netan["metab_equal"].append((
+                eval(row["VALUE"]),
+                dicf,
+                row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
 
     # analyse reaction reversibility
     # free fluxes(dictionary flux->init value for simulation or minimization)
@@ -661,16 +696,8 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
                 elif (ncond and ncond["FCD"] == "D"):
                     # dependent net
                     netan["flux_dep"]["net"].add(reac)
-    ##        aff("free net", netan["flux_free"]["net"])
-    ##        aff("free xch", netan["flux_free"]["xch"])
-    ##        aff("constr net", netan["flux_free"]["net"])
-    ##        aff("free xch", netan["flux_free"]["xch"])
             except:
                 werr("Error occured on the row %d or %d of ftbl file:\n"%(ncond["irow"], cond["irow"]))
-                #werr(join("; ", cond)+"\n")
-                #werr(join("; ", cond.values())+"\n")
-                #werr(join("; ", ncond)+"\n")
-                #werr(join("; ", ncond.values())+"\n")
                 raise
     except Exception as inst:
         #werr(join(" ", sys.exc_info())+"\n")
@@ -771,22 +798,20 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
         dicf=formula2dict(row["FORMULA"])
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
+        nb_neg=0
         for m in dicf:
             if m not in netan["metabint"]:
                 raise Exception("Metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
             if m not in netan["met_pools"]:
                 raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
-        if len(dicf)==1:
-            m=dicf.keys()[0]
-            if netan["met_pools"][m] > 0:
-                raise Exception("To be alone in INEQUALITIES/METAB section, the  metabolite `%s` must be declared as variable, i.e. having negative value in the section METABOLITE_POOLS (row: %d)."%(m, row["irow"]))
-            if m not in netan["met_pools"]:
-                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+            nb_neg+=netan["met_pools"][m]<0
+        if nb_neg==0:
+            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (row: %d)."%("', '".join(dicf.keys()), row["irow"]))
         netan["metab_inequal"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
                 dicf,
-                row["VALUE"]+row["COMP"]+row["FORMULA"]))
+                row["VALUE"]+row["COMP"]+row["FORMULA"]+": "+str(row["irow"])))
 
     # Check that fluxes are all in reactions and eqflux
     # then form nx2dfcg dictionary
