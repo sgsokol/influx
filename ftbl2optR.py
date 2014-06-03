@@ -277,9 +277,12 @@ if (nb_poolf > 0) {
       ci=c(ci, rep(-cupp, nb_add))
    }
 
-   names(ci)=rownames(ui)
+   nm_i=names(ci)=rownames(ui)
    colnames(ui)=nm_par
 }
+# extend the matrix of metabolite equalities
+ep=cBind(Matrix(0., nrow(ep), nb_param-nb_poolf), ep)
+colnames(ep)=nm_par
 """)
     f.write("""
 # prepare metabolite pools measurements
@@ -502,6 +505,7 @@ nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
 
 nb_w=length(spa)
 nbc_x=c(0, cumsum(nb_x))
+nb_f$nbc_x=nbc_x
 
 # fixed part of jacobian (unreduced by SD)
 # measured fluxes
@@ -514,7 +518,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "meas2sum")
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
@@ -619,6 +623,7 @@ for (irun in iseq(nseries)) {
       } else {
          cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
          cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=fcerr)
+         stop_mes()
       }
 
       # remove redundant/contradictory inequalities
@@ -1128,9 +1133,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          set.seed(seed)
       }
       # Monte-Carlo simulation in parallel way (if asked and possible)
-      simcumom=c(1.,param)[ir2isc]*jx_f$usimcumom
-      simfmn=f[nm_fmn]
-      simpool=as.numeric(measurements$mat$pool%*%poolall)
       #.Platform$OS.type="bidon"
       if (np > 1L) {
          # parallel execution
@@ -1139,28 +1141,23 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             type="FORK"
             nodes=np
          } else {
-            type="PSOCK"
+            type="SOCK"
             nodes=rep("localhost", np)
          }
-         #seeds=sample(1L:10000L, nmc)
          cl=makeCluster(nodes, type)
          if (.Platform$OS.type!="unix") {
             if (TIMEIT) {
                cat("cl init : ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
             clusterEvalQ(cl, c(require(bitops), require(nnls), require(Matrix)))
-""")
-    f.write("""
-            if (TIMEIT) {
-               cat("cl sourc: ", format(Sys.time()), "\\n", sep="", file=fclog)
-            }
-            clusterEvalQ(cl, c(source("%(dirx)s/tools_ssg.R"), source("%(dirx)s/nlsic.R")))
-"""%{"dirx": escape(dirx, "\\")})
-    f.write("""
             if (TIMEIT) {
                cat("cl expor: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
-            clusterExport(cl, c("nb_ff", "fcerr", "lsi_fun", "nm_ff", "nm_fmn", "cumo_jacob", "ind_bx", "fx2jr", "trisparse_solv", "fwrv2Abr", "pool", "ir2isc", "ipooled", "emu", "Heaviside", "nm_fwrv", "df_dffp", "DEBUG", "fallnx2fwrv", "fc", "dfcg2fallnx", "g2bfl", "bp", "p2bfl", "c2bfl", "invAfl", "param2fl", "nb_rcumos", "nm_list", "nb_f", "xi", "spa", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "nb_meas", "simcumom", "nb_fmn", "simfmn", "nb_poolm", "simpool", "measurements", "opt_wrapper", "labargs"))
+            clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "DEBUG", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx"))
+            if (TIMEIT) {
+               cat("cl sourc: ", format(Sys.time()), "\\n", sep="", file=fclog)
+            }
+            clusterEvalQ(cl, c(source(file.path(dirx, "tools_ssg.R")), source(file.path(dirx, "nlsic.R"))))
             if (TIMEIT) {
                cat("cl optim: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
@@ -1202,7 +1199,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          cost_mc=cost_mc[-ifa]
       }
       if (nmc_real <= 1) {
-         cat("No sufficient calculated monter-carlo samples for statistics.", "\\n", sep="", file=fcerr)
+         cat("No sufficient monter-carlo samples were succesfully calculated to do some statistics.", "\\n", sep="", file=fcerr)
          break
       }
 #browser()
@@ -1409,17 +1406,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       Rprof(NULL)
    }
    close(fkvh)
-""")
-    f.write("""
    # write edge.netflux property
-   fedge=file("%(d)s/edge.netflux.%(org)s" %%s+%% runsuf %%s+%% ".attrs", "w")
+   fedge=file(file.path(dirw, sprintf("edge.netflux.%s%s.attrs", baseshort,  runsuf)), "w")
    cat("netflux (class=Double)\\n", sep="", file=fedge)
    nm_edge=names(edge2fl)
    cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge)
    close(fedge)
 
    # write edge.xchflux property
-   fedge=file("%(d)s/edge.xchflux.%(org)s" %%s+%% runsuf %%s+%% ".attrs", "w")
+   fedge=file(file.path(dirw, sprintf("edge.xchflux.%s%s.attrs", baseshort,  runsuf)), "w")
    flxch=paste(".x", substring(edge2fl, 4), sep="")
    ifl=charmatch(flxch, substring(names(fallnx), 2))
    cat("xchflux (class=Double)\\n", sep="", file=fedge)
@@ -1428,7 +1423,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # write node.log2pool property
    if (length(poolall)> 0) {
-      fnode=file("%(d)s/node.log2pool.%(org)s" %%s+%% runsuf %%s+%% ".attrs", "w")
+      fnode=file(file.path(dirw, sprintf("edge.xchflux.%s%s.attrs", baseshort,  runsuf)), "w")
       cat("log2pool (class=Double)\\n", sep="", file=fnode)
       nm_node=substring(names(poolall), 4)
       cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)
@@ -1437,18 +1432,28 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 }
 
 pres=rBind(cost=costres, pres)
-fco=file("%(d)s/%(org)s.pres.csv", open="w")
+fco=file(file.path(dirw, sprintf("%s.pres.csv", baseshort)), open="w")
 cat("row_col\t", file=fco)
 write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
 close(fco)
 if (TIMEIT) {
    cat("rend    : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
+""")
+    f.write("""
+fpostR=file.path(dirw, "%(post)s")
+if (!isTRUE(file.info(fpostR)$isdir)) {
+   if (file.exists(fpostR)) {
+      source(fpostR)
+   } else {
+      stop_mes(sprintf("Posttreatment R file '%%s' does not exist.", fpostR), fcerr)
+   }
+}
 close(fclog)
 close(fcerr)
+
 """%{
-    "org": escape(org, "\\"),
-    "d": escape(dirorg, "\\"),
+    "post": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
 })
 
     f.close()
