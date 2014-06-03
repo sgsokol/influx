@@ -48,46 +48,11 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
       pool[nm$poolf]=param[nm$poolf]
    }
    
-   nb_mcol=ncol(measmat)
-   # ponderate measmat by relative pool concentrations for pooled measurements
-   collect_pools=c()
-   lapply(names(ipooled), function(nmp) {
-      if (nmp=="ishort") {
-         return(NULL)
-      }
-      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
-      collect_pools <<- c(collect_pools, metabs)
-   })
-   collect_pools=unique(collect_pools)
-   pwei=list()
-   dpwei=list() # derivatives for jacobian
-   nm_metabs=matrix(sapply(names(pool), function(nm) {
-      strsplit(nm, ":")[[1]]
-   }), nrow=2)[2,]
-   for (metabs in collect_pools) {
-      metabv=strsplit(metabs, "+", fix=T)[[1]]
-      ime=match(metabv, nm_metabs)
-      vp=pool[ime]
-      vs=sum(vp)
-      pwei[[metabs]]=pool[ime]/vs # pool is assumed non negative, non zero vector
-   }
-   # ponderation itself
-   measmatp=measmat
-   memaonep=memaone
-   for (nmp in names(ipooled)) {
-      if (nmp=="ishort") {
-         next
-      }
-      i=ipooled[[nmp]]
-      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
-      measmatp[i,]=measmat[i,,drop=F]*pwei[[metabs]]
-      memaonep[i]=memaone[i]*pwei[[metabs]]
-   }
-   #mema1=measmatp[,-nb_mcol,drop=F]
-   #memaone=measmatp[,nb_mcol]
-   mema1=measmatp
+   # prepare ponderation with actual metab pools
+   pwe[ipwe]=pool[ip2ipwe]
+   spwe=tapply(pwe, pool_factor, sum)
+   pwe=as.numeric(pwe/spwe[nm$measmat])
    
-   #irmeas_xi=irmeas+nb_xi+1
    # prepare inverse of pool vectors
    invpool=1./pool
    # invm has the same length as rcumo vector (i.e. only m+0 if emu)
@@ -114,18 +79,14 @@ param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
    labargs$lwA=lwA
 #browser()
    sim=ode(y=x0, func=cb_labsys, times=ti, parms=labargs, jactype="fullusr", jacfunc=cb_jaclab)
-   usm=as.matrix(mema1%mmt%sim[-1L,-1L,drop=F]+memaonep) # trip row t=0 and the whole time column
+   # prepare inz parameter for lsodes
+   #jac=as(cb_jaclab(0, 1+runif(x0), labargs))
+   
+   #sim=lsodes(y=x0, times=ti, func=cb_labsys, parms=labargs, jacvec=cb_jacvec, sparsetype="sparseusr", inz=inz)
+   usm=as.matrix(measmat%mmt%sim[-1L,-1L,drop=F]+memaone) # trip row t=0 and the whole time column
    if (length(ipooled) > 1L) {
       # treat pooled measurements
-      lapply(names(ipooled), function(nmpo) {
-         if (nmpo=="ishort") {
-            return(NULL)
-         }
-         po=ipooled[[nmpo]]
-         usm[po[1L],] <<- colSums(usm[po,])
-         return(NULL)
-      })
-      usm=usm[ipooled$ishort,,drop=F]
+      usm=as.matrix(meas2sum%*%(pwe*usm))
    }
    dimnames(usm)=list(rownames(measmat)[ipooled$ishort], ti[-1L])
    # store usefull information in relay list jx_f
@@ -197,7 +158,7 @@ with(labargs, {
    nb_poolf=nb_f$nb_poolf
    nb_meas=length(ipooled$ishort)
    nb_sc=nb_f$nb_sc
-   vsc=c(1.,param)[ir2isc]
+   vsc=c(1., param)[ir2isc]
    # fullfill pool with free pools
    if (nb_poolf > 0) {
       pool[nm$poolf]=param[nm$poolf]
@@ -1280,12 +1241,13 @@ cb_labsys=function(t, x, parms) {
    # Calculate first derivatives of label vector for all weights.
    # Return a list with a single item, the vector of first derivative
    # for all weights
+#cat(sprintf("ti=%.16g x=%s\n", t, paste(x, collapse=", ")))
    nb_x=parms$nb_x
    nbc_x=parms$nbc_x
    
    xfull=c(1., parms$xi, x)
    dx=numeric(length(x))
-   for (iw in 1:parms$nb_w) {
+   for (iw in iseq(parms$nb_w)) {
       icw=nbc_x[iw]+(1L:nb_x[iw])
       ixw=1L+parms$nb_f$xi+icw
       xw=if (parms$emu) matrix(xfull[ixw], nrow=parms$nb_rcumos[iw], ncol=iw+1L) else xfull[ixw]
@@ -1302,10 +1264,11 @@ cb_labsys=function(t, x, parms) {
 cb_jaclab=function(t, x, p) {
    # this is a call back function for ode() call.
    # It returns a full jacobian matrix dx'/dx
+#cat(sprintf("ti jac=%.16g\n", t))
    incu=c(1., p$xi, x)
    # prepare jaclab=dx'/dx
    jaclab=matrix(0., nrow=length(x), ncol=length(x))
-   for (iw in p$nb_w) {
+   for (iw in iseq(p$nb_w)) {
       if (p$nb_x[iw] == 0) {
          next
       }
