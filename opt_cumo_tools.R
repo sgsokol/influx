@@ -71,30 +71,31 @@ trisparse_solv=function(A, b, w, fwrv, method="dense") {
 dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
    # produce complete flux (net,xch)*(dep,free,constr,growth) vector
    # from dep,free,constr,growth
-   f=numeric(0)
-   f=c(f, flnx[iseq(nb_f$nb_fln)], param[iseq(nb_f$nb_ffn)], fc[iseq(nb_f$nb_fcn)], fg,
+   f=c(flnx[iseq(nb_f$nb_fln)], param[iseq(nb_f$nb_ffn)], fc[iseq(nb_f$nb_fcn)], fg,
       flnx[nb_f$nb_fln+iseq(nb_f$nb_flx)], param[nb_f$nb_ffn+iseq(nb_f$nb_ffx)], fc[nb_f$nb_fcn+iseq(nb_f$nb_fcx)], numeric(nb_f$nb_fgr))
    return(f)
 }
 
 cumo_resid=function(param, cjac=TRUE, labargs) {
-   nm_local=c("jx_f", "pool", "measurements", "nm", "ir2isc")
+   nm_local=c("jx_f", "pool", "measurements", "nm", "ir2isc", "jacobian", "nb_f")
    for (item in nm_local) {
       assign(item, labargs[[item]])
    }
    # find x for all weights
-   lres=param2fl_x(param, cjac, labargs)
+   lres=lab_sim(param, cjac, labargs)
    if (!is.null(lres$err) && lres$err) {
       return(list(err=1, mes=lres$mes))
    }
    jx_f=lres$jx_f
 
    # find simulated scaled measure vector scale*(measmat*x)
-   simvec=jx_f$usimcumom*c(1.,param)[ir2isc]
+   jx_f$simvec=jx_f$usimcumom*c(1.,param)[ir2isc]
 
    # diff between simulated and measured
    pool[nm$poolf]=param[nm$poolf]
-   res=with(measurements, c((simvec-vec$labeled), (jx_f$fallnx[nm$fmn]-vec$flux), as.numeric(mat$pool%*%pool)-vec$pool))
+   jx_f$simfmn=jx_f$fallnx[nm$fmn]
+   jx_f$simpool=as.numeric(measurements$mat$pool%*%pool)
+   res=with(measurements$vec, c((jx_f$simvec-labeled), (jx_f$simfmn-flux), jx_f$simpool-pool))
    names(res)=nm$resid
    if (is.null(measurements$outlier) || length(measurements$outlier)==0) {
       jx_f$ures <- res
@@ -104,25 +105,33 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
       jx_f$ures <- res[-measurements$outlier]
       jx_f$res <- with(measurements$dev, (res/c(labeled, flux, pool))[-outlier])
    }
-   # jacobian
-   jacobian=jx_f$jacobian
    if (cjac) {
 #browser()
-      # recalculate it
+      # jacobian
       labargs$jx_f=jx_f
       jx_f=cumo_jacob(param, labargs)
-      jacobian=as.matrix(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))
-      dimnames(jacobian)=list(nm$resid, nm$par)
-
+      labargs$jx_f=jx_f
+      if (is.null(labargs$jacobian)) {
+         jacobian=matrix(0., length(nm$resid), length(param))
+         dimnames(jacobian)=list(nm$resid, nm$par)
+         labargs$jacobian=jacobian
+      }
+#require(numDeriv)
+#r=function(p) cumo_resid(p, F, labargs)$res
+#jacobian=jacobian(r, param)
       if (!is.null(measurements$outlier) && !length(measurements$outlier)==0) {
          # exclude outliers
-         jacobian=jacobian[-measurements$outlier,,drop=F]
+         jacobian=as.matrix(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))[-measurements$outlier,,drop=F]
+      } else {
+         jacobian[]=as.numeric(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))
       }
       jx_f$jacobian <- jacobian
       jx_f$dr_dff <- jacobian[,iseq(nb_f$nb_ff),drop=F]
+      labargs$jacobian=jacobian
+      return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x,  jacobian=jacobian, jx_f=jx_f))
+   } else {
+      return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x,  jx_f=jx_f))
    }
-   return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x,
-      jacobian=jacobian, jx_f=jx_f))
 }
 cumo_cost=function(param, labargs) {
    # NB! This function does not return jx_f
@@ -183,105 +192,47 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    nb_ff=nb_f$nb_ff
    nb_poolf=nb_f$nb_poolf
    nb_fgr=nb_f$nb_fgr
-   fg=numeric(nb_f$nb_fgr)
+   nb_meas=nb_f$nb_meas
+   nb_sc=nb_f$nb_sc
+   fg=nb_f$mu*param[nm$poolf] # the same alphabetical order
    names(fg)=nm$fgr
-#expp   fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*exp(param[nm$poolf])
-   fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
-   # cumulated sum
+   pool[nm$poolf]=param[nm$poolf] # inject variable pools to pool vector
+
    # calculate all fluxes from free fluxes
-   #cat("param2fl_x: recalc x\n")
    jx_f$lA <- list()
    lf=param2fl(param, labargs)
    jx_f$fallnx <- lf$fallnx
    jx_f$fwrv <- lf$fwrv
    jx_f$flnx <- lf$flnx
    jx_f$lf <- lf
+   # prepare measurement pooling operations
+   pwe[ipwe]=pool[ip2ipwe]
+   spwe=tapply(pwe, pool_factor, sum)
+   spwe=1./as.numeric(spwe[nm$measmat])
+   pwe=pwe*spwe
    # construct the system A*x=b from fluxes
    # and find x for every weight
    # if fj_rhs is not NULL, calculate jacobian x_f
-   x=c(1, xi)
+   if (is.null(labargs$incu)) {
+      labargs$incu=incu=c(1, xi, double(nbc_x[nb_w+1L]))
+   }
    if (cjac) {
-      #cat("param2fl_x: recalc jac\n")
       # derivation of fwrv fluxes by free parameters: free fluxes+concentrations
       mdf_dffp=df_dffp(param, jx_f$flnx, nb_f, nm)
       jx_f$df_dffp <- mdf_dffp
-      x_f=matrix(0., nrow=sum(nb_x), ncol=nb_ff+nb_fgr)
+      if (is.null(labargs$x_f)) {
+         labargs$x_f=x_f=matrix(0., nrow=sum(nb_x), ncol=nb_ff+nb_fgr)
+      }
+      
+      if (length(ijpwef)) {
+         dpwe=-pwe*spwe
+         # dpwe is shortened to non zero entries in dpw_dpf
+         dpwe=ifelse(ipf_in_ppw[ijpwef[,1L]]==ijpwef[,2L], (spwe+dpwe)[ijpwef[,1L]], dpwe[ijpwef[,1L]])
+      }
    } else {
       x_f=NULL
    }
-   # prepare measurement pooling operations
-   nb_meas=length(ipooled$ishort)
-   nb_sc=nb_f$nb_sc
-   vsc=c(1.,param)[ir2isc]
-   # fullfill pool with free pools
-   if (nb_poolf > 0) {
-#expp      pool[nm$poolf]=exp(param[nm$poolf])
-      pool[nm$poolf]=param[nm$poolf]
-   }
-   measmat=measurements$mat$labeled
-   memaone=measurements$one$labeled
-   nb_mcol=ncol(measmat)
-   # ponderate measmat by relative pool concentrations for pooled measurements
-   collect_pools=c()
-   lapply(names(ipooled), function(nmp) {
-      if (nmp=="ishort") {
-         return(NULL)
-      }
-      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
-      collect_pools <<- c(collect_pools, metabs)
-   })
-   collect_pools=unique(collect_pools)
-   pwei=list()
-   dpwei=list() # derivatives for jacobian
-   nm_metabs=matrix(sapply(names(pool), function(nm) {
-      strsplit(nm, ":")[[1]]
-   }), nrow=2)[2,]
-   if (cjac && nb_poolf > 0) {
-      nm_metabf=matrix(sapply(nm$poolf, function(nm) {
-         strsplit(nm, ":")[[1]]
-      }), nrow=2)[2,]
-      # matrix of ponderation derivation
-      fpw2m=Matrix(0., nrow=nrow(measmat), ncol=nb_poolf)
-   }
-   for (metabs in collect_pools) {
-      metabv=strsplit(metabs, "+", fix=T)[[1]]
-      ime=match(metabv, nm_metabs)
-      vp=pool[ime]
-      vs=sum(vp)
-      pwei[[metabs]]=vp/vs # pool is assumed non negative, non zero vector
-      # auxiliary matrix for jacobian part depending on ponderation by pools
-      if (cjac && nb_poolf > 0) {
-         in_pf=match(metabv, nm_metabf)
-         imef=which(!is.na(in_pf))
-         if (length(imef)==0) {
-            next
-         }
-         in_pf=in_pf[!is.na(in_pf)]
-         icoupl=cbind(imef, in_pf)
-         vd=-vp%o%rep.int(1., nb_poolf)
-         vd[,-in_pf]=0.
-         vd[icoupl]=vd[icoupl]+vs
-         dpwei[[metabs]]=vd/(vs*vs)
-      }
-   }
-   # ponderation itself
-   measmatp=measmat
-   memaonep=memaone
-   for (nmp in names(ipooled)) {
-      if (nmp=="ishort") {
-         next
-      }
-      i=ipooled[[nmp]]
-      metabs=strsplit(nmp, ":", fix=T)[[1]][2]
-      measmatp[i,]=measmat[i,,drop=F]*pwei[[metabs]]
-      memaonep[i]=memaone[i]*pwei[[metabs]]
-      # auxiliary matrix for jacobian itself
-      if (cjac && nb_poolf > 0 && !is.null(dpwei[[metabs]])) {
-         fpw2m[i,]=dpwei[[metabs]]
-      }
-   }
-   mema1=measmatp
-
+   
    # simulate labeling weight by weight
    ba_x=0
    for (iw in 1:nb_w) {
@@ -289,10 +240,12 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       if (nb_c == 0) {
          next
       }
+      ixw=(nbc_x[iw]+1L):nbc_x[iw+1]
+      incuw=(1L+nb_xi)+ixw
       if (emu) {
-         lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], x, nm$emu[(nbc_x[iw]+1):nbc_x[iw+1]], emu=emu)
+         lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$emu[ixw], emu=emu)
       } else {
-         lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], x, nm$rcumo[(nbc_x[iw]+1):nbc_x[iw+1]], emu=emu)
+         lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$rcumo[ixw], emu=emu)
       }
       A=lAb$A
       b=lAb$b; # may have several columns if emu is TRUE
@@ -307,21 +260,18 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       } else {
          xw=lsolv$x
       }
-      x=c(x,xw)
+      incu[incuw]=xw
       if (cjac) {
-         #if (iw ==1) {
-         #   cat("recalc jac\n")
-         #}
          # calculate jacobian x_f
          # first, calculate right hand side for jacobian calculation
          # j_rhsw, b_x from sparse matrices
          # bind cumomer vector
-         j_b_x=fx2jr(jx_f$fwrv, spAb[[iw]], nb_f, x)
+         j_b_x=fx2jr(jx_f$fwrv, spAb[[iw]], nb_f, incu)
          j_rhsw=j_b_x$j_rhsw%*%mdf_dffp
          b_x=j_b_x$b_x
          if (iw > 1) {
             if (ba_x > 0) {
-               j_rhsw=j_rhsw+b_x%*%x_f[1:ba_x,,drop=F]
+               j_rhsw=j_rhsw+b_x%*%x_f[1L:ba_x,,drop=F]
             }
             if (emu) {
                dim(j_rhsw)=c(nb_c, iw*ncol(x_f))
@@ -330,22 +280,17 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                xf=array(as.numeric(xf), c(nb_c, iw, nb_ff+nb_fgr))
                x_f[ba_x+(1:(iw*nb_c)),]=xf
                # m+N component
-               x_f[ba_x+iw*nb_c+(1:nb_c),]= -apply(xf, c(1,3), sum)
-                  #-rowSums(aperm(xf, c(1,3,2)), dims=2)
+               x_f[ba_x+iw*nb_c+(1:nb_c),]= -apply(xf, c(1L,3L), sum)
             } else {
-               x_f[ba_x+(1:nb_c),]=
+               x_f[ba_x+(1L:nb_c),]=
                   as.matrix(solve(jx_f$lA[[iw]], j_rhsw))
             }
          } else if (iw == 1) {
-            x_f[(1:nb_c),]=
+            x_f[ixw,]=
                as.matrix(solve(jx_f$lA[[iw]], j_rhsw))
             if (emu) {
                x_f[nb_c+(1:nb_c),]=-x_f[(1:nb_c),]
             }
-         }
-      } else {
-         if (!is.null(jx_f$param) && is.diff(param, jx_f$param)) {
-            x_f=NULL
          }
       }
       if (emu) {
@@ -355,96 +300,77 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       }
    }
    if (emu) {
-      names(x)=c("one", nm$xi, nm$emu)
+      names(incu)=c("one", nm$xi, nm$emu)
    } else {
-      names(x)=c("one", nm$xi, nm$rcumo)
+      names(incu)=c("one", nm$xi, nm$rcumo)
    }
-   jx_f$x <- x
-   x=tail(x, -nb_xi-1)
+   jx_f$x <- incu
+   x=tail(incu, -nb_xi-1L)
    
    # calculate unreduced and unscaled measurements
-   if (length(x) == ncol(mema1)) {
-      mv=mema1%*%x+memaonep
+   if (length(x) == ncol(measmat)) {
+      mx=measmat%*%x
    } else {
-      mv=mema1%*%x[nm$rcumo_in_cumo]+memaonep
+      mx=measmat%*%x[nm$rcumo_in_cumo]
    }
-   mvp=mv # ponderated by relative pools
-   if (length(ipooled) > 0) {
-      lapply(names(ipooled), function(nmpo) {
-         if (nmpo=="ishort") {
-            return(NULL)
-         }
-         po=ipooled[[nmpo]]
-         mvp[po[1],] <<- colSums(mvp[po,,drop=F])
-         return(NULL)
-      })
-      mvp=mvp[ipooled$ishort,,drop=F]
+   mv=as.numeric(mx+memaone)
+   if (length(ipooled) > 1L) {
+      mv=meas2sum%*%(pwe*mv)
    }
-   jx_f$usimcumom <- as.numeric(mvp)
+   jx_f$usimcumom <- as.numeric(mv)
    if (cjac) {
       # unreduced residuals derivated by scale params
-      dur_dsc=matrix(0., nrow=nb_meas, ncol=nb_sc)
-      jacobian=matrix(0., nb_meas, nb_ff+nb_sc+nb_poolf)
+      if (is.null(labargs$dur_dsc)) {
+         labargs$dur_dsc=dur_dsc=matrix(0., nrow=nb_meas, ncol=nb_sc)
+      }
+      if (is.null(labargs$dux_dp)) {
+         labargs$dux_dp=dux_dp=matrix(0., nb_meas, nb_ff+nb_sc+nb_poolf)
+      }
       # measurement vector before pool ponderation
-      mx=measmat%*%x
       # scale part of jacobian
-      if (nb_f$nb_sc > 0) {
+      if (nb_sc > 0) {
          is2m=nb_f$is2m
-         dur_dsc[is2m]=mvp[is2m[,1]]
+         dur_dsc[is2m]=mv[is2m[,1]]
       }
 #browser()
       # free flux part of jacobian (and partially free pools if present in x_f)
       if (nb_ff+nb_fgr > 0) {
-         mffg=mema1%*%x_f
-         if (length(ipooled) > 1) {
-            lapply(names(ipooled), function(nmpo) {
-               if (nmpo=="ishort") {
-                  return(NULL)
-               }
-               po=ipooled[[nmpo]]
-               mffg[po[1],] <<- colSums(mffg[po,,drop=F])
-               return(NULL)
-            })
-            mffg=mffg[ipooled$ishort,,drop=F]
+         mffg=measmat%*%x_f
+         if (length(ipooled) > 1L) {
+            mffg=meas2sum%*%(pwe*mffg)
          }
       } else {
-         mffg=Matrix(0., nrow=nb_meas, ncol=0)
+         mffg=Matrix(0., nrow=nb_meas, ncol=0L)
       }
       # free pool part of jacobian
       mff=mffg
       mpf=matrix(0., nrow=nb_meas, ncol=nb_f$nb_poolf)
-      if (nb_f$nb_poolf > 0) {
-         if (length(dpwei) > 0) {
-            # derivation of pool ponderation factor
-            dur_dpf=as.numeric(mx)*fpw2m
-            lapply(names(ipooled), function(nmpo) {
-               if (nmpo=="ishort") {
-                  return(NULL)
-               }
-               po=ipooled[[nmpo]]
-               dur_dpf[po[1],] <<- colSums(dur_dpf[po,,drop=F])
-               return(NULL)
-            })
-            mpf=dur_dpf[ipooled$ishort,,drop=F]
+      if (nb_f$nb_poolf > 0L) {
+         if (length(ijpwef) > 0L) {
+            # derivation of pool weights
+            dpw_dpf@x[]=as.double(mx[ijpwef[,1L]]*dpwe)
+            mpf[]=as.matrix(meas2sum%*%dpw_dpf)
             # growth flux depending on free pools
-            if (nb_fgr > 0) {
-               mpf=mpf+mffg[,nb_ff+1:nb_fgr,drop=F]
-               mff=mffg[,1:nb_ff]
+            if (nb_fgr > 0L) {
+               mpf=mpf+mffg[,nb_ff+1L:nb_fgr,drop=F]
+               mff=mffg[,1L:nb_ff]
             } else {
                mff=mffg
             }
          }
       }
       if (nb_sc > 0) {
+         vsc=c(1., param)[ir2isc]
          mff=vsc*mff
          mpf=vsc*mpf
       }
       # store usefull information in global list jx_f
-      jacobian=cBind(mff, dur_dsc, mpf)
+      dux_dp[, iseq(nb_ff)]=as.matrix(mff)
+      dux_dp[, nb_ff+iseq(nb_sc)]=as.matrix(dur_dsc)
+      dux_dp[, nb_ff+nb_sc+iseq(nb_fgr)]=as.matrix(mpf)
       jx_f$param <- param
       jx_f$x_f <- x_f
-      jx_f$dux_dp <- jacobian
-      jx_f$jacobian <- NULL # old jacobian is no more valid
+      jx_f$dux_dp <- dux_dp
    }
    return(append(list(x=x, x_f=x_f, jx_f=jx_f), jx_f$lf))
 }
@@ -638,8 +564,11 @@ cumo_jacob=function(param, labargs) {
    # without applying invvar matrix
    # The result is in a returned list jx_f.
    jx_f=labargs$jx_f
-   
-   jx_f$udr_dp <- rBind(jx_f$dux_dp, labargs$dufm_dp, labargs$dupm_dp)
+   if (is.null(jx_f$udr_dp)) {
+      jx_f$udr_dp <- as.matrix(rBind(jx_f$dux_dp, labargs$dufm_dp, labargs$dupm_dp))
+   } else {
+      jx_f$udr_dp[1L:nrow(jx_f$dux_dp),]=jx_f$dux_dp
+   }
    return(jx_f)
 }
 
@@ -715,22 +644,22 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    
    # we derivate a*x=b implicitly
    # a_f*x + a*x_f=b_f + b_xl*xl_f
-   emu=is.matrix(spAbr$ind_b_emu)
-   x0=c(0., incu)
    nb_c=spAbr$nb_c
-   nb_fwrv=spAbr$nb_fwrv
-   nb_cl=spAbr$nb_cl
-   w=spAbr$w
    if (nb_c==0) {
       # no system at this weight
       return(list(j_rhsw=NULL, b_x=NULL, j_rhswp=NULL, b_xp=NULL))
    }
+   emu=is.matrix(spAbr$ind_b_emu)
+   x0=c(0., incu)
+   nb_fwrv=spAbr$nb_fwrv
+   nb_cl=spAbr$nb_cl
+   w=spAbr$w
    
    # a_fx
    ind_a=spAbr$ind_a
    i=ind_a[,"ic0"]==ind_a[,"ir0"]
+   x=incu[(1L+nb$xi+nb$nbc_x[w])+iseq(nb$x[w])]
    if (emu) {
-      x=tail(incu, (w+1)*nb_c)
       for (iwe in 1:w) {
          tmp=x[ind_a[,"ic0"]+(1+(iwe-1)*nb_c)]
          tmp[i]=-tmp[i]
@@ -743,7 +672,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       }
       a_fx=res
    } else {
-      tmp=tail(incu, nb_c)[ind_a[,"ic0"]+1]
+      tmp=x[ind_a[,"ic0"]+1]
       tmp[i]=-tmp[i]
       a_fx=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"indf"], x=tmp, dims=c(nb_c, nb_fwrv))
    }
@@ -1167,13 +1096,13 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
          method="SANN", outer.iterations=100, outer.eps=1e-08,
          labargs)
    } else if (method == "nlsic") {
-      control=list(trace=trace, btfrac=0.25, btdesc=0.75, maxit=50, errx=1.e-5,
+      control=list(trace=trace, btfrac=0.25, btdesc=0.1, maxit=50, errx=1.e-5,
          ci=list(report=F), history=FALSE, adaptbt=TRUE, sln=sln,
          maxstep=max(10.*sqrt(norm2(param)), 1.)
       )
       control[names(control_ftbl)]=control_ftbl
       res=nlsic(param, lab_resid, 
-         ui, ci, control, e=NULL, eco=NULL, flsi=lsi_fun,
+         ui, ci, control, e=ep, eco=cp, flsi=lsi_fun,
          labargs)
    } else if (method == "ipopt") {
       control=list(max_iter=500, print_level=trace*5)
@@ -1217,33 +1146,33 @@ opt_wrapper=function(measurements, jx_f, trace=1) {
 # wrapper for Monte-Carlo simulations
 mc_sim=function(i) {
    #set.seed(seeds[i])
+   for (item in c("nb_f", "measurements", "jx_f")) {
+      assign(item, labargs[[item]])
+   }
    # random measurement generation
-   if (nb_meas) {
-      meas_mc=rnorm(nb_meas, simcumom, measurements$dev$labeled)
+   if (nb_f$nb_meas) {
+      meas_mc=rnorm(nb_f$nb_meas, jx_f$simvec, measurements$dev$labeled)
    } else {
       meas_mc=c()
    }
-   if (nb_fmn) {
-      fmn_mc=rnorm(nb_fmn, simfmn, measurements$dev$flux)
+   if (nb_f$nb_fmn) {
+      fmn_mc=rnorm(nb_f$nb_fmn, jx_f$simfmn, measurements$dev$flux)
    } else {
       fmn_mc=c()
    }
-   if (nb_poolm) {
-      poolm_mc=rnorm(nb_poolm, simpool, measurements$dev$pool)
+   if (nb_f$nb_poolm) {
+      poolm_mc=rnorm(nb_f$nb_poolm, jx_f$simpool, measurements$dev$pool)
    } else {
       poolm_mc=c()
    }
-   #cat("imc=", i, "\\n", sep="")
+#cat("imc=", i, "\\n", sep="")
    # minimization
    measurements_mc=measurements
    measurements_mc$vec$labeled=meas_mc
    measurements_mc$vec$flux=fmn_mc
    measurements_mc$vec$pool=poolm_mc
-   jx_f=list()
-   #rres=cumo_resid(param, cjac=T, jx_f, nb_f, nm_list, nb_rcumos, invAfl, p2bfl, g2bfl, bp, fc, xi, measurements_mc, ir2isc, spa, emu, pool, ipooled)
-   #cat("mc_res=", sqrt(norm2(rres$res)), "\n", sep="")
-   #jx_f=rres$jx_f
    res=opt_wrapper(measurements_mc, jx_f, trace=0)
+   labargs$jx_f=res$retres$jx_f
    #save(res, file=sprintf("mc_%d.RData", i))
    if (!is.null(res$mes) && nchar(res$mes) > 0) {
       cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=fcerr, sep="")
