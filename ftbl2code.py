@@ -20,7 +20,7 @@ from operator import itemgetter
 from itertools import groupby
 
 global DEBUG
-me=os.path.realpath(sys.argv[0])
+me=os.path.abspath(os.path.realpath(sys.argv[0]))
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
 
@@ -309,12 +309,19 @@ def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     #    pdb.set_trace()
     res={}
     f.write("""
-fcerr=file("%(errfile)s", "ab")
-fclog=file("%(logfile)s", "ab")
+# working dir
+dirw="%(dirw)s"
+
+# exectubale dir (where influx_s.py lives)
+dirx="%(dirx)s"
+# short base name of the FTBL (withount '.ftbl')
+baseshort="%(org)s"
+
+fcerr=file(file.path(dirw, sprintf("%%s.err", baseshort)), "ab")
+fclog=file(file.path(dirw, sprintf("%%s.log", baseshort)), "ab")
 
 options(warn=1)
 options(digits.secs=2)
-#options(show.error.messages=F)
 
 suppressPackageStartupMessages(library(bitops))
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
@@ -323,9 +330,9 @@ options(Matrix.quiet=TRUE)
 suppressPackageStartupMessages(library(parallel))
 
 # get some common tools
-source("%(dirx)s/tools_ssg.R")
-source("%(dirx)s/nlsic.R")
-source("%(dirx)s/kvh.R")
+source(file.path(dirx, "tools_ssg.R"))
+source(file.path(dirx, "nlsic.R"))
+source(file.path(dirx, "kvh.R"))
 
 # default options
 version=F
@@ -438,6 +445,9 @@ if (np > 0L && np < 1L) {
 if (is.null(np) || np <= 0L) {
    np=1L
 }
+if (sensitive=="mc") {
+   np=min(np, nmc)
+}
 options(mc.cores=np)
 
 if (least_norm && tikhreg) {
@@ -479,24 +489,23 @@ opts=commandArgs()
 # end command line argument proceeding
 
 # get some cumomer tools
-source("%(dirx)s/opt_cumo_tools.R")
+source(file.path(dirx, "opt_cumo_tools.R"))
 lab_resid=cumo_resid
 lab_sim=param2fl_x
 """%{
-    "dirx": escape(dirx, "\\"),
+    "dirw": escape(os.path.abspath(os.path.dirname(f.name)), '\\"'),
+    "dirx": escape(dirx, '\\"'),
     "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
-    "prog": os.path.basename(f.name),
+    "org": escape(os.path.basename(f.name[:-2]), '"'),
     "ropts": join("\n", ropts)[1:-1],
-    "logfile": escape(f.name[:-1]+"log", "\\"),
-    "errfile": escape(f.name[:-1]+"err", "\\"),
 })
     if case_i:
         f.write("""
-source("%(dirx)s/opt_icumo_tools.R")
+source(file.path(dirx, "opt_icumo_tools.R"))
 
 lab_resid=icumo_resid
 lab_sim=param2fl_usm_ode
-"""%{"dirx": escape(dirx, "\\")})
+""")
     f.write("""
 if (TIMEIT) {
    cat("rinit   : ", format(Sys.time()), "\\n", sep="", file=fclog)
@@ -504,14 +513,12 @@ if (TIMEIT) {
 
 # R profiling
 if (prof) {
-   Rprof("%(proffile)s")
+   Rprof(sprintf("%s.Rprof", baseshort))
 }
 
 nm_list=list()
 nb_f=list()
-"""%{
-    "proffile": escape(f.name[:-1]+"Rprof", "\\"),
-})
+""")
     netan2R_fl(netan, org, f)
     d=netan2R_rcumo(netan, org, f)
     res.update(d)
@@ -686,21 +693,6 @@ if (TIMEIT) {
    cat("r_flux  : ", format(Sys.time()), "\\n", sep="", file=fclog)
 }
 """)
-# % {
-#dyn.load("%(sofile)s")
-#        "inet2ifwrv": join(", ", (1+
-#        (netan["vflux"]["net2i"][fl[4:]] if fl[4:] in netan["vflux"]["net2i"]
-#        else nb_fln+netan["vflux_free"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["net2i"]
-#        else nb_fln+nb_ffn+netan["vflux_constr"]["net2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["net2i"]
-#        else nb_fln+nb_ffn+nb_fcn+netan["vflux_growth"]["net2i"][fl[4:]])
-#        for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
-#        "ixch2ifwrv": join(", ", (1+len(netan["vflux_fwrv"]["fwrv"])/2+
-#        (netan["vflux"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux"]["xch2i"]
-#        else nb_flx+netan["vflux_free"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_free"]["xch2i"]
-#        else nb_flx+nb_ffx+netan["vflux_constr"]["xch2i"][fl[4:]] if fl[4:] in netan["vflux_constr"]["xch2i"]
-#        else nb_flx+nb_ffx+nb_fcx+netan["vflux_growth"]["xch2i"][fl[4:]])
-#        for fl in netan["vflux_fwrv"]["fwrv"][:nb_fwrv/2])),
-#    })
     # auxiliary dict for edge-flux coupling
     f2edge=dict()
     for (fl,lr) in netan["sto_r_m"].iteritems():
@@ -716,8 +708,6 @@ if (TIMEIT) {
                f2edge[fl].append(m+" ("+fl+(str(i+1) if same_subs else "")+") "+fl)
            for (i, m) in enumerate(prods):
                f2edge[fl].append(fl+" ("+fl+(str(i+1) if same_prods else "")+") "+m)
-    #sys.stderr.write(str(f2edge)+"\n")
-    #sys.stderr.write(str(netan["f2dfcg_nx_f"]["net"])+"\n")
     f.write("""
 # fwd-rev flux names
 nm_fwrv=c(%(nm_fwrv)s)
@@ -749,13 +739,17 @@ names(clen)=c(%(nm_metab)s)
 # constrained pool
 poolc=c(%(poolc)s)
 nm_poolc=c(%(nm_poolc)s)
-names(nm_poolc)=substring(nm_poolc, 4)
+if (length(nm_poolc)) {
+   names(nm_poolc)=substring(nm_poolc, 4)
+}
 names(poolc)=nm_poolc
 
-# starting values for free pool
+# starting values for free pool (the same number and the same alphabetic order than free growth fluxes, if present)
 poolf=c(%(poolf)s)
 nm_poolf=c(%(nm_poolf)s)
-names(nm_poolf)=substring(nm_poolf, 4)
+if (length(nm_poolf)) {
+   names(nm_poolf)=substring(nm_poolf, 4)
+}
 names(poolf)=nm_poolf
 nb_poolf=length(poolf)
 nb_f$nb_poolf=nb_poolf
@@ -851,6 +845,7 @@ nb_fgr=%(nb_fgr)d
 nm_fgr=c(%(nm_fgr)s)
 fgr=c(%(fgr)s)
 nm_list$fgr=nm_fgr
+nb_f$nb_fgr=nb_fgr
 
 # total flux vector fallnx dimension
 nb_fallnx=nb_fl+nb_ff+nb_fc+nb_fgr+nb_fgr
@@ -1161,7 +1156,7 @@ if (TIMEIT) {
 }
 
 dfl_dffg=invAfl %*% p2bfl
-if (nb_fgr) {
+if (nb_fgr > 0L) {
    dfl_dffg=cBind(dfl_dffg, invAfl%*%g2bfl)
 }
 dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
@@ -1340,6 +1335,7 @@ nm_meas=c(%(idmeas)s)
 nm_list$meas=nm_meas
 nm_list$measmat=nm_measmat
 nb_meas=length(nm_meas)
+nb_f$nb_meas=nb_meas
 nb_measmat=length(nm_measmat)
 measmat=Matrix(0., nb_measmat, %(ncol)d)
 memaone=numeric(nb_measmat)
@@ -1381,6 +1377,7 @@ ipooled[["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
     # preepare measmat indexes and values : ir, ic, val
     f.write("""
 ir2isc=ir2isc[ipooled$ishort]
+
 # prepare indexes of dispatching scale params in jacobian
 if (nb_sc > 0) {
    ipaire=matrix(0, nrow=0, ncol=2)
@@ -1412,16 +1409,60 @@ ind_mema=matrix(c(
         for (k, v) in row[fcoef].iteritems() if k != onelab))
 })
 
-    f.write("""
+    f.write(r"""
 NULL), ncol=3, byrow=T); # close ind_mema creation
 measmat[ind_mema[,1:2,drop=F]]=ind_mema[,3]
 
 memaone=c(%(memaone)s)
 names(memaone)=nm_measmat
+
+# prepare weights of label data for pooled metabs
+# prepare ipwe and ip2ipwe such that pwe[ipwe]=pool[ip2ipwe]
+# gives a good base for weight sum and normalization
+pwe=double(nb_measmat)+1.
+ipwe=ip2ipwe=ijpwef=c()
+mets_in_res=sapply(nm_measmat, function(m) strsplit(m, ":")[[1L]][2L])
+for (po in names(ipooled)) {
+   if (po == "ishort") next
+   nm_sum=strsplit(po, ":")[[1L]][2L]
+   mets=strsplit(nm_sum, "\\+")[[1L]]
+   irpo=ipooled[[po]]
+   ipwe=c(ipwe, irpo) # where weighting is
+   i=pmatch(mets, names(nm_poolf))
+   if (any(!is.na(i))) {
+      for (ir in i) {
+         if (is.na(ir)) next
+         ijpwef=rbind(ijpwef, cbind(irpo, ir)) # where free pools matter
+      }
+   }
+   ip2ipwe=c(ip2ipwe, pmatch(mets, names(nm_poolall)))
+   mets_in_res[irpo]=mets
+}
+pool_factor=as.factor(nm_measmat)
+# free pool in prinicpal pool weight
+ipf_in_ppw=pmatch(mets_in_res, names(nm_poolf), dup=T)
+ipf_in_ppw[is.na(ipf_in_ppw)]=0L
+
+# matrix for summing weighted measurements
+meas2sum=Matrix(0., length(ipooled$ishort), nb_measmat)
+meas2sum[cbind(pmatch(nm_measmat, nm_measmat[ipooled$ishort], dup=T), iseq(nb_measmat))]=1.
+dimnames(meas2sum)=list(nm_meas, nm_measmat)
+
+# dpw_dpf - matrix for derivation of pool weights by free pools
+dpw_dpf=NULL
+if (nb_poolf > 0L && length(ijpwef) > 0) {
+   # indeed, we'll have to do weight derivation by free pools
+   # sort ijpwef
+   o=order(ijpwef[,2L], ijpwef[,1L])
+   ijpwef=ijpwef[o,,drop=F]
+   ires_pf=pmatch(mets_in_res, nm_poolf, dup=T)
+   dpw_dpf=Matrix(0., nb_measmat, nb_poolf)
+   dpw_dpf[ijpwef]=1.
+}
 """%{
     "memaone": join(", ", (row[fcoef].get(onelab, 0.)
         for meas in o_meas
-        for row in measures[meas]["mat"]))
+        for row in measures[meas]["mat"])),
 })
     f.write("""
 # prepare flux measurements
@@ -1599,7 +1640,7 @@ li[%(i)s]=%(sign)s%(li)g
     })
     for (i, ineq) in enumerate(netan["flux_inequal"]["xch"]):
         f.write(
-"""mi[%(i)s, nm_xch[c(%(f)s)]=%(sign)sc(%(coef)s)
+"""mi[%(i)s, nm_xch[c(%(f)s)]]=%(sign)sc(%(coef)s)
 li[%(i)s]=%(sign)s%(li)g
 """%{
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
@@ -1765,8 +1806,9 @@ ci=as.numeric(li-mi%*%mic)
 # finaly, metab part
 uip=Matrix(0, %(nb_ip)d, ncol=nb_poolf)
 colnames(uip)=nm_poolf
+cip=c()
 # ind: irow, metab, coef, rhs, name
-uip_ind=matrix(c(
+uip_ind=c(
 """%{
     "nb_ip": len(netan["metab_inequal"]),
 })
@@ -1785,25 +1827,32 @@ uip_ind=matrix(c(
 """%(i+1, m, coef, rhs, name)
             rhs=0.
     f.write("""%s
-   ), byrow=T, ncol=5L)
+)
+if (length(uip_ind) > 0) {
+   uip_ind=matrix(uip_ind, byrow=T, ncol=5L)
+} else {
+   uip_ind=matrix(0, 0L, 5L)
+}
+colnames(uip_ind)=c("irow", "metab", "coef", "rhs", "name")
 """%st[:-2]+"\n")
 
     f.write("""
-colnames(uip_ind)=c("irow", "metab", "coef", "rhs", "name")
-
-# rhs are summed up for the same irow by sparseMatrix()
-irow=as.integer(uip_ind[,"irow"])
-cip=as.double(sparseMatrix(i=irow, j=rep(1, nrow(uip_ind)), x=as.double(uip_ind[,"rhs"])))
-for (i in iseq(nrow(uip_ind))) {
-   row=uip_ind[i,]
-   if (nchar(row["metab"])==0) {
-      next
+if (nrow(uip_ind) > 0) {
+   # rhs are summed up for the same irow by sparseMatrix()
+   irow=as.integer(uip_ind[,"irow"])
+   cip=as.double(sparseMatrix(i=irow, j=rep(1, nrow(uip_ind)), x=as.double(uip_ind[,"rhs"])))
+   for (i in iseq(nrow(uip_ind))) {
+      row=uip_ind[i,]
+      if (nchar(row["metab"])==0) {
+         next
+      }
+      uip[irow[i], nm_poolf[row["metab"]]]=as.double(row["coef"])
    }
-   uip[irow[i], nm_poolf[row["metab"]]]=as.double(row["coef"])
+   if (nrow(uip) > 0) {
+      rownames(uip)=paste("m:", uip_ind[pmatch(iseq(nrow(uip)), irow),"name"], sep="")
+   }
 }
-if (nrow(uip) > 0) {
-   rownames(uip)=paste("m:", uip_ind[pmatch(iseq(nrow(uip)), irow),"name"], sep="")
-}
+names(cip)=rownames(uip)
 
 #browser() # before null inequality removing
 # remove all zero rows in ui (constrained fluxes with fixed values)
@@ -1842,12 +1891,13 @@ if (nb_sc) {
 }
 
 # remove redundant inequalities
+#browser()
 nb_i=nrow(ui)
 ired=c()
-if (nb_i > 0) {
-   for (i in 1:(nb_i-1)) {
+if (nb_i > 1L) {
+   for (i in 1L:(nb_i-1L)) {
       nmref=nm_i[i]
-      for (j in setdiff((i+1):nb_i, ired)) {
+      for (j in setdiff((i+1L):nb_i, ired)) {
          if (all(ui[j,]==ui[i,]) && ci[i]==ci[j]) {
             # redundancy
             cat("inequality '", nm_i[j], "' redundant with '", nmref, "' is removed.\n", sep="", file=fclog)
@@ -1862,4 +1912,53 @@ if (!is.null(ired)) {
    ci=ci[-ired]
    nm_i=nm_i[-ired]
 }
+
+# metabolite equalities
+ep=Matrix(0, %(nb_ep)d, ncol=nb_poolf)
+cp=c()
+colnames(ep)=nm_poolf
+# ind: irow, metab, coef, rhs, name
+ep_ind=c(
+"""%{
+    "nb_ep": len(netan["metab_equal"]),
+})
+    st=""
+    for (i, (rhs, d, name)) in enumerate(netan["metab_equal"]):
+        for (m, coef) in d.iteritems():
+            # ind4 (str): irow, metab, coef, rhs, name
+            if netan["met_pools"][m] > 0:
+                rhs-=netan["met_pools"][m]*coef
+                m=""
+                coef=0.
+            st=st+"""   "%d", "%s", "%g", "%g", "%s",
+"""%(i+1, m, coef, rhs, name)
+            rhs=0.
+    f.write("""%s
+)
+if (length(ep_ind) > 0) {
+   ep_ind=matrix(ep_ind, byrow=T, ncol=5L)
+} else {
+   ep_ind=matrix(0, 0L, 5L)
+}
+colnames(ep_ind)=c("irow", "metab", "coef", "rhs", "name")
+"""%st[:-2]+"\n")
+
+    f.write("""
+if (nrow(ep_ind) > 0) {
+   # rhs are summed up for the same irow by sparseMatrix()
+   irow=as.integer(ep_ind[,"irow"])
+   cp=as.double(sparseMatrix(i=irow, j=rep(1L, nrow(ep_ind)), x=as.double(ep_ind[,"rhs"])))
+   for (i in iseq(nrow(ep_ind))) {
+      row=ep_ind[i,]
+      if (nchar(row["metab"])==0) {
+         next
+      }
+      ep[irow[i], nm_poolf[row["metab"]]]=as.double(row["coef"])
+   }
+   if (nrow(ep) > 0) {
+      rownames(ep)=paste("m:", ep_ind[pmatch(iseq(nrow(ep)), irow),"name"], sep="")
+   }
+}
+ep=as.matrix(ep)
+names(cp)=rownames(ep)
 """)
