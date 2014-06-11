@@ -66,4 +66,4 @@ A basic work-flow with ``influx_s`` is composed of the following steps:
 
 4. Extract and use the numerical results from the ``mynetwork_res.kvh`` file.
 
-5. Optionally, visualize net fluxes (or exchange fluxes or :math:`\log_2(M)`) in cytoscape using ``edge.netflux.mynetwok``, ``edge.xchflux.mynetwok`` or ``node.log2pool.mynetwork``.
+5. Optionally, visualize net fluxes (or exchange fluxes or logarithm of metabolite concentrations :math:`\log_2(M)`) in cytoscape using ``edge.netflux.mynetwok.attrs``, ``edge.xchflux.mynetwok.attrs`` or ``node.log2pool.mynetwork.attrs``.
