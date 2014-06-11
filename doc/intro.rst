@@ -33,18 +33,25 @@ for fitting purposes. This algorithm provides:
  - more reliable convergence which results in better numerical precision, i.e. even started from random initial points, it converges to the same solution if no local minima are present. So the spread of final solutions is close to zero.
  - better accuracy, i.e. the found numerical solution lies closer to the theoretical solution than solutions provided by concurrent minimization algorithms. Thus, ``influx_s`` provides better numerical accuracy.
 
-Moreover, ``influx_s`` provides:
-
- - a possibility to deal with metabolic pools appearing either in compartmentation or in coelution
- - a command line interface letting an easy integration in automatic processing chains
- - short time execution and design for many core computers. So it facilitates high throughput flux calculations.
- 
 For more details, see the paper on ``influx_s`` cited above.
 
-Changes brought to this new version and bug fixes are resumed in
+Moreover, ``influx_s`` provides:
+
+ - both cumomer and EMU formalisms for describing label distribution in the metabolites;
+ - a possibility to deal with metabolite pools appearing either in compartmentation or in coelution;
+ - taking into account non carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;
+ - an optional automatic choice of free fluxes;
+ - optional equality and inequality constraint on metabolite concentrations;
+ - short time execution and design for many core computers. So it facilitates high throughput flux calculations in parallel way;
+ - a 'leas norm' option that, in presence of structurally non identifiable fluxes, still allows to estimate some of fluxes (those remained identifiable);
+ - a khi2 statistical test 'goodness of fit'
+ - an optional automatic elimination of outliers;
+ - a command line interface letting an easy integration in automatic processing chains as well as many others features and options.
+ 
+Changes brought to this new version and bug fixes are resumed at the beginning of
 the next chapter :doc:`Change Log<changelog>`.
 
-The rest of the documentation is organized as follows. :doc:`Installation <install>` chapter provides brief instructions for software installation. :doc:`Quick start <quick>` chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short :doc:`User's manual <manual>` precedes a :doc:`Programmer's documentation <progdoc>`. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in ``influx_s``. A small collection of :doc:`How to... <howto>` and :doc:`Troubleshooting <trouble>` notice are concluding the documentation.
+The rest of the documentation is organized as follows. :doc:`Installation <install>` chapter provides brief instructions for software installation. :doc:`Quick start <quick>` chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short :doc:`User's manual <manual>` precedes a :doc:`Programmer's documentation <progdoc>`. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in ``influx_s``. A small collection of :doc:`How to... <howto>` and :doc:`Troubleshooting <trouble>` notice conclude the documentation.
 
 Licensing
 ---------
