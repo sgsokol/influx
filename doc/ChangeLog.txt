@@ -2,6 +2,24 @@
 Change Log for influx_s
 =======================
 
+2014-06-11 version 2.11
+-----------------------
+New features:
+ - a joint use of the options ``--fseries`` and ``--irand`` gives a possibility to mix fixed and random values in starting points
+ - post treatment option ``posttreat_R`` is introduced in FTBL file. A user script written in R can be used to chain flux estimation and customized data treatment, e.g. graph plotting in a pdf file or simply saving of all the environment for later use and exploring in an R interactive session
+ - added optional ``INEQUALITIES/METAB`` section in FTBL file. It can be helpful to limit variations of estimated metabolite concentrations (suggested by Marc Carnicer, INSA of Toulouse, France)
+ - added optional ``EQUALITIES/METAB`` section in FTBL file. It can be helpful to fix a ratio between varying metabolite concentrations (suggested by Marc Carnicer, idem)
+ - the default value of ``btdesc`` parameter in NLSIC algorithm is lowered from 0.75 to 0.1. In some cases, it can accelerate the optimization convergence.
+Bug fixes:
+ - fixed EMU list of participants in measurements
+ - fixed measurement matrix when only one measurement is available
+ - fixed a fatal error when no free flux is available but at least one metabolite quantity must be estimated
+ - fixed a bug in pooled measurements. This bug was harmful only if the metabolite pooling was used in more than one type of measurements, e.g. mass *and* labeling. If only one type of measurements used pooling (e.g. mass), the bug was without effect
+ - where appropriate, a word "labeling" was replaced by "label" in the field names of the ``_res.kvh`` file
+ - fixed superfluous backtracking iterations present for some particular residual functions
+ - if a flux or a metabolite is present more than once in formulas of (IN)EQUALITIES sections, its coefficients are summed up instead of taking only the last one
+ - fixed a fatal error in generating inequality matrix for net fluxes
+
 2014-04-08 version 2.10
 -----------------------
 New features:

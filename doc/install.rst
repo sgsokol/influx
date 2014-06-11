@@ -8,8 +8,7 @@ Installation
 
 To install the software ``influx_s``, you'll need some
 dependencies listed bellow. The software was developed on Linux
-but can be used both on Linux (or other UNIX, MacOS included but
-not yet tested) and Windows platforms.
+but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.
 If you are not used to install system wide environments
 like R or Python, ask your local computer
 support for help. We don't provide support for installation.
@@ -35,8 +34,8 @@ To install R modules, as administrator do in R::
 
 If you are not an administrator of your R installation, you can execute the command above in your own session and install necessary packages in your own disk space. Other users will have to do the same install in their respective sessions if they want to use ``influx_s``.
 
-- python 2.6+ (not 3.0 or higher) and module
-  
+- python 2.6 (or higher but not 3.0 or higher) and module
+
   + numpy
 - cytoscape is optional (http://www.cytoscape.org).
   It can be used to visualize your networks
@@ -57,7 +56,7 @@ available only in your personal session.
 
 Add this new directory to your (or system wide) PATH variable
 (if you don't know what does it mean or how to do it,
-ask for help from your computer service).
+ask for help from your local computer service).
 This step is optional but if you don't do it, you
 need to type all the path to ``influx_s`` and their utilities
 every time you run it. It can be as cumbersome as ::
@@ -118,10 +117,12 @@ If something get wrong, check the error messages in ``e_coli.err``,
 interpret them, try to figure out why the errors occurred and correct them.
 
 In high throughput context, you can find useful to run ``influx_s`` in parallel on many FTBL files. It can be done just by providing more than one FTBL file in argument. For example, with two of FTBLs provided with the package you can run: ::
-
+ 
  $ ../influx_s.py e_coli.ftbl e_coli_growth.ftbl
+ 
 
 In this case, the output looks sightly different than in one by one run: ::
+ 
  "../influx_s.py" "e_coli.ftbl" "e_coli_growth.ftbl"
  e_coli: code gen: 2013-10-04 16:07:51
  e_coli_growth: code gen: 2013-10-04 16:07:51
