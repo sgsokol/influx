@@ -9,7 +9,7 @@
 # 2008-12-08 sokol@insa-toulouse.fr : added netan2Rinit()
 # 2008-11-25 sokol@insa-toulouse.fr : adapted for reduced cumomer list
 # 2008-09-19 sokol@insa-toulouse.fr : initial release
-# Copyright 2011, INRA
+# Copyright 2011-2014, INRA
 
 import time
 import copy
@@ -568,7 +568,6 @@ nb_f$x=nb_x
     "xiemu": join(", ", netan["emu_input"].values()),
     "nm_xiemu": join(", ", netan["emu_input"].keys(), '"', '"'),
     "nm_emu": join(", ", valval(netan['vemu']), '"', '"'),
-    #"so": ("dll" if sys.platform in ("win32","cygwin") else "dylib" if sys.platform == "darwin" else "so"),
 })
     if fullsys:
         d=netan2R_cumo(netan, org, f)
@@ -596,7 +595,8 @@ nb_sys=list(
       flux=%(meas_f)s,
       mass=%(meas_m)s,
       peak=%(meas_p)s,
-      label=%(meas_l)s
+      label=%(meas_l)s,
+      metab=%(meas_pool)s
    ),
    equations=list(
       equalities=%(eqe)s,
@@ -620,6 +620,7 @@ nb_sys=list(
     "meas_m": len(netan["measures"]["mass"]["vec"]),
     "meas_p": len(netan["measures"]["peak"]["vec"]),
     "meas_l": len(netan["measures"]["label"]["vec"]),
+    "meas_pool": len(netan["metab_measured"]),
     "eqe": len(netan["flux_equal"]["net"])+len(netan["flux_equal"]["xch"]),
     "eqi": len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"]),
     "lncumo": ",".join(str(len(a)) for a in netan["cumo_sys"]["A"]),
@@ -1600,7 +1601,6 @@ def netan2R_ineq(netan, org, f):
     # {'net': [], 'xch': [('0.85', '>=', {'v2': '+1.'})]}
     tfallnx=netan["tfallnx"]
     f2dfcg_nx_f=netan["f2dfcg_nx_f"]
-    #dict2kvh(dict((i,t) for (i,t) in enumerate(tfallnx)), "tfallnx.kvh");##
     nb_ineq=len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"])
     f.write("""
 if (TIMEIT) {
