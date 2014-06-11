@@ -672,14 +672,14 @@ for (irun in iseq(nseries)) {
       next
    }
    if (nb_sc && !is.null(measvecti)) {
-      # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+      # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
       # for corresponding measurements
       # unscaled simulated measurements (usm) [imeas, itime]
       #browser()
       inna=which(!is.na(measvecti))
-      simvec=vr$usm
-      ms=(measvecti*simvec*measinvvar)[inna]
-      ss=(simvec*simvec*measinvvar)[inna]
+      simlab=vr$usm
+      ms=(measvecti*simlab*measinvvar)[inna]
+      ss=(simlab*simlab*measinvvar)[inna]
       for (i in nb_ff+1:nb_sc) {
          im=outer(ir2isc==(i+1), rep(T, nb_ti), "&")[inna]
          param[i]=sum(ms[im])/sum(ss[im])
@@ -696,7 +696,7 @@ browser()
 """)
     else:
         f.write("""
-   # set initial scale values to sum(measvec*simvec/dev**2)/sum(simvec**2/dev**2)
+   # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
    # for corresponding measurements
    vr=lab_sim(param, cjac=FALSE, labargs)
    jx_f=labargs$jx_f=vr$jx_f
@@ -707,10 +707,10 @@ browser()
    }
    if (nb_sc > 0) {
       if (optimize) {
-         simvec=jx_f$usimcumom
+         simlab=jx_f$usimcumom
          measinvvar=1./measurements$dev$labeled**2
-         ms=measvec*simvec*measinvvar
-         ss=simvec*simvec*measinvvar
+         ms=measvec*simlab*measinvvar
+         ss=simlab*simlab*measinvvar
          # get only valid measurements
          iva=!is.na(ms)
          for (i in nb_ff+1:nb_sc) {
@@ -996,8 +996,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                res=resout
                param=res$par
                names(param)=nm_par
-               obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
                jx_f=labargs$jx_f=resout$retres$jx_f
+               obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
             }
          } else {
             cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
@@ -1023,18 +1023,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       rres=lab_resid(param, cjac=T, labargs)
       jx_f=labargs$jx_f=rres$jx_f
    } else {
-      rres=res
+      rres=res$retres
    }
    rcost=cumo_cost(param, labargs)
 
    pres[,irun]=param
    costres[irun]=rcost
    obj2kvh(rcost, "final cost", fkvh)
-   if (is.null(measurements$outlier) || length(measurements$outlier)==0) {
-      names(rres$res)=nm_resid
-   } else {
-      names(rres$res)=nm_resid[-measurements$outlier]
-   }
+#browser()
+   names(rres$res)=nm_resid
    o=order(names(rres$res))
    obj2kvh(rres$res[o], "(simulated-measured)/sd_exp", fkvh)
 
