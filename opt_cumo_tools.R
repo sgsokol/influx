@@ -89,22 +89,17 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
    jx_f=lres$jx_f
 
    # find simulated scaled measure vector scale*(measmat*x)
-   jx_f$simvec=jx_f$usimcumom*c(1.,param)[ir2isc]
+   jx_f$simlab=jx_f$usimcumom*c(1.,param)[ir2isc]
 
    # diff between simulated and measured
    pool[nm$poolf]=param[nm$poolf]
    jx_f$simfmn=jx_f$fallnx[nm$fmn]
    jx_f$simpool=as.numeric(measurements$mat$pool%*%pool)
-   res=with(measurements$vec, c((jx_f$simvec-labeled), (jx_f$simfmn-flux), jx_f$simpool-pool))
+   res=with(measurements$vec, c((jx_f$simlab-labeled), (jx_f$simfmn-flux), jx_f$simpool-pool))
    names(res)=nm$resid
-   if (is.null(measurements$outlier) || length(measurements$outlier)==0) {
-      jx_f$ures <- res
-      jx_f$res <- with(measurements$dev, res/c(labeled, flux, pool))
-   } else {
-      # exclude outliers
-      jx_f$ures <- res[-measurements$outlier]
-      jx_f$res <- with(measurements$dev, (res/c(labeled, flux, pool))[-outlier])
-   }
+   res[measurements$outlier]=NA
+   jx_f$ures <- res
+   jx_f$res <- with(measurements$dev, res/c(labeled, flux, pool))
    if (cjac) {
 #browser()
       # jacobian
@@ -119,12 +114,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
 #require(numDeriv)
 #r=function(p) cumo_resid(p, F, labargs)$res
 #jacobian=jacobian(r, param)
-      if (!is.null(measurements$outlier) && !length(measurements$outlier)==0) {
-         # exclude outliers
-         jacobian=as.matrix(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))[-measurements$outlier,,drop=F]
-      } else {
-         jacobian[]=as.numeric(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))
-      }
+      jacobian[]=as.numeric(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))
       jx_f$jacobian <- jacobian
       jx_f$dr_dff <- jacobian[,iseq(nb_f$nb_ff),drop=F]
       labargs$jacobian=jacobian
@@ -1151,7 +1141,7 @@ mc_sim=function(i) {
    }
    # random measurement generation
    if (nb_f$nb_meas) {
-      meas_mc=rnorm(nb_f$nb_meas, jx_f$simvec, measurements$dev$labeled)
+      meas_mc=rnorm(nb_f$nb_meas, jx_f$simlab, measurements$dev$labeled)
    } else {
       meas_mc=c()
    }
