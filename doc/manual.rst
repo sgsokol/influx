@@ -16,9 +16,9 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
  For some specific features of ``influx_s``, the FTBL format was extended. Here is complete list of such extensions:
   - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
   - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0). It is recommended to add corresponding inequalities to ensure that input-output net fluxes be positive;
-  - starting from version 2.5, ``NA`` (missing values) are admitted in measurement sections;
-  - starting from version 2.8, new fluxes (i.e. absent in ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections.
-
+  - starting from the version 2.5, ``NA`` (missing values) are admitted in measurement sections;
+  - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections;
+  - starting from the version 2.11, new subsections ``EQUALITY/METAB`` and ``INEQUALITY/METAB`` can appear in FTBL file. They can be useful, e.g. to impose a fixed ratio between variable metabolite concentrations (that are part of fitted variables) and/or to limit their variations to some interval. Their syntax is identical to the flux counterpart of these sections.
 
 
 In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.: ::
@@ -39,7 +39,7 @@ where ``[options]`` is an option list separated by a white character. Each optio
 
  $ influx_s.py --meth BFGS mynetwork
 
-or::
+or ::
 
  $ influx_s.py --meth=BFGS mynetwork
 
@@ -61,7 +61,7 @@ Command line options
   --fullsys        calculate all cumomer set (not just the reduced one
                    necessary to simulate measurements)
 
-                   This option influences only post-optimization treatment. The fitting itself is still done with the reduced cumomer set. See the original paper on ``influx_s`` for more information on the reduced cumomer set.
+                   This option influences only post-optimization treatment. The fitting itself is still done with the reduced cumomer set or EMU variables if requested so. See the original paper on ``influx_s`` for more information on the reduced cumomer set.
   --emu            simulate labeling in EMU approach
 
                    This option should not produce a different result in parameter fitting. It is implemented and provided in a hope that on some network the results can be obtained in a shorter time
@@ -105,7 +105,7 @@ Command line options
                    during the non-linear iterations when Jacobian is rank
                    deficient
                    
-                   To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only one of the options --ln and --tikhreg can be activated in a given run.
+                   To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only one of the options ``--ln`` and ``--tikhreg`` can be activated in a given run.
   --zc=ZC          Apply zero crossing strategy with non negative threshold
                    for net fluxes
                    
@@ -113,7 +113,7 @@ Command line options
   --ffguess        Don't use free/dependent flux definitions from FTBL
                    file(s). Make an automatic guess.
                    
-                   The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1[ interval). An option ``--seed`` can be useful to make the results reproducible.
+                   The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1] interval). An option ``--seed`` can be useful to make the results reproducible.
   --fseries=FSERIES  File name with free parameter values for multiple
                      starting points. Default: '' (empty, i.e. only one
                      starting point from the FTBL file is used)
@@ -192,7 +192,7 @@ All possible options and their default values for NLSIC algorithm follow:
    btfrac=0.25
     backtracking fraction parameter. It corresponds to the alpha parameter in the paper on ``influx_s``
 
-   btdesc=0.75
+   btdesc=0.1
     backtracking descending parameter. It corresponds to the beta parameter in the paper on ``influx_s``
 
    btmaxit=15
@@ -202,7 +202,7 @@ All possible options and their default values for NLSIC algorithm follow:
     report (=1) or not (=0) minimal convergence information
 
    rcond=1.e10
-   condition number over which a matrix is considered as rank deficient
+    condition number over which a matrix is considered as rank deficient
 
    ci=list(p=0.95, report=F)
     confidence interval reporting. This option is own to ``nlsic()`` function. It has no impact on the reporting of linear stats information in the result kvh file after the post-optimization treatment. This latter is always done.
@@ -278,6 +278,70 @@ When a metabolite name is given as a sum of metabolites (e.g. ``Rub5P+Rib5P+Xul5
 
 An example of an FTBL file having metabolite sections and involving growth fluxes can be found in ``test/e_coli_growth.ftbl``.
 
+Post treatment option
+---------------------
+
+User can specify a name of an R script file that will be automatically executed after non aborted influx_s run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session. An example of such script is provided in the file ``test/save_all.R`` and its use can be found in the options of ``test/e_coli.ftbl`` file.
+
+To activate this option, the script name must be provided in the ``OPTIONS`` section, in the field ``posttreat_R``, e.g. ::
+
+ OPTIONS
+  OPT_NAME	OPT_VALUE
+  posttreat_R	save_all.R
+  
+The script name is interpreted as a relative path to the directory where the original FTBL file is located. After execution of ``save_all.R``, a file ``e_coli.RData`` is created. It can be used to restore a calculation R environment by launching R and executing::
+
+ > load("e_coli.RData")
+ 
+After that, all variables defined in influx_s at the end of the calculations will be available in the current interactive session.
+
+To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them::
+
+dirw
+  is a working directory (where the original FTBL file is)
+dirx
+  is an executable directory (where influx_s.py is)
+baseshort
+  is a short name of the input FTBL file (without the suffix ``.ftbl`` neither the directory part of the path)
+param
+  is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and metabolite concentrations (if any)
+jx_f
+  is a list calculated quantities. Here are some of its fields:
+  
+  fallnx
+    a vector of all net and exchange fluxes (here, exchange fluxes are mapped on [0; 1[ interval)
+  fwrv
+    a vector of forward and reverse fluxes (reverse fluxes are "as is", i.e. not mapped)
+  x
+    is an internal state label vector
+  simlab, simfmn and simpool
+    are vectors of simulated measurements for label, net flux and metabolite pools respectively (fitting at the best of influx_s' capacity the provided measurements in the FTBL file)
+  res
+   is the reduced residual vector, i.e. (simulated-measured)/SD
+  ures
+   is the unreduced residual vector, i.e. (simulated-measured)
+  jacobian
+   as its names indicates, is the Jacobian matrix (d res/d param)
+  udr_dp
+   is the jacobian matrix for the unreduced residual vector (d ures/d param)
+  lA
+   is a list of matrices defining cumomer (or EMU) balances at each cumomer weight
+
+measurements
+ is a list regrouping various measurements and their SD
+nb_f
+ is a list of various counts, like number of fluxes, parameters to fit, system sizes and so on
+nm_list
+ is a list of names for various vectors like fluxes, metabolites, label vectors, measurements, inequalities and so on
+ui, ci
+ are inequality matrix and right hand side respectively
+ 
+A full list of all available variable and functions can be obtained in an R session by executing::
+
+ > ls()
+ 
+This list of more than 400 items is too long to be fully described here. We hope that few items succinctly described in this section will be sufficient for basic custom treatments.
+
 Result file fields
 ------------------
 
@@ -323,7 +387,7 @@ Several network values formatted for cytoscape are written by ``influx_s`` to th
 
 A file named ``edge.netflux.mynetwork.attrs`` can help to map net flux values on edges of a studied network. A file ``edge.xchflux.mynetwork.attrs`` do the same with exchange fluxes. And finally, ``node.log2pool.mynetwork.attrs`` provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.
 
-See `Additional tools`_ section, `Cytoscape view`_ paragraph to know how to produce files importable in Cytoscape from a given FTBL file. User's manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.
+See `Additional tools`_ section, `ftbl2xgmml: cytoscape view`_ paragraph to know how to produce files importable in Cytoscape from a given FTBL file. User's manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.
 
 Warning and error messages
 --------------------------
@@ -509,20 +573,24 @@ Once a generated file ``mynetwork.ftbl`` is imported in cytoscape, a user can us
 For those who use `CySBML <http://apps.cytoscape.org/apps/cysbml>`_ plugin, a saving of a particular layout in a file can be practical for later applying it to a new network.
 
 Graphical conventions used in the generated XGMML are the following:
- - metabolite are presented as rounded square nodes;
- - simple (one to one) reaction are represented by simple edges;
- - condensing and/or splitting reactions are represented by edges converging and/or diverging from additional almost invisible node having a label with the reaction name;
- - all nodes and edges have tool tips, i.e. when a pointer is put over their name (metabolite or reaction) appears in a tiny pop-up window;
- - non reversible reaction are represented by a single solid line, have an arrow on the target end (i.e. produced metabolite) and nothing on the source end (i.e. consumed metabolite);
- - reversible reactions are represented by a double parallel line and have a solid circle on the source end;
- - color code for arrows:
-  + green for free net flux;
-  + blue for dependent net flux;
-  + black for constrained net flux;
- - color code for solid circles:
-  + green for free exchange flux;
-  + blue for dependent exchange flux;
-  + black for constrained exchange flux.
+
+* metabolite are presented as rounded square nodes;
+* simple (one to one) reaction are represented by simple edges;
+* condensing and/or splitting reactions are represented by edges converging and/or diverging from additional almost invisible node having a label with the reaction name;
+* all nodes and edges have tool tips, i.e. when a pointer is put over, their name (metabolite or reaction) appears in a tiny pop-up window;
+* non reversible reaction are represented by a single solid line, have an arrow on the target end (i.e. produced metabolite) and nothing on the source end (i.e. consumed metabolite);
+* reversible reactions are represented by a double parallel line and have a solid circle on the source end;
+* color code for arrows:
+
+  * green for free net flux;
+  * blue for dependent net flux;
+  * black for constrained net flux;
+
+* color code for solid circles:
+
+  * green for free exchange flux;
+  * blue for dependent exchange flux;
+  * black for constrained exchange flux.
 
 ftbl2netan: FTBL parsing
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -585,7 +653,7 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 
 ffres2ftbl: import free fluxes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This utility imports free flux values from a result file _res.kvh and inject them into an FTBL file. Usage::
+This utility imports free flux values and metabolite concentrations (if any) from a result file _res.kvh and inject them into an FTBL file. Usage::
 
  $ ffres2ftbl.sh mynetwork_res.kvh [base.ftbl] > new.ftbl
 
