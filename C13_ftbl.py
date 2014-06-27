@@ -106,6 +106,22 @@ float_conv=set((
     "VALUE_DD",
     "VALUE(F/C)",
 ))
+# define legal sections/subsections
+defsec={
+    "PROJECT": set(),
+    "NETWORK": set(),
+    "FLUXES": set(("NET", "XCH")),
+    "EQUALITIES": set(("NET", "XCH", "METAB")),
+    "INEQUALITIES": set(("NET", "XCH", "METAB")),
+    "LABEL_INPUT": set(),
+    "FLUX_MEASUREMENTS": set(),
+    "LABEL_MEASUREMENTS": set(),
+    "PEAK_MEASUREMENTS": set(),
+    "MASS_SPECTROMETRY": set(),
+    "METAB_MEASUREMENTS": set(),
+    "OPTIONS": set(),
+    "METABOLITE_POOLS": set(),
+}
 def ftbl_parse(f):
     """ftbl_parse(f) -> dict
     read and parse .ftbl file. The only input parameter f is a stream pointer
@@ -127,7 +143,9 @@ def ftbl_parse(f):
     reblank=re.compile("^[\t ]*$")
     recomm=re.compile("^[\t ]*//.*$")
     comm=re.compile("^([^(//)]+|.+)//.*$")
-    reading="data"
+    reading="sec_name"
+    col_names=[]
+    sec_name=subsec_name=""
     irow=0
     for l in f:
         irow+=1
@@ -154,10 +172,12 @@ def ftbl_parse(f):
         flds=l.split("\t")
         
         #print "proceeding:"+l;##
-        if reading=="data" and len(flds)==1:
+        if len(flds)==1:
             # new section starts here
             sec_name=flds[0]
             subsec_name=""
+            if not sec_name in defsec:
+                raise Exception("FTBL: Illegal section name '%s' (row: %d)"%(sec_name, irow))
             # prepare storage
             ftbl[sec_name]=[]
             # prepare storage for carbon transitions
@@ -170,30 +190,38 @@ def ftbl_parse(f):
             skiptab=1
             data_count=0
             reading="col_names"
+            col_names=[]
+            subsec_name=""
             continue
         if len(flds)==2 and len(flds[0])==0:
-            # read subsection name
-            if reading=="data" and not subsec_name:
-                raise Exception("Wrong subsection. While beeing in section '%s/%s' (row: %d) got wrong subsection '%s'.\n"%(sec_name, subsec_name, irow, flds[1]))
-            subsec_name=flds[1]
-            # prepare sub-storage
-            if not ftbl[sec_name]:
-                # replace an empty list by an empty dictionary
-                ftbl[sec_name]={}
-            #print (irow, reading)##
-            ftbl[sec_name][subsec_name]=[]
-            try: del stock
-            except NameError: pass
-            stock=ftbl[sec_name][subsec_name]
-            skiptab=2
-            data_count=0
-            reading="col_names"
-            continue
+            # read subsection name or what ?
+            if len(sec_name) and sec_name in defsec and len(defsec[sec_name]):
+                # we are expecting a subsection
+                subsec_name=flds[1]
+                if subsec_name not in defsec[sec_name]:
+                    raise Exception("A subsection '%s' cannot appear in the section '%s' (row: %d)."%(subsec_name, sec_name, irow))
+                # prepare sub-storage
+                if not ftbl[sec_name]:
+                    # replace an empty list by an empty dictionary
+                    ftbl[sec_name]={}
+                #print (irow, reading)##
+                ftbl[sec_name][subsec_name]=[]
+                try: del stock
+                except NameError: pass
+                stock=ftbl[sec_name][subsec_name]
+                skiptab=2
+                data_count=0
+                reading="col_names"
+                continue
+            else:
+                # just a very short line
+                # it will fall in plain reading data
+                pass
         if reading=="col_names" and len(flds)>2:
             # read column names
             col_names=l[skiptab:].split("\t")
             if len([ item for item in col_names if re.match("^\s*$", item) ]):
-                raise Exception("Row %d has empty column names:\n%s"%(irow,l))
+                raise Exception("FTBL: row %d has empty column names:\n%s"%(irow,l))
             reading="data"
             #print "col_names=", col_names;##
             continue
@@ -207,7 +235,7 @@ def ftbl_parse(f):
                 #    "\nstock="+str(stock);##
                 fl_name=str(stock[data_count-1][col_names[0]])
                 if fl_name in ftbl["TRANS"]:
-                   raise Exception("ftbl row %d: the reaction '%s' has more than one carbon transitions."%(irow, fl_name))
+                   raise Exception("FTBL: the reaction '%s' has more than one carbon transitions (row: %d)."%(fl_name, irow))
                 for i in range(len(col_names)):
                     try:
                         item=data[i].strip()
@@ -222,9 +250,11 @@ def ftbl_parse(f):
                 continue
             for i in xrange(len(col_names)):
                 # classic data
+                if len(data) > len(col_names):
+                    raise Exception("FTBL: data have more columns (%d) than column names (%d) (row: %d)"%(len(data), len(col_names), irow))
                 try:
                     # decimal point conversion
-                    dic[col_names[i]]=data[i].strip()
+                    dic[col_names[i]]=data[i].strip() if i < len(data) else ""
                     if col_names[i] in float_conv:
                        dic[col_names[i]]=dic[col_names[i]].replace(",", ".")
                 except IndexError:
@@ -682,7 +712,7 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
                     # free xch
                     val=eval(cond["VALUE(F/C)"])
                     if val < 0. or val > 1.:
-                        raise Exception("FluxVal", "Free exchange flux`%s` must have starting value in [0; 1] interval.\nInstead, a value %f is given"%(reac, val))
+                        raise Exception("FluxVal", "Free exchange flux '%s' must have starting value in [0; 1] interval.\nInstead, a value %f is given"%(reac, val))
                     netan["flux_free"]["xch"][reac]=val
                 elif (cond and cond["FCD"] == "D"):
                     # dependent xch
