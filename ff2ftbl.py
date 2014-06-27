@@ -2,7 +2,7 @@
 
 """
 This program gets free flux and free pool values from kvh file
-and put them in a ftbl file after rounding values to 7 digits
+and put them in a ftbl file after rounding values to 9 digits
 (default value but can be changed with -r option).
 
 Names in kvh are like "f.n.FLX" or "f.x.FLX" or "pf:Glc6P"
@@ -15,7 +15,7 @@ edited flux or pool are lost.
 
 New content is sent to stdout
 
-usage: ./ff2ftbl.py [-h|--help] [-r 7] f.kvh f.ftbl > new_f.ftbl
+usage: ./ff2ftbl.py [-h|--help] [-r 9] f.kvh f.ftbl > new_f.ftbl
 or: cat f.kvh | ./ff2ftbl.py - f.ftbl > new_f.ftbl
 """
 import sys
@@ -37,7 +37,7 @@ except getopt.GetoptError, err:
 
 fullsys=False
 DEBUG=False
-nround=7
+nround=9
 for o,a in opts:
     if o in ("-h", "--help"):
         usage()
@@ -60,7 +60,7 @@ ftbl=args[1]
 # get free fluxes from kvh
 ff=kvh.kvh2dict(fkvh)
 
-# convert strings to floats and round it to nround digits (default 7)
+# convert strings to floats and round it to nround digits (default 9)
 ff=dict((k, round(float(v), nround)) for (k,v) in ff.iteritems())
 
 #print("ff=", ff)
