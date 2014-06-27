@@ -518,7 +518,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "meas2sum")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "meas2sum", "clen")
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
@@ -664,10 +664,10 @@ for (irun in iseq(nseries)) {
 """)
     if case_i:
         f.write("""
-   vr=lab_resid(param, cjac=F, labargs)
-   jx_f=labargs$jx_f=vr$jx_f
-   if (!is.null(vr$err) && vr$err) {
-      cat("lab_resid", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
+   rres=lab_resid(param, cjac=F, labargs)
+   jx_f=labargs$jx_f=rres$jx_f
+   if (!is.null(rres$err) && rres$err) {
+      cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
       next
    }
@@ -677,7 +677,7 @@ for (irun in iseq(nseries)) {
       # unscaled simulated measurements (usm) [imeas, itime]
       #browser()
       inna=which(!is.na(measvecti))
-      simlab=vr$usm
+      simlab=rres$usm
       ms=(measvecti*simlab*measinvvar)[inna]
       ss=(simlab*simlab*measinvvar)[inna]
       for (i in nb_ff+1:nb_sc) {
@@ -698,10 +698,10 @@ browser()
         f.write("""
    # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
    # for corresponding measurements
-   vr=lab_sim(param, cjac=FALSE, labargs)
-   jx_f=labargs$jx_f=vr$jx_f
-   if (!is.null(vr$err) && vr$err) {
-      cat("lab_sim", runsuf, ": ", vr$mes, "\\n", file=fcerr, sep="")
+   rres=lab_sim(param, cjac=FALSE, labargs)
+   jx_f=labargs$jx_f=rres$jx_f
+   if (!is.null(rres$err) && rres$err) {
+      cat("lab_sim", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
       next
    }
@@ -765,7 +765,7 @@ browser()
    names(param)=nm_par
    obj2kvh(param, "starting free parameters", fkvh, indent=1)
 #browser()
-   x=as.matrix(vr$x)
+   x=as.matrix(rres$x)
    rownames(x)=nm_x
    obj2kvh(cumo2mass(x), "starting MID vector", fkvh, indent=1)
    # replace :i by #x1's
@@ -788,12 +788,12 @@ browser()
    rownames(x)=nm_mask
    obj2kvh(x[o,], "starting cumomer vector", fkvh, indent=1)
 
-   fwrv=vr$fwrv
+   fwrv=rres$fwrv
    n=length(fwrv)
    names(fwrv)=nm_fwrv
    obj2kvh(fwrv, "starting fwd-rev flux vector", fkvh, indent=1)
 
-   f=vr$fallnx
+   f=rres$fallnx
    n=length(f)
    names(f)=nm_fallnx
    obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
@@ -965,7 +965,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                }
             }
          } else {
-            cat("After the first optimization, no zero crossing equality was activated. So no reptimization", runsuf, "\\n", sep="", file=fclog)
+            cat("After the first optimization, no zero crossing equality was activated. So no reoptimization", runsuf, "\\n", sep="", file=fclog)
          }
       } # end if zero crossing
       res=res_save
@@ -1022,8 +1022,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (is.null(jx_f$jacobian)) {
       rres=lab_resid(param, cjac=T, labargs)
       jx_f=labargs$jx_f=rres$jx_f
-   } else {
-      rres=res$retres
    }
    rcost=cumo_cost(param, labargs)
 
