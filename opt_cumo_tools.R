@@ -276,7 +276,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                   as.matrix(solve(jx_f$lA[[iw]], j_rhsw))
             }
          } else if (iw == 1) {
-            x_f[ixw,]=
+            x_f[iseq(nb_c),]=
                as.matrix(solve(jx_f$lA[[iw]], j_rhsw))
             if (emu) {
                x_f[nb_c+(1:nb_c),]=-x_f[(1:nb_c),]
@@ -290,9 +290,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       }
    }
    if (emu) {
-      names(incu)=c("one", nm$xi, nm$emu)
+      names(incu)=c("one", nm$inp, nm$emu)
    } else {
-      names(incu)=c("one", nm$xi, nm$rcumo)
+      names(incu)=c("one", nm$inp, nm$rcumo)
    }
    jx_f$x <- incu
    x=tail(incu, -nb_xi-1L)
