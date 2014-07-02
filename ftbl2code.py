@@ -504,7 +504,7 @@ lab_sim=param2fl_x
 source(file.path(dirx, "opt_icumo_tools.R"))
 
 lab_resid=icumo_resid
-lab_sim=param2fl_usm_ode
+lab_sim=param2fl_usm_eul
 """)
     f.write("""
 if (TIMEIT) {
@@ -561,6 +561,7 @@ if (emu) {
 # composite labeling vector incu c(1, xi, xc) names
 nm_inlab=c("one", nm_inp, nm_x); # the constant 1 has name "one"
 nm_list$x=nm_x
+nm_list$inp=nm_inp
 nb_f$x=nb_x
 """%{
     "xi": join(", ", netan["rcumo_input"].values()),
