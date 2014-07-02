@@ -307,7 +307,7 @@ measmatpool[i]=1.
 
 # tokens for case_s
 measvecti=NULL
-ti=0.
+tifull=ti=0.
 nb_ti=1
 x0=NULL
 
@@ -321,12 +321,19 @@ x0=NULL
     if case_i:
         f.write("""
 # prepare mapping of metab pools on cumomers
-nminvm=matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1]
-ipc2ix=match(paste("pc", nminvm, sep=":"), nm_poolall, nomatch=0)
-ipf2ix=match(paste("pf", nminvm, sep=":"), nm_poolall, nomatch=0)
-ip2ix=ipc2ix+ipf2ix
-nb_f$ip2ix=ip2ix
-nb_f$ipf2ix=ipf2ix
+if (nb_poolf > 0) {
+   nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
+   nb_f$ip2ircumo=match(nminvm, nm_poolall)
+   nb_f$ipf2ircumo=list()
+   for (iw in iseq(nb_w)) {
+      ix=iseq(nb_rcumos[iw])
+      ipf2ircumo=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
+      nb_f$ipf2ircumo[[iw]]=cbind(ix, ipf2ircumo)[ipf2ircumo!=0L,,drop=F]
+   }
+} else {
+   nb_f$ipf2ix=lapply(iseq(nb_w), matrix, 0, 0, 0)
+}
+
 ## variables for isotopomer kinetics
 tstart=0.
 tmax=%(tmax)f
@@ -399,6 +406,7 @@ The fitting is ignored as if '--noopt' option were asked.", file=fcerr)
       optimize=F
    }
 }
+tifull=ti
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
 x0=NULL
 nb_ti=length(ti)
@@ -518,7 +526,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "meas2sum", "clen")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "tifull", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "meas2sum", "clen")
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
