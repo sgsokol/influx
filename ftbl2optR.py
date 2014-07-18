@@ -215,10 +215,7 @@ if __name__ == "__main__":
 
     netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
     # prepare rcumo system
-    if emu:
-        rAb=C13_ftbl.rcumo_sys(netan, C13_ftbl.ms_frag_gath(netan))
-    else:
-        rAb=C13_ftbl.rcumo_sys(netan)
+    rAb=C13_ftbl.rcumo_sys(netan, emu)
 
     # write initialization part of R code
     ftbl2code.netan2Rinit(netan, org, f, fullsys, emu, ropts)
@@ -320,20 +317,6 @@ x0=NULL
 })
     if case_i:
         f.write("""
-# prepare mapping of metab pools on cumomers
-if (nb_poolf > 0) {
-   nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
-   nb_f$ip2ircumo=match(nminvm, nm_poolall)
-   nb_f$ipf2ircumo=list()
-   for (iw in iseq(nb_w)) {
-      ix=iseq(nb_rcumos[iw])
-      ipf2ircumo=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
-      nb_f$ipf2ircumo[[iw]]=cbind(ix, ipf2ircumo)[ipf2ircumo!=0L,,drop=F]
-   }
-} else {
-   nb_f$ipf2ix=lapply(iseq(nb_w), matrix, 0, 0, 0)
-}
-
 ## variables for isotopomer kinetics
 tstart=0.
 tmax=%(tmax)f
@@ -344,6 +327,7 @@ dt=%(dt)f
 if (dt <= 0) {
    stop_mes(sprintf("The parameter dt must be positive (dt=%%g)", dt), fcerr)
 }
+
 # read measvecti from a file specified in ftbl
 flabcin="%(flabcin)s"
 if (nchar(flabcin)) {
@@ -392,11 +376,6 @@ if (nchar(flabcin)) {
    i=which(ti<=tmax)
    ti=ti[i]
    measvecti=measvecti[,i[-1]-1,drop=F]
-   nb_ti=length(ti)
-   if (nb_ti < 2) {
-      mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.\\n", nb_ti)
-      stop_mes(mes, file=fcerr)
-   }
 } else {
    measvecti=NULL
    ti=seq(tstart, tmax, by=dt)
@@ -406,7 +385,52 @@ The fitting is ignored as if '--noopt' option were asked.", file=fcerr)
       optimize=F
    }
 }
-tifull=ti
+nb_ti=length(ti)
+if (nb_ti < 2L) {
+   mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.\\n", nb_ti)
+   stop_mes(mes, file=fcerr)
+}
+# divide each time interval by n
+dt=diff(ti)
+n=2
+dt=rep(dt/n, each=n)
+tifull=c(ti[1L], cumsum(dt))
+
+# divide first time interval by n1
+dt=diff(tifull)
+n1=4
+tifull=c(ti[1L], cumsum(c(rep(dt[1L]/n1, n1), dt[-1L])))
+nb_tifu=length(tifull)
+
+if (length(ijpwef)) {
+   # vector index for many time points
+   ijpwef=cbind(ijpwef[,1L], rep(iseq(nb_ti-1L), each=nrow(ijpwef)), ijpwef[,2L])
+   dp_ones=matrix(aperm(array(dp_ones, c(dim(dp_ones), nb_ti-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
+}
+
+# prepare mapping of metab pools on cumomers
+nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
+nb_f$ip2ircumo=match(nminvm, nm_poolall)
+nb_f$ipf2ircumo=list()
+for (iw in iseq(nb_w)) {
+   ix=iseq(nb_rcumos[iw])
+   ipf2ircumo=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
+   i=cbind(ix, ipf2ircumo)[ipf2ircumo!=0L,,drop=F]
+   nb_ix=nrow(i)
+   if (emu) {
+      # prepare three column index matrix: ix, imass+, ipool
+      # replicate index dispatching for all mass weights
+      i=matrix(aperm(array(i, dim=c(dim(i), iw, nb_tifu-1L)), c(1L, 3L, 4L, 2L)), ncol=2) # replicating itself
+      # to 3 column matrix: ix, imw, iti, ipoolf
+      nb_f$ipf2ircumo[[iw]]=cbind(i[,1L]+rep((iseq(iw)-1L)*nb_c, each=nb_ix), rep(iseq(nb_tifu-1L), each=nb_ix*iw), i[,2L])
+   } else {
+      i=matrix(aperm(array(i, dim=c(dim(i), nb_tifu-1L)), c(1L, 3L, 2L)), ncol=2) # replicating itself
+      # to 3 column matrix
+      nb_f$ipf2ircumo[[iw]]=cbind(i[,1L], rep(iseq(nb_tifu-1L), each=nb_ix), i[,2L])
+   }
+   colnames(nb_f$ipf2ircumo[[iw]])=c("ix", "iti", "ipoolf")
+}
+
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
 x0=NULL
 nb_ti=length(ti)
@@ -511,22 +535,21 @@ crv_fg[,1L]=(nb_fwrv/2)+crv_fg[,1L]
 nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
    crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
 
-nb_w=length(spa)
 nbc_x=c(0, cumsum(nb_x))
 nb_f$nbc_x=nbc_x
 
 # fixed part of jacobian (unreduced by SD)
 # measured fluxes
-dufm_dp=cBind(dufm_dff(nb_f, nm_list), Matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_poolf))
+dufm_dp=as.matrix(cBind(dufm_dff(nb_f, nm_list), Matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_poolf)))
 dimnames(dufm_dp)=list(nm_fmn, nm_par)
 
 # measured pools
-dupm_dp <- cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), if (nb_poolf > 0L) measurements$mat$pool[,nm_list$poolf, drop=F] else NULL)
+dupm_dp=as.matrix(cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), if (nb_poolf > 0L) measurements$mat$pool[,nm_list$poolf, drop=F] else NULL))
 dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "tifull", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "meas2sum", "clen")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "tifull", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen")
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
@@ -672,7 +695,7 @@ for (irun in iseq(nseries)) {
 """)
     if case_i:
         f.write("""
-   rres=lab_resid(param, cjac=F, labargs)
+   capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
    jx_f=labargs$jx_f=rres$jx_f
    if (!is.null(rres$err) && rres$err) {
       cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
@@ -696,7 +719,7 @@ for (irun in iseq(nseries)) {
       nb_f$is2mti=array(0., dim=c(dim(nb_f$is2m), nb_ti))
       nb_f$is2mti[]=nb_f$is2m
       nb_f$is2mti[,1L,]=nb_f$is2m[,1L]+rep((0:(nb_ti-1))*nb_meas, each=nrow(nb_f$is2m))
-browser()
+#browser()
    } else if (nb_sc > 0) {
       # we dont have measurements yet, just set all scalings to 1.
       param[nb_ff+1:nb_sc]=1.
@@ -806,7 +829,8 @@ browser()
    names(f)=nm_fallnx
    obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
 
-   rres=lab_resid(param, cjac=TRUE, labargs)
+   # starting jacobian calculation
+   capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
    jx_f=labargs$jx_f=rres$jx_f
    names(rres$res)=nm_resid
    o=order(names(rres$res))
@@ -1028,7 +1052,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
 #browser()
    if (is.null(jx_f$jacobian)) {
-      rres=lab_resid(param, cjac=T, labargs)
+      # final jacobian calculation
+      capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
       jx_f=labargs$jx_f=rres$jx_f
    }
    rcost=cumo_cost(param, labargs)
@@ -1310,9 +1335,9 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # reset fluxes and jacobians according to param
    jx_f=labargs$jx_f=jx_f_last
    if (is.null(jx_f$jacobian)) {
-      rres=lab_resid(param, cjac=T, labargs)
+      capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
       jx_f=labargs$jx_f=rres$jx_f
-   } # else use last calculated jacobian
+   } # else use the last calculated jacobian
 
    # covariance matrix of free fluxes
    svj=svd(jx_f$jacobian)
@@ -1444,19 +1469,23 @@ if (TIMEIT) {
 }
 """)
     f.write("""
-fpostR=file.path(dirw, "%(post)s")
-if (!isTRUE(file.info(fpostR)$isdir)) {
-   if (file.exists(fpostR)) {
-      source(fpostR)
-   } else {
-      stop_mes(sprintf("Posttreatment R file '%%s' does not exist.", fpostR), fcerr)
+# source files from FTBL/posttreat_R
+postlist=strsplit("%(postlist)s", " *; *")[[1]]
+for (post in postlist) {
+   fpostR=file.path(dirw, post)
+   if (!isTRUE(file.info(fpostR)$isdir)) {
+      if (file.exists(fpostR)) {
+         source(fpostR)
+      } else {
+         cat(sprintf("Posttreatment R file '%%s' does not exist. Ignored.\\n", fpostR), file=fcerr)
+      }
    }
 }
 close(fclog)
 close(fcerr)
 
 """%{
-    "post": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
+    "postlist": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
 })
 
     f.close()
