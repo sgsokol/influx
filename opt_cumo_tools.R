@@ -118,9 +118,9 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
       jx_f$jacobian <- jacobian
       jx_f$dr_dff <- jacobian[,iseq(nb_f$nb_ff),drop=F]
       labargs$jacobian=jacobian
-      return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x,  jacobian=jacobian, jx_f=jx_f))
+      return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x, jacobian=jacobian, jx_f=jx_f))
    } else {
-      return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x,  jx_f=jx_f))
+      return(list(res=jx_f$res, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, x=jx_f$x, jx_f=jx_f))
    }
 }
 cumo_cost=function(param, labargs) {
@@ -283,29 +283,22 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             }
          }
       }
-      if (emu) {
-         ba_x=ba_x+nb_emus[iw]
-      } else {
-         ba_x=ba_x+nb_c
-      }
+      ba_x=ba_x+if (emu) nb_emus[iw] else nb_c
    }
-   if (emu) {
-      names(incu)=c("one", nm$inp, nm$emu)
-   } else {
-      names(incu)=c("one", nm$inp, nm$rcumo)
-   }
+   names(incu)=c("one", nm$inp, nm$x)
    jx_f$x <- incu
    x=tail(incu, -nb_xi-1L)
    
    # calculate unreduced and unscaled measurements
    if (length(x) == ncol(measmat)) {
-      mx=measmat%*%x
+      mx=measmat%*%x+memaone
    } else {
-      mx=measmat%*%x[nm$rcumo_in_cumo]
+      mx=measmat%*%x[nm$rcumo_in_cumo]+memaone
    }
-   mv=as.numeric(mx+memaone)
    if (length(ipooled) > 1L) {
-      mv=meas2sum%*%(pwe*mv)
+      mv=meas2sum%*%(pwe*mx)
+   } else {
+      mv=mx
    }
    jx_f$usimcumom <- as.numeric(mv)
    if (cjac) {
@@ -342,8 +335,8 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             mpf[]=as.matrix(meas2sum%*%dpw_dpf)
             # growth flux depending on free pools
             if (nb_fgr > 0L) {
-               mpf=mpf+mffg[,nb_ff+1L:nb_fgr,drop=F]
-               mff=mffg[,1L:nb_ff]
+               mpf=mpf+mffg[,nb_ff+iseq(nb_fgr),drop=F]
+               mff=mffg[,iseq(nb_ff)]
             } else {
                mff=mffg
             }
@@ -376,6 +369,7 @@ Tiso2cumo=function(len) {
    T=Tiso2cumo(len-1)
    return(rbind(cbind(T,T),cbind(diag(0,NROW(T)),T)))
 }
+
 Tcumo2iso=function(len) {
    if (len<0) {
       return(FALSE)
@@ -387,6 +381,7 @@ Tcumo2iso=function(len) {
    T=Tcumo2iso(len-1)
    return(rbind(cbind(T,-T),cbind(diag(0,NROW(T)),T)))
 }
+
 Tiso2mass=function(len) {
    mass=matrix(0, len+1, 2**len)
    for (i in 0:(2**len-1)) {
@@ -395,6 +390,7 @@ Tiso2mass=function(len) {
    }
    return(mass)
 }
+
 Vcumo2iso0=function(len) {
    # coefficients of first row of matrix Tcumo2iso
    # giving the conversion to isotopomer of weight 0
@@ -408,6 +404,7 @@ Vcumo2iso0=function(len) {
    V=Vcumo2iso0(len-1)
    return(c(V,-V))
 }
+
 sumbit=function(i) {
    i=as.integer(i)
    res=0
@@ -418,6 +415,7 @@ sumbit=function(i) {
    }
    return(res)
 }
+
 cumo2mass=function(x, sep=":", emusep="+") {
    # convert cumomer or emu vector(s) to MID vector(s)
    # x may be multiple column matrix,
@@ -500,6 +498,7 @@ cumo2mass=function(x, sep=":", emusep="+") {
    }
    return(res)
 }
+
 cumo2lab=function(x) {
    # converts cumomer vector to fraction of labeled isotopomer 1-i#0
    # separate cumos by name and order by weight
@@ -535,18 +534,22 @@ cumo2lab=function(x) {
    }
    return(res)
 }
+
 cumo_gradj=function(param, labargs) {
    # calculate gradient of cost function for cumomer minimization probleme
    grad=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
    return(grad)
 }
+
 # cost function for donlp2 solver
 cumo_fn=function(p) {
    return(cumo_cost(p, labargs))
 }
+
 cumo_dfn=function(p) {
    return(cumo_gradj(p, labargs))
 }
+
 attr(cumo_fn, "gr")=cumo_dfn
 #cumo_fn@gr=cumo_dfn
 cumo_jacob=function(param, labargs) {
@@ -631,6 +634,11 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    # update: added emu approach
    # if emu then incu is inemu vector
    # 2012-07-18 sokol
+   #
+   # update: added vectorization for multiple incu vectors considered
+   # as matrix columns (there are nco of them) . output is a matrix with dim
+   # (nb_x*nco, nb_fwrv)
+   # 2014-07-15 sokol
    
    # we derivate a*x=b implicitly
    # a_f*x + a*x_f=b_f + b_xl*xl_f
@@ -640,7 +648,6 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       return(list(j_rhsw=NULL, b_x=NULL, j_rhswp=NULL, b_xp=NULL))
    }
    emu=is.matrix(spAbr$ind_b_emu)
-   x0=c(0., incu)
    nb_fwrv=spAbr$nb_fwrv
    nb_cl=spAbr$nb_cl
    w=spAbr$w
@@ -648,66 +655,57 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    # a_fx
    ind_a=spAbr$ind_a
    i=ind_a[,"ic0"]==ind_a[,"ir0"]
-   x=incu[(1L+nb$xi+nb$nbc_x[w])+iseq(nb$x[w])]
+   incu=as.matrix(incu)
+   nco=ncol(incu)
+   nro=nrow(ind_a)
+   emuw=ifelse(emu, w, 1L)
+   nb_xw=nb_c*emuw
+   x=incu[(1L+nb$xi+nb$nbc_x[w])+iseq(nb_xw),,drop=F]
    if (emu) {
-      for (iwe in 1:w) {
-         tmp=x[ind_a[,"ic0"]+(1+(iwe-1)*nb_c)]
-         tmp[i]=-tmp[i]
-         a_fx=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"indf"], x=tmp, dims=c(nb_c, nb_fwrv))
-         if (iwe == 1) {
-            res=a_fx
-         } else {
-            res=rBind(res, a_fx)
-         }
-      }
-      a_fx=res
+      dim(x)=c(nb_c, w, nco)
+      tmp=x[ind_a[,"ic0"]+1L,,,drop=F]
+      tmp[i,,]=-tmp[i,,]
+      ia=(ind_a[,"ir0"]+1L)+rep((iseq(w)-1L)*nb_c, each=nro)
+      ja=rep(ind_a[,"indf"], w)
    } else {
-      tmp=x[ind_a[,"ic0"]+1]
-      tmp[i]=-tmp[i]
-      a_fx=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"indf"], x=tmp, dims=c(nb_c, nb_fwrv))
+      tmp=x[ind_a[,"ic0"]+1L,,drop=F]
+      tmp[i,]=-tmp[i,]
+      ia=ind_a[,"ir0"]+1L
+      ja=ind_a[,"indf"]
    }
+   ia=ia+rep((iseq(nco)-1L)*(nb_c*emuw), each=nro*emuw)
+   ja=rep(ja, nco)
+   a_fx=sparseMatrix(i=ia, j=ja, x=as.double(tmp), dims=c(nb_xw*nco, nb_fwrv))
    
    # prepare b_f
-   if (emu) {
-      # NB: b is shorter than emuw (or xw) by M+N vector which is added to xw as (1-sum(lighter weights))
-      ind_b=spAbr$ind_b_emu
-      b_f=sparseMatrix(i=ind_b[,"irow"]+nb_c*(ind_b[,"iwe"]-1), j=ind_b[,"indf"],
-         x=-incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]],
-         dims=c(nb_c*w, nb_fwrv)
-      )
-   } else {
-      ind_b=spAbr$ind_b
-      b_f=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"indf"],
-         x=-incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]],
-         dims=c(nb_c, nb_fwrv)
-      )
-   }
+   # NB emu: b is shorter than xw by the last M+N vector which is added as (1-sum(lighter weights))
+   ind_b=if(emu) spAbr$ind_b_emu else spAbr$ind_b
+   nro=nrow(ind_b)
+   ib=ind_b[,"irow"]+if(emu) nb_c*(ind_b[,"iwe"]-1L) else 0L
+      jb=ind_b[,"indf"]
+   ib=ib+rep((iseq(nco)-1L)*nb_xw, each=nro)
+   jb=rep(jb, nco)
+   b_f=sparseMatrix(i=ib, j=jb,
+      x=as.double(-incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],]),
+      dims=c(nb_xw*nco, nb_fwrv)
+   )
    
    # prepare b_x
    if (all(dim(spAbr$ind_bx) > 0)) {
-      if (emu) {
-         ind_bx=spAbr$ind_bx_emu
-         b_x=sparseMatrix(
-            i=ind_bx[,"irow"],
-            j=ind_bx[,"ic1"],
-            x=-fwrv[ind_bx[,"indf"]]*incu[ind_bx[,"indx"]],
-            dims=c(nb_c*w, spAbr$nb_emul)
-         )
-      } else {
-         ind_bx=spAbr$ind_bx
-         b_x=sparseMatrix(
-            i=ind_bx[,"irow"],
-            j=ind_bx[,"ic1"],
-            x=-fwrv[ind_bx[,"indf"]]*incu[ind_bx[,"indx"]],
-            dims=c(nb_c, spAbr$nb_cl)
-         )
-      }
+      ind_bx=if (emu) spAbr$ind_bx_emu else spAbr$ind_bx
+      nro=nrow(ind_bx)
+      ib=ind_bx[,"irow"]
+      jb=ind_bx[,"ic1"]
+      ib=ib+rep((iseq(nco)-1L)*nb_xw, each=nro)
+      jb=rep(jb, nco)
+      b_x=sparseMatrix(
+         i=ib,
+         j=jb,
+         x=as.double(-fwrv[ind_bx[,"indf"]]*incu[ind_bx[,"indx"],]),
+         dims=c(nb_xw*nco, nb$nbc_x[w])
+      )
    } else {
-      if (emu) {
-         b_x=Matrix(0., nrow=nb_c, ncol=spAbr$nb_emul)
-      } else {
-         b_x=Matrix(0., nrow=nb_c, ncol=spAbr$nb_cl)
-      }
+      b_x=Matrix(0., nrow=nb_xw*nco, ncol=nb$nbc_x[w])
    }
    if (!is.null(incup)) {
       # calculate first derivative in time
@@ -808,6 +806,7 @@ put_inside=function(param, ui, ci) {
    }
    return(param)
 }
+
 df_dffp=function(param, flnx, nb_f, nm_list) {
    # derivation of fwrv by free_fluxes+poolf (and not growth fluxes neither log(poolf))
    ah=1.e-10; # a heavyside parameter to make it derivable in [-ah; ah]
@@ -866,6 +865,7 @@ df_dffp=function(param, flnx, nb_f, nm_list) {
    dimnames(res)=list(nm_list$fwrv, names(param)[c(i_ffn, i_ffx, i_fgn, i_fgx)])
    return(res)
 }
+
 dufm_dff=function(nb_f, nm_list) {
    # measured fluxes derivation (non reduced by SD)
    res=Matrix(0., length(nm_list$fmn), length(nm_list$ff))
@@ -882,6 +882,7 @@ dufm_dff=function(nb_f, nm_list) {
    }
    return(res)
 }
+
 plot_ti=function(ti, x, m=NULL, ...) {
    # plot time curse curves x[icurve, itime] and points from m
    # x and m are supposed to have the same dimension and organization
@@ -920,6 +921,7 @@ plot_ti=function(ti, x, m=NULL, ...) {
       }
    }
 }
+
 get_usm=function(f) {
    # return list of ti, usm from a _res.kvh file f
 
@@ -929,6 +931,7 @@ get_usm=function(f) {
    o=order(rownames(d))
    return(list(ti=ti, usm=d[o,,drop=F]))
 }
+
 get_labcin=function(f, nm_meas=NULL) {
    # get labeling cinetic data form file f
    # with rows matching at the best nm_meas (if any)
@@ -947,6 +950,7 @@ get_labcin=function(f, nm_meas=NULL) {
    nm=nm[!is.na(nm)]
    return(d[nm,])
 }
+
 get_hist=function(f, v) {
    # matrix from history field from a _res.kvh file f
 
@@ -954,6 +958,7 @@ get_hist=function(f, v) {
    d=kvh_get_matrix(f, c("history", v))
    return(d)
 }
+
 spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    # translate spAbr structure written for reduced cumo into
    # spemu structure for EMU
@@ -1061,6 +1066,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    }
    return(spemu)
 }
+
 opt_wrapper=function(measurements, jx_f, trace=1) {
    labargs$measurements=measurements
    labargs$jx_f=jx_f
@@ -1175,6 +1181,7 @@ mc_sim=function(i) {
    vres=res$res[iva]
    return(list(cost=crossprod(vres)[1], it=res$it, normp=res$normp, par=res$par, err=res$err))
 }
+
 fallnx2fwrv=function(fallnx, nb_f) {
    n=length(fallnx)
    # extract and reorder in fwrv order
