@@ -85,10 +85,12 @@ if (TIMEIT) {
 }
 
 nb_fwrv=%(n)d
+nb_w=%(nb_w)d
 %(var)s=list()
 """%{
     "var": varname,
     "n": len(fwrv2i),
+    "nb_w": len(Al),
 })
     # base of cumomers in composed vector incu=c(1, input, xcumo)
     # +1 for c(1,...)
@@ -504,7 +506,7 @@ lab_sim=param2fl_x
 source(file.path(dirx, "opt_icumo_tools.R"))
 
 lab_resid=icumo_resid
-lab_sim=param2fl_usm_eul
+lab_sim=param2fl_usm_eul2
 """)
     f.write("""
 if (TIMEIT) {
@@ -520,7 +522,7 @@ nm_list=list()
 nb_f=list()
 """)
     netan2R_fl(netan, org, f)
-    d=netan2R_rcumo(netan, org, f)
+    d=netan2R_rcumo(netan, org, f, emu)
     res.update(d)
     f.write("""
 # input cumomer vector
@@ -1340,6 +1342,7 @@ nb_meas=length(nm_meas)
 nb_f$nb_meas=nb_meas
 nb_measmat=length(nm_measmat)
 measmat=Matrix(0., nb_measmat, %(ncol)d)
+dimnames(measmat)=list(nm_measmat, nm_x)
 memaone=numeric(nb_measmat)
 measvec=c(%(vmeas)s)
 measdev=c(%(dev)s)
@@ -1414,6 +1417,7 @@ ind_mema=matrix(c(
     f.write(r"""
 NULL), ncol=3, byrow=T); # close ind_mema creation
 measmat[ind_mema[,1:2,drop=F]]=ind_mema[,3]
+measmat=as.matrix(measmat)
 
 memaone=c(%(memaone)s)
 names(memaone)=nm_measmat
@@ -1441,26 +1445,26 @@ for (po in names(ipooled)) {
    mets_in_res[irpo]=mets
 }
 pool_factor=as.factor(nm_measmat)
-# free pool in prinicpal pool weight
+# free pool in principal pool weight
 ipf_in_ppw=pmatch(mets_in_res, names(nm_poolf), dup=T)
 ipf_in_ppw[is.na(ipf_in_ppw)]=0L
+dp_ones=matrix(0., nb_measmat, nb_poolf)
+dp_ones[cbind(ipwe, ipf_in_ppw[ipwe])]=1.
 
 # matrix for summing weighted measurements
 meas2sum=Matrix(0., length(ipooled$ishort), nb_measmat)
 meas2sum[cbind(pmatch(nm_measmat, nm_measmat[ipooled$ishort], dup=T), iseq(nb_measmat))]=1.
 dimnames(meas2sum)=list(nm_meas, nm_measmat)
+meas2sum=as.matrix(meas2sum)
 
 # dpw_dpf - matrix for derivation of pool weights by free pools
 dpw_dpf=NULL
 if (nb_poolf > 0L && length(ijpwef) > 0) {
    # indeed, we'll have to do weight derivation by free pools
-   # sort ijpwef
-   o=order(ijpwef[,2L], ijpwef[,1L])
-   ijpwef=ijpwef[o,,drop=F]
-   ires_pf=pmatch(mets_in_res, nm_poolf, dup=T)
    dpw_dpf=Matrix(0., nb_measmat, nb_poolf)
    dpw_dpf[ijpwef]=1.
 }
+
 """%{
     "memaone": join(", ", (row[fcoef].get(onelab, 0.)
         for meas in o_meas
@@ -1497,10 +1501,10 @@ ifmn=match(nm_fmn, nm_fallnx)
         "imcumo2i": imcumo2i,
     }
 
-def netan2R_rcumo(netan, org, f):
+def netan2R_rcumo(netan, org, f, emu=False):
     # prepare reduced python systems
-    #rAb=C13_ftbl.rcumo_sys(netan)
-    rAb=netan["rcumo_sys"] if ("rcumo_sys" in netan) else C13_ftbl.rcumo_sys(netan)
+    #rAb=C13_ftbl.rcumo_sys(netan, emu)
+    rAb=netan["rcumo_sys"] if ("rcumo_sys" in netan) else C13_ftbl.rcumo_sys(netan, emu)
     # full matrix is Ab=netan["cumo_sys"]
 
     # prune ordered cumomer list in reverse order
