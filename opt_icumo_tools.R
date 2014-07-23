@@ -1,4 +1,4 @@
-suppressPackageStartupMessages(require(deSolve))
+#suppressPackageStartupMessages(require(deSolve))
 suppressPackageStartupMessages(require(Matrix))
 
 param2fl_usm_ode=function(param, cjac=TRUE, labargs) {
@@ -1363,15 +1363,14 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    names(x1)=c("one", nm$inp, nm$x)
 
    x2=x1 # just a place holder
-   # unscaled simulated measurements
-   usm=matrix(0., nrow=nb_meas, ncol=nb_ti-1L)
    xsim=matrix(x1, nrow=length(x1), ncol=ntico)
    dimnames(xsim)=list(names(x1), tifull[-1L])
    if (cjac) {
-      cat("param2fl_usm_eul: recalculate jacobian\n")
+      cat("param2fl_usm_eul2: recalculate jacobian\n")
       mdf_dffp=df_dffp(param, lf$flnx, nb_f, nm_list)
       jx_f$df_dffp=mdf_dffp
-      xpf=array(0., dim=c(nbc_x[nb_w+1L], ntico, nb_ff+nb_poolf))
+      xpf=double(nbc_x[nb_w+1L]*ntico*(nb_ff+nb_poolf))
+      dim(xpf)=c(nbc_x[nb_w+1L], ntico, nb_ff+nb_poolf)
       if (length(ijpwef)) {
          dpwe=-pwe*spwe
          dpwe[-ipwe]=0.
@@ -1386,9 +1385,11 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       inxw=(1L+nb_xi)+ixw
       nb_row=nb_c*emuw
       imw=nbc_x[iw]+iseq(nb_row) # mass index in x (all but last)
-      xpfw=array(0., c(nb_row, ntico, nb_ff+nb_poolf))
+      xpfw=double(nb_row*ntico*(nb_ff+nb_poolf))
+      dim(xpfw)=c(nb_row, ntico, nb_ff+nb_poolf)
       xpf1=matrix(0., nb_c, emuw*(nb_ff+nb_poolf))
-      sfpw=array(0., c(nb_row, ntico, nb_poolf))
+      sfpw=double(nb_row*ntico*nb_poolf)
+      dim(sfpw)=c(nb_row, ntico, nb_poolf)
       invmw=invm[nbc_cumos[iw]+iseq(nb_c)]
       Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+iseq(nb_x[iw])], getb=F,  emu=emu)$A*invmw
       iadt=list()
@@ -1407,7 +1408,10 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          dtr=as.character(round(dt[idtr], 10L))
          if (is.null(iadt[[dtr]])) {
             # new iadt
+            #pti=proc.time()
             iadt[[dtr]] <<- qr(as.matrix(diag(nrow(Aw))-Aw*dt[idtr]), LAPACK=T)
+            #cat("iw=", iw, "; dtr=", dtr, "\n", sep="")
+            #print(proc.time()-pti)
          }
          xw2=solve(iadt[[dtr]], (xw1+dt[idtr]*st[,idtr]))
          xw1[] <<- xw2
@@ -1441,22 +1445,28 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          }
          # add lighter xpf (b_x%*%...)
          if (iw > 1L) {
+#browser()
             ir=iseq(nb_row)
             ic=iseq(nbc_x[iw])
-            for (idtr in idt) {
-               xpfw[,idtr,]=xpfw[,idtr,]+ as.numeric(sj$b_x[ir+(idtr-1L)*nb_row,]%*%matrix(xpf[ic,idtr,], nrow=nbc_x[iw]))
-            }
+            #pti=proc.time()
+            #for (idtr in idt) {
+            #   xpfw[,idtr,]=xpfw[,idtr,]+ as.double(sj$b_x[ir+(idtr-1L)*nb_row,]%*%xpf[ic,idtr,])
+            mult_bxx(xpfw, sj$b_x, xpf, ntico, dirx)
+            #}
+            #cat("iw=", iw, "; len(x)=", length(sj$b_x[ir,]@x), "\n", sep="")
+            #print(proc.time()-pti)
          }
          # solve the system at each time point
-         for (idtr in idt) {
+         xpfw[]=c(rep(-invmw, emuw)%o%dt)*xpfw
+         xpfw=vapply(idt, function(idtr) {
             dtr=as.character(round(dt[idtr], 10L))
-            xpfw[,idtr,]=solve(iadt[[dtr]], as.numeric(((-dt[idtr])*invmw)*xpfw[,idtr,])+xpf1) # xpf1 makes that it is a matrix of a suitable size
-            xpf1[]=xpfw[,idtr,]
-         }
+            xpf1[] <<- solve(iadt[[dtr]], c(xpfw[,idtr,])+xpf1) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
+         }, xpf1)
+         dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
+         xpfw=aperm(xpfw, c(1L, 2L, 4L, 3L))
          xpf[imw,,]=xpfw
          if (emu) {
             # treat the last weight
-            dim(xpfw)=c(nb_c, iw, ntico, nb_ff+nb_poolf)
             xpf[imwl,,]=-apply(xpfw, c(1L, 3L, 4L), sum)
          }
       }
@@ -1487,8 +1497,11 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       dim(dux_dp)=c(nb_meas, ntise, nb_ff+nb_poolf)
       if (length(ijpwef) > 0L) {
          # derivation of pool ponderation factor
-         dpw_dpf=array(0., c(nrow(measmat), ntise, nb_poolf))
-         dpw_dpf[ijpwef]=array(c(mx)*dpwe, dim(dpw_dpf))[ijpwef]
+         dpw_dpf=double(nrow(measmat)*ntise*nb_poolf)
+         dim(dpw_dpf)=c(nrow(measmat), ntise, nb_poolf)
+         tmp=c(mx)*dpwe
+         dim(tmp)=dim(dpw_dpf)
+         dpw_dpf[ijpwef]=tmp[ijpwef]
          dim(dpw_dpf)= c(nrow(measmat), ntise*nb_poolf)
          dux_dp[,,nb_ff+iseq(nb_poolf)]=dux_dp[,,nb_ff+iseq(nb_poolf)]+c(meas2sum%*%dpw_dpf)
       }
@@ -1503,4 +1516,15 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    jx_f$xsim=xsim
    
    return(append(list(usm=usm, x=xsim, xpf=jx_f$xpf, dux_dp=jx_f$dux_dp, tifull=tifull, jx_f=jx_f), lf))
+}
+mult_bxx=function(a, bx, c, ntico, dirx) {
+   # R wrapper for a fortran call mult_bxt()
+   if(!is.loaded("mult_bxt")) {
+      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
+   }
+   stopifnot(class(bx)=="dgCMatrix")
+   .Fortran("mult_bxt", bx@x, bx@i, bx@p, as.integer(nrow(bx)/ntico), as.integer(ntico), ncol(bx), c, dim(c)[1L], dim(c)[3L], a,
+      NAOK=T, DUP=F
+   )
+   return(NULL) # the matrix a is modified in place.
 }
