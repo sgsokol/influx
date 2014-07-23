@@ -390,17 +390,18 @@ if (nb_ti < 2L) {
    mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.\\n", nb_ti)
    stop_mes(mes, file=fcerr)
 }
+
+# divide first time interval by n1 geometric intervals
+n1=4
+tmp=cumsum(2**iseq(n1))
+tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
+nb_tifu=length(tifull)
+
 # divide each time interval by n
-dt=diff(ti)
+dt=diff(tifull)
 n=2
 dt=rep(dt/n, each=n)
-tifull=c(ti[1L], cumsum(dt))
-
-# divide first time interval by n1
-dt=diff(tifull)
-n1=4
-tifull=c(ti[1L], cumsum(c(rep(dt[1L]/n1, n1), dt[-1L])))
-nb_tifu=length(tifull)
+tifull=c(tifull[1L], cumsum(dt))
 
 if (length(ijpwef)) {
    # vector index for many time points
@@ -549,7 +550,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "tifull", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "tifull", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx")
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
