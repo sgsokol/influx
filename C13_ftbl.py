@@ -1480,8 +1480,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             # check qry
             if qry==[0]*len(qry):
                 # degenerated equality
-                raise Exception("Equality is zero in "+nx.upper()+" section: "+str(eq)+"\n")
-                continue
+                raise Exception("Equality in "+nx.upper()+" section: "+str(eq)+" must have at least one dependent flux\n")
             # check if this line was already entered before
             for row in res:
                 if row==qry:
@@ -2192,6 +2191,7 @@ def rcumo_sys(netan, emu=False):
                 # get the influents to cumo of all weights: equal and lower
                 # equals go to A and lowers go to b
                 infl=cumo_infl(netan, cumo)
+                #print("cumo=", cumo, "infl=", infl)
                 for (incumo,fl,imetab,iinmetab) in infl:
                     if incumo==cumo:
                         # no equation as no transformation
@@ -2246,6 +2246,7 @@ def rcumo_sys(netan, emu=False):
     # make ordered list for reduced cumomer set
     netan["vrcumo"]=[a.keys() for a in A]
     netan["rcumo2i0"]=dict((cumo,i) for (i, cumo) in enumerate(valval(netan["vrcumo"])))
+    #print("A=", A)
     netan["rcumo_sys"]={"A": A, "b": b}
     # make order list for emu_input
     netan["vemu_input"]=netan["emu_input"].keys()
@@ -2286,7 +2287,7 @@ def cumo_infl(netan, cumo):
         # non reversible reactions are all positive
         fluxset=fluxset.difference(netan["notrev"])
     else:
-        # non reversible reactions can chage sens => keep reverse flux just in case
+        # non reversible reactions can change sens => keep reverse flux just in case
         fluxset=fluxset.difference(netan["flux_inout"])
     for reac in fluxset:
         # get all cstr for given metab
