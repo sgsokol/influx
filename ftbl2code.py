@@ -133,6 +133,7 @@ nb_w=%(nb_w)d
             l_ia.append(atuple)
             #nb_ax+=len(atuple)
             l_ib.append(btuple)
+        #print("w=", w, "A=", A, "l_ia=", l_ia, "\n")
         f.write(
 """
 if (TIMEIT) {
@@ -494,6 +495,7 @@ opts=commandArgs()
 source(file.path(dirx, "opt_cumo_tools.R"))
 lab_resid=cumo_resid
 lab_sim=param2fl_x
+jx_f=new.env()
 """%{
     "dirw": escape(os.path.abspath(os.path.dirname(f.name)), '\\"'),
     "dirx": escape(dirx, '\\"'),
@@ -605,11 +607,19 @@ nb_sys=list(
       equalities=%(eqe)s,
       inequalities=%(eqi)s
    ),
-   cumomer=list(
+   label_variables=list(
       full=c(%(lncumo)s),
-      reduced=c(%(lnrcumo)s)
+      reduced_cumomers=c(%(lnrcumo)s)
    )
 )
+if (sum(nb_sys$label_variables$full)==0) {
+   nb_sys$label_variables$full=NULL
+}
+if (emu) {
+   x=nb_sys$label_variables$reduced_cumomers
+   nb_sys$label_variables$reduced_cumomers=NULL
+   nb_sys$label_variables$emu=paste(x, "*", iseq(length(x)), "=", x*iseq(length(x)))
+}
 """%{
     "rrev": len(netan["reac"])-len(netan["notrev"]),
     "rnonrev": len(netan["notrev"]),
@@ -1534,6 +1544,7 @@ def netan2R_rcumo(netan, org, f, emu=False):
     #    netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], incu2i_b1, "fwrv2rAbcumo")
     #netan2Abcumo_sp("spAb_old", rAb["A"], rAb["b"],
     #    netan["vrcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1)
+    #print("rab=", rAb["A"], "\n")
     netan2Abcumo_spr("spAbr", rAb["A"], rAb["b"],
         netan["vrcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1)
     #netan2j_rhs_f(rAb["A"], rAb["b"],
