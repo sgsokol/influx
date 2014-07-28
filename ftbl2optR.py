@@ -392,16 +392,16 @@ if (nb_ti < 2L) {
 }
 
 # divide first time interval by n1 geometric intervals
-n1=4
+n1=1
 tmp=cumsum(2**iseq(n1))
 tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
-nb_tifu=length(tifull)
 
 # divide each time interval by n
 dt=diff(tifull)
-n=2
+n=1
 dt=rep(dt/n, each=n)
 tifull=c(tifull[1L], cumsum(dt))
+nb_tifu=length(tifull)
 
 if (length(ijpwef)) {
    # vector index for many time points
@@ -562,7 +562,6 @@ fkvh_saved="%s_res.kvh"
 """%escape(fullorg, "\\"))
     f.write("""
 for (irun in iseq(nseries)) {
-   jx_f=labargs$jx_f=list()
    param[nm_pseries]=pstart[nm_pseries, irun]
    # prepare kvh file name
    if (nseries > 1) {
@@ -585,24 +584,24 @@ for (irun in iseq(nseries)) {
    # check if initial approximation is feasible
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
-   param_old=param
    if (any(ineq <= -1.e-10)) {
       cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\\n", sep="", file=fclog)
       i=ineq[ineq<= -1.e-10]
       cat(paste(names(i), i, sep="\\t", collapse="\\n"), "\\n", sep="", file=fclog)
       # put them inside
-      capture.output(param <- put_inside(param, ui, ci), file=fclog)
-      if (any(is.na(param))) {
-         if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
+      capture.output(pinside <- put_inside(param, ui, ci), file=fclog)
+      if (any(is.na(pinside))) {
+         if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
             # fatal error occured
-            cat("put_inside", runsuf, ": ", attr(param, "mes"), "\\n",
+            cat("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n",
                file=fcerr, sep="")
             close(fkvh)
             next;
          }
-      } else if (!is.null(attr(param, "err")) && attr(param, "err")==0) {
+      } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0) {
          # non fatal problem
-         cat(paste("put_inside: ", attr(param, "mes"), collapse=""), "\\n", file=fcerr)
+         cat(paste("put_inside: ", attr(pinside, "mes"), collapse=""), "\\n", file=fcerr)
+         param[]=pinside
       }
    }
 
@@ -697,7 +696,6 @@ for (irun in iseq(nseries)) {
     if case_i:
         f.write("""
    capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
-   jx_f=labargs$jx_f=rres$jx_f
    if (!is.null(rres$err) && rres$err) {
       cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
@@ -731,7 +729,6 @@ for (irun in iseq(nseries)) {
    # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
    # for corresponding measurements
    rres=lab_sim(param, cjac=FALSE, labargs)
-   jx_f=labargs$jx_f=rres$jx_f
    if (!is.null(rres$err) && rres$err) {
       cat("lab_sim", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
@@ -792,50 +789,14 @@ for (irun in iseq(nseries)) {
    # resume system sizes
    obj2kvh(nb_sys, "system sizes", fkvh)
 
-   # save initial flux and cumomer distribution
+   # save initial param
    cat("starting point\\n", file=fkvh)
    names(param)=nm_par
    obj2kvh(param, "starting free parameters", fkvh, indent=1)
 #browser()
-   x=as.matrix(rres$x)
-   rownames(x)=nm_x
-   obj2kvh(cumo2mass(x), "starting MID vector", fkvh, indent=1)
-   # replace :i by #x1's
-   nm_mask=t(sapply(strsplit(nm_x, "[:+]"), function(v) {
-      n=length(v)
-      metab=v[1]
-      mask=int2bit(v[2], len=clen[metab])
-      c(metab, mask, if (n==3) v[3] else NULL)
-   }))
-   o=order(nm_mask[,1], nm_mask[,2])
-   # replace 0 by x in mask
-   nm_mask[,2]=gsub("0", "x", nm_mask[,2], fixed=T)
-   tmp=paste(nm_mask[,1], nm_mask[,2], sep="#")
-   if (emu) {
-      nm_mask=paste(tmp, nm_mask[,3], sep="+")
-   } else {
-      nm_mask=tmp
-   }
-   names(nm_mask)=nm_x
-   rownames(x)=nm_mask
-   obj2kvh(x[o,], "starting cumomer vector", fkvh, indent=1)
-
-   fwrv=rres$fwrv
-   n=length(fwrv)
-   names(fwrv)=nm_fwrv
-   obj2kvh(fwrv, "starting fwd-rev flux vector", fkvh, indent=1)
-
-   f=rres$fallnx
-   n=length(f)
-   names(f)=nm_fallnx
-   obj2kvh(f, "starting net-xch01 flux vector", fkvh, indent=1)
 
    # starting jacobian calculation
    capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
-   jx_f=labargs$jx_f=rres$jx_f
-   names(rres$res)=nm_resid
-   o=order(names(rres$res))
-   obj2kvh(rres$res[o], "starting residuals (simulated-measured)/sd_exp", fkvh, indent=1)
 
    rcost=cumo_cost(param, labargs)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
@@ -849,8 +810,6 @@ for (irun in iseq(nseries)) {
    btmp=as.numeric(p2bfl%*%param[iseq(nb_f$nb_ff)]+bp+g2bfl%*%fg)
    names(btmp)=dimnames(Afl)[[1]]
    obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
-   names(measvec)=nm_meas
-   obj2kvh(measvec, "labeled measurement vector", fkvh, indent=1)
 
    #cat("mass vector:\\n", file=fclog)
    #print_mass(x)
@@ -891,7 +850,7 @@ for (irun in iseq(nseries)) {
          cat("optim   : ", format(Sys.time()), "\\n", sep="", file=fclog)
       }
       # pass control to the chosen optimization method
-      capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
+      capture.output(res <- opt_wrapper(param, measurements, jx_f), file=fclog)
       if ((!is.null(res$err) && res$err) || is.null(res$par)) {
          cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
          res$par=rep(NA, length(param))
@@ -899,7 +858,6 @@ for (irun in iseq(nseries)) {
       } else if (!is.null(res$mes) && nchar(res$mes)) {
          cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
       }
-      jx_f=labargs$jx_f=res$retres$jx_f
       if (any(is.na(res$par))) {
          res$retres$jx_f=NULL # to avoid writing of huge data
          obj2kvh(res, "failed first pass optimization process information", fkvh)
@@ -908,7 +866,6 @@ for (irun in iseq(nseries)) {
          next
       }
       param=res$par
-      res_save=res
 #browser()
       if (zerocross && !is.null(mi_zc)) {
          # inverse active "zc" inequalities
@@ -937,37 +894,34 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             names(ci)=nm_i
             # enforce new inequalities
             reopt=TRUE
-            capture.output(param <- put_inside(res$par, ui, ci), file=fclog)
-            if (any(is.na(param))) {
-               if (!is.null(attr(param, "err")) && attr(param, "err")!=0) {
+            capture.output(pinside <- put_inside(res$par, ui, ci), file=fclog)
+            if (any(is.na(pinside))) {
+               if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
                   # fatal error occured, don't reoptimize
-                  cat(paste("put_inside", runsuf, ": ", attr(param, "mes"), "\\n", collapse=""), file=fcerr)
-                  param=res_save$par
+                  cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
                   reopt=FALSE
                }
-            } else if (!is.null(attr(param, "err")) && attr(param, "err")==0){
+            } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0){
                # non fatal problem
-               cat(paste("put_inside", runsuf, ": ", attr(param, "mes"), "\\n", collapse=""), file=fcerr)
+               cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
             }
             # reoptimize
             if (reopt) {
                cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
-               capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
-               jx_f=labargs$jx_f=res$retres$jx_f
-               if (res$err || is.null(res$par)) {
-                  cat("second zero crossing pass: ", res$mes, "\\n", sep="", file=fcerr)
-                  res$par=rep(NA, length(param))
-                  res$cost=NA
-               } else if (!is.null(res$mes) && nchar(res$mes)) {
-                  cat("second zero crossing pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+               capture.output(reso <- opt_wrapper(pinside, measurements, new.env()), file=fclog)
+               if (reso$err || is.null(reso$par)) {
+                  cat("second zero crossing pass: ", reso$mes, "\\n", sep="", file=fcerr)
+               } else if (!is.null(reso$mes) && nchar(reso$mes)) {
+                  cat("second zero crossing pass", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
                }
-               if(!res$err && !is.null(res$par) && !any(is.na(res$par))) {
-                  param=res$par
-                  res_save=res
+               if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
+                  param=reso$par
+                  res=reso
+                  jx_f=labargs$jx_f
                }
-               if (any(is.na(res$par))) {
-                  res$retres$jx_f=NULL # to avoid writing of huge data
-                  obj2kvh(res, "failed second pass optimization process information", fkvh)
+               if (any(is.na(reso$par))) {
+                  reso$retres$jx_f=NULL # to avoid writing of huge data
+                  obj2kvh(reso, "failed second pass optimization process information", fkvh)
                   cat("Second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fcerr, sep="")
                }
             }
@@ -978,18 +932,14 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                ci=ci[-i]
                nm_i=nm_i[-i]
                cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
-               capture.output(res <- opt_wrapper(measurements, jx_f), file=fclog)
-               jx_f=labargs$jx_f=res$retres$jx_f
-               if (res$err || is.null(res$par)) {
-                  cat("last zero crossing (free of zc)", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
-                  res$par=rep(NA, length(param))
-                  res$cost=NA
-               } else if (!is.null(res$mes) && nchar(res$mes)) {
-                  cat("last zero crossing (free of zc)", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+               capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
+               if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
+                  cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
                }
                if(!res$err && !is.null(res$par) && !any(is.na(res$par))) {
-                  param=res$par
-                  res_save=res
+                  param=reso$par
+                  res=reso
+                  jx_f=labargs$jx_f
                }
                if (any(is.na(res$par))) {
                   res$retres$jx_f=NULL # to avoid writing of huge data
@@ -1001,7 +951,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             cat("After the first optimization, no zero crossing equality was activated. So no reoptimization", runsuf, "\\n", sep="", file=fclog)
          }
       } # end if zero crossing
-      res=res_save
       param=res$par
       names(param)=nm_par
       if (excl_outliers != F) {
@@ -1013,23 +962,19 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             measurements$outlier=iout
             cat("Excluded outliers at p-value ", excl_outliers, ":\\n",
                paste(nm_resid[iout], res$res[iout], sep="\\t", collapse="\\n"), "\\n", sep="", file=fclog)
-            jx_f_save=jx_f
-            capture.output(resout <- opt_wrapper(measurements, jx_f), file=fclog)
-            if (resout$err || is.null(resout$par)) {
-               cat("wo outliers: ", resout$mes, "\\n", sep="", file=fcerr)
-            } else if (!is.null(resout$mes) && nchar(resout$mes)) {
-               cat("wo outliers: ", resout$mes, "\\n", sep="", file=fcerr)
+            capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
+            if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
+               cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)
             }
-            if (any(is.na(resout$par))) {
+            if (any(is.na(reso$par))) {
                cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=fcerr, sep="")
                # continue without outlier exclusion
                measurements$outlier=NULL
-               jx_f=labargs$jx_f=jx_f_save
             } else {
-               res=resout
-               param=res$par
+               res=reso
+               param=reso$par
                names(param)=nm_par
-               jx_f=labargs$jx_f=resout$retres$jx_f
+               jx_f=labargs$jx_f
                obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
             }
          } else {
@@ -1037,9 +982,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          }
       }
 #browser()
-      
-      res$jacobian=res$retres$jx_f=NULL # to avoid writing huge data
-      obj2kvh(res, "optimization process information", fkvh)
+      optinfo=list(
+         "fitted parameters"=param,
+         "last increment before backtracking"=res$lastp,
+         "last increment after backtracking"=res$laststep,
+         "interation number"=res$it,
+         "convergence history"=res$hist,
+         "exit message"=res$mes
+      )
+      obj2kvh(optinfo, "optimization process information", fkvh)
    }
    if (TIMEIT) {
       cat("postopt : ", format(Sys.time()), "\\n", sep="", file=fclog)
@@ -1055,31 +1006,37 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (is.null(jx_f$jacobian)) {
       # final jacobian calculation
       capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
-      jx_f=labargs$jx_f=rres$jx_f
    }
    rcost=cumo_cost(param, labargs)
-
    pres[,irun]=param
    costres[irun]=rcost
    obj2kvh(rcost, "final cost", fkvh)
 #browser()
-   names(rres$res)=nm_resid
-   o=order(names(rres$res))
-   obj2kvh(rres$res[o], "(simulated-measured)/sd_exp", fkvh)
+   resid=list(
+      "labeled data"=jx_f$reslab,
+      "measured fluxes"=jx_f$resflu,
+      "measured pools"=jx_f$pool
+   )
+   obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
 
    # simulated measurements -> kvh
-   obj2kvh(cBind(value=jx_f$usimcumom,sd=measurements$dev$labeled), "simulated unscaled label measurements", fkvh)
-   if (nb_sc > 0) {
-      val=jx_f$usimcumom*c(1.,param)[ir2isc]
-      names(val)=nm_meas
-      obj2kvh(cBind(value=val,sd=measurements$dev$labeled), "simulated scaled label measurements", fkvh)
+   if (case_i) {
+      simul=list(
+         "labeled data"=jx_f$usm,
+         "measured fluxes"=jx_f$simfmn,
+         "measured pools"=jx_f$simpool
+      )
+   } else {
+      simul=list(
+         "labeled data (unscaled)"=jx_f$usimcumom,
+         "measured fluxes"=jx_f$simfmn,
+         "measured pools"=jx_f$simpool
+      )
+      if (nb_sc > 0) {
+         simul=append(simul, list("labeled data (scaled)"=jx_f$usimcumom*c(1.,param)[ir2isc]), after=1)
+      }
    }
-   if (nb_fmn) {
-      obj2kvh(cBind(value=jx_f$fallnx[nm_fmn], sd=measurements$dev$flux), "simulated flux measurements", fkvh)
-   }
-   if (nb_poolm) {
-      obj2kvh(cBind(value=measurements$mat$pool%*%poolall, sd=measurements$dev$pool), "simulated metabolite pool measurements", fkvh)
-   }
+   obj2kvh(simul, "simulated measurements", fkvh)
 
    # gradient -> kvh
    gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
@@ -1112,7 +1069,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    } else {
       v=lab_sim(param, cjac=F, labargs)
    }
-   jx_f=labargs$jx_f=v$jx_f
    # set final variable depending on param
    x=as.matrix(v$x)
    if (fullsys) {
@@ -1123,37 +1079,13 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # write some info in result kvh
    obj2kvh(cumo2mass(x), "MID vector", fkvh)
-   # replace decimal :i by binary :x1's
-   nm_mask=t(sapply(strsplit(nm_x, "[:+]"), function(v) {
-      metab=v[1]
-      v[2]=int2bit(v[2], len=clen[metab])
-      v
-   }))
-   o=order(nm_mask[,1], nm_mask[,2])
-   # replace 0 by x in mask
-   nm_mask[,2]=gsub("0", "x", nm_mask[,2], fixed=T)
-   if (emu) {
-      nm_mask=paste(paste(nm_mask[,1], nm_mask[,2], sep="#"), nm_mask[,3], sep="+M")
-   } else {
-      nm_mask=paste(nm_mask[,1], nm_mask[,2], sep="#")
-   }
-   rownames(x)=nm_mask
-   obj2kvh(x[o,], "label vector", fkvh)
 
-   fwrv=v$fwrv
-   names(fwrv)=nm_fwrv
-   #obj2kvh(fwrv, "fwd-rev flux vector", fkvh)
-
-   fallnx=v$fallnx
-   names(fallnx)=nm_fallnx
-
-   flnx=v$flnx
-   names(flnx)=c(nm_fl)
-
+   fwrv=v$lf$fwrv
+   fallnx=v$lf$fallnx
+   flnx=v$lf$flnx
    fgr=fallnx[nm_fgr]
 
    # keep last jx_f in jx_f_last
-   jx_f_last=jx_f
    while (sensitive=="mc") {
       if (TIMEIT) {
          cat("monte-ca: ", format(Sys.time()), "\\n", sep="", file=fclog)
@@ -1334,10 +1266,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    }
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
-   jx_f=labargs$jx_f=jx_f_last
    if (is.null(jx_f$jacobian)) {
       capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
-      jx_f=labargs$jx_f=rres$jx_f
    } # else use the last calculated jacobian
 
    # covariance matrix of free fluxes
@@ -1429,7 +1359,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
       obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
    } else {
-      cat(sprintf("khi2: Measurment number %d is lower than parameter number %d. Khi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
+      cat(sprintf("khi2: Measurement number %d is lower than parameter number %d. Khi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
    }
    if (prof) {
       Rprof(NULL)
