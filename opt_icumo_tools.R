@@ -424,7 +424,7 @@ param2fl_usm_eul=function(param, cjac, labargs) {
    jx_f$x=x
    jx_f$xff=xff2
    jx_f$xpf=xpf2
-   return(append(list(usm=usm, x=x, xff=xff2, xpf=xpf2, dux_dp=jx_f$dux_dp, tifull=tifull, jx_f=jx_f), lf))
+   return(list(usm=usm, x=x, lf=lf))
 }
 icumo_resid=function(param, cjac, labargs) {
    # claculates residual vector of labeling propagation corresponding to param
@@ -448,7 +448,6 @@ icumo_resid=function(param, cjac, labargs) {
    jacobian=NULL
    # find usimvec
    lres=lab_sim(param, cjac, labargs)
-   jx_f=labargs$jx_f=lres$jx_f
    if (!is.null(lres$err) && lres$err) {
       return(list(err=1, mes=lres$mes))
    }
@@ -466,7 +465,7 @@ icumo_resid=function(param, cjac, labargs) {
    } else {
       pool[nm$poolf]=param[nm$poolf]
       jx_f$ureslab=simlab-measvecti
-      jx_f$simfmn=jx_f$fallnx[nm$fmn]
+      jx_f$simfmn=jx_f$lf$fallnx[nm$fmn]
       jx_f$uresflu=jx_f$simfmn-measurements$vec$flux
       jx_f$simpool=as.numeric(measurements$mat$pool%*%pool)
       jx_f$urespool=jx_f$simpool - measurements$vec$pool
@@ -500,7 +499,7 @@ icumo_resid=function(param, cjac, labargs) {
       #jacobian[nb_lab+nb_f$nb_fmn+iseq(nb_f$nb_poolm),]=dupm_dp
       #as.matrix(rBind(jx_f$dux_dp, dufm_dp, dupm_dp))
       jx_f$udr_dp=jacobian
-      jx_f$df_dffp=df_dffp(param, lres$flnx, nb_f, nm_list)
+      jx_f$df_dffp=df_dffp(param, lres$lf$flnx, nb_f, nm_list)
       # reduce it
       jacobian[]=with(measurements$dev, jacobian/c(kin, flux, pool))
       if (nb_sc > 0) {
@@ -517,7 +516,7 @@ icumo_resid=function(param, cjac, labargs) {
       jx_f$dr_dff=jacobian[,iseq(nb_ff),drop=F]
    }
    
-   return(list(res=jx_f$res, x=jx_f$x, jacobian=if (cjac) jx_f$jacobian else NULL, ures=jx_f$ures, usm=jx_f$usm, simvec=jx_f$simvec, fallnx=jx_f$fallnx, fwrv=jx_f$fwrv, jx_f=jx_f, simres=lres))
+   return(list(res=jx_f$res, jacobian=if (cjac) jx_f$jacobian else NULL))
 }
 
 icumo_cost=function(param, labargs) {
@@ -1330,9 +1329,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    names(fgr)=nm$nm_fgr
    fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
    lf=param2fl(param, labargs)
-   jx_f$fallnx=lf$fallnx
-   fwrv=jx_f$fwrv=lf$fwrv
-   jx_f$flnx=lf$flnx
+   fwrv=lf$fwrv
    nb_fwrv=length(lf$fwrv)
    nb_xi=length(xi)
    nb_ff=nb_f$nb_ff
@@ -1393,9 +1390,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       if (cjac) {
          xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
          dim(xpfw)=c(nb_row, nb_ff+nb_poolf, ntico)
-         xpf1=matrix(0., nb_c, emuw*(nb_ff+nb_poolf))
+         #xpf1=matrix(0., nb_c, emuw*(nb_ff+nb_poolf))
          sfpw=double(nb_row*ntico*nb_poolf)
-         dim(sfpw)=c(nb_row, ntico, nb_poolf)
+         dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
       }
       invmw=invm[nbc_cumos[iw]+iseq(nb_c)]
       Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+iseq(nb_x[iw])], getb=F,  emu=emu)$A*invmw
@@ -1448,13 +1445,11 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          if (nb_poolf > 0) {
             i2x=nb_f$ipf2ircumo[[iw]]
             xw2=xsim[inrow, , drop=F]
-            if (emu) {
-               dim(xw2)=c(nb_c, iw*ntico)
-               sfpw[i2x]=matrix(Aw%*%xw2+as.numeric(st), c(nb_c*iw, ntico))[i2x[,-3L,drop=F]]
-            } else {
-               sfpw[i2x]=as.matrix(Aw%*%xw2+as.numeric(st))[i2x[,-3L]]
-            }
-            xpfw[,nb_ff+iseq(nb_poolf),]=if (nb_fgr > 0) xpfw[,nb_ff+iseq(nb_poolf,)] else 0. + aperm(sfpw, c(1L, 3L, 2L))
+            dim(xw2)=c(nb_c, emuw*ntico)
+            tmp=as.matrix(Aw%*%xw2)+c(st)
+            dim(tmp)=c(nb_c, emuw, ntico)
+            sfpw[i2x]=tmp[i2x[,-4L]]
+            xpfw[,nb_ff+iseq(nb_poolf),]=if (nb_fgr > 0) xpfw[,nb_ff+iseq(nb_poolf,)] else 0. + aperm(sfpw, c(1L, 2L, 4L, 3L))
          }
          # add lighter xpf (b_x%*%...)
          if (iw > 1L) {
@@ -1489,6 +1484,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          }
       }
    } # iw loop
+   #jx_f$xsim=xsim # for debugging only
    # get ti moments corresponding to measurements
    isel=itifu[tifull %in% ti][-1L]-1L
    ntise=length(isel)
@@ -1501,6 +1497,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       usm=mx
    }
    if (cjac) {
+      #jx_f$xpf=xpf # for debugging only
       xpf=xpf[,isel,,drop=F]
       dim(xpf)=c(nbc_x[nb_w+1L], ntise*(nb_ff+nb_poolf))
       # scale part of jacobian
@@ -1509,6 +1506,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       }
       dux_dp=measmat%*%xpf
       dim(xpf)=c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf))
+      dimnames(xpf)=list(nm$x, ti[-1], nm$par)
       if (length(ipooled) > 1L) {
          dux_dp=meas2sum%*%(pwe*dux_dp) # resize
       }
@@ -1533,7 +1531,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    jx_f$usm=usm
    jx_f$xsim=xsim
    
-   return(append(list(usm=usm, x=xsim, xpf=jx_f$xpf, dux_dp=jx_f$dux_dp, tifull=tifull, jx_f=jx_f, mx=mx), lf))
+   return(list(usm=usm, x=xsim, lf=lf))
 }
 mult_bxx=function(a, bx, c, ntico, dirx) {
    # R wrapper for a fortran call mult_bxt()
