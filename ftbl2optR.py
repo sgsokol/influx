@@ -408,7 +408,13 @@ if (length(ijpwef)) {
    ijpwef=cbind(ijpwef[,1L], rep(iseq(nb_ti-1L), each=nrow(ijpwef)), ijpwef[,2L])
    dp_ones=matrix(aperm(array(dp_ones, c(dim(dp_ones), nb_ti-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
 }
+"""%{
+    "dt": netan["opt"]["dt"],
+    "tmax": netan["opt"]["tmax"],
+    "flabcin": netan["opt"].get("file_labcin", ""),
+})
 
+    f.write("""
 # prepare mapping of metab pools on cumomers
 nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
@@ -416,31 +422,21 @@ nb_f$ipf2ircumo=list()
 for (iw in iseq(nb_w)) {
    ix=iseq(nb_rcumos[iw])
    ipf2ircumo=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
-   i=cbind(ix, ipf2ircumo)[ipf2ircumo!=0L,,drop=F]
-   nb_ix=nrow(i)
-   if (emu) {
-      # prepare three column index matrix: ix, imass+, ipool
-      # replicate index dispatching for all mass weights
-      i=matrix(aperm(array(i, dim=c(dim(i), iw, nb_tifu-1L)), c(1L, 3L, 4L, 2L)), ncol=2) # replicating itself
-      # to 3 column matrix: ix, imw, iti, ipoolf
-      nb_f$ipf2ircumo[[iw]]=cbind(i[,1L]+rep((iseq(iw)-1L)*nb_c, each=nb_ix), rep(iseq(nb_tifu-1L), each=nb_ix*iw), i[,2L])
-   } else {
-      i=matrix(aperm(array(i, dim=c(dim(i), nb_tifu-1L)), c(1L, 3L, 2L)), ncol=2) # replicating itself
-      # to 3 column matrix
-      nb_f$ipf2ircumo[[iw]]=cbind(i[,1L], rep(iseq(nb_tifu-1L), each=nb_ix), i[,2L])
+   dims=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu-1L)
+   i=as.matrix(ipf2ircumo)
+   for (id in 2L:length(dims)) {
+      cstr=sprintf("cbind(%srep(iseq(dims[id]), each=prod(dims[iseq(id-1L)])))", paste("i[, ", iseq(id-1L), "], ", sep="", collapse=""))
+      i=eval(parse(text=cstr))
    }
-   colnames(nb_f$ipf2ircumo[[iw]])=c("ix", "iti", "ipoolf")
+   colnames(i)=c("ipoolf", "ic", "iw", "iti")
+   i=i[i[,1L]!=0L,,drop=F]
+   # put the poolf column last
+   nb_f$ipf2ircumo[[iw]]=cbind(i[,-1L,drop=F], i[,1L,drop=F])
 }
 
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
 x0=NULL
 nb_ti=length(ti)
-"""%{
-    "dt": netan["opt"]["dt"],
-    "tmax": netan["opt"]["tmax"],
-    "flabcin": netan["opt"].get("file_labcin", ""),
-})
-    f.write("""
 # gather all measurement information
 measurements=list(
    vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=measvecti),
@@ -560,7 +556,7 @@ labargs[["spAb"]]=labargs[["spa"]]
 # formated output in kvh file
 fkvh_saved="%s_res.kvh"
 """%escape(fullorg, "\\"))
-    f.write("""
+    f.write(r"""
 for (irun in iseq(nseries)) {
    param[nm_pseries]=pstart[nm_pseries, irun]
    # prepare kvh file name
@@ -570,11 +566,11 @@ for (irun in iseq(nseries)) {
       runsuf=""
    }
    if (length(nseries) > 0) {
-      cat("Starting point", runsuf, "\\n", sep="", file=fclog)
+      cat("Starting point", runsuf, "\n", sep="", file=fclog)
    }
    fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) %s+% runsuf %s+% ".kvh", "w");
 
-   # remove zc inequalities from previous interations
+   # remove zc inequalities from previous runs
    izc=grep("^zc ", nm_i)
    if (length(izc)) {
       ui=ui[-izc,,drop=F]
@@ -585,22 +581,22 @@ for (irun in iseq(nseries)) {
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
    if (any(ineq <= -1.e-10)) {
-      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\\n", sep="", file=fclog)
+      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\n", sep="", file=fclog)
       i=ineq[ineq<= -1.e-10]
-      cat(paste(names(i), i, sep="\\t", collapse="\\n"), "\\n", sep="", file=fclog)
+      cat(paste(names(i), i, sep="\t", collapse="\n"), "\n", sep="", file=fclog)
       # put them inside
       capture.output(pinside <- put_inside(param, ui, ci), file=fclog)
       if (any(is.na(pinside))) {
          if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
             # fatal error occured
-            cat("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n",
+            cat("put_inside", runsuf, ": ", attr(pinside, "mes"), "\n",
                file=fcerr, sep="")
             close(fkvh)
             next;
          }
       } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0) {
          # non fatal problem
-         cat(paste("put_inside: ", attr(pinside, "mes"), collapse=""), "\\n", file=fcerr)
+         cat(paste("put_inside: ", attr(pinside, "mes"), collapse=""), "\n", file=fcerr)
          param[]=pinside
       }
    }
@@ -612,12 +608,28 @@ for (irun in iseq(nseries)) {
    fallnx=param2fl(param, labargs)$fallnx
    mi_zc=NULL
    li_zc=NULL
-   if (zerocross && length(grep("[df].n.", nm_fallnx))>0) {
+   if (zerocross && length(grep("^[df]\\.n\\.", nm_fallnx))>0) {
+      if (TIMEIT) {
+         cat("zc ineq : ", format(Sys.time()), "\n", sep="", file=fclog)
+      }
+      # prepare fluxes that are already in inequalities in alone mode
+      ige=names(which(apply(mi, 1L, function(v) diff(range(v))==1 && sum(v)==1) & li>=0))
+      ige=nm_dfn[unique(c(
+         sub("^n:.+<=(.+)$", "\\1", grep("^n:.+<=.+$", ige, v=T)),
+         sub("^[df]\\.n\\.(.+)>=.+$", "\\1", grep("^[df]\\.n\\..+>=.+$", ige, v=T)),
+         sub("^inout [df]\\.n\\.(.+)>=.+$", "\\1", grep("^inout [df]\\.n\\..+>=.+$", ige, v=T))
+      ))]
+      ile=which(apply(mi, 1L, function(v) diff(range(v))==1 && sum(v)==-1)&li>=0)
+      ile=nm_dfn[unique(c(
+         sub("^n:.+<=(.+)$", "\\1", grep("^n:.+<=.+$", ile, v=T)),
+         sub("^[df]\\.n\\.(.+)>=.+$", "\\1", grep("^[df]\\.n\\..+>=.+$", ile, v=T)),
+         sub("^inout [df]\\.n\\.(.+)>=.+$", "\\1", grep("^inout [df]\\.n\\..+>=.+$", ile, v=T))
+      ))]
       # add lower limits on [df].net >= zc for positive net fluxes
       # and upper limits on [df].net <= -zc for negative net fluxes
       nm_izc=c()
-      ipos=names(which(fallnx[grep("[df].n.", nm_fallnx)]>=0.))
-      ineg=names(which(fallnx[grep("[df].n.", nm_fallnx)]<0.))
+      ipos=setdiff(names(which(fallnx[grep("^[df]\\.n\\.", nm_fallnx)]>=0.)), ige)
+      ineg=setdiff(names(which(fallnx[grep("^[df]\\.n\\.", nm_fallnx)]<0.)), ile)
       mi_zc=matrix(0, nrow=length(ipos)+length(ineg), ncol=nb_fallnx)
       colnames(mi_zc)=nm_fallnx
       if (length(ipos)) {
@@ -652,8 +664,8 @@ for (irun in iseq(nseries)) {
          nm_izc=nm_izc[!zi]
          mi_zc=mi_zc[!zi,,drop=F]
       } else {
-         cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
-         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=fcerr)
+         cat("The following constant inequalities are not satisfied:\n", file=fcerr)
+         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\n", file=fcerr)
          stop_mes()
       }
 
@@ -661,24 +673,15 @@ for (irun in iseq(nseries)) {
       nb_zc=nrow(ui_zc)
       nb_i=nrow(ui)
       ired=c()
-      if (nb_zc > 0) {
-         for (i in 1:nb_zc) {
-            nmqry=nm_izc[i]
-            for (j in 1:nb_i) {
-               if ((max(abs(ui[j,]-ui_zc[i,]))<1.e-10 ||
-                  max(abs(ui[j,]+ui_zc[i,]))<1.e-10) &&
-                  abs(abs(ci[j])-abs(ci_zc[i]))<=1.e-2) {
-#browser()
-                  # redundancy
-                  cat("inequality '", nmqry, "' redundant or contradictory with '", nm_i[j], "' is removed.\\n", sep="", file=fclog)
-                  ired=c(ired, i)
-                  break
-               }
-            }
-         }
-      }
-      if (!is.null(ired)) {
+      tui=t(ui)
+      uzcd=sapply(iseq(nb_zc), function(i) apply(abs(tui-ui_zc[i,]), 2L, max))
+      uzcs=sapply(iseq(nb_zc), function(i) apply(abs(tui+ui_zc[i,]), 2L, max))
+      czcd=abs(outer(abs(ci), abs(ci_zc), "-"))
+      ired=which(apply((uzcd < 1.e-10 | uzcs < 1.e-10) & czcd <= 1.e-2, 2, any))
+      
+      if (length(ired) > 0L) {
          # remove all ired inequalities
+         cat("The following ", length(ired), " zerocross inequalities are redundant and are removed:\n", paste(nm_izc[ired], sep="\n"), "\n", sep="", file=fclog)
          ui_zc=ui_zc[-ired,,drop=F]
          ci_zc=ci_zc[-ired]
          nm_izc=nm_izc[-ired]
@@ -691,17 +694,22 @@ for (irun in iseq(nseries)) {
          nm_i=c(nm_i, nm_izc)
          mi=rBind(mi, mi_zc)
       }
+      rm(ui_zc, ci_zc, uzcd, uzcs, czcd)
    }
+   
 """)
     if case_i:
         f.write("""
-   capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
-   if (!is.null(rres$err) && rres$err) {
-      cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-      close(fkvh)
-      next
-   }
    if (nb_sc && !is.null(measvecti)) {
+      if (TIMEIT) {
+         cat("res esti: ", format(Sys.time()), "\\n", sep="", file=fclog)
+      }
+      capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
+      if (!is.null(rres$err) && rres$err) {
+         cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
+         close(fkvh)
+         next
+      }
       # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
       # for corresponding measurements
       # unscaled simulated measurements (usm) [imeas, itime]
@@ -736,6 +744,15 @@ for (irun in iseq(nseries)) {
    }
    if (nb_sc > 0) {
       if (optimize) {
+         if (TIMEIT) {
+            cat("res esti: ", format(Sys.time()), "\\n", sep="", file=fclog)
+         }
+         capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
+         if (!is.null(rres$err) && rres$err) {
+            cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
+            close(fkvh)
+            next
+         }
          simlab=jx_f$usimcumom
          measinvvar=1./measurements$dev$labeled**2
          ms=measvec*simlab*measinvvar
@@ -948,7 +965,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                }
             }
          } else {
-            cat("After the first optimization, no zero crossing equality was activated. So no reoptimization", runsuf, "\\n", sep="", file=fclog)
+            cat("After the first optimization, no zero crossing inequality was activated. So no reoptimization", runsuf, "\\n", sep="", file=fclog)
          }
       } # end if zero crossing
       param=res$par
