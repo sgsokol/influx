@@ -865,6 +865,10 @@ nb_f$nb_fgr=nb_fgr
 nb_fallnx=nb_fl+nb_ff+nb_fc+nb_fgr+nb_fgr
 nb_fwrv=nb_fallnx
 
+# net dependent and free fluxes
+nm_dfn=c(nm_fln, nm_ffn)
+names(nm_dfn)=substring(nm_dfn, 5)
+
 # all flux cardinals
 nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
    nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,
