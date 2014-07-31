@@ -973,7 +973,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       if (excl_outliers != F) {
          # detect outliers
          iva=!is.na(res$res)
-         iout=which(rz.pval.bi(res$res) <= excl_outliers | !iva)
+         iout=which(rz.pval.bi(res$res) <= excl_outliers & iva)
          #cat("iout=", iout, "\\n", file=fclog)
          if (length(iout)) {
             measurements$outlier=iout
