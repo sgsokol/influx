@@ -392,13 +392,13 @@ if (nb_ti < 2L) {
 }
 
 # divide first time interval by n1 geometric intervals
-n1=1
+n1=4
 tmp=cumsum(2**iseq(n1))
 tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
 
 # divide each time interval by n
 dt=diff(tifull)
-n=1
+n=2
 dt=rep(dt/n, each=n)
 tifull=c(tifull[1L], cumsum(dt))
 nb_tifu=length(tifull)
@@ -997,6 +997,32 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          } else {
             cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
          }
+      }
+      if (case_i) {
+         # refine time grid to improve param estimation
+         tifull=c(tifull[1L], cumsum(rep(diff(tifull)/2., each=2L)))
+         nb_tifu=length(tifull)
+         labargs$tifull=tifull
+         # limit optimization to 10 iterations
+         old=control_ftbl$maxit
+         control_ftbl$maxit=10
+         capture.output(reso <- opt_wrapper(param, measurements, jx_f), file=fclog)
+         control_ftbl$maxit=old # restore the original value
+         if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
+            cat("refined time grid: ", reso$mes, "\\n", sep="", file=fcerr)
+         }
+         if (any(is.na(reso$par))) {
+            cat("Optimization on refined time grid has failed", runsuf, "\\n", file=fcerr, sep="")
+            # continue without discrete error estimation
+            ode_err=rep(NA, nb_param)
+         } else {
+            res=reso
+            ode_err=abs(reso$par-param)
+            param=2*reso$par-param
+            names(param)=nm_par
+            jx_f=labargs$jx_f
+         }
+         obj2kvh(ode_err, "ODE error (probably over-)estimation", fkvh)
       }
 #browser()
       optinfo=list(
