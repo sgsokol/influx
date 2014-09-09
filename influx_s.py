@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file."
+"""Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file.
 """
 import sys, os, datetime as dt, subprocess as subp
 from optparse import OptionParser
@@ -28,7 +28,8 @@ def qworker():
     while True:
         item=q.get()
         #print("item=", item)
-        launch_job(**item)
+        retcode=launch_job(**item)
+        qret.put(retcode)
         q.task_done()
 
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
@@ -45,6 +46,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     flog.write(s)
     flog.flush()
     sys.stdout.write(fshort+s)
+    retcode=0
 
     try:
         # generate the R code
@@ -58,11 +60,9 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
         flog.write("executing: "+" ".join(pycmd)+"\n")
         r_generated=True
-        try:
-            p=subp.check_call(pycmd, stdout=flog, stderr=ferr)
-        except:
+        retcode=subp.call(pycmd, stdout=flog, stderr=ferr)
+        if retcode:
             r_generated=False
-            pass
         if os.path.getsize(ferr.name) > 0:
             s="=>Check "+ferr.name+"\n"
             sys.stdout.write(s)
@@ -70,7 +70,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             flog.close()
             ferr.close()
             # stop here because of error(s)
-            return
+            return(retcode)
         flog.close()
         ferr.close()
         if r_generated:
@@ -86,22 +86,22 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
                     sys.stdout.write(s)
                     flog.write(s)
                 flog.close()
-                return
+                return(retcode)
             if nb_ftbl > 1:
                 # if just one ftbl, launch its R here, otherwise //calcul outside
-                return
+                return(retcode)
             # execute only one R code
-            rcmd="R --vanilla --slave".split()
+            rcmd="R --vanilla --slave"
             flog=open(f+".log", "ab")
             flog.write("executing: "+" ".join(rcmd)+" < "+f+".R\n")
             s="calcul  : "+now_s()+"\n"
             flog.write(s)
             flog.close()
             sys.stdout.write(fshort+s)
-            try:
-                p=subp.check_call(rcmd, stdin=open(f+".R", "rb"), shell=os.name=="nt")
-            except:
-                pass
+            if os.name=="nt":
+                retcode=subp.call(rcmd, stdin=open(f+".R", "rb"), shell=T)
+            else:
+                retcode=subp.call(rcmd.split(), stdin=open(f+".R", "rb"))
             s="end     : "+now_s()+"\n"
             flog=open(f+".log", "ab")
             flog.write(s)
@@ -113,6 +113,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             flog.close()
     except:
         pass
+    return(retcode)
 
 # my own name
 me=os.path.realpath(sys.argv[0])
@@ -248,8 +249,9 @@ elif np > 1:
 else:
     np=avaco
 #print("np=", np)
-q=Queue()
-qres=Queue()
+q=Queue() # arguments for threads
+qres=Queue() # results from threads (R file names)
+qret=Queue() # returned code from workers
 
 for i in range(np):
     t=Thread(target=qworker)
@@ -295,7 +297,12 @@ q.join()
 rfiles=[]
 while not qres.empty():
     rfiles.append(qres.get())
+# get returned codes
+rcodes=[]
+while not qret.empty():
+    rcodes.append(qret.get())
 
+retcode=max(rcodes)
 if "nocalc" not in cmd_opts:
     # write file parallel.R and launch it
     if len(rfiles) > 1:
@@ -336,13 +343,13 @@ if "nocalc" not in cmd_opts:
 """%(np, ", ".join('"'+f+'"' for f in rfiles)))
         fpar.close()
         # execute R code on cluster
-        rcmd="R --vanilla --slave".split()
+        rcmd="R --vanilla --slave"
         s="//calcul: "+now_s()+"\n"
         sys.stdout.write(s)
-        try:
-            p=subp.check_call(rcmd, stdin=open(fpar.name, "rb"), shell=os.name=="nt")
-        except:
-            pass
+        if os.name=="nt":
+            retcode=subp.call(rcmd, stdin=open(fpar.name, "rb"), shell=True)
+        else:
+            retcode=subp.call(rcmd.split(), stdin=open(fpar.name, "rb"))
         # end up writing
         for fR in rfiles:
             f=fR[:-2]
@@ -352,4 +359,4 @@ if "nocalc" not in cmd_opts:
                 sys.stdout.write(s)
         s="//end   : "+now_s()+"\n"
         sys.stdout.write(s)
-sys.exit(0)
+sys.exit(retcode)
