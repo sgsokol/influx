@@ -467,7 +467,7 @@ icumo_resid=function(param, cjac, labargs) {
       jx_f$ureslab=simlab-measvecti
       jx_f$simfmn=jx_f$lf$fallnx[nm$fmn]
       jx_f$uresflu=jx_f$simfmn-measurements$vec$flux
-      jx_f$simpool=as.numeric(measurements$mat$pool%*%pool)
+      jx_f$simpool=as.matrix(measurements$mat$pool%*%pool)
       jx_f$urespool=jx_f$simpool - measurements$vec$pool
       jx_f$reslab=jx_f$ureslab/sqm
       jx_f$resflu=jx_f$uresflu/sqf
@@ -1323,7 +1323,6 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # cumulated sum
    nb_rcumos=nb_f$rcumos
    nbc_cumos=c(0L, cumsum(nb_rcumos))
-   nbc_mass=c(0L, cumsum(iseq(nb_w)*nb_rcumos))
    # calculate all fluxes from free fluxes
    fgr=numeric(nb_f$nb_fgr)
    names(fgr)=nm$nm_fgr
@@ -1359,11 +1358,10 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    x1=c(1., xi, rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1 later
    names(x1)=c("one", nm$inp, nm$x)
 
-   x2=x1 # just a place holder
    xsim=matrix(x1, nrow=length(x1), ncol=ntico)
    dimnames(xsim)=list(names(x1), tifull[-1L])
    if (cjac) {
-      cat("param2fl_usm_eul2: recalculate jacobian\n")
+      #cat("param2fl_usm_eul2: recalculate jacobian\n")
       mdf_dffp=df_dffp(param, lf$flnx, nb_f, nm_list)
       jx_f$df_dffp=mdf_dffp
       xpf=double(nbc_x[nb_w+1L]*ntico*(nb_ff+nb_poolf))
@@ -1535,7 +1533,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
 }
 mult_bxx=function(a, bx, c, ntico, dirx) {
    # R wrapper for a fortran call mult_bxt()
-   if(!is.loaded("mult_bxt")) {
+   if (!is.loaded("mult_bxt")) {
       dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
    }
    stopifnot(class(bx)=="dgCMatrix")
@@ -1543,26 +1541,4 @@ mult_bxx=function(a, bx, c, ntico, dirx) {
       NAOK=T, DUP=F
    )
    return(NULL) # the matrix a is modified in place.
-}
-solve_lut=function(lua, pivot, b, ilua, dirx) {
-   # call lapack dgters() for solving a series of linea systems a_i%*%(b_{i-1}+b_i)=b_i
-   # The result is stored inplace in b.
-   # The sizes:
-   #  - LU matrices of a : (nr_a, nr_a, nlua)
-   #  - pivot : (nr_a, nlua)
-   #  - b : (nr_a, nc_c, ntico)
-   #  - ilua : (ntico). It is a index vector. ilua[i] indicate which lua corresponds to the i-th time point
-   if (!is.loaded("dgetrs")) {
-      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
-         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
-      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
-   }
-   if(!is.loaded("solve_lut")) {
-      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
-   }
-   dlu=dim(lua)
-   db=dim(b)
-   .Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
-      NAOK=F, DUP=F)
-   return(NULL)
 }
