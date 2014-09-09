@@ -131,6 +131,7 @@ def ftbl_parse(f):
     "TRANS" correponds to carbon transitions."""
     import re
     ftbl={};    # main dictionary to be returned
+    
     open_here=False
     #print("f=", f)
     if isstr(f):
@@ -259,6 +260,11 @@ def ftbl_parse(f):
                        dic[col_names[i]]=dic[col_names[i]].replace(",", ".")
                 except IndexError:
                     pass
+            if sec_name=="FLUXES" and subsec_name in ("NET", "XCH") and dic["FCD"] in ("F", "C"):
+                try:
+                    val=float(eval(dic["VALUE(F/C)"]))
+                except:
+                    raise Exception("In the field 'VALUE(F/C)', a float value expected (row: %d)"%irow)
             stock.append(dic)
             data_count+=1
             #print "sec, subsec=", sec_name, subsec_name, data_count, dic;##
@@ -1432,6 +1438,9 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         # NB: it is assumed that metab cannot appear
         # both in left and right hand side of reaction
         coefs.update(list2count(lr["right"]))
+        deps=set(coefs.keys()).intersection(netan["vflux"]["net"])
+        if not deps:
+            raise Exception("A balance on metabolite '%s' does not contain any dependent flux.\nAt least one of the following net fluxes %s\nmust be declared dependent in the FLUX/NET section (put letter 'D' in the column 'FCD' for some flux)."%(metab, coefs.keys()))
         qry=[coefs.get(fl,0) for fl in netan["vflux"]["net"]]
         qry.extend([0]*len(netan["vflux"]["xch"]))
         #if qry==[0]*len(qry): must be included even if all zeros, so an R warning will work
