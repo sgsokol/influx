@@ -391,22 +391,12 @@ if (substring(sensitive, 1, 3)=="mc=") {
 # cupx==0 means no upper limit => cupx=1
 cupx=ifelse(cupx, cupx, 1)
 if (cupx < 0 || cupx > 1) {
-   cat(paste("Option '--cupx N' must have N in the interval [0,1]\n",
+   stop_mes(paste("Option '--cupx N' must have N in the interval [0,1]\n",
       "Instead, the value ", cupx, " si given.", sep=""), file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
 }
 if (cinout < 0) {
-   cat(paste("Option '--cinout N' must have N non negative\n",
+   stop_mes(paste("Option '--cinout N' must have N non negative\n",
       "Instead, the value ", cinout, " is given.", sep=""), file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
 }
 # minimization method
 validmethods=list("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic")
@@ -417,21 +407,11 @@ if (! method %%in%% validmethods) {
 if (method == "ipopt") {
    installed=suppressPackageStartupMessages(library(ipoptr, logical.return=T))
    if (!installed) {
-      cat("An optimization method ipopt is requested but available in this R installation", file=fcerr)
-      if (isatty(stdin())) {
-         stop()
-      } else {
-         q("no", status=1)
-      }
+      stop_mes("An optimization method ipopt is requested but available in this R installation", file=fcerr)
    }
 }
 if (least_norm && sln) {
-   cat("Options --ln and --sln cannot be activated simultaniously.", file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
+   stop_mes("Options --ln and --sln cannot be activated simultaniously.", file=fcerr)
 }
 
 avaco=try(detectCores(), silent=T)
@@ -454,12 +434,7 @@ if (sensitive=="mc") {
 options(mc.cores=np)
 
 if (least_norm && tikhreg) {
-   cat("Options --ln and --tikhreg cannot be activated simultaneously", file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
+   stop_mes("Options --ln and --tikhreg cannot be activated simultaneously", file=fcerr)
 }
 lsi_fun=lsi
 if (least_norm || sln) {
@@ -472,12 +447,7 @@ if (zc==-.Machine$double.xmax) {
    zerocross=F
 } else {
    if (zc < 0.) {
-      cat(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""), file=fcerr)
-      if (isatty(stdin())) {
-         stop()
-      } else {
-         q("no", status=1)
-      }
+      stop_mes(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""), file=fcerr)
    }
    zerocross=T
 }
@@ -961,34 +931,19 @@ if (ffguess) {
    rankr=qrow$rank
    if (rank != rankr) {
       mes="Weird error: column and row ranks are not equal.\\n"
-      cat(mes, file=fcerr)
-      if (isatty(stdin())) {
-         stop(mes)
-      } else {
-         q("no", status=1)
-      }
+      stop_mes(mes, file=fcerr)
    }
    irows=qrow$pivot[iseq(rankr)]
    if (rank==0) {
-      cat("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.\\n", file=fcerr)
-      if (isatty(stdin())) {
-         stop()
-      } else {
-         q("no", status=1)
-      }
+      stop_mes("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.\\n", file=fcerr)
    }
-   Afl=afd[irows, qafd$pivot[1:rank], drop=F]
+   Afl=afd[irows, qafd$pivot[1L:rank], drop=F]
    ka=kappa(Afl)
    if (ka > 1.e7) {
       mes=sprintf("Error: No working free/dependent flux partition could be proposed. Stoechiometric matrix has condition number %g.\\n", ka)
-      cat(mes, file=fcerr)
-      if (isatty(stdin())) {
-         stop(mes)
-      } else {
-         q("no", status=1)
-      }
+      stop_mes(mes, file=fcerr)
    }
-   p2bfl=-afd[irows, qafd$pivot[-(1:rank)], drop=F]
+   p2bfl=-afd[irows, qafd$pivot[-(1L:rank)], drop=F]
    c2bfl=c2bfl[irows, , drop=F]
    g2bfl=g2bfl[irows, , drop=F]
    cnst2bfl=cnst2bfl[irows]
@@ -1060,16 +1015,12 @@ if (nrow(Afl) > rankr) {
    prop=paste(prop, "Candidate(s) for elimination is (are):\\n",
       paste(rownames(Afl)[qrow$pivot[-(1:rankr)]], sep="", collapse="\\n"),
                "\\n", sep="")
-   cat(prop, file=fcerr)
-   if (isatty(stdin())) {
-      stop(prop)
-   } else {
-      q("no", status=1)
-   }
+   stop_mes(prop, file=fcerr)
 }
 if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    #write.table(Afl)
-   if (nrow(Afl) < rank) {
+   mes=NULL
+   if (nrow(Afl) <= rank) {
       mes=paste("Candidate(s) for free or constrained flux(es):\\n",
          paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"),
          "\\nFor this choice, condition number of stoechiometric matrix will be ",
@@ -1102,11 +1053,11 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          ranke=sum(d > d[1L]*1.e-10)
          if (ranke == nrow(Afl)) {
             prop=paste("Proposal to declare dependent flux(es) is:\\n",
-            join("\\n", colnames(aexented)[qae$pivot[1L:ranke]]), "\\n",
+            join("\\n", colnames(aextended)[qae$pivot[1L:ranke]]), "\\n",
             "while free and constrained fluxes should be:\\n",
             join("\\n", colnames(aextended)[-qae$pivot[1L:ranke]]), "\\n",
             sep="")
-            ka=kappa(aextra[,qae$pivot[1L:ranke]])
+            ka=kappa(aextended[,qae$pivot[1L:ranke]])
             prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
          } else {
             prop="No proposal for partition dependent/free fluxes could be made.\\n"
@@ -1119,14 +1070,9 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          sep="")
    }""")
     f.write("""
-   cat(paste("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
+   stop_mes(paste("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
       "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
       mes, sep=""), file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
 }
 
 # make sure that free params choice leads to not singular matrix
@@ -1154,12 +1100,7 @@ if (qrAfl$rank != nb_fl) {
    } else {
       mes=paste(mes, "\\nNo suggested free fluxes could be found", sep="")
    }
-   cat(mes, file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
+   stop_mes(mes, file=fcerr)
 }
 
 # inverse flux matrix
@@ -1457,6 +1398,11 @@ for (po in names(ipooled)) {
    }
    ip2ipwe=c(ip2ipwe, pmatch(mets, names(nm_poolall)))
    mets_in_res[irpo]=mets
+}
+# order ijpwef for sparse matrix ordering
+if (!is.null(ijpwef)) {
+   o=order(ijpwef[,2L], ijpwef[,1L])
+   ijpwef=ijpwef[o,,drop=F]
 }
 pool_factor=as.factor(nm_measmat)
 # free pool in principal pool weight
@@ -1892,11 +1838,7 @@ if (all(ci[zi]<=1.e-10)) {
 } else {
    cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
    cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=fcerr)
-   if (isatty(stdin())) {
-      stop()
-   } else {
-      q("no", status=1)
-   }
+   stop_mes("", file=fcerr)
 }
 
 # complete ui by zero columns corresponding to scale params
