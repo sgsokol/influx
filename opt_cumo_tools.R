@@ -28,7 +28,7 @@ trisparse_solv=function(A, b, w, fwrv, method="dense") {
       return(list(x=x, fA=fA, err=0, mes=NULL))
    } else if (method=="sparse") {
       # sparse
-      x=try(solve(A,b)); # A has its factorized form
+      x=try(solve(A,b), silent=T); # A has its factorized form
       if (inherits(x, "try-error")) {
          # find 0 rows if any
          izc=apply(A, 1, function(v)sum(abs(v))<=1.e-10)
@@ -196,7 +196,6 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    pool[nm$poolf]=param[nm$poolf] # inject variable pools to pool vector
 
    # calculate all fluxes from free fluxes
-   jx_f$lA=list()
    lf=param2fl(param, labargs)
    # prepare measurement pooling operations
    pwe[ipwe]=pool[ip2ipwe]
@@ -228,8 +227,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    
    # simulate labeling weight by weight
    ba_x=0
-   for (iw in 1:nb_w) {
+   for (iw in iseq(nb_w)) {
       nb_c=spAb[[iw]]$nb_c
+      emuw=ifelse(emu, iw, 1L)
       if (nb_c == 0) {
          next
       }
@@ -240,18 +240,39 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       } else {
          lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$rcumo[ixw], emu=emu)
       }
-      A=lAb$A
-      b=lAb$b; # may have several columns if emu is TRUE
-      #solve the system A*x=b
-      lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
-      jx_f$lA[[iw]]=lsolv$fA
-      if (!is.null(lsolv$err) && lsolv$err) {
-         return(list(err=1, mes=lsolv$mes))
+      wa=options(warn=2) # to cath singular matrix as error and not just a warning
+      lua=try(lu(as.matrix(lAb$A), errSing=T), silent=T)
+      options(wa) # restore warning situation
+      if (inherits(lua, "try-error")) {
+         # find 0 rows if any
+         izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
+         izf=names(which(abs(lf$fwrv)<1.e-7))
+         if (sum(izc) && length(izf)) {
+            mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
+               "Zero rows in cumomer matrix A at weight ", iw, ":\n",
+               paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
+               "Zero fluxes are:\n",
+               paste(izf, collapse="\n"), "\n",
+               sep="")
+         } else {
+            mes="Cumomer matrix is singular.\n"
+         }
+#browser()
+         return(list(x=NULL, fA=jx_f$lA[[iw]], err=1L, mes=mes))
       }
+      ilua=1L
+      luax=lua@x
+      dim(luax)=c(nb_c, nb_c, 1L)
+      b=as.matrix(lAb$b); # may have several columns if emu is TRUE
+      #solve the system A*x=b
+      #lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
+      dim(b)=c(nb_c, emuw, 1L)
+      solve_lut(luax, lua@perm, b, ilua, dirx)
+      dim(b)=c(nb_c, emuw)
       if (emu) {
-         xw=c(lsolv$x, 1.-rowSums(lsolv$x))
+         xw=c(b, 1.-rowSums(b))
       } else {
-         xw=lsolv$x
+         xw=b
       }
       incu[incuw]=xw
       if (cjac) {
@@ -266,27 +287,20 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             if (ba_x > 0) {
                j_rhsw=j_rhsw+b_x%*%x_f[1L:ba_x,,drop=F]
             }
-            if (emu) {
-               dim(j_rhsw)=c(nb_c, iw*ncol(x_f))
-               xf=solve(jx_f$lA[[iw]], j_rhsw)
-               dimnames(xf)=list(NULL, NULL)
-               xf=array(as.numeric(xf), c(nb_c, iw, nb_ff+nb_fgr))
-               x_f[ba_x+(1:(iw*nb_c)),]=xf
-               # m+N component
-               x_f[ba_x+iw*nb_c+(1:nb_c),]= -apply(xf, c(1L,3L), sum)
-            } else {
-               x_f[ba_x+(1L:nb_c),]=
-                  as.matrix(solve(jx_f$lA[[iw]], j_rhsw))
-            }
-         } else if (iw == 1) {
-            x_f[iseq(nb_c),]=
-               as.matrix(solve(jx_f$lA[[iw]], j_rhsw))
-            if (emu) {
-               x_f[nb_c+(1:nb_c),]=-x_f[(1:nb_c),]
-            }
+         }
+         j_rhsw=as.matrix(j_rhsw)
+         dim(j_rhsw)=c(nb_c, emuw*ncol(x_f), 1L)
+         solve_lut(luax, lua@perm, j_rhsw, ilua, dirx)
+         if (emu) {
+            dim(j_rhsw)=c(nb_c, iw, nb_ff+nb_fgr)
+            x_f[ba_x+iseq(iw*nb_c),]=j_rhsw
+            # m+N component
+            x_f[ba_x+iw*nb_c+iseq(nb_c),]= -apply(j_rhsw, c(1L,3L), sum)
+         } else {
+            x_f[ba_x+iseq(nb_c),]=j_rhsw
          }
       }
-      ba_x=ba_x+if (emu) nb_emus[iw] else nb_c
+      ba_x=ba_x+ifelse(emu, nb_emus[iw], nb_c)
    }
    names(incu)=c("one", nm$inp, nm$x)
    x=tail(incu, -nb_xi-1L)
@@ -339,22 +353,23 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             mpf[]=as.matrix(meas2sum%*%dpw_dpf)
             # growth flux depending on free pools
             if (nb_fgr > 0L) {
-               mpf=mpf+mffg[,nb_ff+iseq(nb_fgr),drop=F]
+               mpf=mpf+as.matrix(mffg[,nb_ff+iseq(nb_fgr),drop=F])
                mff=mffg[,iseq(nb_ff)]
             } else {
                mff=mffg
             }
          }
       }
+      mff=as.matrix(mff)
       if (nb_sc > 0) {
          vsc=c(1., param)[ir2isc]
          mff=vsc*mff
          mpf=vsc*mpf
       }
       # store usefull information in global list jx_f
-      dux_dp[, iseq(nb_ff)]=as.matrix(mff)
+      dux_dp[, iseq(nb_ff)]=mff
       dux_dp[, nb_ff+iseq(nb_sc)]=as.matrix(dur_dsc)
-      dux_dp[, nb_ff+nb_sc+iseq(nb_fgr)]=as.matrix(mpf)
+      dux_dp[, nb_ff+nb_sc+iseq(nb_fgr)]=mpf
       jx_f$param=param
       jx_f$x_f=x_f
       jx_f$dux_dp=dux_dp
@@ -1131,12 +1146,7 @@ opt_wrapper=function(param, measurements, jx_f, trace=1) {
       res$par=res$solution
       names(res$par)=nm_par
    } else {
-      cat(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
-      if (isatty(stdin())) {
-         stop()
-      } else {
-         q("no", status=1)
-      }
+      stop_mes(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
    }
    if (is.null(res$err)) {
       res$err=0L
@@ -1197,4 +1207,26 @@ fallnx2fwrv=function(fallnx, nb_f) {
    # rv=xch-min(net,0)
    fwrv=c(xch-pmin(-net,0),xch-pmin(net,0))
    return(fwrv)
+}
+solve_lut=function(lua, pivot, b, ilua, dirx) {
+   # call lapack dgters() for solving a series of linea systems a_i%*%(b_{i-1}+b_i)=b_i
+   # The result is stored inplace in b.
+   # The sizes:
+   #  - LU matrices of a : (nr_a, nr_a, nlua)
+   #  - pivot : (nr_a, nlua)
+   #  - b : (nr_a, nc_c, ntico)
+   #  - ilua : (ntico). It is a index vector. ilua[i] indicate which lua corresponds to the i-th time point
+   if (!is.loaded("dgetrs")) {
+      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
+         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
+      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
+   }
+   if (!is.loaded("mult_bxt")) {
+      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
+   }
+   dlu=dim(lua)
+   db=dim(b)
+   .Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
+      NAOK=F, DUP=F)
+   return(NULL)
 }
