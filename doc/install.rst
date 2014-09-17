@@ -43,8 +43,10 @@ If you are not an administrator of your R installation, you can execute the comm
   You can also map flux values returned by ``influx_s`` on some
   graphical parameter like edge width for visualizing purposes.
 
-All these components are advised to be in your PATH variable,
+Python and R are advised to be in your PATH variable,
 in other words, they should be executable from any directory.
+
+.. warning:: As of this writing (September 17, 2014), an R package ``nnls`` distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the ``Path`` system variable has the R path ending by ``\bin\x64`` and not just by ``\bin``.
 
 influx_s installation
 ---------------------
@@ -72,7 +74,7 @@ modifying the PATH variable, add a symbolic link in a directory
 which is already in PATH. For example, as root you can do ::
 
 $ cd /usr/local/bin
-$ ln -s /path/to/dir/of/influx_s/{influx_s.py} .
+$ ln -s /path/to/dir/of/influx_s/{influx_s.py,res2ftbl_meas.py,ftbl2cumoAb.py,ftbl2kvh.py,ftbl2netan.py,ftbl2xgmml.py,ff2ftbl.py,ffres2ftbl.sh} .
 
 assuming that ``/usr/local/bin`` is already in the PATH.
 
@@ -101,7 +103,7 @@ output looking like: ::
  calcul  : 2013-02-15 16:42:44
  end     : 2013-02-15 16:43:06
 
-The meaning of this output is quit simple. First, from FTBL file an R code is  generated then it is executed till it ends. Time moments at which these three events occur are reported.
+The meaning of this output is quit simple. First, an R code is  generated from FTBL file then it is executed till it ends. Time moments at which these three events occur are reported.
 
 The result file will be in ``e_coli_res.kvh``.
 It should be almost identical to the same file in ``ok/`` subdirectory.
@@ -134,7 +136,7 @@ The time moments for code generation is preceded by a short version of FTBL file
 It is the operating system that dispatches and equilibrates the charge
 among available CPUs and cores, not ``influx_s`` who simply launches these processes.
 
-For quick start guide, launch ::
+For a quick start guide, launch ::
 
 $ influx_s.py --help
 
