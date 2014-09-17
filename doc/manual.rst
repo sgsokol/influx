@@ -212,6 +212,9 @@ All possible options and their default values for NLSIC algorithm follow:
 
    adaptbt=TRUE
     use (default) or not an adaptive backtracking algorithm.
+    
+   monotone=FALSE
+    should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.
 
 Names and default values for BFGS and Nelder-Mead algorithms can be found in the R help on ``optim()`` function.
 

@@ -11,6 +11,7 @@ New features:
  - in the documentation, added a paragraph about consulting offer
  - result .kvh file is greatly shortened, keeping only essential information. Custom additional information can be stored in some file via ``posttreat_R`` option
  - now, ``influx_s`` returns a non zero code to shell if an error occurred during execution;
+ - added a parameter ``monotone`` to the control list of NLSIC.
  
 Bug fixes:
  - fixed a bug in generating EMU systems (manifested in some special cases)
