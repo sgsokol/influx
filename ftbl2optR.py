@@ -1474,8 +1474,7 @@ for (post in postlist) {
 close(fclog)
 close(fcerr)
 retcode=max(retcode)
-#cat(isatty(stdin()), retcode, sep="\\n", file="/tmp/aha")
-if (!isatty(stdin())) {
+if (format(parent.frame()) == format(.GlobalEnv)) {
    q("no", status=retcode)
 }
 """%{
