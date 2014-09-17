@@ -17,6 +17,7 @@ Welcome to influx_s's documentation!
    Programmer's documentation <progdoc>
    How to ...? <howto>
    Troubleshooting <trouble>
+   Consulting and more <consulting>
    License <license>
 
 Indices and tables
