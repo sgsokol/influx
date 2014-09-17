@@ -2,6 +2,37 @@
 Change Log for influx_s
 =======================
 
+2014-09-17 version 2.13
+-----------------------
+New features:
+ - ``posttreat_R`` field can have several file names separated by ``'; '``
+ - added explicit error message if a valid float value is missing for free or constrained flux
+ - added explicit error message if no dependent flux is included in the balance on any metabolite (suggested by a case submitted by Marc O. Warmoes, Cornell University, USA)
+ - in the documentation, added a paragraph about consulting offer
+ - result .kvh file is greatly shortened, keeping only essential information. Custom additional information can be stored in some file via ``posttreat_R`` option
+ - now, ``influx_s`` returns a non zero code to shell if an error occurred during execution;
+ 
+Bug fixes:
+ - fixed a bug in generating EMU systems (manifested in some special cases)
+ - fixed an error preventing from producing a message suggesting a new partition among dependent, free and constrained fluxes (reported by Stéphane Mottelet, University of Compiegne, France)
+ - fixed metabolite pooling weights (manifested in some special cases)
+ - Windows platform: fixed passing command line options to R code
+ - Windows platform: precompiled ``nnls`` R package (version 32 bits) can produce wrong results. Recompile it by hand or use 64 bits version.
+ 
+
+2014-07-02 version 2.12
+-----------------------
+New features:
+ - parsing badly formatted ftbl files is made more robust
+Bug fixes:
+ - fixed a bug in ``--emu`` option (was introduced in v.2.11)
+
+
+2014-06-12 version 2.11.1
+-------------------------
+Bug fix:
+ - an option ``--noopt`` broken in 2.11 is repaired (reported by Pierre Millard, Manchester Institute of Biotechnology, UK)
+
 2014-06-11 version 2.11
 -----------------------
 New features:
@@ -95,7 +126,7 @@ Bug fixes:
 ----------------------
 New features:
  - an argument of the option ``--np=NP`` (number of processes) can be fractional, between 0 and 1 in which case the number of requested cores is calculated as NP*number_of_available_cores
- - in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more field names in the output file are described (based on discussions with Yanfen Fu, University of Washington)
+ - in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more field names in the output file are described (based on discussions with Yanfen Fu, University of Washington, USA)
  - missing values in measurements (NA as Non Available) are allowed in FTBL files.
 
 Bug fixes:
@@ -134,7 +165,7 @@ Bug fixes:
 2013-03-15 version 2.2.1
 ------------------------
 Bug fixes:
- - fixed a fatal error in Jacobian matrix construction when no measured fluxes are provided in FTBL file (reported by Yanfen Fu, University of Washington);
+ - fixed a fatal error in Jacobian matrix construction when no measured fluxes are provided in FTBL file (reported by Yanfen Fu, University of Washington, USA);
  - in the User's manual, added a naming convention for variable growth fluxes.
 
 2013-03-13 version 2.2
