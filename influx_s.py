@@ -8,6 +8,8 @@ from multiprocessing import cpu_count
 from Queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
 
+##import pdb
+
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
 
@@ -36,6 +38,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """
     #print "here thread: "+fshort
+    ##pdb.set_trace()
     f=ft[:-5]
     flog=open(f+".log", "wb")
     ferr=open(f+".err", "wb")
@@ -58,9 +61,13 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             ('; case_i=T' if case_i else '') + '"'] + \
             (["--case_i"] if case_i else []) + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
-        flog.write("executing: "+" ".join(pycmd)+"\n")
+        pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
+        flog.write("executing: "+pycmd_s+"\n")
         r_generated=True
-        retcode=subp.call(pycmd, stdout=flog, stderr=ferr)
+        if os.name=="nt":
+            retcode=subp.call(pycmd_s, stdout=flog, stderr=ferr, shell=True)
+        else:
+            retcode=subp.call(pycmd, stdout=flog, stderr=ferr)
         if retcode:
             r_generated=False
         if os.path.getsize(ferr.name) > 0:
@@ -93,13 +100,13 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             # execute only one R code
             rcmd="R --vanilla --slave"
             flog=open(f+".log", "ab")
-            flog.write("executing: "+" ".join(rcmd)+" < "+f+".R\n")
+            flog.write("executing: "+rcmd+" < "+f+".R\n")
             s="calcul  : "+now_s()+"\n"
             flog.write(s)
             flog.close()
             sys.stdout.write(fshort+s)
             if os.name=="nt":
-                retcode=subp.call(rcmd, stdin=open(f+".R", "rb"), shell=T)
+                retcode=subp.call(rcmd, stdin=open(f+".R", "rb"), shell=True)
             else:
                 retcode=subp.call(rcmd.split(), stdin=open(f+".R", "rb"))
             s="end     : "+now_s()+"\n"
@@ -222,8 +229,6 @@ parser.add_option(
 "--prof", action="store_true",
     help="developer option")
 
-# expand wildcard (for Windows OS)
-
 # parse commande line
 (opts, args) = parser.parse_args()
 # expand wildcard (for Windows OS)
@@ -253,7 +258,7 @@ q=Queue() # arguments for threads
 qres=Queue() # results from threads (R file names)
 qret=Queue() # returned code from workers
 
-for i in range(np):
+for i in range(min(np, len(args))):
     t=Thread(target=qworker)
     t.daemon=True
     t.start()
@@ -328,6 +333,7 @@ if "nocalc" not in cmd_opts:
            cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
        }
        close(flog)
+       return(retcode)
     }
     nodes=%d
     if (.Platform$OS.type=="unix") {
@@ -338,9 +344,10 @@ if "nocalc" not in cmd_opts:
     }
     cl=makeCluster(nodes, type)
     flist=c(%s)
-    parres=parLapply(cl, flist, doit)
+    retcode=max(unlist(parLapply(cl, flist, doit)))
     stopCluster(cl)
-"""%(np, ", ".join('"'+f+'"' for f in rfiles)))
+    q("no", status=retcode)
+"""%(min(np, len(rfiles)), ", ".join('"'+f+'"' for f in rfiles)))
         fpar.close()
         # execute R code on cluster
         rcmd="R --vanilla --slave"
