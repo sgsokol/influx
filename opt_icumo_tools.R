@@ -1542,3 +1542,25 @@ mult_bxx=function(a, bx, c, ntico, dirx) {
    )
    return(NULL) # the matrix a is modified in place.
 }
+solve_lut=function(lua, pivot, b, ilua, dirx) {
+   # call lapack dgters() for solving a series of linea systems a_i%*%(b_{i-1}+b_i)=b_i
+   # The result is stored inplace in b.
+   # The sizes:
+   #  - LU matrices of a : (nr_a, nr_a, nlua)
+   #  - pivot : (nr_a, nlua)
+   #  - b : (nr_a, nc_c, ntico)
+   #  - ilua : (ntico). It is a index vector. ilua[i] indicate which lua corresponds to the i-th time point
+   if (!is.loaded("dgetrs")) {
+      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
+         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
+      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
+   }
+   if (!is.loaded("mult_bxt")) {
+      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
+   }
+   dlu=dim(lua)
+   db=dim(b)
+   .Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
+      NAOK=F, DUP=F)
+   return(NULL)
+}
