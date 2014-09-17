@@ -260,19 +260,12 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
 #browser()
          return(list(x=NULL, fA=jx_f$lA[[iw]], err=1L, mes=mes))
       }
-      ilua=1L
-      luax=lua@x
-      dim(luax)=c(nb_c, nb_c, 1L)
       b=as.matrix(lAb$b); # may have several columns if emu is TRUE
       #solve the system A*x=b
       #lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
-      dim(b)=c(nb_c, emuw, 1L)
-      solve_lut(luax, lua@perm, b, ilua, dirx)
-      dim(b)=c(nb_c, emuw)
+      xw=lusolve(lua, b)
       if (emu) {
-         xw=c(b, 1.-rowSums(b))
-      } else {
-         xw=b
+         xw=c(xw, 1.-rowSums(xw))
       }
       incu[incuw]=xw
       if (cjac) {
@@ -288,9 +281,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                j_rhsw=j_rhsw+b_x%*%x_f[1L:ba_x,,drop=F]
             }
          }
-         j_rhsw=as.matrix(j_rhsw)
-         dim(j_rhsw)=c(nb_c, emuw*ncol(x_f), 1L)
-         solve_lut(luax, lua@perm, j_rhsw, ilua, dirx)
+         j_rhsw=as.double(j_rhsw)
+         dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
+         j_rhsw=lusolve(lua, j_rhsw)
          if (emu) {
             dim(j_rhsw)=c(nb_c, iw, nb_ff+nb_fgr)
             x_f[ba_x+iseq(iw*nb_c),]=j_rhsw
@@ -300,7 +293,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             x_f[ba_x+iseq(nb_c),]=j_rhsw
          }
       }
-      ba_x=ba_x+ifelse(emu, nb_emus[iw], nb_c)
+      ba_x=ba_x+nb_x[iw]
    }
    names(incu)=c("one", nm$inp, nm$x)
    x=tail(incu, -nb_xi-1L)
@@ -1157,6 +1150,7 @@ opt_wrapper=function(param, measurements, jx_f, trace=1) {
 # wrapper for Monte-Carlo simulations
 mc_sim=function(i) {
    #set.seed(seeds[i])
+   #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", i))
    for (item in c("nb_f", "measurements", "jx_f")) {
       assign(item, labargs[[item]])
    }
@@ -1207,26 +1201,4 @@ fallnx2fwrv=function(fallnx, nb_f) {
    # rv=xch-min(net,0)
    fwrv=c(xch-pmin(-net,0),xch-pmin(net,0))
    return(fwrv)
-}
-solve_lut=function(lua, pivot, b, ilua, dirx) {
-   # call lapack dgters() for solving a series of linea systems a_i%*%(b_{i-1}+b_i)=b_i
-   # The result is stored inplace in b.
-   # The sizes:
-   #  - LU matrices of a : (nr_a, nr_a, nlua)
-   #  - pivot : (nr_a, nlua)
-   #  - b : (nr_a, nc_c, ntico)
-   #  - ilua : (ntico). It is a index vector. ilua[i] indicate which lua corresponds to the i-th time point
-   if (!is.loaded("dgetrs")) {
-      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
-         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
-      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
-   }
-   if (!is.loaded("mult_bxt")) {
-      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
-   }
-   dlu=dim(lua)
-   db=dim(b)
-   .Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
-      NAOK=F, DUP=F)
-   return(NULL)
 }
