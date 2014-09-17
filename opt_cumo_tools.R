@@ -126,18 +126,15 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
 }
 
 cumo_cost=function(param, labargs) {
-   if (is.null(labargs$jx_f$res)) {
-      resl=lab_resid(param, cjac=FALSE, labargs)
-      if (!is.null(resl$err) && resl$err) {
-         return(NULL)
-      }
-      res=resl$res
-   } else {
-      res=labargs$jx_f$res
+   resl=lab_resid(param, cjac=FALSE, labargs)
+   if (!is.null(resl$err) && resl$err) {
+      return(NULL)
    }
+   res=resl$res
+   
    iva=!is.na(res)
    vres=res[iva]
-   fn=crossprod(vres)[1]
+   fn=crossprod(vres)[1L]
    if (DEBUG) {
       write.matrix(fn, file="dbg_cost.txt", sep="\t")
    }
