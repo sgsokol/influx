@@ -311,6 +311,9 @@ def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     #if DEBUG:
     #    pdb.set_trace()
     res={}
+    ropts="\n".join(ropts)
+    if ropts and ropts[0]=='"':
+        ropts=ropts[1:-1]
     f.write("""
 # working dir
 dirw="%(dirw)s"
@@ -471,7 +474,7 @@ jx_f=new.env()
     "dirx": escape(dirx, '\\"'),
     "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
     "org": escape(os.path.basename(f.name[:-2]), '"'),
-    "ropts": join("\n", ropts)[1:-1],
+    "ropts": ropts,
 })
     if case_i:
         f.write("""
@@ -514,7 +517,7 @@ nb_f$rcumos=nb_rcumos
 nb_f$cumoi=nb_cumoi
 if (emu) {
    nm_emu=c(%(nm_emu)s)
-   nb_emus=nb_rcumos*(1:nb_rw+1)
+   nb_emus=nb_rcumos*(iseq(nb_rw)+1)
    nb_f$emus=nb_emus
    nm_list$emu=nm_emu
    nm_x=nm_emu
