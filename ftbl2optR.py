@@ -17,7 +17,7 @@ It is composed of flux, label measurements and metabolite pools.
 :math:`\Sigma^2`, covariance diagonal matrices sigma[flux|mass|label|peak|metab.pool]
 is orginated from the ftbl file.
 
-usage: ./ftbl2optRi.py [opts] organism
+usage: ./ftbl2optR.py [opts] organism
 where organism is the ftbl informative part of file name
 (before .ftbl), e.g. organism.ftbl
 after execution a file organism.R will be created.
@@ -32,7 +32,7 @@ Collections:
    * tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
     collection
    * measures - (dict) exp data
-   * rAb - (list) reduced linear systems A*x_cumo=b by weight
+   * rAb - (list) reduced linear systems A*x_cumo=b (a system by weight)
    * scale - unique scale names
    * nrow - counts scale names
    * o_sc - ordered scale names
@@ -220,6 +220,9 @@ if __name__ == "__main__":
     # write initialization part of R code
     ftbl2code.netan2Rinit(netan, org, f, fullsys, emu, ropts)
 
+    ropts_s="\n\t\t".join(ropts)
+    if ropts_s and ropts_s[0]=='"':
+        ropts_s=ropts_s[1:-1]
     f.write("""
 #browser()
 
@@ -306,6 +309,7 @@ measmatpool[i]=1.
 measvecti=NULL
 tifull=ti=0.
 nb_ti=1
+nb_tifu=1
 x0=NULL
 
 """%{
@@ -414,7 +418,7 @@ if (length(ijpwef)) {
     "flabcin": netan["opt"].get("file_labcin", ""),
 })
 
-    f.write("""
+        f.write("""
 # prepare mapping of metab pools on cumomers
 nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
@@ -437,6 +441,8 @@ for (iw in iseq(nb_w)) {
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
 x0=NULL
 nb_ti=length(ti)
+""")
+    f.write("""
 # gather all measurement information
 measurements=list(
    vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=measvecti),
@@ -551,12 +557,12 @@ labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
 labargs[["spAb"]]=labargs[["spa"]]
-""")
-    f.write("""
+
 # formated output in kvh file
-fkvh_saved="%s_res.kvh"
-"""%escape(fullorg, "\\"))
+fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
+""")
     f.write(r"""
+retcode=numeric(nseries)
 for (irun in iseq(nseries)) {
    param[nm_pseries]=pstart[nm_pseries, irun]
    # prepare kvh file name
@@ -592,6 +598,7 @@ for (irun in iseq(nseries)) {
             cat("put_inside", runsuf, ": ", attr(pinside, "mes"), "\n",
                file=fcerr, sep="")
             close(fkvh)
+            retcode[irun]=attr(pinside, "err")
             next;
          }
       } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0) {
@@ -708,6 +715,7 @@ for (irun in iseq(nseries)) {
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
          close(fkvh)
+         retcode[irun]=rres$err
          next
       }
       # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
@@ -740,6 +748,7 @@ for (irun in iseq(nseries)) {
    if (!is.null(rres$err) && rres$err) {
       cat("lab_sim", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
       close(fkvh)
+      retcode[irun]=rres$err
       next
    }
    if (nb_sc > 0) {
@@ -751,6 +760,7 @@ for (irun in iseq(nseries)) {
          if (!is.null(rres$err) && rres$err) {
             cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
             close(fkvh)
+            retcode[irun]=rres$err
             next
          }
          simlab=jx_f$usimcumom
@@ -796,7 +806,7 @@ for (irun in iseq(nseries)) {
    # save options of command line
    cat("\\truntime options\\n", file=fkvh)
    cat("\\t\\t%s\\n", file=fkvh)
-   """%join("\n\t\t", ropts)[1:-1])
+   """%ropts_s)
     f.write("""
    obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
    cat("\\tR command line\\n", file=fkvh)
@@ -814,6 +824,12 @@ for (irun in iseq(nseries)) {
 
    # starting jacobian calculation
    capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
+   if (!is.null(rres$err) && rres$err) {
+      cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
+      close(fkvh)
+      retcode[irun]=rres$err
+      next
+   }
 
    rcost=cumo_cost(param, labargs)
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
@@ -839,7 +855,7 @@ for (irun in iseq(nseries)) {
     "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].iteritems() if k.startswith("optctrl_"))),
 })
     f.write("""
-   if (optimize) {
+   if (optimize && nb_ff+nb_poolf > 0L) {
       # check if at starting position all fluxes can be resolved
 #browser()
       qrj=qr(jx_f$dr_dff, LAPACK=T)
@@ -861,6 +877,7 @@ for (irun in iseq(nseries)) {
             "\\nJacobian dr_dff is dumped in " %s+% fname, sep=""),
             "\\n", file=fcerr)
          close(fkvh)
+         retcode[irun]=1
          next
       }
       if (TIMEIT) {
@@ -880,6 +897,7 @@ for (irun in iseq(nseries)) {
          obj2kvh(res, "failed first pass optimization process information", fkvh)
          cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
          close(fkvh)
+         retcode[irun]=max(res$err, 1)
          next
       }
       param=res$par
@@ -1023,6 +1041,12 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (is.null(jx_f$jacobian)) {
       # final jacobian calculation
       capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
+      if (!is.null(rres$err) && rres$err) {
+         cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
+         close(fkvh)
+         retcode[irun]=rres$err
+         next
+      }
    }
    rcost=cumo_cost(param, labargs)
    pres[,irun]=param
@@ -1032,7 +1056,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    resid=list(
       "labeled data"=jx_f$reslab,
       "measured fluxes"=jx_f$resflu,
-      "measured pools"=jx_f$pool
+      "measured pools"=jx_f$respool
    )
    obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
 
@@ -1111,19 +1135,28 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          set.seed(seed)
       }
       # Monte-Carlo simulation in parallel way (if asked and possible)
-      #.Platform$OS.type="bidon"
       if (np > 1L) {
-         # parallel execution
          # prepare cluster
-         if (.Platform$OS.type=="unix") {
-            type="FORK"
+         cl_type=ifelse(.Platform$OS.type=="unix", "FORK", "SOCK")
+         if (cl_type=="FORK") {
             nodes=np
          } else {
-            type="SOCK"
-            nodes=rep("localhost", np)
+            snow_here=suppressPackageStartupMessages(require(snow))
+            if (snow_here) {
+               nodes=rep("localhost", np)
+            } else {
+               cat("Monte-Cralo warning: 'snow' package is not installed =>\\n running Monte-Carlo simulations in sequential mode.\\nIf you don't want/can install snow package and want to avoid this message,\\nrun influx_s with an option '--np=1'.\\n", file=fcerr)
+               np=1
+               cl_type="None (sequential mode)"
+            }
          }
-         cl=makeCluster(nodes, type)
-         if (.Platform$OS.type!="unix") {
+      } else {
+         cl_type="None (sequential mode)"
+      }
+      if (np > 1L) {
+         # parallel execution
+         cl=makeCluster(nodes, cl_type)
+         if (cl_type=="SOCK") {
             if (TIMEIT) {
                cat("cl init : ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
@@ -1142,7 +1175,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          }
          #mc_res=mclapply(1L:nmc, mc_sim)
          clusterSetRNGStream(cl)
-         mc_res=parLapply(cl, 1L:nmc, mc_sim)
+         mc_res=parLapply(cl, iseq(nmc), mc_sim)
          stopCluster(cl)
       } else {
          mc_res=lapply(1L:nmc, mc_sim)
@@ -1155,7 +1188,12 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       cost_mc=free_mc[1,]
       nmc_real=nmc-sum(is.na(free_mc[4,]))
       cat("monte-carlo\\n", file=fkvh)
-      cat("\\tsample\\n", file=fkvh)
+      indent=1
+      obj2kvh(cl_type, "cluster type", fkvh, indent)
+      obj2kvh(avaco, "detected cores", fkvh, indent)
+      avaco=max(1, avaco, na.rm=T)
+      obj2kvh(min(avaco, np, na.rm=T), "used cores", fkvh, indent)
+      cat("\\tfitting samples\\n", file=fkvh)
       indent=2
       obj2kvh(nmc, "requested number", fkvh, indent)
       obj2kvh(nmc_real, "calculated number", fkvh, indent)
@@ -1178,14 +1216,11 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       }
       if (nmc_real <= 1) {
          cat("No sufficient monter-carlo samples were succesfully calculated to do some statistics.", "\\n", sep="", file=fcerr)
+         retcode[irun]=1
          break
       }
 #browser()
       rownames(free_mc)=nm_par
-      indent=1
-      obj2kvh(avaco, "detected cores", fkvh, indent)
-      avaco=max(1, avaco, na.rm=T)
-      obj2kvh(min(avaco, options()$mc.cores, na.rm=T), "used cores", fkvh, indent)
       
       # cost section in kvh
       cat("\\tcost\\n", file=fkvh)
@@ -1276,6 +1311,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 #browser()
    if (length(sensitive) && nchar(sensitive) && sensitive != "mc") {
       cat(paste("Unknown sensitivity '", sensitive, "' method chosen.", sep=""), "\\n", sep="", file=fcerr)
+      retcode[irun]=1
    }
 
    if (TIMEIT) {
@@ -1285,6 +1321,12 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # reset fluxes and jacobians according to param
    if (is.null(jx_f$jacobian)) {
       capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
+      if (!is.null(rres$err) && rres$err) {
+         cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
+         close(fkvh)
+         retcode[irun]=rres$err
+         next
+      }
    } # else use the last calculated jacobian
 
    # covariance matrix of free fluxes
@@ -1431,7 +1473,11 @@ for (post in postlist) {
 }
 close(fclog)
 close(fcerr)
-
+retcode=max(retcode)
+#cat(isatty(stdin()), retcode, sep="\\n", file="/tmp/aha")
+if (!isatty(stdin())) {
+   q("no", status=retcode)
+}
 """%{
     "postlist": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
 })
