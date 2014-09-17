@@ -15,7 +15,7 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
  For some specific features of ``influx_s``, the FTBL format was extended. Here is complete list of such extensions:
   - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
-  - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0). It is recommended to add corresponding inequalities to ensure that input-output net fluxes be positive;
+  - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0).
   - starting from the version 2.5, ``NA`` (missing values) are admitted in measurement sections;
   - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections;
   - starting from the version 2.11, new subsections ``EQUALITY/METAB`` and ``INEQUALITY/METAB`` can appear in FTBL file. They can be useful, e.g. to impose a fixed ratio between variable metabolite concentrations (that are part of fitted variables) and/or to limit their variations to some interval. Their syntax is identical to the flux counterpart of these sections.
@@ -281,15 +281,15 @@ An example of an FTBL file having metabolite sections and involving growth fluxe
 Post treatment option
 ---------------------
 
-User can specify a name of an R script file that will be automatically executed after non aborted influx_s run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session. An example of such script is provided in the file ``test/save_all.R`` and its use can be found in the options of ``test/e_coli.ftbl`` file.
+User can specify a name of one or several R scripts that will be automatically executed after non aborted influx_s run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file ``test/save_all.R`` and its use can be found in the options of ``test/e_coli.ftbl`` file.
 
-To activate this option, the script name must be provided in the ``OPTIONS`` section, in the field ``posttreat_R``, e.g. ::
+To activate this option, the script names must be provided in the ``OPTIONS`` section, in the field ``posttreat_R`` and separated by ``'; '``, e.g. ::
 
  OPTIONS
   OPT_NAME	OPT_VALUE
-  posttreat_R	save_all.R
+  posttreat_R	save_all.R; plot_something.pdf
   
-The script name is interpreted as a relative path to the directory where the original FTBL file is located. After execution of ``save_all.R``, a file ``e_coli.RData`` is created. It can be used to restore a calculation R environment by launching R and executing::
+The script name is interpreted as a relative path to the directory where the original FTBL file is located. After execution of ``save_all.R``, a file ``e_coli.RData`` is created. This particular example can be used to restore a calculation R environment by launching R and executing::
 
  > load("e_coli.RData")
  
@@ -306,7 +306,7 @@ baseshort
 param
   is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and metabolite concentrations (if any)
 jx_f
-  is a list calculated quantities. Here are some of its fields:
+  is a environment regrouping calculated quantities. Here are some of its fields:
   
   fallnx
     a vector of all net and exchange fluxes (here, exchange fluxes are mapped on [0; 1[ interval)
@@ -324,8 +324,6 @@ jx_f
    as its names indicates, is the Jacobian matrix (d res/d param)
   udr_dp
    is the jacobian matrix for the unreduced residual vector (d ures/d param)
-  lA
-   is a list of matrices defining cumomer (or EMU) balances at each cumomer weight
 
 measurements
  is a list regrouping various measurements and their SD
@@ -347,7 +345,7 @@ Result file fields
 
 Generally speaking, the names of the fields in the result KVH file are chosen to be self explanatory. So there is no so much to say about them. Here, we provide only some key fields and name conventions used in the result file.
 
-At the beginning of the ``mynetwork_res.kvh`` file some system information is provided. Here "system" should be taken in two sens: informatics and biological. The information are reported in the fields  ``influx`` and  ``system sizes``. These fields are followed by  ``starting point`` information regrouping ``starting free parameters``,  ``starting MID vector`` (MID stands for Mass Isotopomer Distribution),  ``starting cumomer vector``, forward-revers fluxes, net-exchange fluxes, starting residuals and some other subfields. Name conventions used in these and other fields are following:
+At the beginning of the ``mynetwork_res.kvh`` file, some system information is provided. Here "system" should be taken in two sens: informatics and biological. The information is reported in the fields  ``influx`` and  ``system sizes``. These fields are followed by  ``starting point`` information regrouping ``starting free parameters``,  ``starting cost value``, ``flux system (Afl)`` and ``flux system (bfl)``. Name conventions used in these and other fields are following:
 
  net and exchange fluxes
   are prefixed by ``n.`` or ``x.`` respectively
@@ -410,11 +408,10 @@ Problems can appear in all stages of a software run:
 
 Most of the error messages are automatically generated by underlying languages Python and R. These messages can appear somewhat cryptic for a user unfamiliar with these languages. But the most important error messages are edited to be as explicit as possible. For example, a message telling that free fluxes are badly chosen could look like::
 
-  Error : Flux matrix is not square: (56eq x 57unk)
+  Error : Flux matrix is not square or singular: (56eq x 57unk)
   You have to change your choice of free fluxes in the 'mynetwork.ftbl' file.
   Candidate(s) for free flux(es):
   d.n.Xylupt_U
-  Execution stopped
 
 a message about badly structurally defined network could be similar to::
 
@@ -423,27 +420,20 @@ a message about badly structurally defined network could be similar to::
   Unsolvable fluxes may be:
     f.x.tk2, f.n.Xylupt_1, f.x.maldh, f.x.pfk, f.x.ta, f.x.tk1
   Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
-  Execution stopped
 
-a message *on console* about singular cumomer balance matrix could resemble to::
+a message about singular cumomer balance matrix could resemble to::
 
-  Error in .solve.dgC(a, as(b, "denseMatrix"), tol = tol, sparse = sparse) :                             
-     cs_lu(A) failed: near-singular A (or out of memory)
-
-while a message in the ``mynetwork.err`` file will look like::
-
-  Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
-  or constrain some of the fluxes listed below to be non zero
-  Zero rows in cumomer matrix A at weight 1:
-  asp:2
-  asp:8
-  asp:1
-  asp:4
-  Zero fluxes are:
-  fwd.BM_ASP
+  lab_sim: Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero Zero rows in cumomer matrix A at weight 1:
+  cit_c:16
+  ac_c:2
   ...
+  Zero fluxes are:
+  fwd.ACITL
+  ...
+
+
   
-.. note:: In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here ``asp:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
+.. note:: In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here ``cit_c:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
  
  ``$ influx_s.py --clownr 0.0001 mynetwork``
  
@@ -460,7 +450,7 @@ a message about badly statistically defined network could appear like::
 
 and so on.
 
-A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun ``influx_s`` to see if other problems are still here. Sometimes, a problem can induce several others. So, correcting the first problem could eliminate some others. Repeat this process, till all the troubles are eliminated.
+A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun ``influx_s`` to see if other problems are still here. Sometimes, a problem can induce several others. So, fixing the first problem could eliminate some others. Repeat this process, till all the troubles are eliminated.
 
 Problematic cases
 -----------------
@@ -479,11 +469,11 @@ It can happen that collected data are not sufficient to resolve some fluxes in y
 
 and execution is stopped.
 
-Several options are then available for a user facing such a problem.
+Several options are then available for a user facing such situation.
 
-1. Collect more data to resolve lucking fluxes. As a rule of thumb, data must be collected on metabolites which are node of convergence of badly defined fluxes or on metabolites situated downhill of convergence point and preserving labeling pattern. Nature of collected data can be also important. Examples can be constructed where mass data are not sufficient to determine a flux but RMN data can do the job.
+1. Collect more data to resolve lacking fluxes. As a rule of thumb, data must be collected on metabolites which are node of convergence of badly defined fluxes or on metabolites situated downhill of convergence point and preserving labeling pattern. Nature of collected data can be also important. Examples can be constructed where mass data are not sufficient to determine a flux but RMN data can do the job.
  
- Before actual data collection, you can make a "dry run" with ``--noopt`` option and with fictitious values for intended metabolite in the FTBL file to see if with these new data the network becomes well resolved. If the error message disappear and SD values in the the section ``linear stats`` are not very high then chances are that additionally collected data can help to resolve the fluxes.
+ Before actual data collection, you can make a "dry run" with ``--noopt`` option and with fictitious values for intended metabolite in the FTBL file to see if with these new data, the network becomes well resolved. If the error message disappear and SD values in the the section ``linear stats`` are not very high then chances are that additionally collected data can help to resolve the fluxes.
  
 2. Optimize input label. It can happen that you do collect data on a metabolite situated in convergence point for undefined fluxes but incoming fluxes are bringing the same labeling pattern which prevents flux(es) to be resolved. May be changing substrate label can help in this situation. For label optimization you can use a software called IsoDesign, distributed under OpenSource licence and available here http:://metasys.insa-toulouse.fr/software/isodes/ (may be you have received ``influx_s`` as part of IsoDesign package, in which case you have it already).
  
@@ -531,8 +521,7 @@ In all cases, a slow convergence is due to high non linearity of the solved prob
  This option splits the convergence process in two parts. First, a minimum is searched for fluxes under additional constraints to keep the same sign during this step. Second, for fluxes that reached zero after the first step, a sign change is imposed and a second optimization is made with these new constraints.
  If ``--zc`` option is used with an argument 0 (``--zc=0`` or ``--zc 0``), it can happen that fluxes reaching zero produce a singular (non invertible) cumomer balance matrix. In this case, an execution is aborted with an error starting like::
 
-   Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3
-   or constrain some of the fluxes listed below to be non zero
+   Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero
    ...
  To avoid such situation, an argument to ``--zc`` must be a small positive number, say ``--zc 0.001``. In this case, positive net fluxes are kept over 0.001 and negative fluxes are kept under -0.001 value. In this manner, an exact zero is avoided.
  
