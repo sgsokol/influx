@@ -10,11 +10,10 @@ are just edges.
 Node and edge attributes are written in respective xml attributes.
 Compatibility: cytoscape v2.8.3 and v3.0
 
-usage: ftbl2xgmml.py [-h|--help|--DEBUG] mynetwork.ftbl [> mynetwork.xgmml]
+usage: ftbl2xgmml.py [-h|--help] mynetwork.ftbl [> mynetwork.xgmml]
 
 OPTIONS
 -h, --help print this message and exit
---DEBUG enable some debuggin features and output (for developers only)
 
 :param: mynetwork the base of an ftbl file (mynetwork.ftbl)
 
@@ -96,19 +95,16 @@ if __name__ == "__main__":
     def usage():
         sys.stderr.write(__doc__)
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "DEBUG"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help"])
     except getopt.GetoptError, err:
         sys.stderr.write(str(err)+"\n")
         usage()
         sys.exit(1)
     cost=False
-    DEBUG=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit()
-        elif o=="--DEBUG":
-            DEBUG=True
     #aff("args", args);##
     if len(args) != 1:
         sys.stderr("Expecting exactly one ftbl file name\n")
