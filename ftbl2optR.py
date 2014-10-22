@@ -130,11 +130,11 @@ if __name__ == "__main__":
         pass
 
     def usage():
-        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--DEBUG] [--ropts ROPTS] network_name[.ftbl]\n")
+        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--ropts ROPTS] network_name[.ftbl]\n")
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "DEBUG", "ropts=", "case_i"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "ropts=", "case_i"])
     except getopt.GetoptError, err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -142,7 +142,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     fullsys=False
-    DEBUG=False
     emu=False
     clownr=False
     ropts=['""']
@@ -155,8 +154,6 @@ if __name__ == "__main__":
             fullsys=True
         elif o=="--emu":
             emu=True
-        elif o=="--DEBUG":
-            DEBUG=True
         elif o=="--clownr":
             clownr=True
         elif o=="--ropts":
@@ -184,17 +181,11 @@ if __name__ == "__main__":
     fullorg=os.path.join(dirorg, org)
 
     #-->
-    #DEBUG=True
     import ftbl2code
-    ftbl2code.DEBUG=DEBUG
     ftbl2code.case_i=case_i
     C13_ftbl.clownr=clownr
     #org="ex3"
     #org="PPP_exact"
-    #DEBUG=True
-    #if DEBUG:
-    #    import pdb
-
 
     n_ftbl=fullorg+".ftbl"
     n_R=fullorg+".R"
@@ -262,7 +253,11 @@ if (nb_poolf > 0) {
       ui_add=Matrix(0., nrow=nb_add, ncol=ncol(ui))
       ui_add[,nb_col+pmatch(nm_add, nm_poolf)]=diag(1., nb_add)
       rownames(ui_add)=paste(nm_add, ">=", clowp, sep="")
-      ui=rBind(ui, ui_add)
+      if (nrow(ui)) {
+         ui=rBind(ui, ui_add)
+      } else {
+         ui=ui_add
+      }
       ci=c(ci, rep(clowp, nb_add))
    }
 
@@ -304,13 +299,6 @@ measmatpool=Matrix(0., nrow=nb_poolm, ncol=length(poolall))
 dimnames(measmatpool)=list(nm_poolm, nm_poolall)
 i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=T)
 measmatpool[i]=1.
-
-# tokens for case_s
-measvecti=NULL
-tifull=ti=0.
-nb_ti=1
-nb_tifu=1
-x0=NULL
 
 """%{
     "nb_poolm": len(netan["metab_measured"]),
@@ -363,15 +351,15 @@ if (nchar(flabcin)) {
       stop_mes(mes, file=fcerr)
    }
    if (length(ti) < 1L) {
-      mes=sprintf("No column found in the file '%%s'\\n", flabcin)
+      mes=sprintf("No column found in the file '%%s'", flabcin)
       stop_mes(mes, file=fcerr)
    }
    if (!all(diff(ti) > 0.)) {
-      mes=sprintf("Time moments (in column names) are not monotonously increasing in the file '%%s'\\n", flabcin)
+      mes=sprintf("Time moments (in column names) are not monotonously increasing in the file '%%s'", flabcin)
       stop_mes(mes, file=fcerr)
    }
    if (ti[1L] < 0.) {
-      mes=sprintf("The first time moment cannot be negative in the file '%%s'\\n", flabcin)
+      mes=sprintf("The first time moment cannot be negative in the file '%%s'", flabcin)
       stop_mes(mes, file=fcerr)
    }
    if (ti[1L] != 0.) {
@@ -385,27 +373,29 @@ if (nchar(flabcin)) {
    ti=seq(tstart, tmax, by=dt)
    if (optimize) {
       cat("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in the ftbl file.
-The fitting is ignored as if '--noopt' option were asked.", file=fcerr)
+The fitting is ignored as if '--noopt' option were asked.\\n", file=fcerr)
       optimize=F
    }
 }
 nb_ti=length(ti)
 if (nb_ti < 2L) {
-   mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.\\n", nb_ti)
+   mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.", nb_ti)
    stop_mes(mes, file=fcerr)
 }
 
 # divide first time interval by n1 geometric intervals
-n1=4
+n1=1
 tmp=cumsum(2**iseq(n1))
 tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
 
 # divide each time interval by n
 dt=diff(tifull)
-n=2
+n=1
 dt=rep(dt/n, each=n)
 tifull=c(tifull[1L], cumsum(dt))
 nb_tifu=length(tifull)
+
+tifull2=c(tifull[1L], tifull[1L]+cumsum(rep(diff(tifull)/2., each=2L)))
 
 if (length(ijpwef)) {
    # vector index for many time points
@@ -422,20 +412,29 @@ if (length(ijpwef)) {
 # prepare mapping of metab pools on cumomers
 nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
-nb_f$ipf2ircumo=list()
+nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
 for (iw in iseq(nb_w)) {
    ix=iseq(nb_rcumos[iw])
-   ipf2ircumo=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
+   ipf2ircumo=ipf2ircumo2=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
    dims=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu-1L)
+   dims2=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), (nb_tifu-1L)*2)
    i=as.matrix(ipf2ircumo)
+   i2=as.matrix(ipf2ircumo2)
    for (id in 2L:length(dims)) {
       cstr=sprintf("cbind(%srep(iseq(dims[id]), each=prod(dims[iseq(id-1L)])))", paste("i[, ", iseq(id-1L), "], ", sep="", collapse=""))
       i=eval(parse(text=cstr))
    }
+   for (id in 2L:length(dims2)) {
+      cstr=sprintf("cbind(%srep(iseq(dims2[id]), each=prod(dims2[iseq(id-1L)])))", paste("i2[, ", iseq(id-1L), "], ", sep="", collapse=""))
+      i2=eval(parse(text=cstr))
+   }
    colnames(i)=c("ipoolf", "ic", "iw", "iti")
+   colnames(i2)=c("ipoolf", "ic", "iw", "iti")
    i=i[i[,1L]!=0L,,drop=F]
+   i2=i2[i2[,1L]!=0L,,drop=F]
    # put the poolf column last
    nb_f$ipf2ircumo[[iw]]=cbind(i[,-1L,drop=F], i[,1L,drop=F])
+   nb_f$ipf2ircumo2[[iw]]=cbind(i2[,-1L,drop=F], i2[,1L,drop=F])
 }
 
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
@@ -445,8 +444,8 @@ nb_ti=length(ti)
     f.write("""
 # gather all measurement information
 measurements=list(
-   vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=measvecti),
-   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev, kin=rep(measdev, nb_ti-1)),
+   vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=if (case_i) measvecti else NULL),
+   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev, kin=if (case_i) rep(measdev, nb_ti-1) else NULL),
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
@@ -511,7 +510,7 @@ if (nchar(fseries) > 0) {
 nm_pseries=rownames(pstart)
 
 if (is.null(nseries) || nseries==0) {
-   stop_mes(sprintf("No starting values in the series file '%s' or --iseries is empty.\\n", fseries),  file=fcerr)
+   stop_mes(sprintf("No starting values in the series file '%s' or --iseries is empty.", fseries),  file=fcerr)
 }
 
 pres=matrix(NA, nb_param, nseries)
@@ -552,7 +551,12 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc", "ti", "tifull", "x0", "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "magma_here")
+""")
+    if case_i:
+        f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
+""")
+    f.write("""
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
 labargs[["nm"]]=labargs[["nm_list"]]
@@ -671,8 +675,8 @@ for (irun in iseq(nseries)) {
          nm_izc=nm_izc[!zi]
          mi_zc=mi_zc[!zi,,drop=F]
       } else {
-         cat("The following constant inequalities are not satisfied:\n", file=fcerr)
-         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\n", file=fcerr)
+         cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
+         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=fcerr)
          stop_mes()
       }
 
@@ -855,9 +859,9 @@ for (irun in iseq(nseries)) {
     "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].iteritems() if k.startswith("optctrl_"))),
 })
     f.write("""
+#browser()
    if (optimize && nb_ff+nb_poolf > 0L) {
       # check if at starting position all fluxes can be resolved
-#browser()
       qrj=qr(jx_f$dr_dff, LAPACK=T)
       d=diag(qrj$qr)
       qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
@@ -1164,7 +1168,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             if (TIMEIT) {
                cat("cl expor: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
-            clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "DEBUG", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx"))
+            clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx"))
             if (TIMEIT) {
                cat("cl sourc: ", format(Sys.time()), "\\n", sep="", file=fclog)
             }
@@ -1484,6 +1488,6 @@ if (format(parent.frame()) == format(.GlobalEnv)) {
     f.close()
     # try to make output files just readable to avoid later casual edition
     try:
-	os.chmod(n_R, stat.S_IREAD)
+        os.chmod(n_R, stat.S_IREAD)
     except:
         pass
