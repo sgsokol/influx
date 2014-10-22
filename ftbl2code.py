@@ -19,7 +19,6 @@ import sys
 from operator import itemgetter
 from itertools import groupby
 
-global DEBUG
 me=os.path.abspath(os.path.realpath(sys.argv[0]))
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
@@ -217,7 +216,6 @@ def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
         * "cumo2i": cumo2i,
         * ...
     """
-    global DEBUG
     # Important python variables:
     # Collections:
     #    netan - (dict) ftbl structured content
@@ -308,8 +306,6 @@ def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     f.write("""
 # Copyright 2011-%d, INRA, France.
 """%time.localtime()[0])
-    #if DEBUG:
-    #    pdb.set_trace()
     res={}
     ropts="\n".join(ropts)
     if ropts and ropts[0]=='"':
@@ -329,11 +325,15 @@ fclog=file(file.path(dirw, sprintf("%%s.log", baseshort)), "ab")
 options(warn=1)
 options(digits.secs=2)
 
-suppressPackageStartupMessages(library(bitops))
+case_i=%(case_i)s
+
+#suppressPackageStartupMessages(library(bitops))
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
 suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 options(Matrix.quiet=TRUE)
 suppressPackageStartupMessages(library(parallel))
+#magma_here=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
+magma_here=F
 
 # get some common tools
 source(file.path(dirx, "tools_ssg.R"))
@@ -365,10 +365,9 @@ fseries=""
 iseries=""
 seed=-.Machine$integer.max
 excl_outliers=F
-DEBUG=F
 TIMEIT=F
 prof=F
-case_i=F
+time_order=1L
 
 # get runtime arguments
 %(ropts)s
@@ -472,6 +471,7 @@ jx_f=new.env()
 """%{
     "dirw": escape(os.path.abspath(os.path.dirname(f.name)), '\\"'),
     "dirx": escape(dirx, '\\"'),
+    "case_i": "T" if case_i else "F",
     "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
     "org": escape(os.path.basename(f.name[:-2]), '"'),
     "ropts": ropts,
@@ -780,10 +780,6 @@ if (nb_fl) {
    Afl=matrix(0., nb_fl, nb_fl)
 }
 dimnames(Afl)=list(c(%(nm_rows)s), nm_fl)
-if (DEBUG) {
-   library(MASS)
-   write.matrix(Afl, file="dbg_Afl.txt", sep="\\t")
-}
 #browser()
 # prepare param (\Theta) vector
 # order: free flux net, free flux xch, scale label, scale mass, scale peak
@@ -1173,9 +1169,6 @@ def netan2R_meas(netan, org, f, emu=False):
     o_meas=measures.keys(); # ordered measure types
     o_meas.sort()
 
-    #if DEBUG:
-    #    pdb.set_trace()
-
     ir2isc={"label": [], "mass": [], "peak": []}; # for mapping measure rows indexes on scale index
     # we want to use it in python like isc[meas]=ir2isc[meas][ir]
     for meas in o_meas:
@@ -1203,9 +1196,6 @@ def netan2R_meas(netan, org, f, emu=False):
 
         # measured value vector is in measures[meas]["vec"]
         # measured dev vector is in measures[meas]["dev"]
-
-    #if DEBUG:
-    #    pdb.set_trace()
 
     # create R equivalent structures with indices for scaling
     f.write("""
@@ -1271,8 +1261,6 @@ nb_f$nb_sc=nb_sc
     # get the full dict of non zero cumomers involved in measures
     # cumo=metab:icumo where icumo is in [1;2^Clen]
     # or emu=metab:ifrag+Mi
-    #if DEBUG:
-    #    pdb.set_trace()
     meas_cumos={}
     for meas in o_meas:
         for row in measures[meas]["mat"]:
