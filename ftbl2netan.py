@@ -11,12 +11,11 @@ if __name__ == "__main__":
         print(__doc__)
 
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr", "fullsys", "DEBUG"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr", "fullsys"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
         sys.exit(1)
-    DEBUG=False
     emu=False
     clownr=False
     fullsys=True
@@ -26,8 +25,6 @@ if __name__ == "__main__":
             sys.exit(0)
         elif o=="--emu":
             emu=True
-        elif o=="--DEBUG":
-            DEBUG=True
         elif o=="--clownr":
             clownr=True
         elif o=="--fullsys":

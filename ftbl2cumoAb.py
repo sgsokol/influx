@@ -2,7 +2,7 @@
 """Transform .ftbl file to human readable matrix A and right hand part b
 in full cumomer (default), reduced cumomer (option -r) or emu (option --emu) system A*x=b.
 
-usage: ./ftbl2cumoAb.py [-h|--help|-r[--DEBUG] network.ftbl [> network.sys]
+usage: ./ftbl2cumoAb.py [-h|--help|-r network.ftbl [> network.sys]
 If neither output redirection (>) nor a pipe (|) are not used, the output
 file name is silently formed from the input one by replacing the suffix .ftbl with .sys. If exists, the output file is rewritten without warning.
 If you wish an output on the screen, use
@@ -36,12 +36,11 @@ def get_net(r, dfc):
     return res
 # get arguments
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "clownr", "DEBUG", "emu"])
+    opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "clownr", "emu"])
 except getopt.GetoptError, err:
     print str(err)
     usage()
     sys.exit(1)
-DEBUG=False
 reduced=False
 emu=False
 clownr=False
@@ -49,8 +48,6 @@ for o,a in opts:
     if o in ("-h", "--help"):
         usage()
         sys.exit(0)
-    elif o=="--DEBUG":
-        DEBUG=True
     elif o=="-r":
         reduced=True
     elif o=="--emu":

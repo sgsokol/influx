@@ -11,18 +11,15 @@ if __name__ == "__main__":
         print(__doc__);
 
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "DEBUG"]);
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help"]);
     except getopt.GetoptError, err:
         print str(err);
         usage();
         sys.exit(1);
-    DEBUG=False;
     for o,a in opts:
         if o in ("-h", "--help"):
             usage();
             sys.exit(0);
-        elif o=="--DEBUG":
-            DEBUG=True;
         else:
             assert False, "unhandled option";
     fftbl=args[0] if len(args) else "";

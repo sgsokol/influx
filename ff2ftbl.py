@@ -36,7 +36,6 @@ except getopt.GetoptError, err:
     sys.exit(1)
 
 fullsys=False
-DEBUG=False
 nround=9
 for o,a in opts:
     if o in ("-h", "--help"):
