@@ -1,4 +1,3 @@
-#DEBUG=0; # 1 to enable debugging information, 0=disable
 #TIMEIT=0; # 1 to enable time printing at some stages
 if (length(find("TIMEIT")) && TIMEIT) {
    cat("load    : ", format(Sys.time()), "\n", sep="", file=fclog)
@@ -7,9 +6,6 @@ trisparse_solv=function(A, b, w, fwrv, method="dense") {
    # solve A*x=b where A=tridiag(Al,Ac,Au)+s*e^t and b is dense
    if (method=="dense") {
       n=ncol(A)
-      if (DEBUG) {
-         write.matrix(A, file=paste("dbg_Acumo_d_",w,".txt", sep=""),sep="\t")
-      }
       # factorize the matrix
       fA=qr(A)
       d=diag(fA$qr)
@@ -46,20 +42,11 @@ trisparse_solv=function(A, b, w, fwrv, method="dense") {
 #browser()
          return(list(x=NULL, fA=A, err=1L, mes=mes))
       }
-      if (DEBUG) {
-         cat("A=", str(A), "\n", sep="", file=fclog)
-      }
       return(list(x=as.matrix(x), fA=A, err=0, mes=NULL))
    } else if (method=="smw") {
       # Sherman-Morrison-Woodbury for low rank matrix modification
       require(matrid, lib.loc="/home/sokol/R/lib")
       atrim=new("matridm", A)
-      if (DEBUG) {
-         cat(paste("dim A at weight ", w, ":\n", sep="", file=fclog))
-         print(dim(A))
-         write.matrix(cbind(A,b=b),file=paste("dbg_tridmA_",w,".txt", sep=""),sep="\t")
-      #   print(A)
-      }
       x=qr.solve(atrim,b)
       return(x)
    } else {
@@ -135,9 +122,6 @@ cumo_cost=function(param, labargs) {
    iva=!is.na(res)
    vres=res[iva]
    fn=crossprod(vres)[1L]
-   if (DEBUG) {
-      write.matrix(fn, file="dbg_cost.txt", sep="\t")
-   }
    return(fn)
 }
 
@@ -161,13 +145,6 @@ param2fl=function(param, labargs) {
    names(fallnx)=nm$fallnx
    fwrv=c(fallnx2fwrv(fallnx, nb_f))
    names(fwrv)=nm$fwrv
-   if (DEBUG) {
-      write.matrix(p2bfl%*%head(param, nb_f$nb_ff)+bp, file="dbg_bfl.txt", sep="\t")
-      n=length(fwrv)
-      names(fwrv)=nm$fwrv
-      write.matrix(cbind(1:n, nm$fwrv, fwrv), file="dbg_fwrv.txt", sep="\t")
-      write.matrix(cbind(1:n, nm$fallnx, fallnx), file="dbg_fallnx.txt", sep="\t")
-   }
    lf=list(fallnx=fallnx, fwrv=fwrv, flnx=flnx)
    labargs$jx_f$lf=lf
    return(lf)
@@ -238,7 +215,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$rcumo[ixw], emu=emu)
       }
       wa=options(warn=2) # to cath singular matrix as error and not just a warning
-      lua=try(lu(as.matrix(lAb$A), errSing=T), silent=T)
+      lua=try(if (magma_here) magma::lu(magma(as.matrix(lAb$A))) else lu(as.matrix(lAb$A), errSing=T), silent=T)
       options(wa) # restore warning situation
       if (inherits(lua, "try-error")) {
          # find 0 rows if any
@@ -415,14 +392,9 @@ Vcumo2iso0=function(len) {
 }
 
 sumbit=function(i) {
-   i=as.integer(i)
-   res=0
-   movi=1
-   while (movi<=i) {
-      res=res+(bitAnd(i,movi)>0)
-      movi=movi*2
-   }
-   return(res)
+   # return the sum of bits in every component of the integer vector i
+   # The result has the length=length(i)
+   return(colSums(outer(2**(0:30), as.integer(i), bitwAnd) > 0))
 }
 
 cumo2mass=function(x, sep=":", emusep="+") {
