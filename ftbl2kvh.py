@@ -32,7 +32,6 @@ if __name__ == "__main__":
     # what kind of output we have?
     mode=os.fstat(1).st_mode
     f=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(fftbl[:-4]+"kvh", "w")
-    fftbl=open(fftbl, "r") if fftbl else sys.stdin;
 
     ftbl=C13_ftbl.ftbl_parse(fftbl);
     tools_ssg.dict2kvh(ftbl);

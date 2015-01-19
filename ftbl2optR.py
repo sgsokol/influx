@@ -190,7 +190,6 @@ if __name__ == "__main__":
     n_ftbl=fullorg+".ftbl"
     n_R=fullorg+".R"
     #n_fort=fullorg+".f"
-    f_ftbl=open(n_ftbl, "r")
     try:
         os.chmod(n_R, stat.S_IWRITE)
     except:
@@ -198,8 +197,7 @@ if __name__ == "__main__":
     f=open(n_R, "w")
 
     # parse ftbl
-    ftbl=C13_ftbl.ftbl_parse(f_ftbl)
-    f_ftbl.close()
+    ftbl=C13_ftbl.ftbl_parse(n_ftbl)
 
     # analyse network
     # reload(C13_ftbl)
@@ -557,8 +555,14 @@ nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp"
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
 """)
     f.write("""
+if (TIMEIT) {
+   cat("labargs : ", format(Sys.time()), "\\n", sep="", file=fclog)
+}
 labargs=new.env()
-tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm, .GlobalEnv), labargs))
+tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
+#for (nm in nm_labargs) {
+#   labargs[[nm]]=get(nm)
+#}
 labargs[["nm"]]=labargs[["nm_list"]]
 labargs[["spAb"]]=labargs[["spa"]]
 
@@ -568,6 +572,9 @@ fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
     f.write(r"""
 retcode=numeric(nseries)
 for (irun in iseq(nseries)) {
+   if (TIMEIT) {
+      cat(sprintf("run %4d: %s\n", irun, format(Sys.time())), file=fclog)
+   }
    param[nm_pseries]=pstart[nm_pseries, irun]
    # prepare kvh file name
    if (nseries > 1) {
@@ -707,7 +714,7 @@ for (irun in iseq(nseries)) {
       }
       rm(ui_zc, ci_zc, uzcd, uzcs, czcd)
    }
-   
+   rres=NULL
 """)
     if case_i:
         f.write("""
@@ -748,13 +755,6 @@ for (irun in iseq(nseries)) {
         f.write("""
    # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
    # for corresponding measurements
-   rres=lab_sim(param, cjac=FALSE, labargs)
-   if (!is.null(rres$err) && rres$err) {
-      cat("lab_sim", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-      close(fkvh)
-      retcode[irun]=rres$err
-      next
-   }
    if (nb_sc > 0) {
       if (optimize) {
          if (TIMEIT) {
@@ -825,17 +825,16 @@ for (irun in iseq(nseries)) {
    names(param)=nm_par
    obj2kvh(param, "starting free parameters", fkvh, indent=1)
 #browser()
-
-   # starting jacobian calculation
-   capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
-   if (!is.null(rres$err) && rres$err) {
-      cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-      close(fkvh)
-      retcode[irun]=rres$err
-      next
+   if (is.null(rres)) {
+      capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
+      if (!is.null(rres$err) && rres$err) {
+         cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
+         close(fkvh)
+         retcode[irun]=rres$err
+         next
+      }
    }
-
-   rcost=cumo_cost(param, labargs)
+   rcost=sum(crossprod(rres$res))
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
@@ -861,28 +860,32 @@ for (irun in iseq(nseries)) {
     f.write("""
 #browser()
    if (optimize && nb_ff+nb_poolf > 0L) {
-      # check if at starting position all fluxes can be resolved
-      qrj=qr(jx_f$dr_dff, LAPACK=T)
-      d=diag(qrj$qr)
-      qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
-      if (qrj$rank) {
-         nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
-      } else {
-         nm_uns=nm_ff
-      }
-      if (qrj$rank < nb_ff && !(least_norm || method!="nlsic")) {
-         library(MASS)
-         # Too bad. The jacobian of free fluxes is not of full rank.
-         dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx)
-         fname="dbg_dr_dff_singular" %s+% runsuf %s+% ".csv"
-         write.matrix(formatC(jx_f$dr_dff, 15), file=fname, sep="\\t")
-         cat(paste("Provided measurements (isotopomers and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:
-", paste(nm_uns, sep=", ", collapse=", "),
-            "\\nJacobian dr_dff is dumped in " %s+% fname, sep=""),
-            "\\n", file=fcerr)
-         close(fkvh)
-         retcode[irun]=1
-         next
+      if (!(least_norm || method!="nlsic")) {
+         # check if at starting position all fluxes can be resolved
+         if (TIMEIT) {
+            cat("check ja: ", format(Sys.time()), "\\n", sep="", file=fclog)
+         }
+         rres=lab_resid(param, cjac=T, labargs)
+         qrj=qr(jx_f$dr_dff, LAPACK=T)
+         d=diag(qrj$qr)
+         qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
+         if (qrj$rank) {
+            nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
+         } else {
+            nm_uns=nm_ff
+         }
+         if (qrj$rank < nb_ff) {
+            # Too bad. The jacobian of free fluxes is not of full rank.
+            dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx)
+            fname="dbg_dr_dff_singular" %s+% runsuf %s+% ".csv"
+            cat(sprintf("Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:\\n%s\\nJacobian dr_dff is written in the result kvh file.\\n",
+               paste(nm_uns, sep=", ", collapse=", ")),
+               file=fcerr)
+            obj2kvh(jx_f$dr_dff, "Jacobian dr_dff", fkvh, indent=0)
+            close(fkvh)
+            retcode[irun]=1
+            next
+         }
       }
       if (TIMEIT) {
          cat("optim   : ", format(Sys.time()), "\\n", sep="", file=fclog)

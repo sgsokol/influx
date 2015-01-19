@@ -47,8 +47,6 @@ if __name__ == "__main__":
     mode=os.fstat(1).st_mode
     f=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(fftbl[:-4]+"netan", "w")
     
-    fftbl=open(fftbl, "r") if fftbl else sys.stdin
-
     ftbl=C13_ftbl.ftbl_parse(fftbl)
     netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
     tools_ssg.dict2kvh(netan, f)

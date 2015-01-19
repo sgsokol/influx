@@ -72,9 +72,7 @@ if fftbl and not os.path.exists(fftbl):
 mode=os.fstat(1).st_mode
 f=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(fftbl[:-4]+"sys", "w")
 
-fftbl=open(fftbl, "r")
-
-# parse ftbl from stdin
+# parse ftbl
 ftbl=C13_ftbl.ftbl_parse(fftbl)
 
 # analyse network
