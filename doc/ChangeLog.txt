@@ -2,6 +2,19 @@
 Change Log for influx_s
 =======================
 
+2015-01-19 version 2.14
+-----------------------
+New features:
+ - ``commandArgs`` field in FTBL file can have comments in it and occur more than once somewhere in the ``OPTIONS`` section
+ - ``--DEBUG`` option is removed as obsolete
+ - R package ``bitops`` is not required anymore to be installed (valid for R-3.0.0 or higher)
+
+Bug fixes:
+ - fixed a bug in delivering an error message when ``commandArgs`` had a comment in it
+ - fixed the precedence of command line options over ``commandArgs`` given in FTBL
+ - fixed a bug in parsing FTBL file having a BOM (invisible utf8 encoding mark) in it (reported by Yanfen Fu, University of Washington, USA)
+ - fixed representation of growth fluxes by ftbl2xgmml.py utility
+
 2014-09-17 version 2.13
 -----------------------
 New features:
@@ -19,7 +32,7 @@ Bug fixes:
  - fixed metabolite pooling weights (manifested in some special cases)
  - Windows platform: fixed passing command line options to R code
  - Windows platform: precompiled ``nnls`` R package (version 32 bits) can produce wrong results. Recompile it by hand or use 64 bits version.
- 
+
 
 2014-07-02 version 2.12
 -----------------------
