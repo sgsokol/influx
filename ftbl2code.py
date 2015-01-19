@@ -327,7 +327,10 @@ options(digits.secs=2)
 
 case_i=%(case_i)s
 
-#suppressPackageStartupMessages(library(bitops))
+if (length(find("bitwAnd"))==0L) {
+   suppressPackageStartupMessages(library(bitops))
+   bitwAnd=bitAnd
+}
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
 suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 options(Matrix.quiet=TRUE)
