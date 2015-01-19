@@ -130,6 +130,7 @@ def ftbl_parse(f):
     with items corresponding to sections in .ftbl. One section is added.
     "TRANS" correponds to carbon transitions."""
     import re
+    import codecs
     ftbl={};    # main dictionary to be returned
     
     open_here=False
@@ -137,7 +138,7 @@ def ftbl_parse(f):
     if isstr(f):
         if f[-5:].lower() != ".ftbl":
             f=f+".ftbl"
-        f=open(f, "r")
+        f=codecs.open(f, "r", encoding="utf-8-sig")
         open_here=True
     
     #print f;##
