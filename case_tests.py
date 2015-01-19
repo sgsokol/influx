@@ -3,12 +3,14 @@
 the input file given as the first and unique argument.
 The input file must be a plain tabulated text with at most 4 and at least 3 columns:
  - case name, e.g. "too many free fluxes"
- - correct return code of the next shell command (e.g. True of False). If the correct result is not returned, the case is reported as failed
+ - correct return code of the shell command to execute (e.g. True of False). If the expected result is not returned, the case is reported as failed
  - shell command to be executed and whose result must be tested
- - optional additional python commands separated by ";" to execute for verifying succes of the test. All commands must evaluate to True on succesful test. Otherwise the case will be reported as failed. Additional commands are not executed if the main command returned unexpected code.
+ - optional additional python commands separated by ";" to execute for verifying the succes of the test. All commands must evaluate to True on succesful test. Otherwise the case will be reported as failed. Additional commands are not executed if the main command returned unexpected code.
 
 The stdout and stderr of executed test go concatenated to case_tests.log and case_tests.err respectively. Both files are overwritten without prompt, so take care to save them elsewhere before execution if you want to preserve them.
-Different tests are separated by "---date, number:name\n"
+Different tests are separated by a string "---<date>, <number>:<name>\n"
+
+Usage: case_tests.py [options] cases_influx_s.tab
 """
 
 import sys, os, datetime as dt, subprocess as subp, re
@@ -29,6 +31,9 @@ parser = OptionParser(usage="usage: %prog [options] tabulated_file.txt",
 parser.add_option(
 "--itest",
        help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Default: '' (empty, i.e. all provided tests are passed)")
+parser.add_option(
+"-n", "--dry", action="store_true",
+       help="Dry run: show output as if all tests were OK. None of shell command is excecuted")
 
 # parse commande line
 (opts, args) = parser.parse_args()
@@ -50,6 +55,7 @@ for line in open(fcases, "rb"):
 # now that we know how many tests there are, proceed itest
 nb_te=len(tests)
 itest=opts.itest
+dry=opts.dry
 if itest:
     ili=itest.split(",")
     itest=[]
@@ -101,14 +107,15 @@ for line in tests:
     t0=time()
     #devnull=open(os.devnull, "w")
     print 'Running "%s" ...'%cmd
-    if os.name=="nt":
-        p=subp.call(cmd, stdout=fd_log, stderr=fd_err, shell=True)
-    else:
-        p=subp.call(cmd.split(), stdout=fd_log, stderr=fd_err)
+    if not dry:
+        if os.name=="nt":
+            p=subp.call(cmd, stdout=fd_log, stderr=fd_err, shell=True)
+        else:
+            p=subp.call(cmd.split(), stdout=fd_log, stderr=fd_err)
     #print p
-    ok=(retcode.title()=="True" and p==0) or (retcode.title()=="False" and p!=0) or (retcode.title() not in ("True", "False") and int(retcode)==p)
+    ok=dry or (retcode.title()=="True" and p==0) or (retcode.title()=="False" and p!=0) or (retcode.title() not in ("True", "False") and int(retcode)==p)
     addmes=""
-    if ok and testcmd:
+    if ok and testcmd and not dry:
         res=[(eval(item), item) for item in testcmd.split(";") if item.strip()]
         #print res
         nb_fail=sum(not t for (t, item) in res)
