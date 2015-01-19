@@ -1,4 +1,4 @@
-# case name	return code for succes	exec command	[optional python commands (must evaluate to true)]
+# case name	return code for test succes	exec command	[optional python commands (must evaluate to true to mean succesful test)]
 
 #simple yes test	True	echo yes > tmp_case.txt	"yeZ"==open("tmp_case.txt", "r").read().strip(); None==os.remove("tmp_case.txt")
 #simple no test	False	exit 1
@@ -21,3 +21,4 @@ err.depflux_zero-2014-04-02	False	influx_s.py cases/err_depflux_zero-2014-04-02	
 err.lindep_rows-2014-04-02	False	influx_s.py cases/err_lindep_rows-2014-04-02	None==setvar("texterr", open("cases/err_lindep_rows-2014-04-02.err", "r").read()); "Error: Among 72 equations (rows), 4 are redundant and must be eliminated by hand." in texterr
 err.jac_rank_deficient	False	influx_s.py cases/err_jac_rank_def	None==setvar("texterr", open("cases/err_jac_rank_def.err", "r").read()); "Provided measurements (isotopomers and fluxes) are not sufficient to resolve all free fluxes."  in texterr
 err.singular_stoech	False	influx_s.py cases/err_singular_stoech	None==setvar("texterr", open("cases/err_singular_stoech.err", "r").read()); "Flux matrix is not square or is singular: (66eq x 66unk)" in texterr
+utf8_BOM	True	ftbl2netan.py cases/e_coli_growth_utf8	
