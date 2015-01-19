@@ -6,7 +6,7 @@
 Installation
 ============
 
-To install the software ``influx_s``, you'll need some
+To use the software ``influx_s``, you'll need some
 dependencies listed bellow. The software was developed on Linux
 but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.
 If you are not used to install system wide environments
@@ -22,15 +22,14 @@ support for help. We don't provide support for installation.
 Dependencies
 ------------
 
-- R-2.15 (or higher, cf http://www.r-project.org/ or your system packaging solution) + the following packages
+- R-3.0.0 (or higher, cf http://www.r-project.org/ or your system packaging solution) + the following packages
   
-  + bitops
   + nnls
-  + snow
+  + snow (needed only on Windows platform for Monte-Carlo parallel simulations)
 
 To install R modules, as administrator do in R::
 
- > install.packages(c("bitops", "nnls", "snow"), dep=T)
+ > install.packages(c("nnls", "snow"), dep=T)
 
 If you are not an administrator of your R installation, you can execute the command above in your own session and install necessary packages in your own disk space. Other users will have to do the same install in their respective sessions if they want to use ``influx_s``.
 
