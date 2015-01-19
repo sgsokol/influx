@@ -133,13 +133,18 @@ def ftbl_parse(f):
     import codecs
     ftbl={};    # main dictionary to be returned
     
-    open_here=False
     #print("f=", f)
     if isstr(f):
         if f[-5:].lower() != ".ftbl":
             f=f+".ftbl"
-        f=codecs.open(f, "r", encoding="utf-8-sig")
-        open_here=True
+        fc=codecs.open(f, "r", encoding="utf-8-sig")
+        try:
+           lines=fc.readlines()
+        except:
+           fc.close()
+           fc=open(f, "r")
+           lines=fc.readlines()
+           fc.close()
     
     #print f;##
     reblank=re.compile("^[\t ]*$")
@@ -149,7 +154,7 @@ def ftbl_parse(f):
     col_names=[]
     sec_name=subsec_name=""
     irow=0
-    for l in f:
+    for l in lines:
         irow+=1
         #print "raw l="+l;##
         # strip out \r
@@ -272,8 +277,6 @@ def ftbl_parse(f):
         #print "len(flds)=", len(flds), flds, l, data;##
         #print "keys", ftbl.keys(), (ftbl[sec_name].keys() \
         #        if type(ftbl[sec_name])==type({}) else "");##
-    if open_here:
-        f.close()
     return ftbl
 
 def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
