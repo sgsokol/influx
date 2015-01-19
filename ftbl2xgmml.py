@@ -59,7 +59,7 @@ if __name__ == "__main__":
         'm': '255,255,255',    # metabolite colour
         'i': '0,255,0',        # input colour (uptake)
         'o': '255,0,0',        # output colour (escape)
-        'r': '127,127,127'       # reaction colour
+        'r': '127,127,127'     # reaction colour
     }
     et={
         'nr': 'ARROW',       # not reversible target
@@ -72,8 +72,9 @@ if __name__ == "__main__":
     # edge colours
     ec={
         'd': '0,0,255',    # dependent flux
-        'c': '0,0,0',    # constrained flux
+        'c': '0,0,0',      # constrained flux
         'f': '0,255,0',    # free flux
+        'g': '0,255,255',  # growt flux
     }
     # edge line style
     els={
@@ -225,9 +226,9 @@ if __name__ == "__main__":
         # reversible or not?
         rnr="nr" if r in netan["notrev"] else "r"
         # forward flux is dependent, free or constrained?
-        fw_dfc=netan["nx2dfcg"]["n."+r][0]
+        fw_dfcg=netan["nx2dfcg"]["n."+r][0]
         # revers flux is dependent, free or constrained?
-        rv_dfc=netan["nx2dfcg"]["x."+r][0]
+        rv_dfcg=netan["nx2dfcg"]["x."+r][0]
         eds=[] # list of dicts: name, ids of source and target, reac, source and target arrow shape, fw&rv color
         if r in reac2id:
             # complex reaction
@@ -243,8 +244,8 @@ if __name__ == "__main__":
                "reac": r,
                "arr_s": es[rnr],
                "arr_t": "NONE",
-               "col_s": ec[rv_dfc],
-               "col_t": ec[fw_dfc],
+               "col_s": ec[rv_dfcg],
+               "col_t": ec[fw_dfcg],
                "line": els[rnr],
                } for (isu, m) in enumerate(subs))
             eds.extend({
@@ -254,8 +255,8 @@ if __name__ == "__main__":
                "reac": r,
                "arr_s": "NONE",
                "arr_t": et[rnr],
-               "col_s": ec[rv_dfc],
-               "col_t": ec[fw_dfc],
+               "col_s": ec[rv_dfcg],
+               "col_t": ec[fw_dfcg],
                "line": els[rnr],
                } for (ipr, m) in enumerate(prods))
         else:
@@ -269,8 +270,8 @@ if __name__ == "__main__":
                "reac": r,
                "arr_s": es[rnr],
                "arr_t": et[rnr],
-               "col_s": ec[rv_dfc],
-               "col_t": ec[fw_dfc],
+               "col_s": ec[rv_dfcg],
+               "col_t": ec[fw_dfcg],
                "line": els[rnr],
                })
         for st in eds:
