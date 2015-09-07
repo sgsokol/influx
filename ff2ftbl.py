@@ -57,10 +57,10 @@ if fkvh == "-":
 ftbl=args[1]
 
 # get free fluxes from kvh
-ff=kvh.kvh2dict(fkvh)
+ff=kvh.kvh_get_matrix(fkvh, ["optimization process information", "fitted parameters"])
 
 # convert strings to floats and round it to nround digits (default 9)
-ff=dict((k, round(float(v), nround)) for (k,v) in ff.iteritems())
+ff=dict((row[0], round(float(row[1]), nround)) for row in ff)
 
 #print("ff=", ff)
 # read ftbl in a list of lines
