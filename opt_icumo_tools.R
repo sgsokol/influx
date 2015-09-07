@@ -248,10 +248,11 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
 #browser()
    # prepare vectors at t1=0 with zero labeling
    # incu, xi is supposed to be in [0; 1]
-   x1=c(1., xi, rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1 later
+   x1=c(1., xi, rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1
    names(x1)=c("one", nm$inp, nm$x)
-
    xsim=matrix(x1, nrow=length(x1), ncol=ntico)
+   xsim[1+seq_len(nb_xi),]=xi # set input label profile
+   
    dimnames(xsim)=list(names(x1), tifull[-1L])
    if (cjac) {
       #cat("param2fl_usm_eul2: recalculate jacobian\n")
@@ -315,7 +316,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       #   }
       #}, x1[inxw])
       dim(stt)=c(nb_c, emuw, ntico)
-      solve_lut(lua, perm, stt, ilua, dirx)
+      stt=solve_lut(lua, perm, stt, ilua, dirx)
       dim(stt)=c(nb_c, emuw, ntico)
       xsim[inrow,]=stt
       if (emu) {
@@ -351,7 +352,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             #pti=proc.time()
             #for (idtr in idt) {
             #   xpfw[,,idtr]=xpfw[,,idtr]+ as.double(sj$b_x[ir+(idtr-1L)*nb_row,]%*%xpf[ic,idtr,])
-            mult_bxx(xpfw, sj$b_x, xpf, ntico, dirx)
+            xpfw=mult_bxx(xpfw, sj$b_x, xpf, ntico, dirx)
             #}
             #cat("iw=", iw, "; len(x)=", length(sj$b_x[ir,]@x), "\n", sep="")
             #print(proc.time()-pti)
@@ -364,7 +365,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #   xpf1[] <<- lusolve(ali[[pmatch(dtr[idtr], dtru)]], c(xpfw[,,idtr])+xpf1) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
          #}, xpf1)
          dim(xpfw)=c(nb_c, emuw*(nb_ff+nb_poolf), ntico)
-         solve_lut(lua, perm, xpfw, ilua, dirx)
+         xpfw=solve_lut(lua, perm, xpfw, ilua, dirx)
          dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
          xpfw=aperm(xpfw, c(1L, 2L, 4L, 3L))
          xpf[imw,,]=xpfw
@@ -427,14 +428,20 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
 }
 mult_bxx=function(a, bx, c, ntico, dirx) {
    # R wrapper for a fortran call mult_bxt()
+   if (!is.loaded("dgetrs")) {
+      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
+         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
+      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
+   }
    if (!is.loaded("mult_bxt")) {
       dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
    }
    stopifnot(class(bx)=="dgCMatrix")
-   .Fortran("mult_bxt", bx@x, bx@i, bx@p, as.integer(nrow(bx)/ntico), as.integer(ntico), ncol(bx), c, dim(c)[1L], dim(c)[3L], a,
+   res=.Fortran("mult_bxt", bx@x, bx@i, bx@p, as.integer(nrow(bx)/ntico), as.integer(ntico), ncol(bx), c, dim(c)[1L], dim(c)[3L], a,
       NAOK=T, DUP=F
-   )
-   return(NULL) # the matrix a is modified in place.
+   )[[10]]
+   dim(res)=dim(a)
+   return(res) # the matrix a is modified in place.
 }
 solve_lut=function(lua, pivot, b, ilua, dirx) {
    # call lapack dgters() for solving a series of linea systems a_i%*%(b_{i-1}+b_i)=b_i
@@ -454,7 +461,20 @@ solve_lut=function(lua, pivot, b, ilua, dirx) {
    }
    dlu=dim(lua)
    db=dim(b)
-   .Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
-      NAOK=F, DUP=F)
-   return(NULL)
+   if (FALSE) {
+      # R equivalent for debugging
+      for (it in seq_len(db[3L])) {
+         if (it > 1) {
+            # add previous term to b_it
+            b[,,it]=b[,,it]+b[,,it-1]
+         }
+         # solve the it-th system
+         b[,,it]=lusolve(lua[,,ilua[it]], b[,,it], pivot)
+      }
+      return(b)
+   }
+   res=.Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
+      NAOK=F, DUP=F)[[5]]
+   dim(res)=db
+   return(res)
 }
