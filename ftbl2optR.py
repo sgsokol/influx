@@ -676,16 +676,15 @@ for (irun in iseq(nseries)) {
          zi=rep(TRUE, nrow(ui_zc))
       }
 
-      if (all(ci_zc[zi]<=1.e-10)) {
-         ui_zc=ui_zc[!zi,,drop=F]
-         ci_zc=ci_zc[!zi]
-         nm_izc=nm_izc[!zi]
-         mi_zc=mi_zc[!zi,,drop=F]
-      } else {
-         cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
-         cat(nm_izc[zi][ci_zc[zi]>1.e-14], sep="\\n", file=fcerr)
-         stop_mes()
+      inotsat=ci_zc[zi]>1.e-10
+      if (any(inotsat)) {
+         cat("Warning: The following constant inequalities are not satisfied:\n", file=fcerr)
+         cat(nm_izc[zi][inotsat], sep="\n", file=fcerr)
       }
+      ui_zc=ui_zc[!zi,,drop=F]
+      ci_zc=ci_zc[!zi]
+      nm_izc=nm_izc[!zi]
+      mi_zc=mi_zc[!zi,,drop=F]
 
       # remove redundant/contradictory inequalities
       nb_zc=nrow(ui_zc)
