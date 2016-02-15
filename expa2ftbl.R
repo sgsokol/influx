@@ -145,7 +145,7 @@ for (met in all_metabs) {
 # header
 cat("FLUX\n\tNET\n\t\tNAME\tFCD\tVALUE(F/C)\tED_WEIGHT\tLOW(F)\tINC(F)\tUP(F)\n")
 # NET subsection
-for (fl in unique(c(inp_flux, out_flux, noncarb_dep)) {
+for (fl in unique(c(inp_flux, out_flux, noncarb_dep))) {
    cat("\t\t", fl, "\tD\n", sep="")
 }
 # XCH subsection
