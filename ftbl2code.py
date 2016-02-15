@@ -9,7 +9,7 @@
 # 2008-12-08 sokol@insa-toulouse.fr : added netan2Rinit()
 # 2008-11-25 sokol@insa-toulouse.fr : adapted for reduced cumomer list
 # 2008-09-19 sokol@insa-toulouse.fr : initial release
-# Copyright 2011-2014, INRA
+# Copyright 2011-2016, INRA
 
 import time
 import copy
@@ -80,7 +80,7 @@ def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
 #   @i runs over lighter cumomers
 
 if (TIMEIT) {
-   cat("spAbr   : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("spAbr   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
 nb_fwrv=%(n)d
@@ -136,12 +136,12 @@ nb_w=%(nb_w)d
         f.write(
 """
 if (TIMEIT) {
-   cat("weight %(w)d: ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("weight %(w)d: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 w=%(w)d
 nb_c=%(nbc)d
 ba_x=%(ba_x)d; # base of cumomer indexes in incu vector
-l=list()
+l=new.env()
 l$w=w
 l$nb_c=nb_c
 l$nb_fwrv=nb_fwrv
@@ -332,11 +332,18 @@ if (length(find("bitwAnd"))==0L) {
    bitwAnd=bitAnd
 }
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
-suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
-options(Matrix.quiet=TRUE)
+#suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
+#options(Matrix.quiet=TRUE)
+suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
 suppressPackageStartupMessages(library(parallel))
-#magma_here=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
-magma_here=F
+#use_magma=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
+use_magma=F
+use_mumps=suppressPackageStartupMessages(require(Rcpp)) && suppressPackageStartupMessages(require(rmumps))
+suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
+
+# define matprod for simple_triplet_matrix
+`%%stm%%` = slam::matprod_simple_triplet_matrix
+
 
 # get some common tools
 source(file.path(dirx, "tools_ssg.R"))
@@ -484,11 +491,11 @@ jx_f=new.env()
 source(file.path(dirx, "opt_icumo_tools.R"))
 
 lab_resid=icumo_resid
-lab_sim=param2fl_usm_eul2
+lab_sim=param2fl_usm_rich
 """)
     f.write("""
 if (TIMEIT) {
-   cat("rinit   : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("rinit   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
 # R profiling
@@ -520,7 +527,7 @@ nb_f$rcumos=nb_rcumos
 nb_f$cumoi=nb_cumoi
 if (emu) {
    nm_emu=c(%(nm_emu)s)
-   nb_emus=nb_rcumos*(iseq(nb_rw)+1)
+   nb_emus=nb_rcumos*(seq_len(nb_rw)+1)
    nb_f$emus=nb_emus
    nm_list$emu=nm_emu
    nm_x=nm_emu
@@ -538,6 +545,48 @@ if (emu) {
    nm_inlab=nm_inemu
    spa=spr2emu(spAbr, nm_incu, nm_inemu, nb_f)
 }
+# reorder indexes to accelerate sparse matrix construction
+for (l in spa) { with(l, {
+   # prepare sparse xmat where col_sums(xmat) will give a$v
+   iv0=ind_a[,"ir0"]+ind_a[,"ic0"]*nb_c
+   o=order(iv0)
+   ind_a=ind_a[o,]
+   iv0=iv0[o]
+   lrep=lrepx=rle(iv0)
+   lrepx$values=seq_along(lrep$values)
+   xmat=simple_triplet_matrix(i=unlist(lapply(lrep$lengths, seq_len)),
+      j=inverse.rle(lrepx), v=rep(1, length(iv0)))
+   iu0=lrep$values
+   i=as.integer(iu0%%%%nb_c)
+   j=as.integer(iu0%%/%%nb_c)
+   l$a=Rmumps$new(i, j, rep(pi, length(iu0)), nb_c)
+   l$iadiag=which(i==j)
+   # prepare sparse bmat where col_sums(bmat) will give b$v
+   if (emu) {
+      iv0=ind_b_emu[,"irow"]+(ind_b_emu[,"iwe"]-1)*nb_c-1
+      nb_bcol=w
+   } else {
+      iv0=ind_b[,"irow"]-1
+      nb_bcol=1
+   }
+   o=order(iv0)
+   if (emu) {
+      ind_b_emu=ind_b_emu[o,]
+   } else {
+      ind_b=ind_b[o,]
+   }
+#browser()
+   iv0=iv0[o]
+   lrep=lrepx=rle(iv0)
+   lrepx$values=seq_along(lrep$values)
+   bmat=simple_triplet_matrix(i=unlist(lapply(lrep$lengths, seq_len)),
+      j=inverse.rle(lrepx), v=rep(1, length(iv0)))
+   iu0=lrep$values
+   i=as.integer(iu0%%%%nb_c)
+   j=as.integer(iu0%%/%%nb_c)
+   l$b=simple_triplet_matrix(i=i+1, j=j+1, v=rep(pi, length(iu0)), nrow=nb_c, ncol=nb_bcol)
+})}
+
 # composite labeling vector incu c(1, xi, xc) names
 nm_inlab=c("one", nm_inp, nm_x); # the constant 1 has name "one"
 nm_list$x=nm_x
@@ -594,7 +643,7 @@ if (sum(nb_sys$label_variables$full)==0) {
 if (emu) {
    x=nb_sys$label_variables$reduced_cumomers
    nb_sys$label_variables$reduced_cumomers=NULL
-   nb_sys$label_variables$emu=paste(x, "*", iseq(length(x)), "=", x*iseq(length(x)))
+   nb_sys$label_variables$emu=paste(x, "*", seq_len(length(x)), "=", x*seq_len(length(x)))
 }
 """%{
     "rrev": len(netan["reac"])-len(netan["notrev"]),
@@ -680,7 +729,7 @@ def netan2R_fl(netan, org, f):
 
     f.write("""
 if (TIMEIT) {
-   cat("r_flux  : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("r_flux  : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 """)
     # auxiliary dict for edge-flux coupling
@@ -878,11 +927,11 @@ nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
 # prepare p2bfl, c2bfl, g2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
 # c2bfl%*%fc+g2bfl%*%fgr+cnst2bfl=bfl
 # replace f.[nx].flx by corresponding param coefficient
-p2bfl=Matrix(0., nrow=nb_flr, ncol=nb_ff)
+p2bfl=matrix(0., nrow=nb_flr, ncol=nb_ff)
 # replace c.[nx].flx by corresponding fc coefficient
-c2bfl=Matrix(0., nrow=nb_flr, ncol=nb_fc)
+c2bfl=matrix(0., nrow=nb_flr, ncol=nb_fc)
 # variable growth fluxes
-g2bfl=Matrix(0., nrow=nb_flr, ncol=nb_fgr)
+g2bfl=matrix(0., nrow=nb_flr, ncol=nb_fgr)
 cnst2bfl=numeric(nb_flr); # may be coming from equalities
 colnames(p2bfl)=nm_par
 colnames(c2bfl)=nm_fc
@@ -935,7 +984,7 @@ if (ffguess) {
       mes="Weird error: column and row ranks are not equal.\\n"
       stop_mes(mes, file=fcerr)
    }
-   irows=qrow$pivot[iseq(rankr)]
+   irows=qrow$pivot[seq_len(rankr)]
    if (rank==0) {
       stop_mes("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.\\n", file=fcerr)
    }
@@ -967,7 +1016,7 @@ if (ffguess) {
    p2bfl=p2bfl[, nm_ff, drop=F]
    
    # remake param vector
-   param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-iseq(nb_ff)])
+   param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-seq_len(nb_ff)])
    names(param)[seq(along=nm_ff)]=nm_ff
 #browser()
 }
@@ -1000,7 +1049,7 @@ nb_f$inet2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.
 nb_f$ixch2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.x\\\\.%s$", substring(f, 5)), nm_fallnx))
 
 if (TIMEIT) {
-   cat("Afl qr(): ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("Afl qr(): ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
 qrAfl=qr(Afl, LAPACK=T)
@@ -1113,7 +1162,7 @@ invAfl=solve(qrAfl)
     f.write("""
 # intermediate jacobian
 if (TIMEIT) {
-   cat("dfl_dffg: ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("dfl_dffg: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
 dfl_dffg=invAfl %*% p2bfl
@@ -1121,19 +1170,20 @@ if (nb_fgr > 0L) {
    dfl_dffg=cBind(dfl_dffg, invAfl%*%g2bfl)
 }
 dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
-nb_f$dfl_dffg=dfl_dffg
+dfl_dffg[abs(dfl_dffg) < 1.e-14]=0.
+nb_f$dfl_dffg=as.simple_triplet_matrix(dfl_dffg)
 
 # prepare mf, md, mc and mg matrices
 # such that mf%*%ff+md%*%fl+mc%*%fc+mg%*%fgr gives fallnx
 # here ff free fluxes (param), fl are dependent fluxes, fc are constrained
 # fluxes and fgr are variable growth fluxes
-mf=Matrix(0., nb_fallnx, nb_ff)
+mf=matrix(0., nb_fallnx, nb_ff)
 dimnames(mf)=list(nm_fallnx, nm_ff)
-md=Matrix(0., nb_fallnx, nb_fl)
+md=matrix(0., nb_fallnx, nb_fl)
 dimnames(md)=list(nm_fallnx, nm_fl)
-mc=Matrix(0., nb_fallnx, nb_fc)
+mc=matrix(0., nb_fallnx, nb_fc)
 dimnames(mc)=list(nm_fallnx, nm_fc)
-mg=Matrix(0., nb_fallnx, nb_fgr)
+mg=matrix(0., nb_fallnx, nb_fgr)
 dimnames(mg)=list(nm_fallnx, nm_fgr)
 
 if (nb_ff > 0) {
@@ -1203,7 +1253,7 @@ def netan2R_meas(netan, org, f, emu=False):
     # create R equivalent structures with indices for scaling
     f.write("""
 if (TIMEIT) {
-   cat("measure : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("measure : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 # make place for scaling factors
 """)
@@ -1290,7 +1340,7 @@ nm_list$measmat=nm_measmat
 nb_meas=length(nm_meas)
 nb_f$nb_meas=nb_meas
 nb_measmat=length(nm_measmat)
-measmat=Matrix(0., nb_measmat, %(ncol)d)
+measmat=matrix(0., nb_measmat, %(ncol)d)
 dimnames(measmat)=list(nm_measmat, nm_x)
 memaone=numeric(nb_measmat)
 measvec=c(%(vmeas)s)
@@ -1342,7 +1392,7 @@ if (nb_sc > 0) {
    })
    nb_f$is2m=ipaire
    # place holder for scale part of jacobian
-   jx_f$dr_dsc=Matrix(0., nrow=length(ir2isc), ncol=nb_sc)
+   jx_f$dr_dsc=simple_triplet_zero_matrix(nrow=length(ir2isc), ncol=nb_sc)
 }
 # prepare measmat indexes and values : ir, ic, val
 ind_mema=matrix(c(
@@ -1406,8 +1456,8 @@ dp_ones=matrix(0., nb_measmat, nb_poolf)
 dp_ones[cbind(ipwe, ipf_in_ppw[ipwe])]=1.
 
 # matrix for summing weighted measurements
-meas2sum=Matrix(0., length(ipooled$ishort), nb_measmat)
-meas2sum[cbind(pmatch(nm_measmat, nm_measmat[ipooled$ishort], dup=T), iseq(nb_measmat))]=1.
+meas2sum=simple_triplet_zero_matrix(length(ipooled$ishort), nb_measmat)
+meas2sum[cbind(pmatch(nm_measmat, nm_measmat[ipooled$ishort], dup=T), seq_len(nb_measmat))]=1.
 dimnames(meas2sum)=list(nm_meas, nm_measmat)
 meas2sum=as.matrix(meas2sum)
 
@@ -1415,7 +1465,7 @@ meas2sum=as.matrix(meas2sum)
 dpw_dpf=NULL
 if (nb_poolf > 0L && length(ijpwef) > 0) {
    # indeed, we'll have to do weight derivation by free pools
-   dpw_dpf=Matrix(0., nb_measmat, nb_poolf)
+   dpw_dpf=simple_triplet_zero_matrix(nb_measmat, nb_poolf)
    dpw_dpf[ijpwef]=1.
 }
 
@@ -1508,6 +1558,16 @@ nm_list$rcumo=nm_rcumo
     "nb_rc": join(", ", (len(a) for a in rAb["A"])),
     "nm_rcumo": join(", ", valval(netan['vrcumo']), '"', '"'),
 })
+    f.write("""
+if (case_i) {
+   # check the coherence of metabolites/cumomers
+   met_net=unique(matrix(unlist(strsplit(nm_rcumo, ":", fixed=TRUE)), nrow=2)[1,])
+   net_pool=sort(setdiff(met_net, names(nm_poolall)))
+   if (length(net_pool) > 0) {
+      stop_mes("The following metabolites are defined in NETWORK section but not in METABOLITE_POOLS one:\\n"%s+%paste(net_pool, collapse="\\n"), file=fcerr)
+   }
+}
+""")
     netan["rcumo2i"]=rcumo2i
     netan["emu2i"]=emu2i
     return {
@@ -1532,7 +1592,7 @@ def netan2R_cumo(netan, org, f):
     # write R constants and names
     f.write("""
 if (TIMEIT) {
-   cat("cumo   : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("cumo   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
 # weight count
@@ -1564,7 +1624,7 @@ def netan2R_ineq(netan, org, f):
     nb_ineq=len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"])
     f.write("""
 if (TIMEIT) {
-   cat("ineq    : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("ineq    : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
@@ -1764,7 +1824,7 @@ ci=as.numeric(li-mi%*%mic)
 """)
     f.write("""
 # finaly, metab part
-uip=Matrix(0, %(nb_ip)d, ncol=nb_poolf)
+uip=matrix(0., %(nb_ip)d, ncol=nb_poolf)
 colnames(uip)=nm_poolf
 cip=c()
 # ind: irow, metab, coef, rhs, name
@@ -1798,10 +1858,10 @@ colnames(uip_ind)=c("irow", "metab", "coef", "rhs", "name")
 
     f.write("""
 if (nrow(uip_ind) > 0) {
-   # rhs are summed up for the same irow by sparseMatrix()
+   # rhs are summed up for the same irow by aggregate()
    irow=as.integer(uip_ind[,"irow"])
-   cip=as.double(sparseMatrix(i=irow, j=rep(1, nrow(uip_ind)), x=as.double(uip_ind[,"rhs"])))
-   for (i in iseq(nrow(uip_ind))) {
+   cip=aggregate(as.double(uip_ind[,"rhs"]), by=list(irow), sum)[,"x"]
+   for (i in seq_len(nrow(uip_ind))) {
       row=uip_ind[i,]
       if (nchar(row["metab"])==0) {
          next
@@ -1809,7 +1869,7 @@ if (nrow(uip_ind) > 0) {
       uip[irow[i], nm_poolf[row["metab"]]]=as.double(row["coef"])
    }
    if (nrow(uip) > 0) {
-      rownames(uip)=paste("m:", uip_ind[pmatch(iseq(nrow(uip)), irow),"name"], sep="")
+      rownames(uip)=paste("m:", uip_ind[pmatch(seq_len(nrow(uip)), irow),"name"], sep="")
    }
 }
 names(cip)=rownames(uip)
@@ -1870,7 +1930,7 @@ if (!is.null(ired)) {
 }
 
 # metabolite equalities
-ep=Matrix(0, %(nb_ep)d, ncol=nb_poolf)
+ep=matrix(0., %(nb_ep)d, ncol=nb_poolf)
 cp=c()
 colnames(ep)=nm_poolf
 # ind: irow, metab, coef, rhs, name
@@ -1901,10 +1961,10 @@ colnames(ep_ind)=c("irow", "metab", "coef", "rhs", "name")
 
     f.write("""
 if (nrow(ep_ind) > 0) {
-   # rhs are summed up for the same irow by sparseMatrix()
+   # rhs are summed up for the same irow by aggregate
    irow=as.integer(ep_ind[,"irow"])
-   cp=as.double(sparseMatrix(i=irow, j=rep(1L, nrow(ep_ind)), x=as.double(ep_ind[,"rhs"])))
-   for (i in iseq(nrow(ep_ind))) {
+   cp=aggregate(as.double(ep_ind[,"rhs"]), by=list(irow))[,"x"]
+   for (i in seq_len(nrow(ep_ind))) {
       row=ep_ind[i,]
       if (nchar(row["metab"])==0) {
          next
@@ -1912,7 +1972,7 @@ if (nrow(ep_ind) > 0) {
       ep[irow[i], nm_poolf[row["metab"]]]=as.double(row["coef"])
    }
    if (nrow(ep) > 0) {
-      rownames(ep)=paste("m:", ep_ind[pmatch(iseq(nrow(ep)), irow),"name"], sep="")
+      rownames(ep)=paste("m:", ep_ind[pmatch(seq_len(nrow(ep)), irow),"name"], sep="")
    }
 }
 ep=as.matrix(ep)
