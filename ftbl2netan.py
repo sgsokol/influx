@@ -60,8 +60,8 @@ if __name__ == "__main__":
         tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan, emu)}, f)
     else:
         tools_ssg.dict2kvh({"rcumo_sys": C13_ftbl.rcumo_sys(netan)}, f)
-    tools_ssg.dict2kvh({"vrcumo": netan["vrcumo"]}, f)
-    tools_ssg.dict2kvh({"rcumo2i0": netan["rcumo2i0"]}, f)
+    tools_ssg.dict2kvh({"vrcumo": netan.get("vrcumo", [])}, f)
+    tools_ssg.dict2kvh({"rcumo2i0": netan.get("rcumo2i0", [])}, f)
     tools_ssg.dict2kvh({"rcumo_input": netan["rcumo_input"]}, f)
     if emu:
         tools_ssg.dict2kvh({"emu_input": netan["emu_input"]}, f)
