@@ -22,30 +22,10 @@ icumo_resid=function(param, cjac, labargs) {
    nb_poolf=nb_f$nb_poolf
    
    jacobian=NULL
-   # find usimvec with step h
+   # find usimvec
    lres=lab_sim(param, cjac, labargs)
    if (!is.null(lres$err) && lres$err) {
       return(list(err=1, mes=lres$mes))
-   }
-   if (time_order == 2) {
-      # find usimvec with step h/2
-      labargs$tifull=tifull2
-      labargs$jx_f=new.env()
-      labargs$nb_f$ipf2ircumo=labargs$nb_f$ipf2ircumo2
-      lres2=lab_sim(param, cjac, labargs)
-      labargs$tifull=tifull
-      jx_f2=labargs$jx_f
-      labargs$jx_f=jx_f
-      labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo
-      if (!is.null(lres2$err) && lres2$err) {
-         return(list(err=1, mes=lres2$mes))
-      }
-      # Richardson interpolation
-      jx_f$usm=2*jx_f2$usm-jx_f$usm
-      if (cjac) {
-         jx_f$dux_dp=2*jx_f2$dux_dp-jx_f$dux_dp
-         #jx_f$dux_dp=labargs$jx_f$dux_dp
-      }
    }
    
    # scale simulated measurements scale*(usm)
@@ -79,21 +59,21 @@ icumo_resid=function(param, cjac, labargs) {
       # calculate jacobian
       # first, its labeling part (unscaled and unreduced)
       #dusm=dusm_dffpf(param, labargs)
-      #dux_dp=cBind(dusm[,iseq(nb_ff),drop=F], Matrix(0., nrow=nrow(dusm), ncol=nb_sc), if (nb_ff > 0) dusm[,-iseq(nb_ff),drop=F] else dusm)
+      #dux_dp=cBind(dusm[,seq_len(nb_ff),drop=F], Matrix(0., nrow=nrow(dusm), ncol=nb_sc), if (nb_ff > 0) dusm[,-seq_len(nb_ff),drop=F] else dusm)
       # next, flux part and measured pools part
       nb_lab=nb_f$nb_meas*(nb_ti-1L)
       if (is.null(jx_f$jacobian)) {
          jacobian=matrix(0., nrow=nb_lab+nb_f$nb_fmn+nb_f$nb_poolm, ncol=nb_f$nb_ff+nb_sc+nb_poolf)
          dimnames(jacobian)=list(nm$resid, nm$par)
          # constant part of jacobian
-         jacobian[nb_lab+iseq(nb_f$nb_fmn),]=dufm_dp
-         jacobian[nb_lab+nb_f$nb_fmn+iseq(nb_f$nb_poolm),]=dupm_dp
+         jacobian[nb_lab+seq_len(nb_f$nb_fmn),]=dufm_dp
+         jacobian[nb_lab+nb_f$nb_fmn+seq_len(nb_f$nb_poolm),]=dupm_dp
       } else {
          jacobian=jx_f$udr_dp
       }
-      jacobian[iseq(nb_lab),]=jx_f$dux_dp
-      #jacobian[nb_lab+iseq(nb_f$nb_fmn),]=dufm_dp
-      #jacobian[nb_lab+nb_f$nb_fmn+iseq(nb_f$nb_poolm),]=dupm_dp
+      jacobian[seq_len(nb_lab),]=jx_f$dux_dp
+      #jacobian[nb_lab+seq_len(nb_f$nb_fmn),]=dufm_dp
+      #jacobian[nb_lab+nb_f$nb_fmn+seq_len(nb_f$nb_poolm),]=dupm_dp
       #as.matrix(rBind(jx_f$dux_dp, dufm_dp, dupm_dp))
       jx_f$udr_dp=jacobian
       jx_f$df_dffp=df_dffp(param, lres$lf$flnx, nb_f, nm_list)
@@ -101,16 +81,16 @@ icumo_resid=function(param, cjac, labargs) {
       jacobian[]=with(measurements$dev, jacobian/c(kin, flux, pool))
       if (nb_sc > 0) {
          # scale it
-         i=iseq(length(measvecti))
+         i=seq_len(length(measvecti))
          jacobian[i,]=vsc*jacobian[i,]
          # add scale part of jacobian (the sparsity pattern doesn't change)
          jx_f$dr_dsc[nb_f$is2mti]=jx_f$res[is2mti[,1]]
          # combine three parts: ff, scale, poolf
-         jacobian[]=as.matrix(cBind(jacobian[,iseq(nb_ff)], jx_f$dr_dsc, if (nb_ff > 0) jacobian[,-iseq(nb_ff)] else jacobian))
+         jacobian[]=as.matrix(cBind(jacobian[,seq_len(nb_ff)], jx_f$dr_dsc, if (nb_ff > 0) jacobian[,-seq_len(nb_ff)] else jacobian))
       }
       
       jx_f$jacobian=jacobian
-      jx_f$dr_dff=jacobian[,iseq(nb_ff),drop=F]
+      jx_f$dr_dff=jacobian[,seq_len(nb_ff),drop=F]
    }
    
    return(list(res=jx_f$res, jacobian=if (cjac) jx_f$jacobian else NULL))
@@ -153,12 +133,12 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
          ind_b=spAbr[["ind_b_emu"]]
          s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
          i=rep(ind_b[,"irow"]+(ind_b[,"iwe"]-1L)*nb_c, nco)
-         j=rep(iseq(nco), each=nrow(ind_b))
+         j=rep(seq_len(nco), each=nrow(ind_b))
          s=sparseMatrix(i=i, j=j, x=s, dims=c(nb_c*w, nco))
       } else {
          ind_b=spAbr[["ind_b"]]
          s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
-         s=sparseMatrix(i=rep(ind_b[,"irow"], nco), j=rep(iseq(nco), each=nrow(ind_b)), x=s, dims=c(nb_c, nco))
+         s=sparseMatrix(i=rep(ind_b[,"irow"], nco), j=rep(seq_len(nco), each=nrow(ind_b)), x=s, dims=c(nb_c, nco))
       }
    } else {
       s=NULL
@@ -210,8 +190,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    dt=diff(tifull)
    stopifnot(all(dt > 0.))
    ntico=nb_tifu-1L # number of time columns
-   idt=iseq(ntico)
-   itifu=iseq(nb_tifu)
+   idt=seq_len(ntico)
+   itifu=seq_len(nb_tifu)
    
    # cumulated sum
    nb_rcumos=nb_f$rcumos
@@ -267,18 +247,18 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       }
    }
    # prepare data for iadt array
-   dtr=as.character(round(dt, 10L))
+   dtr=as.character(round(dt, 6L))
    dtru=unique(dtr)
    ilua=pmatch(dtr, dtru, dup=T)
 #browser()
-   for (iw in iseq(nb_w)) {
+   for (iw in seq_len(nb_w)) {
       emuw=ifelse(emu, iw, 1L)
       nb_c=spAb[[iw]]$nb_c
-      ixw=nbc_x[iw]+iseq(nb_x[iw])
+      ixw=nbc_x[iw]+seq_len(nb_x[iw])
       inxw=(1L+nb_xi)+ixw
       nb_row=nb_c*emuw
-      inrow=(1L+nb_xi+nbc_x[iw])+iseq(nb_row)
-      imw=nbc_x[iw]+iseq(nb_row) # mass index in x (all but last)
+      inrow=(1L+nb_xi+nbc_x[iw])+seq_len(nb_row)
+      imw=nbc_x[iw]+seq_len(nb_row) # mass index in x (all but last)
       if (cjac) {
          xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
          dim(xpfw)=c(nb_row, nb_ff+nb_poolf, ntico)
@@ -286,8 +266,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          sfpw=double(nb_row*ntico*nb_poolf)
          dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
       }
-      invmw=invm[nbc_cumos[iw]+iseq(nb_c)]
-      Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+iseq(nb_x[iw])], getb=F,  emu=emu)$A*invmw
+      invmw=invm[nbc_cumos[iw]+seq_len(nb_c)]
+      Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A*invmw
       # prepare (I-a*dt)^-1
       eye=diag(nb_c)
       ali=mclapply(dt[pmatch(dtru, dtr)], function(dti) lu(eye-as.matrix(Aw*dti)))
@@ -296,9 +276,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       perm=vapply(ali, function(item) item@perm, integer(nb_c))
       if (emu) {
          # for the first time point, set m+0 to 1 in x1
-         x1[(1L+nb_xi+nbc_x[iw])+iseq(nb_c)]=1.
+         x1[(1L+nb_xi+nbc_x[iw])+seq_len(nb_c)]=1.
          xsim[inxw,1L]=x1[inxw]
-         imwl=nbc_x[iw]+nb_row+iseq(nb_c) # the last mass index in x
+         imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
       }
       # source terms
       st=as.matrix(fwrv2sp(fwrv, spAb[[iw]], xsim, emu=emu)$s*invmw)
@@ -332,7 +312,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          if (nb_ff+nb_fgr > 0) {
             tmp=as.numeric(sj$j_rhsw%*%mdf_dffp)
             dim(tmp)=c(nb_row, ntico, nb_ff+nb_fgr)
-            xpfw[,iseq(nb_ff+nb_fgr),]=aperm(tmp, c(1L, 3L, 2L))
+            xpfw[,seq_len(nb_ff+nb_fgr),]=aperm(tmp, c(1L, 3L, 2L))
          }
          # poolf part
          if (nb_poolf > 0) {
@@ -342,13 +322,13 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             tmp=as.matrix(Aw%*%xw2)+c(st)
             dim(tmp)=c(nb_c, emuw, ntico)
             sfpw[i2x]=tmp[i2x[,-4L]]
-            xpfw[,nb_ff+iseq(nb_poolf),]=if (nb_fgr > 0) xpfw[,nb_ff+iseq(nb_poolf,)] else 0. + aperm(sfpw, c(1L, 2L, 4L, 3L))
+            xpfw[,nb_ff+seq_len(nb_poolf),]=if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0. + aperm(sfpw, c(1L, 2L, 4L, 3L))
          }
          # add lighter xpf (b_x%*%...)
          if (iw > 1L) {
 #browser()
-            ir=iseq(nb_row)
-            ic=iseq(nbc_x[iw])
+            ir=seq_len(nb_row)
+            ic=seq_len(nbc_x[iw])
             #pti=proc.time()
             #for (idtr in idt) {
             #   xpfw[,,idtr]=xpfw[,,idtr]+ as.double(sj$b_x[ir+(idtr-1L)*nb_row,]%*%xpf[ic,idtr,])
@@ -381,7 +361,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # get ti moments corresponding to measurements
    isel=itifu[tifull %in% ti][-1L]-1L
    ntise=length(isel)
-   xsim=xsim[-iseq(1L+nb_xi), isel, drop=F]
+   xsim=xsim[-seq_len(1L+nb_xi), isel, drop=F]
    # usm
    mx=measmat%*%(if (nrow(xsim) == nb_mcol) xsim else xsim[nm$rcumo_in_cumo,,drop=F])+memaone
    if (length(ipooled) > 1L) {
@@ -412,7 +392,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          dim(tmp)=dim(dpw_dpf)
          dpw_dpf[ijpwef]=tmp[ijpwef]
          dim(dpw_dpf)= c(nrow(measmat), ntise*nb_poolf)
-         dux_dp[,,nb_ff+iseq(nb_poolf)]=dux_dp[,,nb_ff+iseq(nb_poolf)]+c(meas2sum%*%dpw_dpf)
+         dux_dp[,,nb_ff+seq_len(nb_poolf)]=dux_dp[,,nb_ff+seq_len(nb_poolf)]+c(meas2sum%*%dpw_dpf)
       }
       dimnames(dux_dp)=list(nm$meas, ti[-1L], nm$par)
       jx_f$dux_dp=dux_dp
@@ -426,6 +406,43 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    
    return(list(usm=usm, x=xsim, lf=lf))
 }
+
+param2fl_usm_rich=function(param, cjac, labargs) {
+   # Richardson extrapolation to get order 2 in ODE solve
+   res1=param2fl_usm_eul2(param, cjac, labargs)
+   if (labargs$time_order==2) {
+      # find usimvec with step h/2
+      nm1=c("tifull", "tifull2", "jx_f", "nb_f") # names to save for orders 1 and 2
+      for (item in nm1) {
+         assign(item, get(item, env=labargs))
+      }
+      # solve with step=h/2
+      labargs$tifull=tifull2
+      labargs$jx_f=new.env()
+      labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
+      res2=param2fl_usm_eul2(param, cjac, labargs)
+      # restore labargs for order=1
+      labargs$tifull=tifull
+      labargs$nb_f=nb_f
+      jx_f2=labargs$jx_f
+      labargs$jx_f=jx_f
+      labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo
+      if (!is.null(res2$err) && res2$err) {
+         return(list(err=1, mes=res2$mes))
+      }
+      # Richardson interpolation
+      jx_f$usm=2*jx_f2$usm-jx_f$usm
+      jx_f$xsim=2*jx_f2$xsim-jx_f$xsim
+      if (cjac) {
+         jx_f$dux_dp=2*jx_f2$dux_dp-jx_f$dux_dp
+         #jx_f$dux_dp=labargs$jx_f$dux_dp
+      }
+      res1$usm=jx_f$usm
+      res1$x=jx_f$xsim
+   }
+   return(res1)
+}
+
 mult_bxx=function(a, bx, c, ntico, dirx) {
    # R wrapper for a fortran call mult_bxt()
    if (!is.loaded("dgetrs")) {
