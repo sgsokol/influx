@@ -228,8 +228,8 @@ if (nb_poolf > 0) {
    # extend inequalities ui, ci by uip, cip
    nb_row=nrow(ui)
    nb_col=ncol(ui)
-   ui=cBind(ui, Matrix (0., nrow=nb_row, ncol=nb_poolf)) # add 0-columns
-   ui=rBind(ui, cBind(Matrix(0., nrow(uip), ncol=nb_col), uip))
+   ui=cbind(ui, matrix (0., nrow=nb_row, ncol=nb_poolf)) # add 0-columns
+   ui=rbind(ui, cbind(matrix(0., nrow(uip), ncol=nb_col), uip))
    ci=c(ci, cip)
    
    # extend inequalities ui, ci by cupp>= poolf >= clowp
@@ -248,11 +248,11 @@ if (nb_poolf > 0) {
    nb_add=nb_poolf-length(met_low)
    if (nb_add > 0) {
       nm_add=nm_poolf[!nm_poolf %in% met_low]
-      ui_add=Matrix(0., nrow=nb_add, ncol=ncol(ui))
+      ui_add=matrix(0., nrow=nb_add, ncol=ncol(ui))
       ui_add[,nb_col+pmatch(nm_add, nm_poolf)]=diag(1., nb_add)
       rownames(ui_add)=paste(nm_add, ">=", clowp, sep="")
       if (nrow(ui)) {
-         ui=rBind(ui, ui_add)
+         ui=rbind(ui, ui_add)
       } else {
          ui=ui_add
       }
@@ -263,10 +263,10 @@ if (nb_poolf > 0) {
    nb_add=nb_poolf-length(met_up)
    if (nb_add > 0) {
       nm_add=nm_poolf[!nm_poolf %in% met_up]
-      ui_add=Matrix(0., nrow=nb_add, ncol=ncol(ui))
+      ui_add=matrix(0., nrow=nb_add, ncol=ncol(ui))
       ui_add[,nb_col+pmatch(nm_add, nm_poolf)]=diag(-1., nb_add)
       rownames(ui_add)=paste(nm_add, "<=", cupp, sep="")
-      ui=rBind(ui, ui_add)
+      ui=rbind(ui, ui_add)
       ci=c(ci, rep(-cupp, nb_add))
    }
 
@@ -274,7 +274,7 @@ if (nb_poolf > 0) {
    colnames(ui)=nm_par
 }
 # extend the matrix of metabolite equalities
-ep=cBind(Matrix(0., nrow(ep), nb_param-nb_poolf), ep)
+ep=cbind(matrix(0., nrow(ep), nb_param-nb_poolf), ep)
 colnames(ep)=nm_par
 """)
     f.write("""
@@ -293,7 +293,7 @@ poolmdev=c(%(poolmdev)s)
 
 # simulated metabolite measurements are calculated as
 # measmatpool*poolall=>poolm
-measmatpool=Matrix(0., nrow=nb_poolm, ncol=length(poolall))
+measmatpool=matrix(0., nrow=nb_poolm, ncol=length(poolall))
 dimnames(measmatpool)=list(nm_poolm, nm_poolall)
 i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=T)
 measmatpool[i]=1.
@@ -341,7 +341,7 @@ if (nchar(flabcin)) {
       }
       measvecti=measvecti[im,,drop=F]
       #stopifnot(all(!is.na(measvecti)))
-      stopifnot(typeof(measvecti)=="double")
+      stopifnot(typeof(measvecti)=="double" || all(is.na(measvecti)))
    }
    ti=as.double(colnames(measvecti))
    if (any(is.na(ti))) {
@@ -383,7 +383,7 @@ if (nb_ti < 2L) {
 
 # divide first time interval by n1 geometric intervals
 n1=1
-tmp=cumsum(2**iseq(n1))
+tmp=cumsum(2**seq_len(n1))
 tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
 
 # divide each time interval by n
@@ -397,7 +397,7 @@ tifull2=c(tifull[1L], tifull[1L]+cumsum(rep(diff(tifull)/2., each=2L)))
 
 if (length(ijpwef)) {
    # vector index for many time points
-   ijpwef=cbind(ijpwef[,1L], rep(iseq(nb_ti-1L), each=nrow(ijpwef)), ijpwef[,2L])
+   ijpwef=cbind(ijpwef[,1L], rep(seq_len(nb_ti-1L), each=nrow(ijpwef)), ijpwef[,2L])
    dp_ones=matrix(aperm(array(dp_ones, c(dim(dp_ones), nb_ti-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
 }
 """%{
@@ -411,19 +411,19 @@ if (length(ijpwef)) {
 nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
 nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
-for (iw in iseq(nb_w)) {
-   ix=iseq(nb_rcumos[iw])
+for (iw in seq_len(nb_w)) {
+   ix=seq_len(nb_rcumos[iw])
    ipf2ircumo=ipf2ircumo2=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
    dims=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu-1L)
    dims2=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), (nb_tifu-1L)*2)
    i=as.matrix(ipf2ircumo)
    i2=as.matrix(ipf2ircumo2)
    for (id in 2L:length(dims)) {
-      cstr=sprintf("cbind(%srep(iseq(dims[id]), each=prod(dims[iseq(id-1L)])))", paste("i[, ", iseq(id-1L), "], ", sep="", collapse=""))
+      cstr=sprintf("cbind(%srep(seq_len(dims[id]), each=prod(dims[seq_len(id-1L)])))", paste("i[, ", seq_len(id-1L), "], ", sep="", collapse=""))
       i=eval(parse(text=cstr))
    }
    for (id in 2L:length(dims2)) {
-      cstr=sprintf("cbind(%srep(iseq(dims2[id]), each=prod(dims2[iseq(id-1L)])))", paste("i2[, ", iseq(id-1L), "], ", sep="", collapse=""))
+      cstr=sprintf("cbind(%srep(seq_len(dims2[id]), each=prod(dims2[seq_len(id-1L)])))", paste("i2[, ", seq_len(id-1L), "], ", sep="", collapse=""))
       i2=eval(parse(text=cstr))
    }
    colnames(i)=c("ipoolf", "ic", "iw", "iti")
@@ -451,7 +451,7 @@ nm_resid=c(if (case_i) outer(nm_meas, ti[-1L], paste, sep=", t=") else nm_meas, 
 nm_list$resid=nm_resid
 
 if (TIMEIT) {
-   cat("preopt  : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("preopt  : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 #browser()
 names(param)=nm_par
@@ -471,7 +471,7 @@ if (nchar(fseries) > 0) {
       i=nm_par %in% rownames(pstart)
       n=sum(!i)
       pstart=rbind(pstart, matrix(runif(n*nseries), n, nseries))
-      rownames(pstart)=c(rownames(pstart)[iseq(nb_param-n)], nm_par[!i])
+      rownames(pstart)=c(rownames(pstart)[seq_len(nb_param-n)], nm_par[!i])
    }
    if (nchar(iseries) > 0) {
       iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
@@ -480,7 +480,7 @@ if (nchar(fseries) > 0) {
       pstart=pstart[,iseries, drop=F]
       nseries=ncol(pstart)
    } else {
-      iseries=iseq(nseries)
+      iseries=seq_len(nseries)
    }
 } else if (nchar(iseries) > 0) {
    # first construct pstart then if needed fill it with random values
@@ -488,7 +488,7 @@ if (nchar(fseries) > 0) {
    iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
    nseries=max(iseries)
    pstart=matrix(rep(param, nseries), nrow=nb_param, ncol=nseries)
-   dimnames(pstart)=list(nm_par, paste("V", iseq(nseries), sep=""))
+   dimnames(pstart)=list(nm_par, paste("V", seq_len(nseries), sep=""))
    if (initrand) {
       # fill pstart with random values
       pstart[]=runif(length(pstart))
@@ -524,9 +524,9 @@ iff_in_fw=if (nb_ff > 0) ifwrv[paste("fwd", substring(c(nm_ffn, nm_ffx), 4), sep
 ifg_in_fw=if (nb_fgr > 0) ifwrv[paste("fwd", substring(nm_fgr, 4), sep="")] else integer(0)
 
 # index couples for jacobian df_dfl, df_dffd
-cfw_fl=crv_fl=cBind(ifl_in_fw, iseq(nb_fl))
-cfw_ff=crv_ff=cBind(iff_in_fw, iseq(nb_ff))
-cfw_fg=crv_fg=cBind(ifg_in_fw, nb_ff+iseq(nb_fgr))
+cfw_fl=crv_fl=cbind(ifl_in_fw, seq_len(nb_fl))
+cfw_ff=crv_ff=cbind(iff_in_fw, seq_len(nb_ff))
+cfw_fg=crv_fg=cbind(ifg_in_fw, nb_ff+seq_len(nb_fgr))
 crv_fl[,1L]=(nb_fwrv/2)+crv_fl[,1L]
 crv_ff[,1L]=(nb_fwrv/2)+crv_ff[,1L]
 crv_fg[,1L]=(nb_fwrv/2)+crv_fg[,1L]
@@ -540,23 +540,26 @@ nb_f$nbc_x=nbc_x
 
 # fixed part of jacobian (unreduced by SD)
 # measured fluxes
-dufm_dp=as.matrix(cBind(dufm_dff(nb_f, nm_list), Matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_poolf)))
+dufm_dp=cbind(dufm_dff(nb_f, nm_list), matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_poolf))
 dimnames(dufm_dp)=list(nm_fmn, nm_par)
 
 # measured pools
-dupm_dp=as.matrix(cBind(Matrix(0., nb_poolm, nb_ff+nb_sc), if (nb_poolf > 0L) measurements$mat$pool[,nm_list$poolf, drop=F] else NULL))
+dupm_dp=matrix(0., nb_poolm, nb_ff+nb_sc)
+if (nb_poolf > 0L) {
+   dupm_dp=cbind(dupm_dp, measurements$mat$pool[,nm_list$poolf, drop=F])
+}
 dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "magma_here")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "use_magma", "use_mumps", "case_i")
 """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
 """)
     f.write("""
 if (TIMEIT) {
-   cat("labargs : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("labargs : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
@@ -571,11 +574,12 @@ fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
 """)
     f.write(r"""
 retcode=numeric(nseries)
-for (irun in iseq(nseries)) {
+for (irun in seq_len(nseries)) {
    if (TIMEIT) {
-      cat(sprintf("run %4d: %s\n", irun, format(Sys.time())), file=fclog)
+      cat(sprintf("run %4d: %s cpu=%g\n", irun, format(Sys.time()), proc.time()[1], "\\n", sep=""), file=fclog)
    }
    param[nm_pseries]=pstart[nm_pseries, irun]
+#browser()
    # prepare kvh file name
    if (nseries > 1) {
       runsuf="." %s+% colnames(pstart)[irun]
@@ -615,8 +619,8 @@ for (irun in iseq(nseries)) {
       } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0) {
          # non fatal problem
          cat(paste("put_inside: ", attr(pinside, "mes"), collapse=""), "\n", file=fcerr)
-         param[]=pinside
       }
+      param[]=pinside
    }
 
    # prepare zero crossing strategy
@@ -628,8 +632,9 @@ for (irun in iseq(nseries)) {
    li_zc=NULL
    if (zerocross && length(grep("^[df]\\.n\\.", nm_fallnx))>0) {
       if (TIMEIT) {
-         cat("zc ineq : ", format(Sys.time()), "\n", sep="", file=fclog)
+         cat("zc ineq : ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
+#browser()
       # prepare fluxes that are already in inequalities in alone mode
       ige=names(which(apply(mi, 1L, function(v) diff(range(v))==1 && sum(v)==1) & li>=0))
       ige=nm_dfn[unique(c(
@@ -660,12 +665,12 @@ for (irun in iseq(nseries)) {
       }
       rownames(mi_zc)=nm_izc
       li_zc=rep(zc, length(nm_izc)) # that's ok for both pos and neg constraints
-      ui_zc=cBind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
-         Matrix(0., nrow=nrow(mi_zc), ncol=nb_sc))
+      ui_zc=cbind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
+         matrix(0., nrow=nrow(mi_zc), ncol=nb_sc))
       if (nb_fgr > 0) {
-         ui_zc=cBind(ui_zc, mi_zc%*%((md%*%invAfl%*%g2bfl)+mg*nb_f$mu))
+         ui_zc=cbind(ui_zc, mi_zc%*%((md%*%invAfl%*%g2bfl)+mg*nb_f$mu))
       } else if (nb_poolf > 0) {
-         ui_zc=cBind(ui_zc, Matrix(0., nrow=nrow(mi_zc), ncol=nb_poolf))
+         ui_zc=cbind(ui_zc, matrix(0., nrow=nrow(mi_zc), ncol=nb_poolf))
       }
       ci_zc=li_zc-mi_zc%*%mic
       # remove constant inequalities
@@ -691,14 +696,14 @@ for (irun in iseq(nseries)) {
       nb_i=nrow(ui)
       ired=c()
       tui=t(ui)
-      uzcd=sapply(iseq(nb_zc), function(i) apply(abs(tui-ui_zc[i,]), 2L, max))
-      uzcs=sapply(iseq(nb_zc), function(i) apply(abs(tui+ui_zc[i,]), 2L, max))
+      uzcd=sapply(seq_len(nb_zc), function(i) apply(abs(tui-ui_zc[i,]), 2L, max))
+      uzcs=sapply(seq_len(nb_zc), function(i) apply(abs(tui+ui_zc[i,]), 2L, max))
       czcd=abs(outer(abs(ci), abs(ci_zc), "-"))
       ired=which(apply((uzcd < 1.e-10 | uzcs < 1.e-10) & czcd <= 1.e-2, 2, any))
       
       if (length(ired) > 0L) {
          # remove all ired inequalities
-         cat("The following ", length(ired), " zerocross inequalities are redundant and are removed:\n", paste(nm_izc[ired], sep="\n"), "\n", sep="", file=fclog)
+         cat("The following ", length(ired), " zerocross inequalities are redundant and are removed:\n", paste(nm_izc[ired], collapse="\n"), "\n", sep="", file=fclog)
          ui_zc=ui_zc[-ired,,drop=F]
          ci_zc=ci_zc[-ired]
          nm_izc=nm_izc[-ired]
@@ -706,10 +711,9 @@ for (irun in iseq(nseries)) {
       }
       if (nrow(ui_zc)) {
          # add zc inequalities
-         ui=rBind(ui, ui_zc)
+         ui=rbind(ui, ui_zc)
          ci=c(ci, ci_zc)
          nm_i=c(nm_i, nm_izc)
-         mi=rBind(mi, mi_zc)
       }
       rm(ui_zc, ci_zc, uzcd, uzcs, czcd)
    }
@@ -719,7 +723,7 @@ for (irun in iseq(nseries)) {
         f.write("""
    if (nb_sc && !is.null(measvecti)) {
       if (TIMEIT) {
-         cat("res esti: ", format(Sys.time()), "\\n", sep="", file=fclog)
+         cat("res esti: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
       }
       capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
       if (!is.null(rres$err) && rres$err) {
@@ -757,7 +761,7 @@ for (irun in iseq(nseries)) {
    if (nb_sc > 0) {
       if (optimize) {
          if (TIMEIT) {
-            cat("res esti: ", format(Sys.time()), "\\n", sep="", file=fclog)
+            cat("res esti: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
          if (!is.null(rres$err) && rres$err) {
@@ -798,7 +802,7 @@ for (irun in iseq(nseries)) {
 
     f.write("""
    if (TIMEIT) {
-      cat("kvh init: ", format(Sys.time()), "\\n", sep="", file=fclog)
+      cat("kvh init: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
    }
 """)
     # main part: call optimization
@@ -814,7 +818,7 @@ for (irun in iseq(nseries)) {
    obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
    cat("\\tR command line\\n", file=fkvh)
    obj2kvh(opts, "opts", fkvh, indent=2)
-   cat("\\t\\texecution date\t", format(Sys.time()), "\\n", sep="", file=fkvh)
+   cat("\\t\\texecution date\t", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fkvh)
 
    # resume system sizes
    obj2kvh(nb_sys, "system sizes", fkvh)
@@ -833,7 +837,7 @@ for (irun in iseq(nseries)) {
          next
       }
    }
-   rcost=sum(crossprod(rres$res))
+   rcost=if (is.null(rres$res)) NA else sum(crossprod(rres$res))
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
@@ -842,7 +846,7 @@ for (irun in iseq(nseries)) {
    if (nb_f$nb_fgr > 0) {
       fg[paste("g.n.", substring(nm_list$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm_list$poolf]
    }
-   btmp=as.numeric(p2bfl%*%param[iseq(nb_f$nb_ff)]+bp+g2bfl%*%fg)
+   btmp=as.numeric(p2bfl%*%param[seq_len(nb_f$nb_ff)]+bp+g2bfl%*%fg)
    names(btmp)=dimnames(Afl)[[1]]
    obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
 
@@ -862,7 +866,7 @@ for (irun in iseq(nseries)) {
       if (!(least_norm || method!="nlsic")) {
          # check if at starting position all fluxes can be resolved
          if (TIMEIT) {
-            cat("check ja: ", format(Sys.time()), "\\n", sep="", file=fclog)
+            cat("check ja: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          rres=lab_resid(param, cjac=T, labargs)
          qrj=qr(jx_f$dr_dff, LAPACK=T)
@@ -887,7 +891,7 @@ for (irun in iseq(nseries)) {
          }
       }
       if (TIMEIT) {
-         cat("optim   : ", format(Sys.time()), "\\n", sep="", file=fclog)
+         cat("optim   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
       }
       # pass control to the chosen optimization method
       capture.output(res <- opt_wrapper(param, measurements, jx_f), file=fclog)
@@ -1034,7 +1038,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       obj2kvh(optinfo, "optimization process information", fkvh)
    }
    if (TIMEIT) {
-      cat("postopt : ", format(Sys.time()), "\\n", sep="", file=fclog)
+      cat("postopt : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
    }
    # active constraints
    ine=as.numeric(abs(ui%*%param-ci))<1.e-10
@@ -1086,9 +1090,11 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    obj2kvh(simul, "simulated measurements", fkvh)
 
    # gradient -> kvh
-   gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
-   names(gr)=nm_par
-   obj2kvh(gr, "gradient vector", fkvh)
+   if (!is.null(jx_f$res)) {
+      gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
+      names(gr)=nm_par
+      obj2kvh(gr, "gradient vector", fkvh)
+   }
    colnames(jx_f$udr_dp)=nm_par
    obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
    
@@ -1135,7 +1141,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # keep last jx_f in jx_f_last
    while (sensitive=="mc") {
       if (TIMEIT) {
-         cat("monte-ca: ", format(Sys.time()), "\\n", sep="", file=fclog)
+         cat("monte-ca: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
       }
       if(set_seed) {
          set.seed(seed)
@@ -1164,27 +1170,27 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          cl=makeCluster(nodes, cl_type)
          if (cl_type=="SOCK") {
             if (TIMEIT) {
-               cat("cl init : ", format(Sys.time()), "\\n", sep="", file=fclog)
+               cat("cl init : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
-            clusterEvalQ(cl, c(require(bitops), require(nnls), require(Matrix)))
+            clusterEvalQ(cl, c(require(bitops), require(nnls)))
             if (TIMEIT) {
-               cat("cl expor: ", format(Sys.time()), "\\n", sep="", file=fclog)
+               cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
             clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx"))
             if (TIMEIT) {
-               cat("cl sourc: ", format(Sys.time()), "\\n", sep="", file=fclog)
+               cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
             clusterEvalQ(cl, c(source(file.path(dirx, "tools_ssg.R")), source(file.path(dirx, "nlsic.R"))))
             if (TIMEIT) {
-               cat("cl optim: ", format(Sys.time()), "\\n", sep="", file=fclog)
+               cat("cl optim: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
          }
-         #mc_res=mclapply(1L:nmc, mc_sim)
+         #mc_res=mclapply(1L:nmc, mc_sim, labargs=labargs)
          clusterSetRNGStream(cl)
-         mc_res=parLapply(cl, iseq(nmc), mc_sim)
+         mc_res=parLapply(cl, seq_len(nmc), mc_sim, labargs=labargs)
          stopCluster(cl)
       } else {
-         mc_res=lapply(1L:nmc, mc_sim)
+         mc_res=lapply(1L:nmc, mc_sim, labargs=labargs)
       }
       free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
@@ -1208,7 +1214,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       indent=1
       mout=rbind(round(free_mc[1:2,,drop=F], 2),
          format(free_mc[3,,drop=F], di=2, sci=T))
-      dimnames(mout)=list(c("cost", "it.numb", "normp"), iseq(ncol(free_mc)))
+      dimnames(mout)=list(c("cost", "it.numb", "normp"), seq_len(ncol(free_mc)))
       obj2kvh(mout, "convergence per sample", fkvh, indent)
       # remove failed m-c iterations
       free_mc=free_mc[-(1:3),,drop=F]
@@ -1254,9 +1260,9 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       sdmc=sqrt(diag(covmc))
       # confidence intervals
       ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
-      ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
+      ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
       colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
-      mout=cBind(mout, mean=parmean, median=parmed, sd=sdmc,
+      mout=cbind(mout, mean=parmean, median=parmed, sd=sdmc,
          "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
       obj2kvh(mout, "free parameters", fkvh, indent)
 
@@ -1279,10 +1285,10 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          sdmc=sqrt(diag(covmc))
          # confidence intervals
          ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
-         ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(parmean))
+         ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
+         ci_mc=cbind(ci_mc, ci_mc[,3]*100/abs(parmean))
          colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-         fallout=cBind(fallout, mean=parmean, median=parmed, sd=sdmc,
+         fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
             "rsd (%)"=sdmc*100/abs(fallnx), ci_mc)
          o=order(nm_fallnx)
          obj2kvh(fallout[o,,drop=F], "all net-xch01 fluxes", fkvh, indent)
@@ -1303,10 +1309,10 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          sdmc=sqrt(diag(covmc))
          # confidence intervals
          ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)))
-         ci_mc=cBind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cBind(ci_mc, ci_mc[,3]*100/abs(fwrv))
+         ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
+         ci_mc=cbind(ci_mc, ci_mc[,3]*100/abs(fwrv))
          dimnames(ci_mc)[[2]]=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-         fallout=cBind(fallout, mean=parmean, median=parmed, sd=sdmc,
+         fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
             "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
          o=order(nm_fwrv)
          obj2kvh(fallout[o,,drop=F], "forward-reverse fluxes", fkvh, indent)
@@ -1321,7 +1327,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    }
 
    if (TIMEIT) {
-      cat("linstats: ", format(Sys.time()), "\\n", sep="", file=fclog)
+      cat("linstats: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
    }
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
@@ -1358,7 +1364,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (nb_ff > 0 || nb_fgr > 0) {
       i=1:nb_param
       i=c(head(i, nb_ff), tail(i, nb_fgr))
-      covfl=crossprod(rtcov[, i, drop=F]%mmt%(rBind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
+      covfl=crossprod(rtcov[, i, drop=F]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
       dimnames(covfl)=list(nm_flfd, nm_flfd)
       sdfl=sqrt(diag(covfl))
    } else {
@@ -1366,7 +1372,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       covfl=matrix(0., nb_fl, nb_fl)
    }
    fl=c(head(param, nb_ff), fgr, flnx)
-   mtmp=cBind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
+   mtmp=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
    rownames(mtmp)=nm_flfd
    o=order(nm_flfd)
    obj2kvh(mtmp[o,,drop=F], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
@@ -1376,13 +1382,13 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (nb_ff > 0 || nb_fgr > 0) {
       i=1:nb_param
       i=c(head(i, nb_ff), tail(i, nb_fgr))
-      covf=crossprod(tcrossprod(rtcov[,i, drop=F], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
+      covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=F], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
       dimnames(covf)=list(nm_fwrv, nm_fwrv)
       sdf=sqrt(diag(covf))
    } else {
       sdf=rep(0., length(fwrv))
    }
-   mtmp=cBind(fwrv, sdf, sdf/abs(fwrv))
+   mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
    dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
    o=order(nm_fwrv)
    obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
@@ -1403,7 +1409,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       sdpf[nm_poolf]=sqrt(diag(covpf))
    }
    if (length(poolall) > 0) {
-      mtmp=cBind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
+      mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
       rownames(mtmp)=nm_poolall
       o=order(nm_poolall)
       obj2kvh(mtmp[o,,drop=F], "metabolite pools (sorted by name)", fkvh, indent=1)
@@ -1415,16 +1421,18 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # khi2 test for goodness of fit
    # goodness of fit (khi2 test)
-   nvres=sum(!is.na(jx_f$res))
-   if (nvres >= nb_param) {
-      khi2test=list("khi2 value"=rcost, "data points"=nvres,
-         "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
-      khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
-      khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
-      khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
-      obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
-   } else {
-      cat(sprintf("khi2: Measurement number %d is lower than parameter number %d. Khi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
+   if (!is.null(jx_f$res)) {
+      nvres=sum(!is.na(jx_f$res))
+      if (nvres >= nb_param) {
+         khi2test=list("khi2 value"=rcost, "data points"=nvres,
+            "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
+         khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
+         khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
+         khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
+         obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
+      } else {
+         cat(sprintf("khi2: Measurement number %d is lower than parameter number %d. Khi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
+      }
    }
    if (prof) {
       Rprof(NULL)
@@ -1455,13 +1463,13 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    }
 }
 
-pres=rBind(cost=costres, pres)
+pres=rbind(cost=costres, pres)
 fco=file(file.path(dirw, sprintf("%s.pres.csv", baseshort)), open="w")
 cat("row_col\t", file=fco)
 write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
 close(fco)
 if (TIMEIT) {
-   cat("rend    : ", format(Sys.time()), "\\n", sep="", file=fclog)
+   cat("rend    : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 """)
     f.write("""
@@ -1477,6 +1485,7 @@ for (post in postlist) {
       }
    }
 }
+xgc=gc(verbose=FALSE) # to avoid the message "Error in (function (x)  : tentative d'appliquer un objet qui n'est pas une fonction"
 close(fclog)
 close(fcerr)
 retcode=max(retcode)
