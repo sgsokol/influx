@@ -58,6 +58,7 @@ ftbl=args[1]
 
 # get free fluxes from kvh
 ff=kvh.kvh_get_matrix(fkvh, ["optimization process information", "fitted parameters"])
+#ff=kvh.kvh_get_matrix(fkvh, ["s4"])
 
 # convert strings to floats and round it to nround digits (default 9)
 ff=dict((row[0], round(float(row[1]), nround)) for row in ff)
