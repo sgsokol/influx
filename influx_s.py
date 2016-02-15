@@ -88,7 +88,8 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             retcode=subp.call(pycmd, stdout=flog, stderr=ferr)
         if retcode:
             r_generated=False
-        if os.path.getsize(ferr.name) > 0:
+        #if os.path.getsize(ferr.name) > 0:
+        if retcode:
             s="=>Check "+ferr.name+"\n"
             sys.stdout.write(s)
             flog.write(s)
