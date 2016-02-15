@@ -656,7 +656,7 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
         if len(unk):
             raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
     else:
-        werr(os.path.basename(me)+": netan[FLUXES] is not defined")
+        werr(os.path.basename(me)+": netan[FLUXES] is not defined\n")
         #return None
     #print "list reac=", netan["reac"];##
     try:
@@ -673,7 +673,7 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             if len(cond) > 1:
                 raise Exception("FluxDef", "Reaction `%s` is over defined in exchange fluxes."%reac)
             if len(cond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
-                werr("in+out fluxes="+str(netan["flux_inout"]));##
+                werr("in+out fluxes="+str(netan["flux_inout"])+"\n");##
                 raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in exchange fluxes."%reac)
             if cond:
                 cond=cond[0]
@@ -747,8 +747,8 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
     
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
-        if row["FLUX_NAME"] not in netan["reac"]:
-            raise Exception("Mesured flux `%s` is not defined in NETWORK section (row: %d)."%(row["FLUX_NAME"], row["irow"]))
+        if row["FLUX_NAME"] not in netan["reac"]|eqflux:
+            raise Exception("Mesured flux `%s` is not defined in NETWORK section neither in EQUALITIES (row: %d)."%(row["FLUX_NAME"], row["irow"]))
         if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
             raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["irow"]))
@@ -771,7 +771,9 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
                 raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
             found_neg=found_neg or netan["met_pools"][m] < 0.
         if not found_neg:
-            raise Exception("At least one of mesured metabolites `%s` must be defined as free (i.e. having negative starting value) in the METABOLITE_POOLS (row: %d)."%(row["META_NAME"], row["irow"]))
+            werr("Warning: metabolite measurements on `%s` does not have a free metabolite (i.e. being negative in the METABOLITE_POOLS (row: %d).\n"%(row["META_NAME"], row["irow"]))
+            werr("This measurement is ignored\n")
+            continue
         try:
             val=float(eval(row["VALUE"]))
         except:
@@ -784,15 +786,35 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
     for row in ftbl.get("LABEL_INPUT",[]):
         metab=row.get("META_NAME", "") or metab
         if metab not in netan["Clen"]:
-            raise Exception("Input metabolite `%s` is not defined (row: %d)."%(metab, row["irow"]))
+            raise Exception("Input metabolite `%s` is not defined in NETWORK (row: %d)."%(metab, row["irow"]))
         ilen=len(row.get("ISOTOPOMER", ""))-1; # -1 for '#' sign
         if ilen != netan["Clen"][metab]:
-            raise Exception("Input isotopomer `%s` has bad length. A length of %d is expected (row: %d)."%
-                (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), netan["Clen"][metab], row["irow"]))
+            raise Exception("Input isotopomer `%s` is of bad length (%d). A length of %d is expected (row: %d)."%
+                (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), ilen,  netan["Clen"][metab], row["irow"]))
         iiso=strbit2int(row["ISOTOPOMER"])
         if metab not in netan["iso_input"]:
             netan["iso_input"][metab]={}
-        netan["iso_input"][metab][iiso]=eval(row["VALUE"])
+        val=eval(row["VALUE"])
+        netan["iso_input"][metab][iiso]=val
+        if val < 0 or val > 1:
+            raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (row: %d)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, row["irow"]))
+    # check that all isoforms sum up to 1 for all inputs
+    for metab in netan["iso_input"]:
+        le=len(netan["iso_input"][metab])
+        nfo=2**netan["Clen"][metab]
+        su=sum(netan["iso_input"][metab].values())
+        if su > 1.+1.e-10:
+            raise Exception("Input metabolite `%s` has label summing up to %g which is greater than 1."%(metab, su))
+        if le == nfo or le < nfo-1:
+            # all forms are given or many are lacking => must sum up to 1
+            if abs(su-1.) > 1.e-10:
+                raise Exception("Input metabolite `%s` has label summing up to %g instead of 1."%(metab, su))
+        elif le == nfo-1:
+            # just one form is lacking
+            if su != 1.:
+                # add it to complete to 1
+                la=list(set(range(nfo))-set(netan["iso_input"][metab]))[0]
+                netan["iso_input"][metab][la]=1.-su
     if set(netan["iso_input"].keys()) != set(netan["input"]):
         raise Exception("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them\n"+
             "LABEL_INPUT: "+str(netan["iso_input"].keys())+"\n"+
