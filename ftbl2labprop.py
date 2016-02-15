@@ -94,6 +94,7 @@ Functions:
 """
 
 # 2012-03-06 sokol: initial version (derived from ftbl2optR.py)
+# 2014-04-14 sokol: addapted to emu option and param2fl_usm_ode()
 
 if __name__ == "__main__":
     import sys
