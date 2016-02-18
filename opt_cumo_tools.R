@@ -166,9 +166,19 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       }
       if (use_mumps) {
 #browser()
-         xw=try(solve(lAb$A, lAb$b))
-         if (inherits(tmp, "try-error")) {
+         xw=try(solve(lAb$A, lAb$b), silent=TRUE)
+         if (inherits(xw, "try-error")) {
             # find 0 rows if any
+            l=spAb[[iw]]
+            ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
+            izc=ag$Group.1[ag$x <= 1.e-10]
+            izf=names(which(abs(lf$fwrv)<1.e-7))
+            mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
+               "Zero rows in cumomer matrix A at weight ", iw, ":\n",
+               paste(nm$rcumo[ixw][izc+1], collapse="\n"), "\n",
+               "Zero fluxes are:\n",
+               paste(izf, collapse="\n"), "\n",
+               sep="")
             #izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
             #izf=names(which(abs(lf$fwrv)<1.e-7))
             #if (sum(izc) && length(izf)) {
@@ -181,8 +191,6 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             #} else {
             #   mes="Cumomer matrix is singular.\n"
             #}
-            mes="Cumomer matrix is singular.\n"
-#browser()
             return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
          }
       } else {
@@ -232,10 +240,13 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
          if (use_mumps) {
             tmp=try(solve(lAb$A, j_rhsw))
-            if (inherits(tmp, "try-error"))
+            if (inherits(tmp, "try-error")) {
                #browser()
-            else
+               mes="Some obscure problem with label matrix.\n"
+               return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
+            } else {
                j_rhsw=tmp
+            }
          } else {
             j_rhsw=lusolve(lua, j_rhsw)
          }
@@ -299,7 +310,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          if (length(ijpwef) > 0L) {
             # derivation of pool weights
             dpw_dpf$v=as.double(mx[ijpwef[,1L]]*dpwe)
-            mpf[]=as.matrix(meas2sum%*%dpw_dpf)
+            mpf[]=meas2sum%stm%dpw_dpf
             # growth flux depending on free pools
             if (nb_fgr > 0L) {
                mpf=mpf+as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=F])
@@ -570,6 +581,8 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    # construct a complete b vector
    if (getb) {
       ind_b=if (emu) spAbr[["ind_b_emu"]] else spAbr[["ind_b"]]
+      if (!is.matrix(ind_b))
+         ind_b=t(ind_b)
       spAbr$bmat$v=fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
       spAbr$b$v=-col_sums(spAbr$bmat)
       return(list(A=spAbr$a, b=spAbr$b))
@@ -679,6 +692,8 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       
       # prepare b_f auxiliaries
       ind_b=if(emu) spAbr$ind_b_emu else spAbr$ind_b
+      if (!is.matrix(ind_b))
+         ind_b=t(ind_b)
       nro=nrow(ind_b)
       ib=ind_b[,"irow"]+if(emu) nb_c*(ind_b[,"iwe"]-1L) else 0L
       jb=ind_b[,"indf"]
@@ -745,6 +760,8 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    # prepare b_f
    # NB emu: b is shorter than xw by the last M+N vector which is added as (1-sum(lighter weights))
    ind_b=if(emu) spAbr$ind_b_emu else spAbr$ind_b
+   if (!is.matrix(ind_b))
+      ind_b=t(ind_b)
    ##nro=nrow(ind_b)
    #ib=ind_b[,"irow"]+if(emu) nb_c*(ind_b[,"iwe"]-1L) else 0L
    #jb=ind_b[,"indf"]
@@ -952,7 +969,7 @@ dufm_dff=function(nb_f, nm_list) {
    # derivate dependent measured fluxes
    i=grep("d.n.", nm_list$fmn, fixed=T, value=T)
    if (length(i) > 0) {
-      res[i,]=nb_f$dfl_dffg[i,1:length(nm_list$ff)]
+      res[i,]=as.matrix(nb_f$dfl_dffg[i,1:length(nm_list$ff)])
    }
    return(res)
 }
@@ -1142,6 +1159,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
 }
 
 opt_wrapper=function(param, measurements, jx_f, trace=1) {
+   oldmeas=labargs$measurements
    labargs$measurements=measurements
    labargs$jx_f=jx_f
    if (method == "BFGS") {
@@ -1205,42 +1223,43 @@ opt_wrapper=function(param, measurements, jx_f, trace=1) {
    if (is.null(res$err)) {
       res$err=0L
    }
+   labargs$measurements=oldmeas
    return(res)
 }
 
 # wrapper for Monte-Carlo simulations
-mc_sim=function(i, labargs=NULL) {
+mc_sim=function(i, refsim, labargs=NULL) {
    #set.seed(seeds[i])
    #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", i))
-   for (item in c("nb_f", "measurements", "jx_f", "case_i")) {
+   for (item in c("nb_f", "measurements", "case_i")) {
       assign(item, labargs[[item]])
    }
    # random measurement generation
+#cat("simlab=\n")
+#print(head(as.double(refsim$simlab)))
    if (nb_f$nb_meas) {
       if (case_i) {
-         meas_mc=rnorm(prod(dim(measurements$vec$kin)), jx_f$usm, measurements$dev$labeled)
+         meas_mc=refsim$usm+rnorm(n=length(refsim$usm))*measurements$dev$labeled
       } else {
-         meas_mc=rnorm(nb_f$nb_meas, jx_f$simlab, measurements$dev$labeled)
+         meas_mc=refsim$simlab+rnorm(n=length(refsim$simlab))*measurements$dev$labeled
       }
    } else {
       meas_mc=c()
    }
+#cat("meas=\n")
+#print(head(meas_mc))
    if (nb_f$nb_fmn) {
-      fmn_mc=rnorm(nb_f$nb_fmn, jx_f$simfmn, measurements$dev$flux)
+      fmn_mc=refsim$simfmn+rnorm(n=length(refsim$simfmn))*measurements$dev$flux
    } else {
       fmn_mc=c()
    }
    if (nb_f$nb_poolm) {
-      poolm_mc=rnorm(nb_f$nb_poolm, jx_f$simpool, measurements$dev$pool)
-   } else {
-      poolm_mc=c()
-   }
-   if (case_i && nb_f$nb_poolm) {
-      poolm_mc=rnorm(nb_f$nb_poolm, jx_f$simpool, measurements$dev$pool)
+      poolm_mc=refsim$simpool+rnorm(n=length(refsim$simpool))*measurements$dev$pool
    } else {
       poolm_mc=c()
    }
 #cat("imc=", i, "\\n", sep="")
+#browser()
    # minimization
    measurements_mc=measurements
    if (case_i) {
