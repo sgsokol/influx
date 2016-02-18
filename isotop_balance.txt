@@ -1,6 +1,0 @@
-A	-(v1.fwd)*A
-B	v1.fwd*(A)+v2.rev*(C*D)-(v2.fwd)*B
-C	v2.fwd*(B)+v3.rev*(E)-(v3.fwd+v2.rev)*C
-D	v2.fwd*(B)+v3.rev*(E)-(v3.fwd+v2.rev)*D
-E	v3.fwd*(C*D)-(v4.fwd+v3.rev)*E
-F	v4.fwd*(E)
