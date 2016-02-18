@@ -235,14 +235,16 @@ if (nb_poolf > 0) {
    # extend inequalities ui, ci by cupp>= poolf >= clowp
    # but exclude metabolites that are individually set in the uip (FTBL)
    met_low=met_up=c()
-   # number of non zero entries per row in uip
-   i_nz=rowSums(abs(uip) != 0.)
-   # number of positive coeffs for alone metabs (i.e. low limit is set)
-   i_pos=colSums(uip[i_nz > 0,,drop=F] > 0)
-   met_low=nm_poolf[i_pos > 0]
-   # number of negative coeffs for alone metabs (i.e. upper limit is set)
-   i_neg=colSums(uip[i_nz > 0,,drop=F] < 0)
-   met_up=nm_poolf[i_neg > 0]
+   if (nrow(uip) > 0) {
+      # number of non zero entries per row in uip
+      i_nz=rowSums(abs(uip) != 0.)
+      # number of positive coeffs for alone metabs (i.e. low limit is set)
+      i_pos=colSums(uip[i_nz > 0,,drop=F] > 0)
+      met_low=nm_poolf[i_pos > 0]
+      # number of negative coeffs for alone metabs (i.e. upper limit is set)
+      i_neg=colSums(uip[i_nz > 0,,drop=F] < 0)
+      met_up=nm_poolf[i_neg > 0]
+   }
 
    # add low limit
    nb_add=nb_poolf-length(met_low)
@@ -1031,7 +1033,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          "fitted parameters"=param,
          "last increment before backtracking"=res$lastp,
          "last increment after backtracking"=res$laststep,
-         "interation number"=res$it,
+         "iteration number"=res$it,
          "convergence history"=res$hist,
          "exit message"=res$mes
       )
@@ -1146,6 +1148,12 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       if(set_seed) {
          set.seed(seed)
       }
+      # reference simulation corresponding to the final param
+      refsim=new.env()
+      for (nm_it in c("simlab", "simfmn", "simpool", "usm")) {
+         assign(nm_it, jx_f[[nm_it]], envir=refsim)
+      }
+      
       # Monte-Carlo simulation in parallel way (if asked and possible)
       if (np > 1L) {
          # prepare cluster
@@ -1176,7 +1184,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             if (TIMEIT) {
                cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
-            clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx"))
+            clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx", "refsim"))
             if (TIMEIT) {
                cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
@@ -1185,12 +1193,11 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                cat("cl optim: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
          }
-         #mc_res=mclapply(1L:nmc, mc_sim, labargs=labargs)
          clusterSetRNGStream(cl)
-         mc_res=parLapply(cl, seq_len(nmc), mc_sim, labargs=labargs)
+         mc_res=parLapply(cl, seq_len(nmc), mc_sim, refsim=refsim, labargs=labargs)
          stopCluster(cl)
       } else {
-         mc_res=lapply(1L:nmc, mc_sim, labargs=labargs)
+         mc_res=lapply(1L:nmc, mc_sim, refsim=refsim, labargs=labargs)
       }
       free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
