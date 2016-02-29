@@ -164,61 +164,61 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       } else {
          lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$rcumo[ixw], emu=emu)
       }
-      if (use_mumps) {
+      #if (use_mumps) {
 #browser()
-         xw=try(solve(lAb$A, lAb$b), silent=TRUE)
-         if (inherits(xw, "try-error")) {
-            # find 0 rows if any
-            l=spAb[[iw]]
-            ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
-            izc=ag$Group.1[ag$x <= 1.e-10]
-            izf=names(which(abs(lf$fwrv)<1.e-7))
-            mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
-               "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-               paste(nm$rcumo[ixw][izc+1], collapse="\n"), "\n",
-               "Zero fluxes are:\n",
-               paste(izf, collapse="\n"), "\n",
-               sep="")
-            #izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
-            #izf=names(which(abs(lf$fwrv)<1.e-7))
-            #if (sum(izc) && length(izf)) {
-            #   mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
-            #      "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-            #      paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
-            #      "Zero fluxes are:\n",
-            #      paste(izf, collapse="\n"), "\n",
-            #      sep="")
-            #} else {
-            #   mes="Cumomer matrix is singular.\n"
-            #}
-            return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
-         }
-      } else {
-         wa=options(warn=2) # to cath singular matrix as error and not just a warning
-         lua=try(if (use_magma) magma::lu(magma(as.matrix(lAb$A))) else lu(as.matrix(lAb$A), errSing=T), silent=T)
-         options(wa) # restore warning situation
-         if (inherits(lua, "try-error")) {
-            # find 0 rows if any
-            izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
-            izf=names(which(abs(lf$fwrv)<1.e-7))
-            if (sum(izc) && length(izf)) {
-               mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
-                  "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-                  paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
-                  "Zero fluxes are:\n",
-                  paste(izf, collapse="\n"), "\n",
-                  sep="")
-            } else {
-               mes="Cumomer matrix is singular.\n"
-            }
-#browser()
-            return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
-         }
-         b=as.matrix(lAb$b); # may have several columns if emu is TRUE
-         #solve the system A*x=b
-         #lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
-         xw=lusolve(lua, b)
+      xw=try(solve(lAb$A, lAb$b), silent=TRUE)
+      if (inherits(xw, "try-error")) {
+         # find 0 rows if any
+         l=spAb[[iw]]
+         ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
+         izc=ag$Group.1[ag$x <= 1.e-10]
+         izf=names(which(abs(lf$fwrv)<1.e-7))
+         mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
+            "Zero rows in cumomer matrix A at weight ", iw, ":\n",
+            paste(nm$rcumo[ixw][izc+1], collapse="\n"), "\n",
+            "Zero fluxes are:\n",
+            paste(izf, collapse="\n"), "\n",
+            sep="")
+         #izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
+         #izf=names(which(abs(lf$fwrv)<1.e-7))
+         #if (sum(izc) && length(izf)) {
+         #   mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
+         #      "Zero rows in cumomer matrix A at weight ", iw, ":\n",
+         #      paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
+         #      "Zero fluxes are:\n",
+         #      paste(izf, collapse="\n"), "\n",
+         #      sep="")
+         #} else {
+         #   mes="Cumomer matrix is singular.\n"
+         #}
+         return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
       }
+      #} else {
+      #   wa=options(warn=2) # to cath singular matrix as error and not just a warning
+      #   lua=try(if (use_magma) magma::lu(magma(as.matrix(lAb$A))) else lu(as.matrix(lAb$A), errSing=T), silent=T)
+      #   options(wa) # restore warning situation
+      #   if (inherits(lua, "try-error")) {
+      #      # find 0 rows if any
+      #      izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
+      #      izf=names(which(abs(lf$fwrv)<1.e-7))
+      #      if (sum(izc) && length(izf)) {
+      #         mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
+      #            "Zero rows in cumomer matrix A at weight ", iw, ":\n",
+      #            paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
+      #            "Zero fluxes are:\n",
+      #            paste(izf, collapse="\n"), "\n",
+      #            sep="")
+      #      } else {
+      #         mes="Cumomer matrix is singular.\n"
+      #      }
+#browser()
+      #      return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
+      #   }
+      #   b=as.matrix(lAb$b); # may have several columns if emu is TRUE
+      #   #solve the system A*x=b
+      #   #lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
+      #   xw=lusolve(lua, b)
+      #}
       if (emu) {
          xw=c(xw, 1.-rowSums(xw))
       }
@@ -238,18 +238,18 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          }
          #j_rhsw=as.double(j_rhsw)
          dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
-         if (use_mumps) {
-            tmp=try(solve(lAb$A, j_rhsw))
-            if (inherits(tmp, "try-error")) {
-               #browser()
-               mes="Some obscure problem with label matrix.\n"
-               return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
-            } else {
-               j_rhsw=tmp
-            }
+         #if (use_mumps) {
+         tmp=try(solve(lAb$A, j_rhsw))
+         if (inherits(tmp, "try-error")) {
+            #browser()
+            mes="Some obscure problem with label matrix.\n"
+            return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
          } else {
-            j_rhsw=lusolve(lua, j_rhsw)
+            j_rhsw=tmp
          }
+         #} else {
+         #   j_rhsw=lusolve(lua, j_rhsw)
+         #}
          if (emu) {
             dim(j_rhsw)=c(nb_c, iw, nb_ff+nb_fgr)
             x_f[ba_x+seq_len(iw*nb_c),]=j_rhsw
@@ -567,6 +567,8 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
       return(list(A=A, b=b))
    }
    ind_a=spAbr$ind_a
+   if (!is.matrix(ind_a))
+      ind_a=t(ind_a)
    #x=fwrv[ind_a[,"indf"]]
    #i=which(ind_a[,"ir0"]==ind_a[,"ic0"])
    #x[i]=-x[i] # diagonal terms are negative
@@ -640,6 +642,8 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    
    # a_fx
    ind_a=spAbr$ind_a
+   if (!is.matrix(ind_a))
+      ind_a=t(ind_a)
    i=ind_a[,"ic0"]==ind_a[,"ir0"]
    incu=as.matrix(incu)
    nco=ncol(incu)
@@ -661,7 +665,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    } else if (spAbr$a_fx2$nco==nco) {
       nm_a_fx="a_fx2"
    } else {
-      stop("Must not happen: not a_fx1 neither a_fx2 fit nco")
+      stop("Must not happen: not a_fx1 neither a_fx2 fits nco")
    }
    if (first_a_fx) {
       l=list()
@@ -940,9 +944,11 @@ df_dffp=function(param, flnx, nb_f, nm_list) {
    xch=param[i_ffx]
    xch=1./(1.-xch)**2
    # forward fluxes
-   df_dffd[nb_f$cfw_ff]=c(hnet, xch)
+   if (length(nb_f$cfw_ff) > 0)
+      df_dffd[nb_f$cfw_ff]=c(hnet, xch)
    # reverse fluxes
-   df_dffd[nb_f$crv_ff]=c(hnet-1., xch)
+   if (length(nb_f$crv_ff) > 0)
+      df_dffd[nb_f$crv_ff]=c(hnet-1., xch)
    
    # derivation by growth fluxes
    # forward fluxes
