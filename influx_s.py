@@ -62,6 +62,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         cmd=" ".join(re.findall("^\tcommandArgs\t(.*?)(?://.*)?$", open(ft, "rb").read(), re.MULTILINE))
         (ftbl_opts, ftbl_args) = parser.parse_args(cmd.split())
         #print ("cmd_opts=", cmd_opts)
+        #print ("ftbl_opts=", ftbl_opts)
         if len(ftbl_args) != 0:
             ferr.write("Warning: argument(s) '%s' from the field commandArgs of '%s' are ignored.\n"%(" ".join(ftbl_args), ft))
 
