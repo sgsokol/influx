@@ -338,8 +338,10 @@ suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
 suppressPackageStartupMessages(library(parallel))
 #use_magma=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
 use_magma=F
-use_mumps=suppressPackageStartupMessages(require(Rcpp)) && suppressPackageStartupMessages(require(rmumps))
+suppressPackageStartupMessages(library(Rcpp))
+suppressPackageStartupMessages(library(rmumps))
 suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
+
 
 # define matprod for simple_triplet_matrix
 `%%stm%%` = slam::matprod_simple_triplet_matrix
@@ -349,6 +351,9 @@ suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
 source(file.path(dirx, "tools_ssg.R"))
 source(file.path(dirx, "nlsic.R"))
 source(file.path(dirx, "kvh.R"))
+
+# get compiled code
+sourceCpp(file.path(dirx, "mult_bxxc.cpp"))
 
 # default options
 version=F
