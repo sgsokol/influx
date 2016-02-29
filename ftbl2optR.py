@@ -554,7 +554,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "use_magma", "use_mumps", "case_i")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "use_magma", "case_i")
 """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
@@ -739,7 +739,8 @@ for (irun in seq_len(nseries)) {
       # unscaled simulated measurements (usm) [imeas, itime]
       #browser()
       inna=which(!is.na(measvecti))
-      simlab=rres$usm
+      simlab=jx_f$usm
+      measinvvar=1./measurements$dev$labeled**2
       ms=(measvecti*simlab*measinvvar)[inna]
       ss=(simlab*simlab*measinvvar)[inna]
       for (i in nb_ff+1:nb_sc) {
@@ -915,6 +916,9 @@ for (irun in seq_len(nseries)) {
       param=res$par
 #browser()
       if (zerocross && !is.null(mi_zc)) {
+         if (TIMEIT) {
+            cat("secondzc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+         }
          # inverse active "zc" inequalities
          nm_inv=names(which((ui%*%res$par-ci)[,1]<=1.e-10))
          i=grep("^zc ", nm_inv, v=T)
@@ -975,6 +979,9 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             # last pass, free all zc constraints
             i=grep("^zc ", nm_i)
             if (length(i) > 0) {
+               if (TIMEIT) {
+                  cat("last zc : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+               }
                ui=ui[-i,,drop=F]
                ci=ci[-i]
                nm_i=nm_i[-i]
@@ -1002,6 +1009,9 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       names(param)=nm_par
       if (excl_outliers != F) {
          # detect outliers
+         if (TIMEIT) {
+            cat("outliers: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+         }
          iva=!is.na(res$res)
          iout=which(rz.pval.bi(res$res) <= excl_outliers & iva)
          #cat("iout=", iout, "\\n", file=fclog)
