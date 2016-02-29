@@ -119,6 +119,7 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
    
    # construct the sources s and its derivatives (if xp not null)
    # for this weight
+#options(warn=2)
    nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
    w=spAbr$w # cumomer weight
    incu=as.matrix(incu)
@@ -126,20 +127,57 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
    
    if (gets) {
       if (nb_c == 0) {
-         s=Matrix(0., nb_c, 1)
+         s=simple_triplet_zero_matrix(nb_c, 1)
          return(list(s=s), sp=if (is.null(incup)) NULL else s)
       }
-      if (emu) {
-         ind_b=spAbr[["ind_b_emu"]]
-         s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
-         i=rep(ind_b[,"irow"]+(ind_b[,"iwe"]-1L)*nb_c, nco)
-         j=rep(seq_len(nco), each=nrow(ind_b))
-         s=sparseMatrix(i=i, j=j, x=s, dims=c(nb_c*w, nco))
+      l=spAbr
+      first_sx=FALSE
+      if (is.null(l$sx1)) {
+         first_sx=TRUE
+         nm_sx="sx1"
+      } else if (l$sx1$nco != nco && is.null(l$sx2)) {
+         first_sx=TRUE
+         nm_sx="sx2"
+      } else if (l$sx1$nco == nco) {
+         nm_sx="sx1"
+      } else if (l$sx2$nco == nco) {
+         nm_sx="sx2"
       } else {
-         ind_b=spAbr[["ind_b"]]
-         s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
-         s=sparseMatrix(i=rep(ind_b[,"irow"], nco), j=rep(seq_len(nco), each=nrow(ind_b)), x=s, dims=c(nb_c, nco))
+         stop("Must not happen: not sx1 neither sx2 fits nco")
       }
+      if (first_sx) {
+         li=list()
+         li$nco=nco
+         li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
+            v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
+         li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=rep(seq_len(nco), each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=nco)
+         l[[nm_sx]]=li
+      }
+      #if (emu) {
+      #   ind_b=spAbr[["ind_b_emu"]]
+      #   if (!is.matrix(ind_b))
+      #      ind_b=t(ind_b)
+      #   #spAbr$bmat$v=fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],]
+      #   #spAbr$b$v=col_sums(spAbr$bmat)
+      #   #s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
+      #   i=rep(ind_b[,"irow"]+(ind_b[,"iwe"]-1L)*nb_c, nco)
+      #   j=rep(seq_len(nco), each=nrow(ind_b))
+      #   s=simple_triplet_matrix(i=i, j=j, v=s, nrow=nb_c*w, ncol=nco)
+      #} else {
+      #   ind_b=spAbr[["ind_b"]]
+      #   if (!is.matrix(ind_b))
+      #      ind_b=t(ind_b)
+      #   s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
+      #   #s=as.matrix(sparseMatrix(i=rep(ind_b[,"irow"], nco), j=rep(seq_len(nco), each=nrow(ind_b)), x=s, dims=c(nb_c, nco)))
+      #   s=simple_triplet_matrix(i=rep(ind_b[,"irow"], nco), j=rep(seq_len(nco), each=nrow(ind_b)), v=s, nrow=nb_c, ncol=nco)
+      #}
+#browser()
+      ind_b=if (emu) spAbr[["ind_b_emu"]] else spAbr[["ind_b"]]
+      if (!is.matrix(ind_b))
+         ind_b=t(ind_b)
+      l[[nm_sx]]$sxmat$v=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
+      l[[nm_sx]]$s$v=c(arrApply(as.array(l[[nm_sx]]$sxmat), 1, "sum"))
+      s=l[[nm_sx]]$s
    } else {
       s=NULL
    }
@@ -147,9 +185,13 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
    if (!is.null(incup)) {
       if (emu) {
          ind_b=spAbr[["ind_b_emu"]]
+         if (!is.matrix(ind_b))
+            ind_b=t(ind_b)
          sp=fwrv[ind_b[,"indf"]]*(incup[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]] + incu[ind_b[,"indx1"]]*incup[ind_b[,"indx2"]])
       } else {
          ind_b=spAbr[["ind_b"]]
+         if (!is.matrix(ind_b))
+            ind_b=t(ind_b)
          sp=fwrv[ind_b[,"indf"]]*(xp[ind_b[,"indx1"]]*x[ind_b[,"indx2"]] + x[ind_b[,"indx1"]]*xp[ind_b[,"indx2"]])
          sp=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=sp, dims=c(nb_c, 1))
       }
@@ -221,10 +263,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    spwe=1./as.numeric(spwe[nm$measmat])
    pwe=pwe*spwe
    
-   # prepare inverse of pool vectors
-   invpool=1./pool
-   # invm has the same length as the full label vector
-   invm=invpool[nb_f$ip2ircumo]
+   # prepare pool vectors
+   # vm has the same length as the full label vector
+   vm=pool[nb_f$ip2ircumo]
 #browser()
    # prepare vectors at t1=0 with zero labeling
    # incu, xi is supposed to be in [0; 1]
@@ -266,14 +307,15 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          sfpw=double(nb_row*ntico*nb_poolf)
          dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
       }
-      invmw=invm[nbc_cumos[iw]+seq_len(nb_c)]
-      Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A*invmw
-      # prepare (I-a*dt)^-1
-      eye=diag(nb_c)
-      ali=mclapply(dt[pmatch(dtru, dtr)], function(dti) lu(eye-as.matrix(Aw*dti)))
-      lua=vapply(ali, function(item) item@x, eye)
-      dim(lua)=c(nb_c, nb_c, length(dtru))
-      perm=vapply(ali, function(item) item@perm, integer(nb_c))
+      vmw=vm[nbc_cumos[iw]+seq_len(nb_c)]
+      Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A
+      # prepare (diag(vm)/dt-a)^-1
+      at=Aw$triplet()
+      am=-at
+      ali=lapply(dt[pmatch(dtru, dtr)], function(dti) {
+         am$v[spAb[[iw]]$iadiag]=vmw/dti+am$v[spAb[[iw]]$iadiag]
+         Rmumps$new(am)
+      })
       if (emu) {
          # for the first time point, set m+0 to 1 in x1
          x1[(1L+nb_xi+nbc_x[iw])+seq_len(nb_c)]=1.
@@ -281,11 +323,11 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
       }
       # source terms
-      st=as.matrix(fwrv2sp(fwrv, spAb[[iw]], xsim, emu=emu)$s*invmw)
-      stt=st%mrv%dt
+      st=as.matrix(fwrv2sp(fwrv, spAb[[iw]], xsim, emu=emu)$s)
       # calculate labeling for all time points
       #xw1=matrix(x1[inrow], nb_c, emuw)
-      stt[,1L]=stt[,1L]+x1[inrow]
+      xw1=x1[inrow]
+      dim(xw1)=c(nb_c, emuw)
       #xsim[inxw,]=vapply(idt, function(idtr) {
       #   xw2=lusolve(iadt[[dtr]], (xw1+st[,idtr]))
       #   xw1[] <<- xw2
@@ -295,65 +337,68 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       #      return(xw2)
       #   }
       #}, x1[inxw])
-      dim(stt)=c(nb_c, emuw, ntico)
-      stt=solve_lut(lua, perm, stt, ilua, dirx)
-      dim(stt)=c(nb_c, emuw, ntico)
-      xsim[inrow,]=stt
-      if (emu) {
-         stt=aperm(stt, c(2L, 1L, 3))
-         xsim[(1L+nb_xi)+imwl,]=1.-colSums(stt)
-      }
+      xw2=vapply(idt, function(idtr) {
+         xw2=solve(ali[[ilua[idtr]]], vmw*xw1/dt[idtr]+st[,idtr])
+         xw1[] <<- xw2
+      }, xw1)
+      dim(xw2)=c(nb_c, emuw, ntico)
+      xsim[inrow,]=xw2
+      if (emu)
+         xsim[1L+nb_xi+imwl,]=1.-arrApply(xw2, 2, "sum")
       if (cjac) {
+#browser()
          # prepare jacobian ff, pf
          # rhs for all time points on this weight
          # parts before b_x%*%...
          sj=fx2jr(fwrv, spAb[[iw]], nb_f, xsim)
          # ff part
          if (nb_ff+nb_fgr > 0) {
-            tmp=as.numeric(sj$j_rhsw%*%mdf_dffp)
+            tmp=sj$j_rhsw%stm%mdf_dffp
             dim(tmp)=c(nb_row, ntico, nb_ff+nb_fgr)
-            xpfw[,seq_len(nb_ff+nb_fgr),]=aperm(tmp, c(1L, 3L, 2L))
+            xpfw[,seq_len(nb_ff+nb_fgr),]=-aperm(tmp, c(1L, 3L, 2L))
          }
          # poolf part
          if (nb_poolf > 0) {
             i2x=nb_f$ipf2ircumo[[iw]]
-            xw2=xsim[inrow, , drop=F]
-            dim(xw2)=c(nb_c, emuw*ntico)
-            tmp=as.matrix(Aw%*%xw2)+c(st)
-            dim(tmp)=c(nb_c, emuw, ntico)
-            sfpw[i2x]=tmp[i2x[,-4L]]
-            xpfw[,nb_ff+seq_len(nb_poolf),]=if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0. + aperm(sfpw, c(1L, 2L, 4L, 3L))
+            xw2=(cbind(x1[inrow], xsim[inrow, -ntico, drop=F])-xsim[inrow, , drop=F])%mrv%(1/dt)
+            dim(xw2)=c(nb_c, emuw, ntico)
+            #dim(xw2)=c(nb_c, emuw*ntico)
+            #tmp=at%stm%xw2+c(st)
+            #dim(tmp)=c(nb_c, emuw, ntico)
+            #sfpw[i2x]=tmp[i2x[,-4L]]
+            sfpw[i2x]=xw2[i2x[,-4L]]
+            xpfw[,nb_ff+seq_len(nb_poolf),]=(if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0.) + aperm(sfpw, c(1L, 2L, 4L, 3L))
          }
          # add lighter xpf (b_x%*%...)
          if (iw > 1L) {
 #browser()
-            ir=seq_len(nb_row)
-            ic=seq_len(nbc_x[iw])
+            #ir=seq_len(nb_row)
+            #ic=seq_len(nbc_x[iw])
             #pti=proc.time()
             #for (idtr in idt) {
-            #   xpfw[,,idtr]=xpfw[,,idtr]+ as.double(sj$b_x[ir+(idtr-1L)*nb_row,]%*%xpf[ic,idtr,])
-            xpfw=mult_bxx(xpfw, sj$b_x, xpf, ntico, dirx)
+            #   xpfw[,,idtr]=xpfw[,,idtr]-sj$b_x[ir+(idtr-1L)*nb_row,]%stm%xpf[ic,idtr,]
             #}
+            mult_bxxc(xpfw, sj$b_x, xpf)
             #cat("iw=", iw, "; len(x)=", length(sj$b_x[ir,]@x), "\n", sep="")
             #print(proc.time()-pti)
          }
          # solve the system at each time point
 #browser()
-         xpfw[]=(rep(-invmw, emuw)%o%rep(1., nb_ff+nb_poolf)%o%dt)*xpfw
          #xpfw=vapply(idt, function(idtr) {
          #   #dtr=as.character(round(dt[idtr], 10L))
          #   xpf1[] <<- lusolve(ali[[pmatch(dtr[idtr], dtru)]], c(xpfw[,,idtr])+xpf1) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
          #}, xpf1)
-         dim(xpfw)=c(nb_c, emuw*(nb_ff+nb_poolf), ntico)
-         xpfw=solve_lut(lua, perm, xpfw, ilua, dirx)
+         xpf1=double(nb_row*(nb_ff+nb_poolf))
+         dim(xpf1)=c(nb_c, emuw*(nb_ff+nb_poolf))
+         xpfw[]=vapply(idt, function(idtr) {
+            xpf1[] <<- solve(ali[[ilua[idtr]]], c(xpfw[,,idtr])+vmw*xpf1/dt[idtr]) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
+         }, xpf1)
          dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
-         xpfw=aperm(xpfw, c(1L, 2L, 4L, 3L))
+         xpfw[]=aperm(xpfw, c(1L, 2L, 4L, 3L))
          xpf[imw,,]=xpfw
          if (emu) {
             # treat the last weight
-            #xpf[imwl,,]=-apply(xpfw, c(1L, 3L, 4L), sum)
-            xpfw=aperm(xpfw, c(2L, 1L, 3L, 4L))
-            xpf[imwl,,]=-colSums(xpfw)
+            xpf[imwl,,]=-arrApply(xpfw, 2, "sum")
          }
       }
    } # iw loop
@@ -375,7 +420,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       dim(xpf)=c(nbc_x[nb_w+1L], ntise*(nb_ff+nb_poolf))
       # scale part of jacobian
       if (nb_f$nb_sc != 0L) {
-         stop_mes("nb_sc != 0L is not implemented as meaningless for dynamic labeling", fcerr)
+         stop_mes("nb_sc != 0L is not implemented as meaningless for dynamic labeling. Use --noscale option.", fcerr)
       }
       dux_dp=measmat%*%xpf
       dim(xpf)=c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf))
@@ -441,57 +486,4 @@ param2fl_usm_rich=function(param, cjac, labargs) {
       res1$x=jx_f$xsim
    }
    return(res1)
-}
-
-mult_bxx=function(a, bx, c, ntico, dirx) {
-   # R wrapper for a fortran call mult_bxt()
-   if (!is.loaded("dgetrs")) {
-      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
-         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
-      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
-   }
-   if (!is.loaded("mult_bxt")) {
-      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
-   }
-   stopifnot(class(bx)=="dgCMatrix")
-   res=.Fortran("mult_bxt", bx@x, bx@i, bx@p, as.integer(nrow(bx)/ntico), as.integer(ntico), ncol(bx), c, dim(c)[1L], dim(c)[3L], a,
-      NAOK=T, DUP=F
-   )[[10]]
-   dim(res)=dim(a)
-   return(res) # the matrix a is modified in place.
-}
-solve_lut=function(lua, pivot, b, ilua, dirx) {
-   # call lapack dgters() for solving a series of linea systems a_i%*%(b_{i-1}+b_i)=b_i
-   # The result is stored inplace in b.
-   # The sizes:
-   #  - LU matrices of a : (nr_a, nr_a, nlua)
-   #  - pivot : (nr_a, nlua)
-   #  - b : (nr_a, nc_c, ntico)
-   #  - ilua : (ntico). It is a index vector. ilua[i] indicate which lua corresponds to the i-th time point
-   if (!is.loaded("dgetrs")) {
-      lapack.path <- file.path(R.home(), ifelse(.Platform$OS.type == "windows",
-         file.path("bin", "Rlapack"), file.path("lib", "libRlapack")))
-      dyn.load(paste(lapack.path,.Platform$dynlib.ext, sep=""))
-   }
-   if (!is.loaded("mult_bxt")) {
-      dyn.load(sprintf("%s/mult_bxx%s", dirx, .Platform$dynlib.ext))
-   }
-   dlu=dim(lua)
-   db=dim(b)
-   if (FALSE) {
-      # R equivalent for debugging
-      for (it in seq_len(db[3L])) {
-         if (it > 1) {
-            # add previous term to b_it
-            b[,,it]=b[,,it]+b[,,it-1]
-         }
-         # solve the it-th system
-         b[,,it]=lusolve(lua[,,ilua[it]], b[,,it], pivot)
-      }
-      return(b)
-   }
-   res=.Fortran("solve_lut", lua, dlu[1L], dlu[3L], pivot, b, db[2L], db[3L], ilua,
-      NAOK=F, DUP=F)[[5]]
-   dim(res)=db
-   return(res)
 }
