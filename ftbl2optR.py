@@ -323,7 +323,8 @@ if (dt <= 0) {
 # read measvecti from a file specified in ftbl
 flabcin="%(flabcin)s"
 if (nchar(flabcin)) {
-   measvecti=as.matrix(read.table(flabcin, header=T, row.names=1, sep="\t", check=F, comment=""))
+   flabcin=file.path(dirw, flabcin)
+   measvecti=as.matrix(read.table(flabcin, header=T, row.names=1, sep="\t", check=F, comment="#"))
    nm_row=rownames(measvecti)
    # put in the same row order as simulated measurements
    # check if nm_meas are all in rownames
@@ -383,15 +384,15 @@ if (nb_ti < 2L) {
    stop_mes(mes, file=fcerr)
 }
 
-# divide first time interval by n1 geometric intervals
+# divide the first time interval by n1 geometric intervals
 n1=1
 tmp=cumsum(2**seq_len(n1))
 tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
 
-# divide each time interval by n
+# divide each time interval by nsubdiv_dt
 dt=diff(tifull)
-n=1
-dt=rep(dt/n, each=n)
+nsubdiv_dt=max(1L, as.integer(%(nsubdiv_dt)s))
+dt=rep(dt/nsubdiv_dt, each=nsubdiv_dt)
 tifull=c(tifull[1L], cumsum(dt))
 nb_tifu=length(tifull)
 
@@ -406,6 +407,7 @@ if (length(ijpwef)) {
     "dt": netan["opt"]["dt"],
     "tmax": netan["opt"]["tmax"],
     "flabcin": netan["opt"].get("file_labcin", ""),
+    "nsubdiv_dt": netan["opt"].get("nsubdiv_dt", "1"),
 })
 
         f.write("""
@@ -875,6 +877,12 @@ for (irun in seq_len(nseries)) {
          qrj=qr(jx_f$dr_dff, LAPACK=T)
          d=diag(qrj$qr)
          qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
+         if (is.na(qrj$rank)) {
+            cat("Rank of starting jacobian could not be estimated.", file=fcerr)
+            retcode[irun]=1
+            close(fkvh)
+            next
+         }
          if (qrj$rank) {
             nm_uns=nm_ff[qrj$pivot[-(1:qrj$rank)]]
          } else {
@@ -897,6 +905,8 @@ for (irun in seq_len(nseries)) {
          cat("optim   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
       }
       # pass control to the chosen optimization method
+      if (time_order=="1,2")
+         labargs$time_order="1" # start with order 1, later continue with 2
       capture.output(res <- opt_wrapper(param, measurements, jx_f), file=fclog)
       if ((!is.null(res$err) && res$err) || is.null(res$par)) {
          cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
@@ -1024,7 +1034,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)
             }
             if (any(is.na(reso$par))) {
-               cat("Optimization with outliers excluded has failed", runsuf, "\\n", file=fcerr, sep="")
+               cat("Optimization with outliers excluded has failed, run= ", runsuf, "\\n", file=fcerr, sep="")
                # continue without outlier exclusion
                measurements$outlier=NULL
             } else {
@@ -1036,6 +1046,24 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             }
          } else {
             cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
+         }
+      }
+      if (time_order=="1,2") {
+         if (TIMEIT) {
+            cat("order 2 : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+         }
+         labargs$time_order="2" # continue with the 2-nd order
+         capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
+         if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
+            cat("order2: ", reso$mes, "\\n", sep="", file=fcerr)
+         }
+         if (any(is.na(reso$par))) {
+            cat("Optimization time_order 2 (in '1,2' suite) has failed, run=", runsuf, "\\n", file=fcerr, sep="")
+         } else {
+            res=reso
+            param=reso$par
+            names(param)=nm_par
+            jx_f=labargs$jx_f
          }
       }
 #browser()
