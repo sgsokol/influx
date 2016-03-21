@@ -217,8 +217,9 @@ parser.add_option(
        help="generate an R code but not execute it.")
 if case_i:
     parser.add_option(
-"--time_order", type="int",
-       help="Integer (1 (default) or 2) indicating the order of time discretization scheme. Order 2 is more precise but more time consuming.")
+"--time_order", type="choice",
+       choices=[None, "1", "2", "1,2"],
+       help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to solve the ODE with the first order scheme then continues with the order 2.")
 
 parser.add_option(
 "--TIMEIT", action="store_true",
@@ -241,8 +242,6 @@ if len(args) < 1:
     parser.print_help()
     parser.error("At least one FTBL_file expected in argument")
 dict_opts=eval(str(opts))
-if case_i and dict_opts["time_order"] not in (None, 1, 2):
-    parser.error("--time_order can take only values 1 or 2. Instead '%d' was given"%dict_opts["time_order"])
 
 print(" ".join('"'+v+'"' for v in sys.argv))
 #print("cpu=", cpu_count())
