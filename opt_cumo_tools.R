@@ -2,6 +2,25 @@
 if (length(find("TIMEIT")) && TIMEIT && length(find("fclog"))) {
    cat("load    : ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
 }
+# get compiled code
+#browser()
+so=.Platform$dynlib.ext
+fso=paste("mult_bxxc", so, sep="")
+fcpp="mult_bxxc.cpp"
+if (!file.exists(file.path(dirx, fso)) ||
+   file.mtime(file.path(dirx, fso)) < file.mtime(file.path(dirx, fcpp))) {
+   # freshly compile the code (==first use or .so is outdated)
+   Sys.setenv(PKG_LIBS=file.path(system.file(package="rmumps"), "libs", paste("rmumps", .Platform$dynlib.ext, sep="")))
+   tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
+   ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
+   file.copy(ftmp, file.path(dirx, fso), copy.date=TRUE)
+}
+# define R functions from mult_bxxc.so
+multdll=dyn.load(file.path(dirx, fso))
+mult_bxxc <- Rcpp:::sourceCppFunction(function(a, b, c) {}, TRUE, multdll, 'sourceCpp_0_mult_bxxc')
+solve_ieu <- Rcpp:::sourceCppFunction(function(invdt, x0, M, ali, s, ilua) {}, TRUE, multdll, 'sourceCpp_0_solve_ieu')
+match_ij <- Rcpp:::sourceCppFunction(function(ix, jx, ti, tj) {}, TRUE, multdll, 'sourceCpp_0_match_ij')
+rm(multdll)
 
 dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
    # produce complete flux (net,xch)*(dep,free,constr,growth) vector
@@ -532,7 +551,7 @@ cumo_jacob=function(param, labargs) {
    # The result is in a returned list jx_f.
    jx_f=labargs$jx_f
    if (is.null(jx_f$udr_dp)) {
-      jx_f$udr_dp=as.matrix(rBind(jx_f$dux_dp, labargs$dufm_dp, labargs$dupm_dp))
+      jx_f$udr_dp=rbind(jx_f$dux_dp, labargs$dufm_dp, labargs$dupm_dp)
    } else {
       jx_f$udr_dp[1L:nrow(jx_f$dux_dp),]=jx_f$dux_dp
    }
@@ -630,6 +649,7 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
    
    # we derivate a*x=b implicitly
    # a_f*x + a*x_f=b_f + b_xl*xl_f
+#browser()
    nb_c=spAbr$nb_c
    if (nb_c==0) {
       # no system at this weight
@@ -825,7 +845,8 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       j_rhswp=NULL
       b_xp=NULL
    }
-   return(list(j_rhsw=b_f-a_fx, b_f=b_f, a_fx=a_fx, b_x=b_x, j_rhswp=j_rhswp, b_xp=b_xp))
+#browser()
+   return(list(j_rhsw=stm_pm(b_f, a_fx, "-"), b_f=b_f, a_fx=a_fx, b_x=b_x, j_rhswp=j_rhswp, b_xp=b_xp))
 }
 
 put_inside=function(param, ui, ci) {
@@ -1307,4 +1328,21 @@ fallnx2fwrv=function(fallnx, nb_f) {
    # rv=xch-min(net,0)
    fwrv=c(xch-pmin(-net,0),xch-pmin(net,0))
    return(fwrv)
+}
+stm_pm=function(e1, e2, pm=c("+", "-")) {
+   if (pm == "-") {
+      return(stm_pm(e1, -e2, "+"))
+   }
+   stopifnot(pm == "+")
+   #ipos=match(e2$i+e2$j*e2$nrow, e1$i+e1$j*e1$nrow, nomatch=0L)
+   pos=match_ij(e2$i, e2$j, e1$i, e1$j)
+   #if (any(pos!=ipos)) {
+   #   browser()
+   #}
+   ind=which(pos == 0L)
+   e1$v[pos] = e1$v[pos] + e2$v[pos > 0L]
+   e1$i = c(e1$i, e2$i[ind])
+   e1$j = c(e1$j, e2$j[ind])
+   e1$v = c(e1$v, e2$v[ind])
+   return(e1)
 }
