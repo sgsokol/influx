@@ -1,5 +1,5 @@
 #suppressPackageStartupMessages(require(deSolve))
-suppressPackageStartupMessages(require(Matrix))
+#suppressPackageStartupMessages(require(Matrix))
 
 icumo_resid=function(param, cjac, labargs) {
    # claculates residual vector of labeling propagation corresponding to param
@@ -234,6 +234,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    ntico=nb_tifu-1L # number of time columns
    idt=seq_len(ntico)
    itifu=seq_len(nb_tifu)
+   invdt=1./dt
    
    # cumulated sum
    nb_rcumos=nb_f$rcumos
@@ -279,8 +280,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       #cat("param2fl_usm_eul2: recalculate jacobian\n")
       mdf_dffp=df_dffp(param, lf$flnx, nb_f, nm_list)
       jx_f$df_dffp=mdf_dffp
-      xpf=double(nbc_x[nb_w+1L]*ntico*(nb_ff+nb_poolf))
-      dim(xpf)=c(nbc_x[nb_w+1L], ntico, nb_ff+nb_poolf)
+      xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
+      dim(xpf)=c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico)
       if (length(ijpwef)) {
          dpwe=-pwe*spwe
          dpwe[-ipwe]=0.
@@ -300,21 +301,17 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       nb_row=nb_c*emuw
       inrow=(1L+nb_xi+nbc_x[iw])+seq_len(nb_row)
       imw=nbc_x[iw]+seq_len(nb_row) # mass index in x (all but last)
-      if (cjac) {
-         xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
-         dim(xpfw)=c(nb_row, nb_ff+nb_poolf, ntico)
-         #xpf1=matrix(0., nb_c, emuw*(nb_ff+nb_poolf))
-         sfpw=double(nb_row*ntico*nb_poolf)
-         dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
-      }
       vmw=vm[nbc_cumos[iw]+seq_len(nb_c)]
+      vmw=rep(vmw, emuw)
+      dim(vmw)=c(nb_c, emuw)
       Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A
       # prepare (diag(vm)/dt-a)^-1
       at=Aw$triplet()
       am=-at
-      ali=lapply(dt[pmatch(dtru, dtr)], function(dti) {
-         am$v[spAb[[iw]]$iadiag]=vmw/dti+am$v[spAb[[iw]]$iadiag]
-         Rmumps$new(am)
+      ali=lapply(invdt[pmatch(dtru, dtr)], function(dti) {
+         am$v[spAb[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spAb[[iw]]$iadiag]
+         asp=Rmumps$new(am)
+         return(asp@.xData[[".pointer"]])
       })
       if (emu) {
          # for the first time point, set m+0 to 1 in x1
@@ -337,20 +334,30 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       #      return(xw2)
       #   }
       #}, x1[inxw])
-      xw2=vapply(idt, function(idtr) {
-         xw2=solve(ali[[ilua[idtr]]], vmw*xw1/dt[idtr]+st[,idtr])
-         xw1[] <<- xw2
-      }, xw1)
-      dim(xw2)=c(nb_c, emuw, ntico)
-      xsim[inrow,]=xw2
+      #xw2=vapply(idt, function(idtr) {
+      #   xw2=solve(ali[[ilua[idtr]]], vmw*xw1/dt[idtr]+st[,idtr])
+      #   xw1[] <<- xw2
+      #}, xw1)
+      dim(st)=c(nb_c, emuw, ntico)
+      solve_ieu(invdt, xw1, vmw, ali, st, ilua)
+      #dim(xw2)=c(nb_c, emuw, ntico)
+      xsim[inrow,]=st #xw2
       if (emu)
-         xsim[1L+nb_xi+imwl,]=1.-arrApply(xw2, 2, "sum")
+         xsim[1L+nb_xi+imwl,]=1.-arrApply(st, 2, "sum")
       if (cjac) {
 #browser()
          # prepare jacobian ff, pf
          # rhs for all time points on this weight
          # parts before b_x%*%...
+         #Rprof(file="fx2jr.Rprof", append=TRUE)
+         xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
+         dim(xpfw)=c(nb_row, nb_ff+nb_poolf, ntico)
+         xpf1=matrix(0., nb_c, emuw*(nb_ff+nb_poolf))
+         dim(xpf1)=c(nb_c, emuw*(nb_ff+nb_poolf))
+         sfpw=double(nb_row*ntico*nb_poolf)
+         dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
          sj=fx2jr(fwrv, spAb[[iw]], nb_f, xsim)
+         #Rprof(NULL)
          # ff part
          if (nb_ff+nb_fgr > 0) {
             tmp=sj$j_rhsw%stm%mdf_dffp
@@ -360,7 +367,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          # poolf part
          if (nb_poolf > 0) {
             i2x=nb_f$ipf2ircumo[[iw]]
-            xw2=(cbind(x1[inrow], xsim[inrow, -ntico, drop=F])-xsim[inrow, , drop=F])%mrv%(1/dt)
+            xw2=(cbind(x1[inrow], xsim[inrow, -ntico, drop=F])-xsim[inrow, , drop=F])%mrv%invdt
             dim(xw2)=c(nb_c, emuw, ntico)
             #dim(xw2)=c(nb_c, emuw*ntico)
             #tmp=at%stm%xw2+c(st)
@@ -376,7 +383,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             #ic=seq_len(nbc_x[iw])
             #pti=proc.time()
             #for (idtr in idt) {
-            #   xpfw[,,idtr]=xpfw[,,idtr]-sj$b_x[ir+(idtr-1L)*nb_row,]%stm%xpf[ic,idtr,]
+            #   xpfw[,,idtr]=xpfw[,,idtr]-sj$b_x[ir+(idtr-1L)*nb_row,]%stm%xpf[ic,,idtr]
             #}
             mult_bxxc(xpfw, sj$b_x, xpf)
             #cat("iw=", iw, "; len(x)=", length(sj$b_x[ir,]@x), "\n", sep="")
@@ -388,13 +395,15 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #   #dtr=as.character(round(dt[idtr], 10L))
          #   xpf1[] <<- lusolve(ali[[pmatch(dtr[idtr], dtru)]], c(xpfw[,,idtr])+xpf1) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
          #}, xpf1)
-         xpf1=double(nb_row*(nb_ff+nb_poolf))
-         dim(xpf1)=c(nb_c, emuw*(nb_ff+nb_poolf))
-         xpfw[]=vapply(idt, function(idtr) {
-            xpf1[] <<- solve(ali[[ilua[idtr]]], c(xpfw[,,idtr])+vmw*xpf1/dt[idtr]) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
-         }, xpf1)
+         #xpfw[]=vapply(idt, function(idtr) {
+         #   xpf1[] <<- solve(ali[[ilua[idtr]]], c(xpfw[,,idtr])+c(vmw)*xpf1/dt[idtr]) # +xpf1 makes that it is a matrix of a suitable size            xpf1[]=xpfw[,idtr,]
+         #}, xpf1)
+         #dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
+         vmw=rep(vmw, nb_ff+nb_poolf)
+         dim(vmw)=c(nb_c, emuw*(nb_ff+nb_poolf))
+         solve_ieu(invdt, xpf1, vmw, ali, xpfw, ilua)
          dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
-         xpfw[]=aperm(xpfw, c(1L, 2L, 4L, 3L))
+         #xpfw[]=aperm(xpfw, c(1L, 2L, 4L, 3L))
          xpf[imw,,]=xpfw
          if (emu) {
             # treat the last weight
@@ -406,17 +415,19 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # get ti moments corresponding to measurements
    isel=itifu[tifull %in% ti][-1L]-1L
    ntise=length(isel)
-   xsim=xsim[-seq_len(1L+nb_xi), isel, drop=F]
+   xsimf=xsim[-seq_len(1L+nb_xi),, drop=F] # full simulation (in time)
+   xsim=xsimf[,isel,drop=FALSE]
    # usm
-   mx=measmat%*%(if (nrow(xsim) == nb_mcol) xsim else xsim[nm$rcumo_in_cumo,,drop=F])+memaone
+   mx=measmat%*%(if (nrow(xsim) == nb_mcol) xsimf else xsimf[nm$rcumo_in_cumo,,drop=F])+memaone
    if (length(ipooled) > 1L) {
-      usm=as.matrix(meas2sum%*%(pwe*mx))
+      usmf=as.matrix(meas2sum%*%(pwe*mx)) # full simulated measurements (in time)
    } else {
-      usm=mx
+      usmf=mx
    }
+   usm=usmf[,isel,drop=FALSE]
    if (cjac) {
       #jx_f$xpf=xpf # for debugging only
-      xpf=xpf[,isel,,drop=F]
+      xpf=aperm(xpf[,,isel,drop=F], c(1L, 3L, 2L))
       dim(xpf)=c(nbc_x[nb_w+1L], ntise*(nb_ff+nb_poolf))
       # scale part of jacobian
       if (nb_f$nb_sc != 0L) {
@@ -447,7 +458,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # store usefull information in global list jx_f
    jx_f$param=param
    jx_f$usm=usm
+   jx_f$usmf=usmf
    jx_f$xsim=xsim
+   jx_f$xsimf=xsimf
    
    return(list(usm=usm, x=xsim, lf=lf))
 }
@@ -455,7 +468,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
 param2fl_usm_rich=function(param, cjac, labargs) {
    # Richardson extrapolation to get order 2 in ODE solve
    res1=param2fl_usm_eul2(param, cjac, labargs)
-   if (labargs$time_order==2) {
+   if (labargs$time_order=="2") {
       # find usimvec with step h/2
       nm1=c("tifull", "tifull2", "jx_f", "nb_f") # names to save for orders 1 and 2
       for (item in nm1) {
