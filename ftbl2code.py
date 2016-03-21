@@ -339,6 +339,7 @@ suppressPackageStartupMessages(library(parallel))
 #use_magma=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
 use_magma=F
 suppressPackageStartupMessages(library(Rcpp))
+suppressPackageStartupMessages(library(RcppArmadillo))
 suppressPackageStartupMessages(library(rmumps))
 suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
 
@@ -351,9 +352,6 @@ suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
 source(file.path(dirx, "tools_ssg.R"))
 source(file.path(dirx, "nlsic.R"))
 source(file.path(dirx, "kvh.R"))
-
-# get compiled code
-sourceCpp(file.path(dirx, "mult_bxxc.cpp"))
 
 # default options
 version=F
@@ -382,7 +380,7 @@ seed=-.Machine$integer.max
 excl_outliers=F
 TIMEIT=F
 prof=F
-time_order=1L
+time_order="1"
 
 # get runtime arguments
 %(ropts)s
@@ -474,6 +472,10 @@ if (seed==-.Machine$integer.max) {
 } else {
    set_seed=T
    set.seed(seed)
+}
+time_order=gsub("\\\\s", "", time_order) # remove spaces if any
+if (!(time_order %%in%% c("1", "2", "1,2"))) {
+   stop_mes(sprintf("time_order must be '1', '2' or '1,2'. Instead got '%%s'"))
 }
 opts=commandArgs()
 # end command line argument proceeding
