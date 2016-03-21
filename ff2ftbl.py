@@ -25,7 +25,7 @@ import re
 from math import exp
 
 import kvh
-def usage(mes):
+def usage(mes=""):
     sys.stderr.write(os.linesep.join([mes, __doc__]))
 
 try:
