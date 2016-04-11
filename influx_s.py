@@ -195,6 +195,9 @@ parser.add_option(
 "--tikhreg", action="store_true",
     help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
 parser.add_option(
+"--lim", action="store_true",
+    help="The same as --ln but with a function limSolve::lsei()")
+parser.add_option(
 "--zc", type="float",
     help="Apply zero crossing strategy with non negative threshold for net fluxes")
 parser.add_option(

@@ -332,6 +332,7 @@ if (length(find("bitwAnd"))==0L) {
    bitwAnd=bitAnd
 }
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
+suppressPackageStartupMessages(library(limSolve)); # for non negative least square
 #suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 #options(Matrix.quiet=TRUE)
 suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
@@ -372,6 +373,7 @@ np=0
 ln=F
 tikhreg=F
 sln=F
+lim=F
 zc=-.Machine$double.xmax
 ffguess=F
 fseries=""
@@ -448,14 +450,16 @@ if (sensitive=="mc") {
 }
 options(mc.cores=np)
 
-if (least_norm && tikhreg) {
-   stop_mes("Options --ln and --tikhreg cannot be activated simultaneously", file=fcerr)
+if (least_norm+tikhreg+lim > 1) {
+   stop_mes("Options --ln, --lim and --tikhreg cannot be activated simultaneously. Use only one of them at a time.", file=fcerr)
 }
 lsi_fun=lsi
 if (least_norm || sln) {
    lsi_fun=lsi_ln
 } else if (tikhreg) {
    lsi_fun=lsi_reg
+} else if (lim) {
+   lsi_fun=lsi_lim
 }
 if (zc==-.Machine$double.xmax) {
    # no zero scrossing to apply
