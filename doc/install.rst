@@ -26,10 +26,13 @@ Dependencies
   
   + nnls
   + snow (needed only on Windows platform for Monte-Carlo parallel simulations)
+  + rmumps
+  + arrApply
+  + slam
 
 To install R modules, as administrator do in R::
 
- > install.packages(c("nnls", "snow"), dep=T)
+ > install.packages(c("nnls", "snow", "rmumps", "arrApply", "slam"), dep=T)
 
 If you are not an administrator of your R installation, you can execute the command above in your own session and install necessary packages in your own disk space. Other users will have to do the same install in their respective sessions if they want to use ``influx_s``.
 
