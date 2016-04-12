@@ -332,7 +332,6 @@ if (length(find("bitwAnd"))==0L) {
    bitwAnd=bitAnd
 }
 suppressPackageStartupMessages(library(nnls)); # for non negative least square
-suppressPackageStartupMessages(library(limSolve)); # for non negative least square
 #suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 #options(Matrix.quiet=TRUE)
 suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
@@ -459,6 +458,7 @@ if (least_norm || sln) {
 } else if (tikhreg) {
    lsi_fun=lsi_reg
 } else if (lim) {
+   suppressPackageStartupMessages(library(limSolve));
    lsi_fun=lsi_lim
 }
 if (zc==-.Machine$double.xmax) {
