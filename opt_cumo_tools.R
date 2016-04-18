@@ -11,6 +11,7 @@ if (!file.exists(file.path(dirx, fso)) ||
    file.mtime(file.path(dirx, fso)) < file.mtime(file.path(dirx, fcpp))) {
    # freshly compile the code (==first use or .so is outdated)
    Sys.setenv(PKG_LIBS=file.path(system.file(package="rmumps"), "libs", paste("rmumps", .Platform$dynlib.ext, sep="")))
+   Sys.setenv(PKG_CXXFLAGS="-std=c++11")
    tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
    ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
    file.copy(ftmp, file.path(dirx, fso), copy.date=TRUE)
