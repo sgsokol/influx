@@ -222,7 +222,7 @@ if case_i:
     parser.add_option(
 "--time_order", type="choice",
        choices=[None, "1", "2", "1,2"],
-       help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to solve the ODE with the first order scheme then continues with the order 2.")
+       help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to start solving the ODE with the first order scheme then continues with the order 2.")
 
 parser.add_option(
 "--TIMEIT", action="store_true",
