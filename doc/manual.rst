@@ -1,19 +1,28 @@
 
 .. _manual:
 
+.. highlight:: bash
+
 =============
 User's manual
 =============
 
-``influx_s`` can be run without any option on most common cases. So its usage can be as simple as::
+``influx_si`` can be run without any option on most common cases. So its usage can be as simple as ::
 
  $ influx_s.py mynetwork
+ 
+or ::
 
-we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork.ftbl`` was created. Moreover, we supposed ``influx_s.py`` is in the PATH variable.
+ $ influx_i.py mynetwork
+
+we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork.ftbl`` was created. Moreover, we supposed ``influx_s.py`` and ``influx_i.py`` is in the PATH variable.
+
+In the rest of this manual, we'll use just ``influx_s.py`` as example if the example is valid for both stationary and instationary contexts. If some usage is valid exclusively for ``influx_i.py``, it will be duly signaled.
 
 .. note::
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
- For some specific features of ``influx_s``, the FTBL format was extended. Here is complete list of such extensions:
+ For some specific features of ``influx_si``, the FTBL format was extended. Here is complete list of such extensions:
+ 
   - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
   - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0).
   - starting from the version 2.5, ``NA`` (missing values) are admitted in measurement sections;
@@ -21,17 +30,17 @@ we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork
   - starting from the version 2.11, new subsections ``EQUALITY/METAB`` and ``INEQUALITY/METAB`` can appear in FTBL file. They can be useful, e.g. to impose a fixed ratio between variable metabolite concentrations (that are part of fitted variables) and/or to limit their variations to some interval. Their syntax is identical to the flux counterpart of these sections.
 
 
-In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.: ::
+In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g. ::
 
  $ influx_s.py mynetwork1 mynetwork2
 
 and so on. All files are then proceeded in separate independent processes launched almost simultaneously by a bunch of size equal to the number of available or requested cores (if an option ``--np=NP`` is used). It is an operating system who is in charge to make a distribution of all these processes among all available CPUs and cores.
 
-Sometimes, particular cases need usage of special options of ``influx_s``. The list of available options can be seen by running::
+Sometimes, particular cases need usage of special options of ``influx_si``. The list of available options can be seen by running::
 
  $ influx_s.py --help
 
-If used with options, ``influx_s`` can be run like::
+If used with options, ``influx_si`` can be run like ::
 
  $ influx_s.py [options] mynetwork
 
@@ -47,8 +56,8 @@ The option names can be shortened till a non ambiguous interpretation is possibl
 
 Here after the available options with their full names are enumerated and detailed.
 
-Command line options
---------------------
+``influx_si`` command line options
+----------------------------------
   --version        show program's version number and exit
   -h, --help       show the help message and exit
   --noopt          no optimization, just use free fluxes as is (after a projection on feasibility domain), to calculate
@@ -106,6 +115,7 @@ Command line options
                    deficient
                    
                    To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only one of the options ``--ln`` and ``--tikhreg`` can be activated in a given run.
+  --lim            The same as --ln but with a function limSolve::lsei()
   --zc=ZC          Apply zero crossing strategy with non negative threshold
                    for net fluxes
                    
@@ -220,7 +230,7 @@ Names and default values for BFGS and Nelder-Mead algorithms can be found in the
 
 Growth flux option
 ------------------
-If present, this option makes ``influx_s`` take into account growth fluxes :math:`-\mu{}M` in the flux balance, where :math:`\mu` is a growth rate and :math:`M` is a concentration of an internal metabolite M by a unit of biomass. Only metabolites for which this concentration is provided in an FTBL section ``METABOLITE_POOLS``, contribute to flux balance with a flux :math:`-\mu{}M`.
+If present, this option makes ``influx_si`` take into account growth fluxes :math:`-\mu{}M` in the flux balance, where :math:`\mu` is a growth rate and :math:`M` is a concentration of an internal metabolite M by a unit of biomass. Only metabolites for which this concentration is provided in an FTBL section ``METABOLITE_POOLS``, contribute to flux balance with a flux :math:`-\mu{}M`.
 This flux can be varying or constant during optimization process depending on whether the metabolite M is part of free parameters to fit or not. Usually, taking into account of this kind of flux does not influence very much on the estimated flux values. So, this option is provided to allow a user to be sure that it is true in his own case.
 
 The option is activated by a field ``include_growth_flux`` in the ``OPTIONS`` section:
@@ -298,7 +308,7 @@ The script name is interpreted as a relative path to the directory where the ori
  
 After that, all variables defined in influx_s at the end of the calculations will be available in the current interactive session.
 
-To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them::
+To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:
 
 dirw
   is a working directory (where the original FTBL file is)
@@ -343,6 +353,72 @@ A full list of all available variable and functions can be obtained in an R sess
  
 This list of more than 400 items is too long to be fully described here. We hope that few items succinctly described in this section will be sufficient for basic custom treatments.
 
+Exclusive ``influx_i`` options
+------------------------------
+There is only one exclusive option that can be given on a command line:
+
+  --time_order=TIME_ORDER     Time order for ODE solving (1 (default), 2 or 1,2).
+                              Order 2 is more precise but more time consuming. The
+                              value '1,2' makes to start solving the ODE with the first
+                              order scheme then continues with the order 2.
+                              
+                              The scheme order can be important for the precision of flux and concentration estimations. The impact is not direct but can be very important. Please note that it can happen that order 1 fits the data with lower cost value function but it does not mean that the fluxes/concentrations are better estimated.
+
+Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
+
+ ``file_labcin``
+   gives the name of the text file with label kinetics. If the file name starts with a "/", it is considered as 
+   
+   The values must be organized in a matrix where each row corresponds to a measured isotopomer/cumomer/mass-isotopologue while each column corresponds to a given time point. First column gives the names of labeled measured species and the first row contains time points.
+   
+   Matrix must be written one row per line and its entries (cells) must be separated by tabulations. Missing data can be signaled as ``NA`` or just an empty cell. Comments are allowed and must start with ``#`` sign. The rest of the line after ``#`` is simply ignored.
+   Empty lines are ignored. In such a way, comments can help to annotate the data and empty lines can help to format the file for better human readability.
+   All lines (a part from blank lines and comments) must have the same number of cells.
+   
+   The specie names must fit the names used in corresponding measurement sections of FTBL file. For example, a name ``m:Rib5P:1,2,3,4,5:0:693`` is composed of several fields separated by a column ``:``
+   
+   ``m``
+     indicates that data are of ``MASS_SPECTROMETRY`` type. Other possible values are ``l`` for ``LABEL_MEASUREMENTS`` and ``p`` for ``PEAK_MEASUREMENTS``
+   ``Rib5P``
+     metabolite name
+   ``1,2,3,4,5``
+     carbon numbers present in the measured fragment
+   ``0``
+     mass shift relative to fully unlabeled mass isotopologue: ``0`` corresponds to a fraction of unlabeled fragment, ``1`` to a fraction of fragments with only one labeled carbon atom and so on
+   ``693``
+     line number in FTBL file corresponding to this measurement. If previous fields are sufficient to unambiguously identify the measurement, this field can be omitted.
+     
+   Cf. ``test/e_coli_msne.txt`` (and corresponding ``test/e_coli_i.ftbl``) for more examples.
+   
+   The measurement precision (SD) is considered as constant during time and its values (one per measured specie) is given in the FTBL file, in the corresponding measurement section.
+   
+   All time points must be positive and put in increasing order. The time point 0 must be absent and is considered as labeling start. At that point all species are supposed to be fully unlabeled. This means also that all label measurements must be provided with a correction for natural 13C labeling. To prepare MS data with such correction, a software `IsoCor <https://metatoul.insa-toulouse.fr/metasys/software/isocor>`_ can help.
+   
+   There can be fictitious time points without any data in them. This feature can be used to increase the time resolution at some time intervals. The simulation of label propagation will be done and reported at these fictitious time points but the fitting will be obviously done only at time points having real data in them. For a regular time interval sub-division, it is more practical to use a parameter ``nsubdiv_dt`` (cf. hereafter) instead of fictitious time point in this file.
+   
+   If this field is empty or absent in the FTBL file then no fit can be done and a simple label simulation is calculated as if ``--noopt`` option were activated. Such simulation can be done only if a time grid is defined with the help of two other parameters: ``dt`` and ``tmax`` (cf. hereafter).
+ ``nsubdiv_dt``
+   integer number of sub-intervals by which every time interval is divided to increase the precision of time resolution.
+   
+   It can happen that the value 1 (default) is sufficient for a satisfactory flux/concentration estimation. User can gradually increase this value (2, 3, ...) in successive ``influx_i`` runs to be sure that better time resolution does not impact parameter estimation. This property is called *grid convergence*. A grid convergence is necessary to overcome the result dependency on the choice of a numerical discretization scheme. A grid convergence can be considered as achieved when changes in estimated parameters provoked by a grid refinement are significantly lower than estimated confidence intervals for these parameters.
+ ``dt``
+   a real positive number, defines a time step in a regular grid in absence of a file in ``file_labcin`` field.
+   If a file with label kinetics is well present then this parameter has no effect.
+   
+   A regular time grid for label simulations can be useful on preliminary stage when user only elaborates FTBL file and wants to see if label simulation are plausible. It can also help to produce simulated measurements (which can be extracted from the ``_res.kvh`` file) for further numerical experiments like studying convergence speed, parameter identifiability, noise impact and so on.
+ ``tmax``
+   a real positive number, defines the end of a regular time grid if the field ``file_labcin`` is empty or absent. Parameters ``dt`` and ``tmax`` must be defined in such a way that there will be at least 2 time points greater then 0 in the time grid.
+   
+   If a file with label kinetics is well present then this parameter can be used to limit time grid on which simulations are done. If the value in ``tmax`` is greater then the maximal time value defined in the kinetics file then this parameter has no effect.
+   
+.. note::
+  It is very important that the values for time, flux and metabolite concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.
+  
+  For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.
+  
+.. note::
+  Option ``--noscale`` must be always activated for instationary calculations. So that for example, MS measurements must be always composed of fully measured fragments (i.e. with all isotopologues present) and normalized to sum up to 1.
+
 Result file fields
 ------------------
 
@@ -354,7 +430,7 @@ At the beginning of the ``mynetwork_res.kvh`` file, some system information is p
   are prefixed by ``n.`` or ``x.`` respectively
  free, dependent, constrained and variable growth fluxes
   are prefixed by ``f.``, ``d.``, ``c.`` and ``g.`` respectively. So, a complete flux name could look like ``f.n.zwf`` which means `free net ZWF flux`.
-  Growth fluxes which depend on constant metabolite concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with ``_gr`` (as `growth`) string. For example, a flux ``g.n.Cit_gr`` corresponds to a net growth flux of Citrate metabolite. The growth fluxes are all set as non reversible, so all exchange fluxes like ``g.x.X_gr`` or ``c.x.X_gr`` are set to 0.
+  Growth fluxes which depend on constant metabolite concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with ``_gr`` (as `growth`) string. For example, a flux ``g.n.Cit_gr`` corresponds to a net growth flux of Citrate metabolite. The growth fluxes are all set as non reversible, so all exchange fluxes like ``g.x.M_gr`` or ``c.x.M_gr`` are set to 0.
  scaling factors names
   are formed according to a pattern similar to ``label;Ala;1`` which corresponds to the first group of measurements on Alanine molecule in labeling experiments. Other possible types of experiments are ``peak`` and ``mass``.
  MID vector names
@@ -384,7 +460,7 @@ The field ``jacobian dr_dp (without 1/sd_exp)`` report a Jacobian matrix which i
 
 Network values for Cytoscape
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Several network values formatted for cytoscape are written by ``influx_s`` to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of any of them. All these files are written at the end of calculations so if an error has interrupted this process, no such file will be produced. Take care to don't use an outdated copy of these files.
+Several network values formatted for cytoscape are written by ``influx_si`` to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of any of them. All these files are written at the end of calculations so if an error has interrupted this process, no such file will be produced. Take care to don't use an outdated copy of these files.
 
 A file named ``edge.netflux.mynetwork.attrs`` can help to map net flux values on edges of a studied network. A file ``edge.xchflux.mynetwork.attrs`` do the same with exchange fluxes. And finally, ``node.log2pool.mynetwork.attrs`` provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.
 
@@ -416,7 +492,9 @@ Most of the error messages are automatically generated by underlying languages P
   Candidate(s) for free flux(es):
   d.n.Xylupt_U
 
-a message about badly structurally defined network could be similar to::
+a message about badly structurally defined network could be similar to
+
+.. code-block:: text
 
   Error : Provided measurements (isotopomers and fluxes) are not
     sufficient to resolve all free fluxes.
@@ -424,7 +502,9 @@ a message about badly structurally defined network could be similar to::
     f.x.tk2, f.n.Xylupt_1, f.x.maldh, f.x.pfk, f.x.ta, f.x.tk1
   Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
 
-a message about singular cumomer balance matrix could resemble to::
+a message about singular cumomer balance matrix could resemble to
+
+.. code-block:: text
 
   lab_sim: Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero Zero rows in cumomer matrix A at weight 1:
   cit_c:16
@@ -443,7 +523,9 @@ a message about singular cumomer balance matrix could resemble to::
  Adding such inequalities does not guaranty that cumomer matrix will become invertible but often it does help.
  It's up to user to check that an addition of such inequalities does not contradict biological sens of his network.
 
-a message about badly statistically defined network could appear like::
+a message about badly statistically defined network could appear like
+
+.. code-block:: text
 
  Inverse of covariance matrix is numerically singular.
  Statistically undefined parameter(s) seems to be:
@@ -453,7 +535,7 @@ a message about badly statistically defined network could appear like::
 
 and so on.
 
-A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun ``influx_s`` to see if other problems are still here. Sometimes, a problem can induce several others. So, fixing the first problem could eliminate some others. Repeat this process, till all the troubles are eliminated.
+A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun ``influx_si`` to see if other problems are still here. Sometimes, a problem can induce several others. So, fixing the first problem could eliminate some others. Repeat this process, till all the troubles are eliminated.
 
 Problematic cases
 -----------------
@@ -464,7 +546,9 @@ In this section we review some problematic cases which can be encountered in pra
 Structurally non identifiable fluxes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It can happen that collected data are not sufficient to resolve some fluxes in your network. Due to non linear nature of the problem, this situation can appear for some set of free flux values and disappear for others or be persistent for any free flux values. An error is reported to signal such situation, e.g.::
+It can happen that collected data are not sufficient to resolve some fluxes in your network. Due to non linear nature of the problem, this situation can appear for some set of free flux values and disappear for others or be persistent for any free flux values. An error is reported to signal such situation, e.g.
+
+.. code-block:: text
 
  lsi: Rank deficient matrix in least squares
  1 unsolvable variable(s):
@@ -476,23 +560,24 @@ Several options are then available for a user facing such situation.
 
 1. Collect more data to resolve lacking fluxes. As a rule of thumb, data must be collected on metabolites which are node of convergence of badly defined fluxes or on metabolites situated downhill of convergence point and preserving labeling pattern. Nature of collected data can be also important. Examples can be constructed where mass data are not sufficient to determine a flux but RMN data can do the job.
  
- Before actual data collection, you can make a "dry run" with ``--noopt`` option and with fictitious values for intended metabolite in the FTBL file to see if with these new data, the network becomes well resolved. If the error message disappear and SD values in the the section ``linear stats`` are not very high then chances are that additionally collected data can help to resolve the fluxes.
+ Before using real data collection, you can make a "dry run" with ``--noopt`` option and with fictitious values for intended metabolite in the FTBL file to see if with these new data, the network becomes well resolved. If the error message disappear and SD values in the section ``linear stats`` are not very high then chances are that additionally collected data can help to resolve the fluxes.
  
-2. Optimize input label. It can happen that you do collect data on a metabolite situated in convergence point for undefined fluxes but incoming fluxes are bringing the same labeling pattern which prevents flux(es) to be resolved. May be changing substrate label can help in this situation. For label optimization you can use a software called IsoDesign, distributed under OpenSource licence and available here http:://metasys.insa-toulouse.fr/software/isodes/ (may be you have received ``influx_s`` as part of IsoDesign package, in which case you have it already).
+2. Optimize input label. It can happen that you do collect data on a metabolite situated in convergence point for undefined fluxes but incoming fluxes are bringing the same labeling pattern which prevents flux(es) to be resolved. May be changing substrate label can help in this situation. For label optimization you can use a software called IsoDesign, distributed under OpenSource licence and available here http:://metatoul.insa-toulouse.fr/metasys/software/isodes/ (may be you have received ``influx_si`` as part of IsoDesign package, in which case you have it already).
  
  Naturally, this label optimization should be done before doing actual experiments. See IsoDesing tutorial for more details on how to prepare and make such optimization.
  
  If you don't want or don't have a possibility to use a software for label optimization or you think to have an insight on what should be changed in substrate labeling to better define the fluxes, you can still make a try with ``influx_s.py --noopt new_labeling.ftbl`` option to see if a new labeling will do the job (here ``new_labeling.ftbl`` is an example name for a FTBL file that you will prepare with a new ``LABEL_INPUT`` section.)
 
-3. Use ``--ln`` option. It wont make you fluxes well defined, it will just continue calculation trying to resolve what can be solved and assigning some particular values (issued from so called *least norm* solution for rank deficient matrices) to undefined fluxes. You will still have a warning similar to::
+3. Use ``--ln`` option. It wont make you fluxes well defined, it will just continue calculation trying to resolve what can be solved and assigning some particular values (issued from so called *least norm* solution for rank deficient matrices) to undefined fluxes. You will still have a warning similar to
 
- lsi_ln: Rank deficient matrix in least squares
- 1 free variable(s):
- f.n.PPDK        7
- Least L2-norm solution is provided.
+ .. code-block:: text
+
+   lsi_ln: Rank deficient matrix in least squares
+   1 free variable(s):
+   f.n.PPDK        7
+   Least L2-norm solution is provided.
  
-informing you that some flux(es) in the network is(are) still undefined.
-This option can be helpful if undefined fluxes are without particular interest for biological question in hand and their actual values can be safely ignored.
+ informing you that some flux(es) in the network is(are) still undefined. This option can be helpful if undefined fluxes are without particular interest for biological question in hand and their actual values can be safely ignored.
 
 4. You can give an arbitrary fixed value to an undefined flux by declaring it as constrained in the FTBL file (letter ``C`` in the column ``FCD`` in the ``FLUXES`` section).
 
@@ -518,33 +603,46 @@ or/and ::
  
 Theoretically, user can increase the limit for those two numbers
 (``optctrl_maxit`` and ``optctrl_btmaxit`` respectively in the ``OPTIONS`` section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
-In all cases, a slow convergence is due to high non linearity of the solved problem. What can vary from one situation to another, it is the nature of this non linearity. Depending on this nature, several steps can be undertaken to accelerate optimization::
+In all cases, a slow convergence is due to high non linearity of the solved problem. What can vary from one situation to another, it is the nature of this non linearity. Depending on this nature, several steps can be undertaken to accelerate optimization:
 
 1. If a non linearity causing the slow convergence is due to the use of function absolute value :math:`|x|` in the calculation of forward and revers fluxes from net and exchange fluxes, then an option ``--zc=ZC`` (zero crossing) can be very efficient. This non linearity can become harmful when during optimization a net flux has to change its sign, in other words it has to cross zero.
- This option splits the convergence process in two parts. First, a minimum is searched for fluxes under additional constraints to keep the same sign during this step. Second, for fluxes that reached zero after the first step, a sign change is imposed and a second optimization is made with these new constraints.
- If ``--zc`` option is used with an argument 0 (``--zc=0`` or ``--zc 0``), it can happen that fluxes reaching zero produce a singular (non invertible) cumomer balance matrix. In this case, an execution is aborted with an error starting like::
 
-   Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero
-   ...
+ This option splits the convergence process in two parts. First, a minimum is searched for fluxes under additional constraints to keep the same sign during this step. Second, for fluxes that reached zero after the first step, a sign change is imposed and a second optimization is made with these new constraints.
+ If ``--zc`` option is used with an argument 0 (``--zc=0`` or ``--zc 0``), it can happen that fluxes reaching zero produce a singular (non invertible) cumomer balance matrix. In this case, an execution is aborted with an error starting like
+ 
+  .. code-block:: text
+   
+    Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero
+    ...
+   
  To avoid such situation, an argument to ``--zc`` must be a small positive number, say ``--zc 0.001``. In this case, positive net fluxes are kept over 0.001 and negative fluxes are kept under -0.001 value. In this manner, an exact zero is avoided.
  
-2. A high non linearity can appear for some particular set of free fluxes, especially when they take extreme values, e.g. when exchange fluxes are close to 1 or net fluxes take very high values of order 10² or even 10³ (supposing that the main entry flux is normalized to 1). In such a case, user can low this limits (options ``--cupx=CUPX`` and ``--cupn=CUPN`` respectively) or try to exclude outliers (``--excl_outliers P-VALUE``) as outliers can attract the solution in weird zone of free fluxes. In this latter case, the first convergence will continue to be slow and will generate corresponding warnings but the second one (after a possible elimination of outliers) can be much quicker.
+ Another way to avoid problem induced by using module function :math:`|x|` is to add inequality(-ies) imposing sens of reaction in ``INEQUALITIES/NET`` section, e.g. ::
+  
+   0.0001	<=	mae
+ 
+ Naturally, in this example, you have to be sure that the reaction catalyzed by malic enzyme (here ``mae``) must go in the sens written in your FTBL file.
+ 
+ You can find potential candidates to impose sens of reaction by examining the flux values in ``mynetwork_res.kvh`` after a slow convergence and looking fluxes who's sign (positive or negative) looks suspicious to you. In our practice, we could observe a dramatic increase in convergence speed and stability just after imposing a sens of reaction to a "key" reaction. Obviously, such constraint must be in accordance with biological sens of a studied network and its biological condition.
+ 
+2. A high non linearity can appear for some particular set of fluxes, especially when they take extreme values, e.g. when exchange fluxes are close to 1 or net fluxes take very high values of order 10² or even 10³ (supposing that the main entry flux is normalized to 1). In such a case, user can low this limits (options ``--cupx=CUPX`` and ``--cupn=CUPN`` respectively) or try to exclude outliers (``--excl_outliers P-VALUE``) as outliers can attract the solution in weird zone of fluxes. In this latter case, the first convergence will continue to be slow and will generate corresponding warnings but the second one (after a possible automatic elimination of outliers) can be much quicker.
+
 
 Convergence aborted
 ~~~~~~~~~~~~~~~~~~~
-This situation is signaled by the error::
+This situation is signaled by an error message::
 
  nlsic: LSI returned not descending direction
 
-This problem can occur for badly defined network which are very sensible for truncation errors. The effect of such errors can become comparable to the effect of the increment step during optimization. It means that we cannot decrease the norm of residual vector under the values resulting from rounding errors.
-If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no such many measures that user could undertake beside to make his system better defined as described in previous sections.
+This problem can occur for badly defined network which are very sensitive to truncation errors. The effect of such errors can become comparable to the effect of the increment step during optimization. It means that we cannot decrease the norm of residual vector under the values resulting from rounding errors.
+If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no so many actions that user could undertake except to make his system better defined as described in previous sections.
 
 .. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`10^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`10^{-3}` or :math:`10^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
 
 Additional tools
 ----------------
 
-Tools described in this section are not strictly necessary for running ``influx_s`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
+Tools described in this section are not strictly necessary for running ``influx_si`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
 
 Most of the utilities produce an output written on standard output or in a file who's name is derived from the input file name. This latter situation is signaled with a phrase "The output redirection is optional" and in the usage examples the output redirection is taken in square brackets ``[> output.txt]`` which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.
 
@@ -598,7 +696,7 @@ A user can examine ``mynetwork.netan`` in a plain text editor (not like Word) or
 ftbl2cumoAb: human readable equations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes, it can be helpful to examine visually the equations used by ``influx_s``. These equations can be produced in human readable form by running::
+Sometimes, it can be helpful to examine visually the equations used by ``influx_si``. These equations can be produced in human readable form by running::
 
  $ ftbl2cumoAb.py -r mynetwork[.ftbl] [> mynetwork.sys]
 
@@ -632,7 +730,7 @@ res2ftbl_meas: simulated data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 During preparation of a study, one of questions that biologist can ask is "Will the intended collected data be sufficient for flux resolution in a given network?"
-Some clue can be obtained by making "dry runs" of ``influx_s`` with ``--noopt`` (i.e. no optimization) option. User can prepare an FTBL file with a given network and supposed data to be collected. At first, the measurement values can be replaced by NAs while the SD values for measurements must be given in realistic manner. After running::
+Some clue can be obtained by making "dry runs" of ``influx_si`` with ``--noopt`` (i.e. no optimization) option. User can prepare an FTBL file with a given network and supposed data to be collected. At first, the measurement values can be replaced by NAs while the SD values for measurements must be given in realistic manner. After running::
 
  $ influx_s.py --noopt mynetwork
 
@@ -662,6 +760,6 @@ The output redirection is optional.
 IsoDesign: optimizing input label
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-One of means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` solving this problem was developed by Pierre Millard. It is not part of ``influx_s`` distribution and can be downloaded at http://metasys.insa-toulouse.fr/software/isodes/. In a nutshell, it works by scanning all possible input label compositions with a defined step, running ``influx_s`` on each of them then collecting the SD information on all fluxes for all label compositions and finally selecting an input label optimal in some sens (according to a criterion chosen by a user).
+One of means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` solving this problem was developed by Pierre Millard. It is not part of ``influx_si`` distribution and can be downloaded at http://metatoul.insa-toulouse.fr/metasys/software/isodes/. In a nutshell, it works by scanning all possible input label compositions with a defined step, running ``influx_si`` on each of them then collecting the SD information on all fluxes for all label compositions and finally selecting an input label optimal in some sens (according to a criterion chosen by a user).
 
 .. _Cytoscape: http://www.cytoscape.org

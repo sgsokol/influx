@@ -1,12 +1,31 @@
-=======================
-Change Log for influx_s
-=======================
+========================
+Change Log for influx_si
+========================
+
+2016-04-18 version 3.0.1
+------------------------
+Bug fixes:
+ - fixed including mult_bxxc.so file in zip archive which prevented from proper compiling of this dynamic library
+ - fixed an absence of C++11 flag on platforms where it is not a standard by default.
+
+2016-04-15 version 3.0.0
+------------------------
+New features:
+ - influx_i.py is introduced for instationary label modeling
+ - some critical calculations are written in C++ so some compilation is needed at first execution.
+ - new optional package limSolve is used and need to be installed (as well as its dependencies) if ``--lim`` option is used
+ - more TIMEIT points introduced for finer time control
+
+Bug fixes:
+ - fixed performance issue in slam '-' and '+' operations
+ - fixed sparse matrix preparation when there is only one non zero entry
 
 2016-02-18 version 2.15
 -----------------------
 New features:
  - calculation speed was improved due to the use of packages slam and rmumps instead of Matrix;
  - added "cpu" field when timing is requested
+
 Bug fixes:
  - fixed a bug preventing a use of a flux added in EQALITIES in measured fluxes (reported by Edern Cahoreau, INSA, Toulouse, France)
  - fixed minor problems in MC iterations (parameter distribution was not significantly affected)

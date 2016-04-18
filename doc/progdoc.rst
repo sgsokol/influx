@@ -29,7 +29,7 @@ ftbl2optR
  :members:
 
 ftbl2xgmml
----------
+----------
 .. automodule:: ftbl2xgmml
  :members:
 

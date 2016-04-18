@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to influx_s's documentation!
-====================================
+Welcome to influx_si's documentation!
+=====================================
 
 .. toctree::
    :maxdepth: 1

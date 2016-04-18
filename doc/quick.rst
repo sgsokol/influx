@@ -5,22 +5,28 @@
 Quick Start
 ===========
 
-A basic work-flow with ``influx_s`` is composed of the following steps:
+A basic work-flow with ``influx_si`` is composed of the following steps:
 
-1. Create a FTBL file describing your metabolic reactions, carbon transitions, experimental data and some options. Let call an example file ``mynetwork.ftbl``. The FTBL file must follow syntax rules elaborated for `13CFlux <https://www.13cflux.net/>`_ software. The FTBL file is a plain text file. The syntax rules will be more or less obvious for someone working on metabolism biochemistry. So, to go quickly, you can inspire from an example file ``test/e_coli.ftbl`` distributed with the ``influx_s`` software.
- .. note:: Staring from the version 2.5, ``NA`` values (as "Non Available") are admitted as measurements values where appropriate. The difference with FTBL where they are simplly omitted is that NA measurments are simulated and are present in the vectors ``simulated unscaled labeling measurements`` and ``simulated scaled labeling measurements`` in the result kvh file.
+1. Create a FTBL file describing your metabolic reactions, carbon transitions, experimental data and some options. Let call an example file ``mynetwork.ftbl``. The FTBL file must follow syntax rules elaborated for `13CFlux <https://www.13cflux.net/>`_ software. The FTBL file is a plain text file. The syntax rules will be more or less obvious for someone working on metabolism biochemistry. So, to go quickly, you can inspire from an example file ``test/e_coli.ftbl`` distributed with the ``influx_si`` software.
 
-2. Set your current directory to the directory of ``mynetwork.ftbl`` and run::
+ .. note:: Staring from the version 2.5, ``NA`` values (as "Non Available") are admitted as measurements values where appropriate. The difference with FTBL where they are simply omitted is that NA measurements are simulated and are present in the vectors ``simulated unscaled labeling measurements`` and ``simulated scaled labeling measurements`` in the result kvh file.
+ 
+ .. note:: In case of ``influx_i``, label kinetics can be provided in a separate plain text file with values separated by tabulations. First column in this file gives measurement names, and all other columns correspond to a particular time point each. Time points are given on the first line of the file. In this file, there can be more time points than were used in a real experiment for sample harvesting. In this case, the labeling is simulated and reported for these fictitious time points but the least squares fitting is obviously done only at points where real data are reported.
+ 
+ Empty cells in this file are equivalent to ``NA``. Note also that is _not_ necessary to introduce empty columns at regular intervals just to increase the time resolution precision. There is a parameter ``nsubdiv_dt`` that is designed for this purpose. If it is greater than 1, each time interval defined in the text file is divided in ``nsubdiv_dt`` sub-intervals.
 
- ``$ influx_s.py mynetwork``
+2. Set your current directory to the directory of ``mynetwork.ftbl`` and run ::
+ 
+    $ influx_s.py mynetwork
+ 
+ 
+or::
 
- or::
+ $ influx_i.py mynetwork
 
-  $ /path/to/install/dir/of/influx_s/influx_s.py mynetwork
+Depending on stationary or instationary labeling context. Note that the suffix ``.ftbl`` is optional and ``influx_si`` installation directory is supposed to be on the PATH.
 
- Note that the suffix ``.ftbl`` is optional.
-
- The ``influx_s`` run will produce the following files in the same directory that ``mynetwok.ftbl``
+ The ``influx_si`` run will produce the following files in the same directory that ``mynetwok.ftbl``
 
  ``mynetwork.log``
    containing the run-time output from various scripts, in particular,
@@ -32,17 +38,14 @@ A basic work-flow with ``influx_s`` is composed of the following steps:
   Normally, this file should be empty (0 byte size);
  ``mynetwork_res.kvh``
   containing all of the results. `KVH format <http://serguei.sokol.free.fr/kvh-format/>`_ is a
-  lightweight plain text format for hierarchically structured data. It can be seen in a text editor
-  or in a spreadsheet software as its fields are tab separated. It can also be processed by user's
-  custom software for post-processing, graphics output and alike. If ``influx_s``
-  is run on a series of starting points there will be generated a result
+  lightweight plain text format for hierarchically structured data. It can be seen in a text editor or in a spreadsheet software as its fields are tab separated. It can also be processed by user's custom software for post-processing, graphics output and alike. If ``influx_si`` is run on a series of starting points there will be generated a common result
   file ``mynetwork_res.kvh`` containing common information to all starting points
-  but also one kvh file by starting point, e.g. ``mynetwork_res.V1.kvh``,
+  but also a series of kvh files, one by starting point, e.g. ``mynetwork_res.V1.kvh``,
   ``mynetwork_res.V2.kvh`` and so on;
  ``mynetwork.pres.txt``
   containing a matrix of fitted parameters and final cost values. Each column
   corresponds to a particular starting point if run with ``--fseries`` and /or
-  ``--iseries`` options. If ``influx_s`` was run without these options, the file
+  ``--iseries`` options. If ``influx_si`` was run without these options, the file
   will contain only one column corresponding to the starting point defined
   in the ``mynetwork.ftbl`` file.
   
@@ -54,11 +57,14 @@ A basic work-flow with ``influx_s`` is composed of the following steps:
    So take care to copy your results elsewhere if you want to protect them
    from overwriting.
 
+  custom files (e.g. ``mynetwork.pdf``)
+  These files can be produced by user supplied scripts that are executed at the end of ``influx_si`` simulations. For example, we provide a script ``plot_imass.R`` which can be used to plot label kinetics obtained by ``influx_i``. One or many of such custom scripts can be given in FTBL file, section OPTIONS, field ``posttreat_R`` (cf. e_coli_i.ftbl for example)
+
  .. note:: It can be helpful to do some "dry runs" by executing ::
 
    $ influx_s.py --noopt mynetwork
    
-   before collecting actual data measurement to see if intended measurements will be sufficient to well define all fluxes or at least the fluxes of interest. It is possible to do because the measurement values in the FTBL file does not matter for flux SD calculation when ``--noopt`` option is used. So it can be used any values even NA at this moment. In the contrary, ``dev`` values set in the FTBL file, must be realistic. It is generally not a problem as they express measurements errors and are more or less known for a given measurement chain.
+   before collecting actual measurement data to see if intended measurements will be sufficient to well define all fluxes or at least the fluxes of interest. It is possible to do because the measurement values in the FTBL file does not matter for flux SD calculation when ``--noopt`` option is used. So it can be used any values even NA at this moment. In the contrary, ``dev`` values set in measurement sections of the FTBL file, must be realistic. It is generally not a problem as they express measurements errors and are more or less known for a given measurement chain.
    
    It is worthwhile to stress that a "dry run" is done for some presumed free fluxe values and if they reveal to be very different from actual flux values, it can happen that a network considered as well defined at moment of "dry run" turned into a badly defined network with actual measurement data and corresponding estimated fluxes. So it is important to do his best to guess the most realistic free fluxes for "dry runs".
 
