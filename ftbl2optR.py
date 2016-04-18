@@ -323,7 +323,10 @@ if (dt <= 0) {
 # read measvecti from a file specified in ftbl
 flabcin="%(flabcin)s"
 if (nchar(flabcin)) {
-   flabcin=file.path(dirw, flabcin)
+   if (substr(flabcin, 1, 1) == "/")
+      flabcin=file.path(flabcin)
+   else
+      flabcin=file.path(dirw, flabcin)
    measvecti=as.matrix(read.table(flabcin, header=T, row.names=1, sep="\t", check=F, comment="#"))
    nm_row=rownames(measvecti)
    # put in the same row order as simulated measurements
