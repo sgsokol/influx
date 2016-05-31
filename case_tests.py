@@ -3,7 +3,7 @@
 the input file given as the first and unique argument.
 The input file must be a plain tabulated text with at most 4 and at least 3 columns:
  - case name, e.g. "too many free fluxes"
- - correct return code of the shell command to execute (e.g. True of False). If the expected result is not returned, the case is reported as failed
+ - correct return code of the shell command to execute (e.g. True of False). If the the returned value does not match the expected result, the case is reported as failed
  - shell command to be executed and whose result must be tested
  - optional additional python commands separated by ";" to execute for verifying the succes of the test. All commands must evaluate to True on succesful test. Otherwise the case will be reported as failed. Additional commands are not executed if the main command returned unexpected code.
 
@@ -27,10 +27,13 @@ me=os.path.basename(sys.argv[0])
 # create a parser for command line options
 parser = OptionParser(usage="usage: %prog [options] tabulated_file.txt",
     description=__doc__,
-    version="%prog 1.0")
+    version="%prog 1.1")
 parser.add_option(
 "--itest",
-       help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Default: '' (empty, i.e. all provided tests are passed)")
+       help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Negative values counts from the end of case list. E.g. '-1' indicates the last test case. Default: '' (empty, i.e. all provided tests are passed)")
+parser.add_option(
+"--nmtest",
+       help="Names of tests to be executed. Format: 'name1,name2' -- use tests who's names are name1'  and 'name2' (cf. the first column of tab file); 'name1:name2' -- use the tests located in tab file between 'name1' and 'name2';  'name1:name2,name3,name4:name5' -- a mix of both formats is allowed. 'name1:' means from the test 'name1' to the end. ':name2' means from the first to the test 'name2'. Default: '' (empty, i.e. all provided tests are passed).\n       Options --itest and --test are complementary, i.e. a union of both test collections is passed")
 parser.add_option(
 "-n", "--dry", action="store_true",
        help="Dry run: show output as if all tests were OK. None of shell command is excecuted")
@@ -51,26 +54,53 @@ for line in open(fcases, "rb"):
     if not len(line) or line[0] == "#":
         continue
     tests.append(line)
+nms=dict((li.split("\t")[0],i+1) for i,li in enumerate(tests))
 
-# now that we know how many tests there are, proceed itest
+# now that we know how many tests there are and their names, proceed itest and nmtest
 nb_te=len(tests)
-itest=opts.itest
+itest=opts.itest or []
+nmtest=opts.nmtest
 dry=opts.dry
 if itest:
-    ili=itest.split(",")
     itest=[]
+    ili=itest.split(",")
     for item in ili:
         item=item.strip()
         match=re.match("(\d*):(\d*)", item)
         if match:
             beg=match.group(1) or 1
+            if beg < 0:
+                beg=nb_te-beg+1
             end=match.group(2) or nb_te
+            if end < 0:
+                end=nb_te-end+1
             itest+=range(int(beg), int(end)+1)
         else:
             itest.append(int(item))
-    itest=set(itest)
-else:
-    itest=set(range(1, nb_te+1))
+if nmtest:
+    itest=itest or []
+    nmli=nmtest.split(",")
+    for item in nmli:
+        item=item.strip()
+        match=re.match("([^,:]*):([^,:]]*)", item)
+        if match:
+            beg=match.group(1).strip()
+            beg=nms.get(beg, -1) or 1
+            if beg < 0:
+                raise Exception("Case name '%s' not found in tab file"%match.group(1))
+            end=match.group(2).strip()
+            end=nms.get(end, -1) or nb_te
+            if end < 0:
+                raise Exception("Case name '%s' not found in tab file"%match.group(2))
+            itest+=range(int(beg), int(end)+1)
+        else:
+            i=nms.get(item, -1)
+            if i < 0:
+                raise Exception("Case name '%s' not found in tab file"%item)
+            itest.append((i))
+itest=set(itest)
+if not itest:
+    itest=range(1, nb_te+1)
 
 # run tests
 fd_log=open("case_tests.log", "wb")
@@ -120,14 +150,14 @@ for line in tests:
         #print res
         nb_fail=sum(not t for (t, item) in res)
         if nb_fail:
-            addmes=" Failed condition%s %s: %s."%(plural_s(nb_fail), "are" if nb_fail > 1 else "is", "; ".join(item for (t, item) in res if not t))
+            addmes=" Failed condition%s: %s."%(plural_s(nb_fail), "; ".join(item for (t, item) in res if not t))
             ok=False
     t1=time()
     if ok:
         print "OK for test %d '%s' (%.2f s)"%(icase, nm_t, t1-t0)
         nb_ok+=1
     else:
-        print "=> Test %d '%s' has failed! (%.2f s)%s"%(icase, nm_t, t1-t0, addmes)
+        print "=> Test %d '%s' failed! (%.2f s)%s"%(icase, nm_t, t1-t0, addmes)
         li_ko.append((icase, nm_t))
 
 fd_log.close()
