@@ -739,6 +739,12 @@ for (irun in seq_len(nseries)) {
          retcode[irun]=rres$err
          next
       }
+      if (sum(is.infinite(rres$res))) {
+         cat("Infinite values appeared in residual vector", file=fcerr)
+         retcode[irun]=1
+         close(fkvh)
+         next
+      }
       # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
       # for corresponding measurements
       # unscaled simulated measurements (usm) [imeas, itime]
@@ -776,6 +782,12 @@ for (irun in seq_len(nseries)) {
             cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
             close(fkvh)
             retcode[irun]=rres$err
+            next
+         }
+         if (sum(is.infinite(rres$res))) {
+            cat("Infinite values appeared in residual vector (at init scale values)", file=fcerr)
+            retcode[irun]=1
+            close(fkvh)
             next
          }
          simlab=jx_f$usimcumom
@@ -844,6 +856,12 @@ for (irun in seq_len(nseries)) {
          retcode[irun]=rres$err
          next
       }
+      if (sum(is.infinite(rres$res))) {
+         cat("Infinite values appeared in residual vector (at starting point)", file=fcerr)
+         retcode[irun]=1
+         close(fkvh)
+         next
+      }
    }
    rcost=if (is.null(rres$res)) NA else sum(crossprod(rres$res))
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
@@ -877,6 +895,18 @@ for (irun in seq_len(nseries)) {
             cat("check ja: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          rres=lab_resid(param, cjac=T, labargs)
+         if (sum(is.infinite(rres$res))) {
+            cat("Infinite values appeared in residual vector (at identifiability check)", file=fcerr)
+            retcode[irun]=1
+            close(fkvh)
+            next
+         }
+         if (sum(is.infinite(rres$jacobian))) {
+            cat("Infinite values appeared in Jacobian (at identifiability check)", file=fcerr)
+            retcode[irun]=1
+            close(fkvh)
+            next
+         }
          qrj=qr(jx_f$dr_dff, LAPACK=T)
          d=diag(qrj$qr)
          qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
