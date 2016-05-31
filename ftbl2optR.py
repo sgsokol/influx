@@ -1056,12 +1056,16 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             cat("outliers: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          iva=!is.na(res$res)
-         iout=which(rz.pval.bi(res$res) <= excl_outliers & iva)
+         zpval=rz.pval.bi(res$res)
+         iout=which(zpval <= excl_outliers & iva)
          #cat("iout=", iout, "\\n", file=fclog)
          if (length(iout)) {
             measurements$outlier=iout
-            cat("Excluded outliers at p-value ", excl_outliers, ":\\n",
-               paste(nm_resid[iout], res$res[iout], sep="\\t", collapse="\\n"), "\\n", sep="", file=fclog)
+            outtab=cbind(residual=res$res[iout], `p-value`=zpval[iout])
+            row.names(outtab)=nm_resid[iout]
+            cat("Excluded outliers at p-value ", excl_outliers, ":\\n", sep="", file=fclog)
+            write.table(outtab, file=fclog, append=TRUE, quote=FALSE, sep="\\t", col.names=FALSE)
+            
             capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
             if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
                cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)
@@ -1075,13 +1079,14 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                param=reso$par
                names(param)=nm_par
                jx_f=labargs$jx_f
-               obj2kvh(nm_resid[iout], "excluded outliers", fkvh)
+               labargs$measurements=measurements # store outliers
+               obj2kvh(outtab, "excluded outliers", fkvh)
             }
          } else {
             cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
          }
       }
-      if (time_order=="1,2") {
+      if (case_i && time_order=="1,2") {
          if (TIMEIT) {
             cat("order 2 : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
@@ -1121,6 +1126,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    poolall[nm_poolf]=param[nm_poolf]
 
 #browser()
+   rres=res$retres
    if (is.null(jx_f$jacobian)) {
       # final jacobian calculation
       capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
@@ -1131,7 +1137,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          next
       }
    }
-   rcost=cumo_cost(param, labargs)
+   rcost=cumo_cost(param, labargs, rres)
    pres[,irun]=param
    costres[irun]=rcost
    obj2kvh(rcost, "final cost", fkvh)
