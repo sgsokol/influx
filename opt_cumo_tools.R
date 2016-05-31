@@ -81,8 +81,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
    }
 }
 
-cumo_cost=function(param, labargs) {
-   resl=lab_resid(param, cjac=FALSE, labargs)
+cumo_cost=function(param, labargs, resl=lab_resid(param, cjac=FALSE, labargs)) {
    if (!is.null(resl$err) && resl$err) {
       return(NULL)
    }
