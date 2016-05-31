@@ -753,12 +753,19 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
             raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["irow"]))
         try:
-           val=eval(row["VALUE"])
+            val=eval(row["VALUE"])
         except:
-           val=NaN
+            val=NaN
+        try:
+            sdev=float(eval(row["DEVIATION"]))
+        except:
+            raise Exception("DEVIATION must evaluate to a real number (row: %d)."%row["irow"])
+        if sdev <= 0.:
+            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
+        
         netan["flux_measured"][row["FLUX_NAME"]]={\
                 "val": val, \
-                "dev": eval(row["DEVIATION"])}
+                "dev": sdev}
     
     # measured concentartions
     for row in ftbl.get("METAB_MEASUREMENTS",[]):
@@ -778,9 +785,15 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
             val=float(eval(row["VALUE"]))
         except:
             val=NaN
+        try:
+            sdev=float(eval(row["DEVIATION"]))
+        except:
+            raise Exception("DEVIATION must evaluate to a real positive number (row: %d)."%row["irow"])
+        if sdev <= 0.:
+            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
         netan["metab_measured"][row["META_NAME"]]={\
                 "val": val, \
-                "dev": eval(row["DEVIATION"])}
+                "dev": sdev}
     
     # input isotopomers
     for row in ftbl.get("LABEL_INPUT",[]):
@@ -950,9 +963,15 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
             val=float(eval(row["VALUE"]))
         except:
             val=NaN
+        try:
+            sdev=float(eval(row["DEVIATION"]))
+        except:
+            raise Exception("DEVIATION must evaluate to a real positive number (row: %d)."%row["irow"])
+        if sdev <= 0.:
+            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
         netan["label_meas"][metabs][group].append({
                 "val":val,
-                "dev":eval(row["DEVIATION"]),
+                "dev":sdev,
                 "bcumos":row["CUM_CONSTRAINTS"].split("+"),
                 "id":":".join(["l", metabs, row["CUM_CONSTRAINTS"], str(row["irow"])]),
                 "pooled":metabl,
@@ -1018,7 +1037,7 @@ You can add a fictious metabolite in your network immediatly after '"""+metab+"'
                 continue
             # test validity
             if not dev:
-                raise Exception("Deviation is not determined for VALUE_"+suff+" on row "+str(row["irow"]))
+                raise Exception("Deviation is not valid for VALUE_"+suff+" on row "+str(row["irow"]))
             c_no=int(row["PEAK_NO"])
             if c_no > clen0:
                 raise Exception("Carbon number "+str(c_no)+" is greater than carbon length "+str(clen0)+" for metabolite '"+metab0+"' (row: %d)"%row["irow"])
@@ -1115,9 +1134,15 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             val=float(eval(row["VALUE"]))
         except:
             val=NaN
+        try:
+            sdev=float(eval(row["DEVIATION"]))
+        except:
+            raise Exception("DEVIATION must evaluate to a real positive number (row: %d)."%row["irow"])
+        if sdev <= 0.:
+            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
         netan["mass_meas"][m_id][mask][weight]={
                 "val":val,
-                "dev":eval(row["DEVIATION"]),
+                "dev":sdev,
                 "id":":".join(["m", metabs, frag, row["WEIGHT"], str(row["irow"])]),
                 "irow":str(row["irow"]),
                 "pooled":metabl,
