@@ -33,7 +33,7 @@ parser.add_option(
        help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Negative values counts from the end of case list. E.g. '-1' indicates the last test case. Default: '' (empty, i.e. all provided tests are passed)")
 parser.add_option(
 "--nmtest",
-       help="Names of tests to be executed. Format: 'name1,name2' -- use tests who's names are name1'  and 'name2' (cf. the first column of tab file); 'name1:name2' -- use the tests located in tab file between 'name1' and 'name2';  'name1:name2,name3,name4:name5' -- a mix of both formats is allowed. 'name1:' means from the test 'name1' to the end. ':name2' means from the first to the test 'name2'. Default: '' (empty, i.e. all provided tests are passed).\n       Options --itest and --test are complementary, i.e. a union of both test collections is passed")
+       help="Names of tests to be executed. Format: 'name1,name2' (a coma separated list) -- use tests who's names are name1'  and 'name2' (cf. the first column of tab file); 'name1:name2' (a begin:end interval) -- use the tests located in tab file between 'name1' and 'name2';  'name1:name2,name3,name4:name5' -- a mix of both formats is allowed. 'name1:' means from the test 'name1' to the end. ':name2' means from the first to the test 'name2'. In a coma separated list, each entry is tested literally against test names, in case of fail, the entries are tried as regular expressions. E.g. a name 'err.*' will fit all test names started with 'err'. Default: '' (empty, i.e. all provided tests are passed). Options --itest and --nmtest are complementary, i.e. a union of both test collections is passed")
 parser.add_option(
 "-n", "--dry", action="store_true",
        help="Dry run: show output as if all tests were OK. None of shell command is excecuted")
@@ -95,6 +95,11 @@ if nmtest:
             itest+=range(int(beg), int(end)+1)
         else:
             i=nms.get(item, -1)
+            # check if item is a regular expression
+            ma=[] if i!=-1 else [ic for (nm,ic) in nms.iteritems() if re.match(item, nm)]
+            if ma:
+                itest+=ma
+                continue
             if i < 0:
                 raise Exception("Case name '%s' not found in tab file"%item)
             itest.append((i))
