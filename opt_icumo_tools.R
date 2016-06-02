@@ -96,15 +96,11 @@ icumo_resid=function(param, cjac, labargs) {
    return(list(res=jx_f$res, jacobian=if (cjac) jx_f$jacobian else NULL))
 }
 
-icumo_cost=function(param, labargs) {
-   resl=icumo_resid(param, cjac=FALSE, labargs)
+icumo_cost=function(param, labargs, resl=icumo_resid(param, cjac=FALSE, labargs)) {
    if (!is.null(resl$err) && resl$err) {
       return(NULL)
    }
-   res=resl$res
-   #res=labargs$jx_f$res
-   fn=sum(res*res)
-   return(fn)
+   return(crossprod(resl$res))
 }
 
 fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
@@ -122,6 +118,7 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
 #options(warn=2)
    nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
    w=spAbr$w # cumomer weight
+   emuw=ifelse(emu, w, 1L)
    incu=as.matrix(incu)
    nco=ncol(incu)
    
@@ -133,6 +130,7 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
       l=spAbr
       first_sx=FALSE
       if (is.null(l$sx1)) {
+         # we need sx1 and sx2 because of two different time sets (first and second order))
          first_sx=TRUE
          nm_sx="sx1"
       } else if (l$sx1$nco != nco && is.null(l$sx2)) {
@@ -150,7 +148,7 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
          li$nco=nco
          li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
             v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
-         li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=rep(seq_len(nco), each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=nco)
+         li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=l$b$j+emuw*rep(seq_len(nco)-1, each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=l$b$ncol*nco)
          l[[nm_sx]]=li
       }
       #if (emu) {
@@ -401,6 +399,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
          vmw=rep(vmw, nb_ff+nb_poolf)
          dim(vmw)=c(nb_c, emuw*(nb_ff+nb_poolf))
+         dim(xpfw)=c(nb_c, emuw*(nb_ff+nb_poolf), ntico)
          solve_ieu(invdt, xpf1, vmw, ali, xpfw, ilua)
          dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
          #xpfw[]=aperm(xpfw, c(1L, 2L, 4L, 3L))
