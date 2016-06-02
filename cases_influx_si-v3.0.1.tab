@@ -1,0 +1,26 @@
+# case name	return code for test succes	exec command	[optional python commands (must evaluate to true to mean succesful test)]
+
+#simple yes test	True	echo yes > tmp_case.txt	"yeZ"==open("tmp_case.txt", "r").read().strip(); None==os.remove("tmp_case.txt")
+#simple no test	False	exit 1
+#test_to_fail	True	exit 1
+
+e_coli	True	./influx_s.py cases/e_coli	os.stat("cases/e_coli.err").st_size==0; re.search("it=6\tres=7.843096\tnormstep=3.68858\de-06\tbtk=1", open("cases/e_coli.log", "r").read())
+e_coli_i	True	./influx_i.py cases/e_coli_i	os.stat("cases/e_coli.err").st_size==0; re.search("it=15\tres=20.96358\tnormstep=5.44938\de-05\tbtk=1", open("cases/e_coli_i.log", "r").read())
+e_coli.noopt	True	./influx_s.py --noopt cases/e_coli	os.stat("cases/e_coli.err").st_size==0
+e_coli.emu	True	./influx_s.py --emu cases/e_coli	os.stat("cases/e_coli.err").st_size==0; re.search("it=6\tres=7.843096\tnormstep=3.68858\de-06\tbtk=1", open("cases/e_coli.log", "r").read())
+e_coli.mc4	True	./influx_s.py --sens mc=4 --seed 7 --np 4 cases/e_coli	os.stat("cases/e_coli.err").st_size==0; re.search("it=6\tres=7.843096\tnormstep=3.68858\de-06\tbtk=1", open("cases/e_coli.log", "r").read()); None==setvar("text_kvh", open("cases/e_coli_res.kvh", "r").read()); ("cluster type\tFORK" in text_kvh and "cost\t33.23\t45.36\t39.93\t33.84" in text_kvh) or ("cluster type\tSOCK" in text_kvh and "cost\t35.97\t42.79\t29.12\t24.96" in text_kvh)
+e_coli.emu.mc4	True	./influx_s.py --emu --sens mc=4 --seed 7 --np 4 cases/e_coli	os.stat("cases/e_coli.err").st_size==0; re.search("it=6\tres=7.843096\tnormstep=3.68858\de-06\tbtk=1", open("cases/e_coli.log", "r").read()); None==setvar("text_kvh", open("cases/e_coli_res.kvh", "r").read()); ("cluster type\tFORK" in text_kvh and "cost\t33.23\t45.36\t39.93\t33.84" in text_kvh) or ("cluster type\tSOCK" in text_kvh and "cost\t35.97\t42.79\t29.12\t24.96" in text_kvh)
+e_coli_NA	True	./influx_s.py cases/e_coli_NA	os.stat("cases/e_coli_NA.err").st_size==0; re.search("it=6\tres=7.843096\tnormstep=3.68858\de-06\tbtk=1",  open("cases/e_coli_NA.log", "r").read())
+e_coli_growth	True	./influx_s.py cases/e_coli_growth	os.stat("cases/e_coli_growth.err").st_size==0; re.search("it=15\tres=7.959014\tnormstep=7.29232\de-06\tbtk=1",  open("cases/e_coli_growth.log", "r").read())
+e_coli_BM_eqs	True	./influx_s.py cases/Modele_GC-AAprot_BM_pmi_SSOtest	re.search("it=1\tres=4.672499\tnormstep=1.43\d+e-06\tbtk=1", open("cases/Modele_GC-AAprot_BM_pmi_SSOtest.log", "r").read())
+
+err.too_many_dep_fluxes	False	./influx_s.py cases/branching-2014-09-01	None==setvar("texterr", open("cases/branching-2014-09-01.err", "r").read()); "Flux matrix is not square or is singular: (3eq x 4unk)" in texterr; "Candidate(s) for free or constrained flux(es):\nd.n.v6\nFor this choice, condition number of stoechiometric matrix will be 3.34576353408995" in texterr
+err.too_many_free_fluxes.1	False	./influx_s.py cases/branching_MS	None==setvar("texterr", open("cases/branching_MS.err", "r").read()); "Flux matrix is not square or is singular: (3eq x 2unk)" in texterr; "There is (are) probably 1 extra free flux(es) among the following:\nf.n.v1\nf.n.v3\nProposal to declare dependent flux(es) is:\nd.n.v2\nd.n.v4\nc.n.v5\nwhile free and constrained fluxes should be:\nf.n.v1\nf.n.v3\nc.n.v6\nc.x.v1\nc.x.v2\nc.x.v3\nc.x.v4\nc.x.v5\nc.x.v6\nFor this choice, condition number of stoechiometric matrix will be 7.1907483" in texterr
+err.too_many_free_fluxes.2	False	./influx_s.py cases/err_extra_ff-2014-04-02	None==setvar("texterr", open("cases/err_extra_ff-2014-04-02.err", "r").read()); "Flux matrix is not square or is singular: (68eq x 63unk)" in texterr;
+err.no_dep_fluxes	False	./influx_s.py cases/no_dep_fluxes	None==setvar("texterr", open("cases/no_dep_fluxes.err", "r").read()); "Exception: A balance on metabolite 'Gnt6P' does not contain any dependent flux." in texterr
+err.lack_fluxval	False	./influx_s.py cases/err_lack_fluxval	None==setvar("texterr", open("cases/err_lack_fluxval.err", "r").read()); "In the field 'VALUE(F/C)', a float value expected" in texterr
+err.depflux_zero-2014-04-02	False	./influx_s.py cases/err_depflux_zero-2014-04-02	None==setvar("texterr", open("cases/err_depflux_zero-2014-04-02.err", "r").read()); "lab_resid: Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options" in texterr
+err.lindep_rows-2014-04-02	False	./influx_s.py cases/err_lindep_rows-2014-04-02	None==setvar("texterr", open("cases/err_lindep_rows-2014-04-02.err", "r").read()); "Error: Among 72 equations (rows), 4 are redundant and must be eliminated by hand." in texterr
+err.jac_rank_deficient	False	./influx_s.py cases/err_jac_rank_def	None==setvar("texterr", open("cases/err_jac_rank_def.err", "r").read()); "Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes."  in texterr
+err.singular_stoech	False	./influx_s.py cases/err_singular_stoech	None==setvar("texterr", open("cases/err_singular_stoech.err", "r").read()); "Flux matrix is not square or is singular: (66eq x 66unk)" in texterr
+utf8_BOM	True	ftbl2netan.py cases/e_coli_growth_utf8	
