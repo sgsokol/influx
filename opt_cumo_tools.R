@@ -14,7 +14,7 @@ if (!file.exists(file.path(dirx, fso)) ||
    Sys.setenv(PKG_CXXFLAGS="-std=c++11")
    tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
    ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
-   file.copy(ftmp, file.path(dirx, fso), copy.date=TRUE)
+   file.copy(ftmp, file.path(dirx, fso), overwrite = TRUE, copy.date=TRUE)
 }
 # define R functions from mult_bxxc.so
 multdll=dyn.load(file.path(dirx, fso))
