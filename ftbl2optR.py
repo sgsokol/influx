@@ -1142,12 +1142,26 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    costres[irun]=rcost
    obj2kvh(rcost, "final cost", fkvh)
 #browser()
-   resid=list(
-      "labeled data"=jx_f$reslab,
-      "measured fluxes"=jx_f$resflu,
-      "measured pools"=jx_f$respool
-   )
+   # get z p-values on residual vector
+   zpval=rz.pval.bi(res$res)
+   resid=list()
+   if (length(jx_f$reslab)) {
+      resid[["labeled data"]]=if (is.matrix(jx_f$reslab)) jx_f$reslab else cbind(residual=jx_f$reslab, `p-value`=zpval[seq_along(jx_f$reslab)])
+   
+      if (is.matrix(jx_f$reslab)) {
+         mtmp=zpval[seq_along(jx_f$reslab)]
+         dim(mtmp)=dim(jx_f$reslab)
+         dimnames(mtmp)=dimnames(jx_f$reslab)
+         resid[["labeled data p-value"]]=mtmp
+         rm(mtmp)
+      }
+   }
+   if (length(jx_f$resflu))
+      resid[["measured fluxes"]]=cbind(residual=jx_f$resflu, `p-value`=zpval[length(jx_f$reslab)+seq_along(jx_f$resflu)])
+   if (length(jx_f$respool))
+      resid[["measured pools"]]=cbind(residual=as.vector(jx_f$respool), `p-value`=zpval[length(jx_f$reslab)+length(jx_f$resflu)+seq_along(jx_f$respool)])
    obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
+   rm(resid, zpval)
 
    # simulated measurements -> kvh
    if (case_i) {
