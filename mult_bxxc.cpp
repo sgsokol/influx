@@ -22,6 +22,7 @@ v 0.2 2016-03-04 added solve_ieu(), margins of c are permuted (ntico is last now
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
 using namespace arma;
+using namespace std;
 
 // [[Rcpp::depends(rmumps)]]
 #include <rmumps.h>
@@ -176,3 +177,38 @@ IntegerVector match_ij(IntegerVector ix, IntegerVector jx, IntegerVector ti, Int
    }
    return(m);
 }
+/* no timing enhancement
+// [[Rcpp::export]]
+NumericVector crossprod_st(List x, NumericVector y_) {
+   // dot product of simple triplet matrix x (m x n) and a dense matrix y (n x k)
+   //Rcout << "here" << endl;
+   int m=x["nrow"], n=x["ncol"], k;
+   //print(x);
+   Dimension ydim(2);
+   //Rcout << "here 2" << endl;
+   if (y_.hasAttribute("dim")) {
+      ydim=y_.attr("dim");
+   } else {
+      ydim=Dimension(y_.size(), 1);
+   }
+   k=ydim[1];
+   if (n != ydim[0])
+      stop("ncol(x) != nrow(y)");
+   IntegerVector ix_=as<IntegerVector>(x["i"])-1, jx_=as<IntegerVector>(x["j"])-1;
+   NumericVector vx_=as<NumericVector>(x["v"]);
+   int *ix=ix_.begin(), *jx=jx_.begin();
+   double *vx=vx_.begin(), *y=y_.begin();
+   NumericVector r_(m*k, 0.);
+   r_.attr("dim") = Dimension(m, k);
+   double *r=r_.begin();
+   //print(ix_);
+   //print(jx_);
+   //print(vx_);
+   for (int jy=0; jy < k; jy++, y+=n, r+=m) {
+      for (int iv=0; iv < vx_.size(); iv++) {
+         r[ix[iv]]+=vx[iv]*y[jx[iv]];
+      }
+   }
+   return r_;
+}
+*/
