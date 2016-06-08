@@ -290,10 +290,10 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    dtr=as.character(round(dt, 6L))
    dtru=unique(dtr)
    ilua=pmatch(dtr, dtru, dup=T)
-#browser()
    for (iw in seq_len(nb_w)) {
       emuw=ifelse(emu, iw, 1L)
       nb_c=spAb[[iw]]$nb_c
+#browser()
       ixw=nbc_x[iw]+seq_len(nb_x[iw])
       inxw=(1L+nb_xi)+ixw
       nb_row=nb_c*emuw
@@ -440,7 +440,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       }
       dim(dux_dp)=c(nb_meas, ntise, nb_ff+nb_poolf)
       if (length(ijpwef) > 0L) {
-         # derivation of pool ponderation factor
+         # derivative of pool ponderation factor
          dpw_dpf=double(nrow(measmat)*ntise*nb_poolf)
          dim(dpw_dpf)=c(nrow(measmat), ntise, nb_poolf)
          tmp=c(mx)*dpwe
