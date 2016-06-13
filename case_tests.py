@@ -62,8 +62,8 @@ itest=opts.itest or []
 nmtest=opts.nmtest
 dry=opts.dry
 if itest:
-    itest=[]
     ili=itest.split(",")
+    itest=[]
     for item in ili:
         item=item.strip()
         match=re.match("(\d*):(\d*)", item)
