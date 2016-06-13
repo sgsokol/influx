@@ -1114,6 +1114,9 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          "exit message"=res$mes
       )
       obj2kvh(optinfo, "optimization process information", fkvh)
+      rres=res$retres
+   } else {
+      rres=lab_resid(param, TRUE, labargs)
    }
    if (TIMEIT) {
       cat("postopt : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
@@ -1126,7 +1129,6 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    poolall[nm_poolf]=param[nm_poolf]
 
 #browser()
-   rres=res$retres
    if (is.null(jx_f$jacobian)) {
       # final jacobian calculation
       capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
@@ -1143,7 +1145,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    obj2kvh(rcost, "final cost", fkvh)
 #browser()
    # get z p-values on residual vector
-   zpval=rz.pval.bi(res$res)
+   zpval=rz.pval.bi(rres$res)
    resid=list()
    if (length(jx_f$reslab)) {
       resid[["labeled data"]]=if (is.matrix(jx_f$reslab)) jx_f$reslab else cbind(residual=jx_f$reslab, `p-value`=zpval[seq_along(jx_f$reslab)])
