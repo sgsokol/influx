@@ -74,7 +74,8 @@ if __name__ == "__main__":
         'd': '0,0,255',    # dependent flux
         'c': '0,0,0',      # constrained flux
         'f': '0,255,0',    # free flux
-        'g': '0,255,255',  # growt flux
+        'g': '0,255,255',  # growth flux
+        'u': '128,128,128',# unknown flux (i.e. badly formatted ftbl)
     }
     # edge line style
     els={
@@ -96,16 +97,19 @@ if __name__ == "__main__":
     def usage():
         sys.stderr.write(__doc__)
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help"])
+        opts,args=getopt.getopt(sys.argv[1:], "hf", ["help", "force"])
     except getopt.GetoptError, err:
         sys.stderr.write(str(err)+"\n")
         usage()
         sys.exit(1)
     cost=False
+    force=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit()
+        if o in ("-f", "--force"):
+            force=True
     #aff("args", args);##
     if len(args) != 1:
         sys.stderr("Expecting exactly one ftbl file name\n")
@@ -134,13 +138,17 @@ if __name__ == "__main__":
         ftbl=ftbl_parse(path_ftbl)
     except Exception as inst:
         werr(str(inst)+"\n")
-        raise
+        if not force:
+            raise
     # Analyse the network
+    netan=dict()
     try:
-        netan=ftbl_netan(ftbl)
+        ftbl_netan(ftbl, netan)
     except:
-        #werr(str(sys.exc_info()[1])+"\n")
-        raise
+        if force:
+            werr(str(sys.exc_info()[1])+"\n")
+        else:
+            raise
         #sys.exit(1)
     # transform metabs,reac in nodes (dict of promerties) and reac in edges (dict too)
     mlen=len(netan["metabs"])
@@ -226,9 +234,9 @@ if __name__ == "__main__":
         # reversible or not?
         rnr="nr" if r in netan["notrev"] else "r"
         # forward flux is dependent, free or constrained?
-        fw_dfcg=netan["nx2dfcg"]["n."+r][0]
+        fw_dfcg=netan["nx2dfcg"].get("n."+r, "u")[0]
         # revers flux is dependent, free or constrained?
-        rv_dfcg=netan["nx2dfcg"]["x."+r][0]
+        rv_dfcg=netan["nx2dfcg"].get("x."+r, "u")[0]
         eds=[] # list of dicts: name, ids of source and target, reac, source and target arrow shape, fw&rv color
         if r in reac2id:
             # complex reaction

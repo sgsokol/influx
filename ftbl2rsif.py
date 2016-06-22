@@ -146,8 +146,9 @@ if __name__ == "__main__":
     #aff("ftbl["+ent+"]", ftbl[ent], f=sys.stderr)
 
     # Analyse the network
+    netan=dict()
     try:
-        netan=ftbl_netan(ftbl)
+        ftbl_netan(ftbl, netan)
     except:
         #werr(str(sys.exc_info()[1])+"\n")
         raise

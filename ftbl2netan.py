@@ -48,7 +48,8 @@ if __name__ == "__main__":
     f=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(fftbl[:-4]+"netan", "w")
     
     ftbl=C13_ftbl.ftbl_parse(fftbl)
-    netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
+    netan=dict()
+    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
     tools_ssg.dict2kvh(netan, f)
     # calculate measure matrices
     if "measures" not in netan:

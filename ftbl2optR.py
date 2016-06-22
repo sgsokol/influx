@@ -202,7 +202,8 @@ if __name__ == "__main__":
     # analyse network
     # reload(C13_ftbl)
 
-    netan=C13_ftbl.ftbl_netan(ftbl, emu, fullsys)
+    netan=dict();
+    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
     # prepare rcumo system
     rAb=C13_ftbl.rcumo_sys(netan, emu)
 

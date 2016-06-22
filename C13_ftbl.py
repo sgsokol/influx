@@ -279,7 +279,7 @@ def ftbl_parse(f):
         #        if type(ftbl[sec_name])==type({}) else "");##
     return ftbl
 
-def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
+def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     """
     analyse ftbl dictionary to find
      
@@ -321,56 +321,59 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
      - measured concentrations (metab_measured)
     """
     # init named sets
-    netan={
-        "input":set(),
-        "output":set(),
-        "subs":set(),
-        "prods":set(),
-        "metabs":set(),
-        "reac":set(),
-        "notrev":set(),
-        "sto_r_m":{},
-        "sto_m_r":{},
-        "flux_m_r":{},
-        "cumo_balance_pattern":{},
-        "Clen":{},
-        "formula":{},
-        "metab_netw":{},
-        "cumo_sys":{},
-        "carbotrans":{},
-        "Cmax":{},
-        "flux_dep":{},
-        "flux_free":{},
-        "flux_constr":{},
-        "flux_measured":{},
-        "iso_input":{},
-        "cumo_input":{},
-        "rcumo_input":{},
-        "emu_input":{},
-        "flux_inequal":{"net":[], "xch":[]},
-        "flux_equal":{"net":[], "xch":[]},
-        "label_meas":{},
-        "peak_meas":{},
-        "mass_meas":{},
-        "vcumo":[],
-        "Afl":[],
-        "bfl":[],
-        "vflux":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-        "vflux_free":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-        "vflux_constr":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-        "vflux_meas":{"net":[], "net2i":{}},
-        "vflux_growth":{"net":[], "net2i":{}},
-        "vflux_compl":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-        "vflux_fwrv":{"fw":[], "rv":[], "fw2i":{}, "rv2i":{}},
-        "vrowAfl":[],
-        "flux_in":set(),
-        "flux_out":set(),
-        "flux_inout":set(),
-        "opt": {},
-        "met_pools": {},
-        "nx2dfcg": {},
-        "metab_measured":{},
-    }
+    if type(netan)!=type(dict()):
+        raise("netan argument must be a dictionary")
+    if not netan:
+        netan.update({
+            "input":set(),
+            "output":set(),
+            "subs":set(),
+            "prods":set(),
+            "metabs":set(),
+            "reac":set(),
+            "notrev":set(),
+            "sto_r_m":{},
+            "sto_m_r":{},
+            "flux_m_r":{},
+            "cumo_balance_pattern":{},
+            "Clen":{},
+            "formula":{},
+            "metab_netw":{},
+            "cumo_sys":{},
+            "carbotrans":{},
+            "Cmax":{},
+            "flux_dep":{},
+            "flux_free":{},
+            "flux_constr":{},
+            "flux_measured":{},
+            "iso_input":{},
+            "cumo_input":{},
+            "rcumo_input":{},
+            "emu_input":{},
+            "flux_inequal":{"net":[], "xch":[]},
+            "flux_equal":{"net":[], "xch":[]},
+            "label_meas":{},
+            "peak_meas":{},
+            "mass_meas":{},
+            "vcumo":[],
+            "Afl":[],
+            "bfl":[],
+            "vflux":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+            "vflux_free":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+            "vflux_constr":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+            "vflux_meas":{"net":[], "net2i":{}},
+            "vflux_growth":{"net":[], "net2i":{}},
+            "vflux_compl":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
+            "vflux_fwrv":{"fw":[], "rv":[], "fw2i":{}, "rv2i":{}},
+            "vrowAfl":[],
+            "flux_in":set(),
+            "flux_out":set(),
+            "flux_inout":set(),
+            "opt": {},
+            "met_pools": {},
+            "nx2dfcg": {},
+            "metab_measured":{},
+        })
     res="";     # auxiliary short-cut to current result
 
     # Isotopomer dynamics and other options
@@ -818,10 +821,18 @@ def ftbl_netan(ftbl, emu_framework=False, fullsys=False):
         su=sum(netan["iso_input"][metab].values())
         if su > 1.+1.e-10:
             raise Exception("Input metabolite `%s` has label summing up to %g which is greater than 1."%(metab, su))
-        if le == nfo or le < nfo-1:
-            # all forms are given or many are lacking => must sum up to 1
+        if le == nfo:
+            # all forms are given => must sum up to 1
             if abs(su-1.) > 1.e-10:
                 raise Exception("Input metabolite `%s` has label summing up to %g instead of 1."%(metab, su))
+        elif le < nfo-1:
+            # many forms are lacking (not just one)
+            # if fully unlabeled is lacking, use it to complete to 1
+            # otherwise raise an error
+            if 0 not in netan["iso_input"][metab]:
+                netan["iso_input"][metab][0]=1.-su
+            elif abs(su-1.) > 1.e-10:
+                raise Exception("Input metabolite `%s` has lacking labels to sum up to 1 (we get sum=%g instead)."%(metab, su))
         elif le == nfo-1:
             # just one form is lacking
             if su != 1.:
@@ -1562,7 +1573,6 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             for fl in netan["flux_vgrowth"][nx]:
                 if fl in eq[1]:
                     dtmp["g."+nxl+"."+fl]=dtmp.get("c."+nxl+"."+fl,0)-float(eq[1][fl])
-    return netan
 
 def enum_path(starts, netw, outs, visited=set()):
     """Enumerate metabilites along to reaction pathways.
