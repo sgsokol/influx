@@ -1800,7 +1800,7 @@ def formula2dict(f):
     positive number and f_i is a string starting by non-digit and not white
     character (# is allowed). Output is a dict f_i:[+-]a_i"""
     pterm=re.compile(r'\W*([+-])\W*'); # returns list of match1,sep,match2,...
-    pflux=re.compile(r'\W*(?P<coef>\d+\.?\d*|^)?\W*\*?\W*(?P<var>[a-zA-Z_][\w\.-]*)\W*')
+    pflux=re.compile(r'\W*(?P<coef>\d+\.?\d*|^)?\W*\*?\W*(?P<var>[a-zA-Z_][\w\. -]*)\W*')
     res={}
     sign=1
     l=(i for i in pterm.split(str(f)))
