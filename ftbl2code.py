@@ -1056,8 +1056,12 @@ for (item in c("nb_fln", "nb_flx", "nb_fl", "nb_ffn", "nb_ffx", "nb_ff")) {
    nb_f[item]=get(item)
 }
 # translation from n-x to fw-rv
-nb_f$inet2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.n\\\\.%s$", substring(f, 5)), nm_fallnx))
-nb_f$ixch2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.x\\\\.%s$", substring(f, 5)), nm_fallnx))
+sh_fwrv=substring(nm_fwrv[1:(nb_fwrv/2)], 5)
+sh_nx=substring(nm_fallnx, 2)
+nb_f$inet2ifwrv=pmatch(paste(".n.", sh_fwrv, sep=""), sh_nx)
+nb_f$ixch2ifwrv=pmatch(paste(".x.", sh_fwrv, sep=""), sh_nx)
+#nb_f$inet2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.n\\\\.%s$", substring(f, 5)), nm_fallnx))
+#nb_f$ixch2ifwrv=sapply(nm_fwrv[1:(nb_fwrv/2)], function(f) grep(sprintf("^.\\\\.x\\\\.%s$", substring(f, 5)), nm_fallnx))
 
 if (TIMEIT) {
    cat("Afl qr(): ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
