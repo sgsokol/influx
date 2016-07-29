@@ -7,20 +7,24 @@ if (length(find("TIMEIT")) && TIMEIT && length(find("fclog"))) {
 so=.Platform$dynlib.ext
 fso=paste("mult_bxxc", so, sep="")
 fcpp="mult_bxxc.cpp"
-if (!file.exists(file.path(dirx, fso)) ||
+if (!file.exists(file.path(dirx, "mult_bxxc.txt")) || !file.exists(file.path(dirx, fso)) ||
    file.mtime(file.path(dirx, fso)) < file.mtime(file.path(dirx, fcpp))) {
    # freshly compile the code (==first use or .so is outdated)
-   Sys.setenv(PKG_LIBS=file.path(system.file(package="rmumps"), "libs", paste("rmumps", .Platform$dynlib.ext, sep="")))
+   frmu=file.path(system.file(package="rmumps"), "libs", .Platform$r_arch, paste("rmumps", .Platform$dynlib.ext, sep=""))
+   Sys.setenv(PKG_LIBS=sprintf('"%s"', frmu))
    Sys.setenv(PKG_CXXFLAGS="-std=c++11")
    tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
    ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
    file.copy(ftmp, file.path(dirx, fso), overwrite = TRUE, copy.date=TRUE)
+   sy=sapply(c("mult_bxxc", "solve_ieu", "match_ij"), function(it) {s=grep(paste(it, " <- ", sep=""), tes, value=TRUE, fixed=TRUE); sub(paste(".*'(sourceCpp_.*_", it, ")'.*", sep=""), "\\1", s)})
+   write.table(sy, file=file.path(dirx, "mult_bxxc.txt"), col.names=FALSE)
 }
 # define R functions from mult_bxxc.so
 multdll=dyn.load(file.path(dirx, fso))
-mult_bxxc <- Rcpp:::sourceCppFunction(function(a, b, c) {}, TRUE, multdll, 'sourceCpp_0_mult_bxxc')
-solve_ieu <- Rcpp:::sourceCppFunction(function(invdt, x0, M, ali, s, ilua) {}, TRUE, multdll, 'sourceCpp_0_solve_ieu')
-match_ij <- Rcpp:::sourceCppFunction(function(ix, jx, ti, tj) {}, TRUE, multdll, 'sourceCpp_0_match_ij')
+sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE, row.names=1))[,1]
+mult_bxxc <- Rcpp:::sourceCppFunction(function(a, b, c) {}, TRUE, multdll, sy["mult_bxxc"])
+solve_ieu <- Rcpp:::sourceCppFunction(function(invdt, x0, M, ali, s, ilua) {}, TRUE, multdll, sy["solve_ieu"])
+match_ij <- Rcpp:::sourceCppFunction(function(ix, jx, ti, tj) {}, TRUE, multdll, sy["match_ij"])
 rm(multdll)
 
 dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
@@ -171,24 +175,30 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    # simulate labeling weight by weight
    ba_x=0
    for (iw in seq_len(nb_w)) {
-      nb_c=spAb[[iw]]$nb_c
+      nb_c=spa[[iw]]$nb_c
       emuw=ifelse(emu, iw, 1L)
       if (nb_c == 0) {
          next
       }
       ixw=(nbc_x[iw]+1L):nbc_x[iw+1]
       incuw=(1L+nb_xi)+ixw
+#cat("iw=", iw, "\there 1\n")
+#if (iw==1) {
+#   print(labargs)
+#   print(spa[[iw]])
+#}
       if (emu) {
-         lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$emu[ixw], emu=emu)
+         lAb=fwrv2Abr(lf$fwrv, spa[[iw]], incu, nm$emu[ixw], emu=emu)
       } else {
-         lAb=fwrv2Abr(lf$fwrv, spAb[[iw]], incu, nm$rcumo[ixw], emu=emu)
+         lAb=fwrv2Abr(lf$fwrv, spa[[iw]], incu, nm$rcumo[ixw], emu=emu)
       }
-      #if (use_mumps) {
+#print(lAb$A)
 #browser()
       xw=try(solve(lAb$A, lAb$b), silent=TRUE)
+#print(head(xw))
       if (inherits(xw, "try-error")) {
          # find 0 rows if any
-         l=spAb[[iw]]
+         l=spa[[iw]]
          ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
          izc=ag$Group.1[ag$x <= 1.e-10]
          izf=names(which(abs(lf$fwrv)<1.e-7))
@@ -242,12 +252,12 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          xw=c(xw, 1.-rowSums(xw))
       }
       incu[incuw]=xw
-      if (cjac) {
+      if (cjac && nb_ff+nb_fgr > 0) {
          # calculate jacobian x_f
          # first, calculate right hand side for jacobian calculation
          # j_rhsw, b_x from sparse matrices
          # bind cumomer vector
-         j_b_x=fx2jr(jx_f$lf$fwrv, spAb[[iw]], nb_f, incu)
+         j_b_x=fx2jr(jx_f$lf$fwrv, spa[[iw]], nb_f, incu)
          j_rhsw=j_b_x$j_rhsw%stm%mdf_dffp
          b_x=j_b_x$b_x
          if (iw > 1) {
@@ -281,6 +291,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       }
       ba_x=ba_x+nb_x[iw]
    }
+
    names(incu)=c("one", nm$inp, nm$x)
    x=tail(incu, -nb_xi-1L)
    jx_f$x=x
@@ -579,6 +590,7 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    
    #nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
    #w=spAbr$w # cumomer weight
+#cat("fwrv2Abr 1\n")
    nb_c=spAbr$nb_c
    if (nb_c == 0) {
       A=simple_triplet_zero_matrix(nb_c, nb_c)
@@ -1185,7 +1197,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    return(spemu)
 }
 
-opt_wrapper=function(param, measurements, jx_f, trace=1) {
+opt_wrapper=function(param, measurements, jx_f, labargs, trace=1) {
    oldmeas=labargs$measurements
    labargs$measurements=measurements
    labargs$jx_f=jx_f
@@ -1255,10 +1267,12 @@ opt_wrapper=function(param, measurements, jx_f, trace=1) {
 }
 
 # wrapper for Monte-Carlo simulations
-mc_sim=function(i, refsim, labargs=NULL) {
-   #set.seed(seeds[i])
-   #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", i))
-   for (item in c("nb_f", "measurements", "case_i")) {
+mc_sim=function(imc) {
+#cat("mc_sim imc=", imc, "\n")
+#print(labargs$spa[[1]])
+   #set.seed(seeds[imc])
+   #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", imc))
+   for (item in c("nb_f", "measurements", "case_i", "dirw", "baseshort")) {
       assign(item, labargs[[item]])
    }
    # random measurement generation
@@ -1285,7 +1299,7 @@ mc_sim=function(i, refsim, labargs=NULL) {
    } else {
       poolm_mc=c()
    }
-#cat("imc=", i, "\\n", sep="")
+#cat("imc=", imc, "\\n", sep="")
 #browser()
    # minimization
    measurements_mc=measurements
@@ -1297,10 +1311,16 @@ mc_sim=function(i, refsim, labargs=NULL) {
    measurements_mc$vec$flux=fmn_mc
    measurements_mc$vec$pool=poolm_mc
    loc_jx_f=new.env()
-   res=opt_wrapper(param, measurements_mc, loc_jx_f, trace=0)
-   #save(res, file=sprintf("mc_%d.RData", i))
-   if (!is.null(res$mes) && nchar(res$mes) > 0) {
-      cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", i, ": ", res$mes, "\n", file=fcerr, sep="")
+#rres=lab_resid(param, TRUE, labargs)
+#d=diag(qr(rres$jacobian, LAPACK=TRUE)$qr)
+#cat("param=", param, "\n", sep=" ")
+#cat("d=", d, "\n", sep=" ")
+   res=opt_wrapper(param, measurements_mc, loc_jx_f, labargs, trace=0)
+   #save(res, file=sprintf("mc_%d.RData", imc))
+   if (res$err && !is.null(res$mes) && nchar(res$mes) > 0) {
+      fcerr=file(file.path(dirw, sprintf("%s.%smc%d.err", baseshort, runsuf, imc)), "wb")
+      cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", imc, ": ", res$mes, "\n", file=fcerr, sep="")
+      close(fcerr)
       if (res$err) {
          res=list(cost=NA, it=res$it, normp=res$normp, par=res$par, err=res$err)
          rm(loc_jx_f)
@@ -1315,6 +1335,24 @@ mc_sim=function(i, refsim, labargs=NULL) {
    rm(loc_jx_f)
    gc() # for big problems we run easily out of memory
    return(res)
+}
+cl_worker=function(imc) {
+   tryCatch({
+#cat("cl_worker imc=", imc, "\tmem=", sum(memuse()), "\n", sep="")
+#print(ls(labargs$spa[[1]]))
+      if (is.null(labargs$spa[[1]]$a)) {
+         labargs$spa=sparse2spa(labargs$spa)
+#print(labargs$spa[[1]])
+      }
+#print(labargs$spa[[1]]$a)
+      mc_sim(imc)
+#cat("i=", i, "\tmem=", sum(memuse()), "\n", sep="")
+   },
+   error=function(e) {
+      #traceback()
+      print(e)
+      stop(e)
+   })
 }
 
 fallnx2fwrv=function(fallnx, nb_f) {
@@ -1345,4 +1383,56 @@ stm_pm=function(e1, e2, pm=c("+", "-")) {
    e1$j = c(e1$j, e2$j[ind])
    e1$v = c(e1$v, e2$v[ind])
    return(e1)
+}
+# reorder indexes to accelerate sparse matrix construction
+sparse2spa=function(spa) {
+   for (ispa in seq_along(spa)) {
+      l=spa[[ispa]]; l$l=l; with(l, {
+#browser();
+      if (!is.matrix(ind_a))
+         ind_a=t(ind_a)
+      if (!is.matrix(ind_b))
+         ind_b=t(ind_b)
+      # prepare sparse xmat where col_sums(xmat) will give a$v
+      iv0=ind_a[,"ir0"]+ind_a[,"ic0"]*nb_c
+      o=order(iv0)
+      ind_a=ind_a[o,]
+      iv0=iv0[o]
+      lrep=lrepx=rle(iv0)
+      lrepx$values=seq_along(lrep$values)
+      xmat=simple_triplet_matrix(i=unlist(lapply(lrep$lengths, seq_len)),
+         j=inverse.rle(lrepx), v=rep(1, length(iv0)))
+      iu0=lrep$values
+      i=as.integer(iu0%%nb_c)
+      j=as.integer(iu0%/%nb_c)
+      l$a=Rmumps$new(i, j, rep(pi, length(iu0)), nb_c)
+      l$iadiag=which(i==j)
+      # prepare sparse bmat where col_sums(bmat) will give b$v
+      if (emu) {
+         if (!is.matrix(ind_b_emu))
+            ind_b_emu=t(ind_b_b_emu)
+         iv0=ind_b_emu[,"irow"]+(ind_b_emu[,"iwe"]-1)*nb_c-1
+         nb_bcol=w
+      } else {
+         iv0=ind_b[,"irow"]-1
+         nb_bcol=1
+      }
+      o=order(iv0)
+      if (emu) {
+         ind_b_emu=ind_b_emu[o,]
+      } else {
+         ind_b=ind_b[o,]
+      }
+   #browser()
+      iv0=iv0[o]
+      lrep=lrepx=rle(iv0)
+      lrepx$values=seq_along(lrep$values)
+      bmat=simple_triplet_matrix(i=unlist(lapply(lrep$lengths, seq_len)),
+         j=inverse.rle(lrepx), v=rep(1, length(iv0)))
+      iu0=lrep$values
+      i=as.integer(iu0%%nb_c)
+      j=as.integer(iu0%/%nb_c)
+      l$b=simple_triplet_matrix(i=i+1, j=j+1, v=rep(pi, length(iu0)), nrow=nb_c, ncol=nb_bcol)
+   })}
+   return(spa)
 }
