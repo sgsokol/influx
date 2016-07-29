@@ -2,23 +2,27 @@
 if (length(find("TIMEIT")) && TIMEIT && length(find("fclog"))) {
    cat("load    : ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
 }
-# get compiled code
+build_mult_bxxc=function(dirx) {
+   fcpp="mult_bxxc.cpp"
+   fso=paste("mult_bxxc", .Platform$dynlib.ext, sep="")
+   if (!file.exists(file.path(dirx, "mult_bxxc.txt")) || !file.exists(file.path(dirx, fso)) ||
+      file.mtime(file.path(dirx, fso)) < file.mtime(file.path(dirx, fcpp))) {
+      # freshly compile the code (==first use or .so is outdated)
+      frmu=file.path(system.file(package="rmumps"), "libs", .Platform$r_arch, paste("rmumps", .Platform$dynlib.ext, sep=""))
+      Sys.setenv(PKG_LIBS=sprintf('"%s"', frmu))
+      Sys.setenv(PKG_CXXFLAGS="-std=c++11")
+      tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
+      ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
+      file.copy(ftmp, file.path(dirx, fso), overwrite = TRUE, copy.date=TRUE)
+      sy=sapply(c("mult_bxxc", "solve_ieu", "match_ij"), function(it) {s=grep(paste(it, " <- ", sep=""), tes, value=TRUE, fixed=TRUE); sub(paste(".*'(sourceCpp_.*_", it, ")'.*", sep=""), "\\1", s)})
+      write.table(sy, file=file.path(dirx, "mult_bxxc.txt"), col.names=FALSE)
+   }
+}
+# build compiled code
+build_mult_bxxc(dirx)
 #browser()
 so=.Platform$dynlib.ext
 fso=paste("mult_bxxc", so, sep="")
-fcpp="mult_bxxc.cpp"
-if (!file.exists(file.path(dirx, "mult_bxxc.txt")) || !file.exists(file.path(dirx, fso)) ||
-   file.mtime(file.path(dirx, fso)) < file.mtime(file.path(dirx, fcpp))) {
-   # freshly compile the code (==first use or .so is outdated)
-   frmu=file.path(system.file(package="rmumps"), "libs", .Platform$r_arch, paste("rmumps", .Platform$dynlib.ext, sep=""))
-   Sys.setenv(PKG_LIBS=sprintf('"%s"', frmu))
-   Sys.setenv(PKG_CXXFLAGS="-std=c++11")
-   tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
-   ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
-   file.copy(ftmp, file.path(dirx, fso), overwrite = TRUE, copy.date=TRUE)
-   sy=sapply(c("mult_bxxc", "solve_ieu", "match_ij"), function(it) {s=grep(paste(it, " <- ", sep=""), tes, value=TRUE, fixed=TRUE); sub(paste(".*'(sourceCpp_.*_", it, ")'.*", sep=""), "\\1", s)})
-   write.table(sy, file=file.path(dirx, "mult_bxxc.txt"), col.names=FALSE)
-}
 # define R functions from mult_bxxc.so
 multdll=dyn.load(file.path(dirx, fso))
 sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE, row.names=1))[,1]
