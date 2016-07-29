@@ -474,9 +474,37 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
                             " it has length "+str(len(carb)-1)+" (row: %d)"%row["irow"])
                 netan["Clen"][m]=len(carb)-1; # don't count '#' character
         except KeyError:
-            werr("CarbonTrans: No reaction "+reac+" in carbon transitions\n")
+            werr("CarbonTrans: No reaction '%s' in carbon transitions (row: %d)\n"%(reac, row["irow"]))
         except Exception as inst:
             werr(": ".join(inst)+"\n")
+        # check equal carbon length on left and right sides
+        lenl=sum(len(l) for m,l in netan["carbotrans"][reac]["left"])
+        lenr=sum(len(l) for m,l in netan["carbotrans"][reac]["right"])
+        if not lenl:
+            raise Exception("No carbon pattern found in the left part of reaction '%s' (row: %d)"%(reac, row["irow"]))
+        if not lenr:
+            raise Exception("No carbon pattern found in the right part of reaction '%s' (row: %d)"%(reac, row["irow"]))
+        if lenl!=lenr:
+            raise Exception("Carbon patterns have different lengths on both sides of reaction '%s' (%d on left, %d on right, row: %d)"%(reac, lenl, lenr, row["irow"]))
+        # check unique presence of each letter on each side
+        lets=dict()
+        uni=dict()
+        for lr in ("left", "right"):
+            lets[lr]="".join(l for m,l in netan["carbotrans"][reac][lr])
+            uni[lr]=set(lets[lr])
+            if len(uni[lr]) != len(lets[lr]):
+                # find doubled letters
+                di=dict((l,lets[lr].count(l)) for l in uni[lr])
+                for (l,c) in di.iteritems():
+                    if c > 1:
+                        raise Exception("Character '%s' is present %s on the %s side of carbon transition in reaction '%s' (row: %d)"%(l, ntimes(c), lr, reac, row["irow"]))
+        # check for perfect mapping
+        lmr=uni["left"]-uni["right"]
+        if lmr:
+            raise Exception("Letter(s) '%s' are present on the left but not on the right hand side in carbon transitions for reaction '%s' (row: %d)"%(", ".join(lmr), reac, row["irow"]))
+        rml=uni["right"]-uni["left"]
+        if rml:
+            raise Exception("Letter(s) '%s' are present on the right but not on the left hand side in carbon transitions for reaction '%s' (row: %d)"%(", ".join(lmr), reac, row["irow"]))
 
         # stocheometric matrix in dictionnary form
         # sto_r_m[reac]['left'|'right']=list(metab) and
@@ -1113,6 +1141,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             for item in frag.split(","):
                 try:
                     i=int(item)
+                    if i > clen0:
+                        raise Exception("An item '"+item+"' of carbon fragment is higher than metabolite '"+metab0+"' length "+str(clen0)+" (row: %d)"%irow)
                     # add this simple item to the mask
                     mask|=1<<(clen0-i)
                 except ValueError:
@@ -1800,7 +1830,7 @@ def formula2dict(f):
     positive number and f_i is a string starting by non-digit and not white
     character (# is allowed). Output is a dict f_i:[+-]a_i"""
     pterm=re.compile(r'\W*([+-])\W*'); # returns list of match1,sep,match2,...
-    pflux=re.compile(r'\W*(?P<coef>\d+\.?\d*|^)?\W*\*?\W*(?P<var>[a-zA-Z_][\w\. -]*)\W*')
+    pflux=re.compile(r'(?P<coef>\d+\.?\d*|^)?\s*\*?\s*(?P<var>[a-zA-Z_[\]()][\w\. -\[\]]*)\W*')
     res={}
     sign=1
     l=(i for i in pterm.split(str(f)))
@@ -2459,3 +2489,6 @@ def iso2emu(netan, inmetab, mask, mpi):
     Return a real number in [0; 1] interval.
     """
     return(sum([val for (frag, val) in netan["iso_input"][inmetab].iteritems() if sumbit(frag&mask) == mpi]))
+def ntimes(n):
+    """Return charcater string 'once' for n=1, 'twice' for n=2 and 'n times' for other n"""
+    return("once" if n==1 else "twice" if n==2 else "%d times"%n)
