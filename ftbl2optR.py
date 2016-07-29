@@ -79,10 +79,10 @@ Numeric vectors:
    * fallnx - complete flux vector (constr+net+xch)
    * bc - helps to construct fallnx
    * li - inequality vector (mi%*%fallnx>=li)
-   * ir2isc - measur row to scale vector replicator
+   * ir2isc - measure row to scale vector replicator
    * ci - inequalities for param use (ui%*%param-ci>=0)
    * measvec - measurement vector
-   * fmn
+   * fmn - measured net fluxes
 
 Matrices:
    * Afl, qrAfl, invAfl,
@@ -560,7 +560,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "use_magma", "case_i")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "dirw", "baseshort", "case_i")
 """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
@@ -575,16 +575,61 @@ tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
 #   labargs[[nm]]=get(nm)
 #}
 labargs[["nm"]]=labargs[["nm_list"]]
-labargs[["spAb"]]=labargs[["spa"]]
 
 # formated output in kvh file
 fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
 """)
+    f.write("""
+control_ftbl=list(%(ctrl_ftbl)s)
+"""%{
+    "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].iteritems() if k.startswith("optctrl_"))),
+})
     f.write(r"""
 retcode=numeric(nseries)
+if (sensitive == "mc") {
+   if (np > 1L) {
+      # prepare cluster
+      cl_type="PSOCK"
+      nodes=np
+
+      # prepare cluster
+      cl=makeCluster(nodes, cl_type) #, outfile="")
+      if (TIMEIT) {
+         cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
+      }
+      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "method", "sln", "labargs", "dirx", "emu", "%stm%"))
+      if (TIMEIT) {
+         cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
+      }
+      clusterEvalQ(cl, {
+         suppressPackageStartupMessages(library(nnls))
+         suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
+         suppressPackageStartupMessages(library(Rcpp))
+         suppressPackageStartupMessages(library(RcppArmadillo))
+         suppressPackageStartupMessages(library(rmumps))
+         suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
+         # define matprod for simple_triplet_matrix
+         #`%%stm%%` = slam::matprod_simple_triplet_matrix
+         #so=.Platform$dynlib.ext
+         #fso=paste("mult_bxxc", so, sep="")
+         #fcpp="mult_bxxc.cpp"
+         ## define R functions from mult_bxxc.so
+         #multdll=dyn.load(file.path(dirx, fso))
+         #mult_bxxc <- Rcpp:::sourceCppFunction(function(a, b, c) {}, TRUE, multdll, 'sourceCpp_0_mult_bxxc')
+         #solve_ieu <- Rcpp:::sourceCppFunction(function(invdt, x0, M, ali, s, ilua) {}, TRUE, multdll, 'sourceCpp_0_solve_ieu')
+         #match_ij <- Rcpp:::sourceCppFunction(function(ix, jx, ti, tj) {}, TRUE, multdll, 'sourceCpp_0_match_ij')
+         #rm(multdll)
+         source(file.path(dirx, "tools_ssg.R"))
+         source(file.path(dirx, "nlsic.R"))
+         source(file.path(dirx, "opt_cumo_tools.R"))
+         source(file.path(dirx, "opt_icumo_tools.R"))
+      })
+      clusterSetRNGStream(cl)
+   }
+}
 for (irun in seq_len(nseries)) {
    if (TIMEIT) {
-      cat(sprintf("run %4d: %s cpu=%g\n", irun, format(Sys.time()), proc.time()[1], "\\n", sep=""), file=fclog)
+      cat(sprintf("run %4d: %s cpu=%g\n", irun, format(Sys.time()), proc.time()[1], "\n", sep=""), file=fclog)
    }
    param[nm_pseries]=pstart[nm_pseries, irun]
 #browser()
@@ -691,7 +736,7 @@ for (irun in seq_len(nseries)) {
 
       inotsat=ci_zc[zi]>1.e-10
       if (any(inotsat)) {
-         cat("Warning: The following constant inequalities are not satisfied:\n", file=fcerr)
+         cat("Warning: The following constant zc inequalities are not satisfied:\n", file=fcerr)
          cat(nm_izc[zi][inotsat], sep="\n", file=fcerr)
       }
       ui_zc=ui_zc[!zi,,drop=F]
@@ -883,11 +928,6 @@ for (irun in seq_len(nseries)) {
    names(param)=nm_par
 """)
     f.write("""
-   control_ftbl=list(%(ctrl_ftbl)s)
-"""%{
-    "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].iteritems() if k.startswith("optctrl_"))),
-})
-    f.write("""
 #browser()
    if (optimize && nb_ff+nb_poolf > 0L) {
       if (!(least_norm || method!="nlsic")) {
@@ -941,7 +981,7 @@ for (irun in seq_len(nseries)) {
       # pass control to the chosen optimization method
       if (time_order=="1,2")
          labargs$time_order="1" # start with order 1, later continue with 2
-      capture.output(res <- opt_wrapper(param, measurements, jx_f), file=fclog)
+      capture.output(res <- opt_wrapper(param, measurements, jx_f, labargs), file=fclog)
       if ((!is.null(res$err) && res$err) || is.null(res$par)) {
          cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
          res$par=rep(NA, length(param))
@@ -1003,7 +1043,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             # reoptimize
             if (reopt) {
                cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
-               capture.output(reso <- opt_wrapper(pinside, measurements, new.env()), file=fclog)
+               capture.output(reso <- opt_wrapper(pinside, measurements, new.env(), labargs), file=fclog)
                if (reso$err || is.null(reso$par)) {
                   cat("second zero crossing pass: ", reso$mes, "\\n", sep="", file=fcerr)
                } else if (!is.null(reso$mes) && nchar(reso$mes)) {
@@ -1030,7 +1070,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                ci=ci[-i]
                nm_i=nm_i[-i]
                cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
-               capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
+               capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
                if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
                   cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
                }
@@ -1067,7 +1107,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             cat("Excluded outliers at p-value ", excl_outliers, ":\\n", sep="", file=fclog)
             write.table(outtab, file=fclog, append=TRUE, quote=FALSE, sep="\\t", col.names=FALSE)
             
-            capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
+            capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
             if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
                cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)
             }
@@ -1092,7 +1132,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             cat("order 2 : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          labargs$time_order="2" # continue with the 2-nd order
-         capture.output(reso <- opt_wrapper(param, measurements, new.env()), file=fclog)
+         capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
          if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
             cat("order2: ", reso$mes, "\\n", sep="", file=fcerr)
          }
@@ -1239,7 +1279,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       if (TIMEIT) {
          cat("monte-ca: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
       }
-      if(set_seed) {
+      if (set_seed) {
          set.seed(seed)
       }
       # reference simulation corresponding to the final param
@@ -1247,53 +1287,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       for (nm_it in c("simlab", "simfmn", "simpool", "usm")) {
          assign(nm_it, jx_f[[nm_it]], envir=refsim)
       }
-      
       # Monte-Carlo simulation in parallel way (if asked and possible)
       if (np > 1L) {
-         # prepare cluster
-         cl_type=ifelse(.Platform$OS.type=="unix", "FORK", "SOCK")
-         if (cl_type=="FORK") {
-            nodes=np
-         } else {
-            snow_here=suppressPackageStartupMessages(require(snow))
-            if (snow_here) {
-               nodes=rep("localhost", np)
-            } else {
-               cat("Monte-Cralo warning: 'snow' package is not installed =>\\n running Monte-Carlo simulations in sequential mode.\\nIf you don't want/can install snow package and want to avoid this message,\\nrun influx_s with an option '--np=1'.\\n", file=fcerr)
-               np=1
-               cl_type="None (sequential mode)"
-            }
-         }
+         clusterExport(cl, c("param", "refsim", "runsuf"))
+         clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL)
+         mc_res=parLapplyLB(cl, seq_len(nmc), cl_worker)
       } else {
-         cl_type="None (sequential mode)"
+         mc_res=lapply(seq_len(nmc), cl_worker)
       }
-      if (np > 1L) {
-         # parallel execution
-         cl=makeCluster(nodes, cl_type)
-         if (cl_type=="SOCK") {
-            if (TIMEIT) {
-               cat("cl init : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
-            }
-            clusterEvalQ(cl, c(require(bitops), require(nnls)))
-            if (TIMEIT) {
-               cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
-            }
-            clusterExport(cl, c("fcerr", "fclog", "lsi_fun", "cumo_jacob", "fx2jr", "trisparse_solv", "fwrv2Abr", "Heaviside", "df_dffp", "fallnx2fwrv", "dfcg2fallnx", "param2fl", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "nlsic", "control_ftbl", "param", "norm2", "method", "sln", "opt_wrapper", "labargs", "dirx", "refsim"))
-            if (TIMEIT) {
-               cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
-            }
-            clusterEvalQ(cl, c(source(file.path(dirx, "tools_ssg.R")), source(file.path(dirx, "nlsic.R"))))
-            if (TIMEIT) {
-               cat("cl optim: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
-            }
-         }
-         clusterSetRNGStream(cl)
-         mc_res=parLapply(cl, seq_len(nmc), mc_sim, refsim=refsim, labargs=labargs)
-         stopCluster(cl)
-      } else {
-         mc_res=lapply(1L:nmc, mc_sim, refsim=refsim, labargs=labargs)
-      }
-      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
+      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
          cat("Parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fcerr)
          free_mc=matrix(NA, nb_param+2, 0)
@@ -1563,6 +1565,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       close(fnode)
    }
 }
+if (sensitive == "mc" && np > 1)
+   stopCluster(cl)
 
 pres=rbind(cost=costres, pres)
 fco=file(file.path(dirw, sprintf("%s.pres.csv", baseshort)), open="w")
