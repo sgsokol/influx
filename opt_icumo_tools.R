@@ -11,7 +11,7 @@ icumo_resid=function(param, cjac, labargs) {
    }
    stopifnot(length(tifull)!=length(tifull2))
    
-   nb_w=length(spAb)
+   nb_w=length(spa)
 #browser()
    sqm=measurements$dev$labeled
    sqf=measurements$dev$flux
@@ -217,7 +217,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    for (item in ls(labargs)) {
       assign(item, get(item, env=labargs))
    }
-   nb_w=length(spAb)
+   nb_w=length(spa)
    nb_ti=length(ti)
    nb_tifu=length(tifull)
    if (nb_ti < 2) {
@@ -292,7 +292,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    ilua=pmatch(dtr, dtru, dup=T)
    for (iw in seq_len(nb_w)) {
       emuw=ifelse(emu, iw, 1L)
-      nb_c=spAb[[iw]]$nb_c
+      nb_c=spa[[iw]]$nb_c
 #browser()
       ixw=nbc_x[iw]+seq_len(nb_x[iw])
       inxw=(1L+nb_xi)+ixw
@@ -302,12 +302,12 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       vmw=vm[nbc_cumos[iw]+seq_len(nb_c)]
       vmw=rep(vmw, emuw)
       dim(vmw)=c(nb_c, emuw)
-      Aw=fwrv2Abr(fwrv, spAb[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A
+      Aw=fwrv2Abr(fwrv, spa[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A
       # prepare (diag(vm)/dt-a)^-1
       at=Aw$triplet()
       am=-at
       ali=lapply(invdt[pmatch(dtru, dtr)], function(dti) {
-         am$v[spAb[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spAb[[iw]]$iadiag]
+         am$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spa[[iw]]$iadiag]
          asp=Rmumps$new(am)
          return(asp@.xData[[".pointer"]])
       })
@@ -318,7 +318,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
       }
       # source terms
-      st=as.matrix(fwrv2sp(fwrv, spAb[[iw]], xsim, emu=emu)$s)
+      st=as.matrix(fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu)$s)
       # calculate labeling for all time points
       #xw1=matrix(x1[inrow], nb_c, emuw)
       xw1=x1[inrow]
@@ -354,7 +354,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          dim(xpf1)=c(nb_c, emuw*(nb_ff+nb_poolf))
          sfpw=double(nb_row*ntico*nb_poolf)
          dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
-         sj=fx2jr(fwrv, spAb[[iw]], nb_f, xsim)
+         sj=fx2jr(fwrv, spa[[iw]], nb_f, xsim)
          #Rprof(NULL)
          # ff part
          if (nb_ff+nb_fgr > 0) {
