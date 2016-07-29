@@ -66,7 +66,7 @@ if __name__ == "__main__":
     tools_ssg.dict2kvh({"rcumo_input": netan["rcumo_input"]}, f)
     if emu:
         tools_ssg.dict2kvh({"emu_input": netan["emu_input"]}, f)
-        tools_ssg.dict2kvh({"vemu_input": netan["vemu_input"]}, f)
-        tools_ssg.dict2kvh({"vemu": netan["vemu"]}, f)
-        tools_ssg.dict2kvh({"emu2i0": netan["emu2i0"]}, f)
+        tools_ssg.dict2kvh({"vemu_input": netan.get("vemu_input", [])}, f)
+        tools_ssg.dict2kvh({"vemu": netan.get("vemu", [])}, f)
+        tools_ssg.dict2kvh({"emu2i0": netan.get("emu2i0", {})}, f)
     sys.exit(0)
