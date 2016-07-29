@@ -15,6 +15,7 @@ New features:
  
 Bug fixes:
  - fixed building a library mult_bxxc.dll on Windows platform (reported by Tony Palama, INSA/MetaToul Toulouse, France)
+ - fixed building mult_bxxc.so in parallel context (multiple ftbls)
  - fixed formulas in equalities and inequalities with flux names having parenthesis, brackets, spaces and alike
  - cluster workers are parsimoniously created in case of multiple starting points
  
