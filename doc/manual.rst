@@ -21,13 +21,17 @@ In the rest of this manual, we'll use just ``influx_s.py`` as example if the exa
 
 .. note::
  A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
- For some specific features of ``influx_si``, the FTBL format was extended. Here is complete list of such extensions:
+ For some specific features of ``influx_si``, the FTBL format was extended. Here is a complete list of such extensions:
  
   - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
   - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0).
   - starting from the version 2.5, ``NA`` (missing values) are admitted in measurement sections;
   - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections;
   - starting from the version 2.11, new subsections ``EQUALITY/METAB`` and ``INEQUALITY/METAB`` can appear in FTBL file. They can be useful, e.g. to impose a fixed ratio between variable metabolite concentrations (that are part of fitted variables) and/or to limit their variations to some interval. Their syntax is identical to the flux counterpart of these sections.
+  - in LABEL_INPUT section following conventions apply:
+  
+    * *"the rest is unlabeled"*: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;
+    * *"guess the lacking one"*: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.
 
 
 In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g. ::
