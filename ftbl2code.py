@@ -337,7 +337,7 @@ suppressPackageStartupMessages(library(nnls)); # for non negative least square
 suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
 suppressPackageStartupMessages(library(parallel))
 #use_magma=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
-use_magma=F
+#use_magma=F
 suppressPackageStartupMessages(library(Rcpp))
 suppressPackageStartupMessages(library(RcppArmadillo))
 suppressPackageStartupMessages(library(rmumps))
@@ -557,47 +557,8 @@ if (emu) {
    spa=spr2emu(spAbr, nm_incu, nm_inemu, nb_f)
 }
 # reorder indexes to accelerate sparse matrix construction
-for (l in spa) { with(l, {
-   # prepare sparse xmat where col_sums(xmat) will give a$v
-   iv0=ind_a[,"ir0"]+ind_a[,"ic0"]*nb_c
-   o=order(iv0)
-   ind_a=ind_a[o,]
-   iv0=iv0[o]
-   lrep=lrepx=rle(iv0)
-   lrepx$values=seq_along(lrep$values)
-   xmat=simple_triplet_matrix(i=unlist(lapply(lrep$lengths, seq_len)),
-      j=inverse.rle(lrepx), v=rep(1, length(iv0)))
-   iu0=lrep$values
-   i=as.integer(iu0%%%%nb_c)
-   j=as.integer(iu0%%/%%nb_c)
-   l$a=Rmumps$new(i, j, rep(pi, length(iu0)), nb_c)
-   l$iadiag=which(i==j)
-   # prepare sparse bmat where col_sums(bmat) will give b$v
-   if (emu) {
-      iv0=ind_b_emu[,"irow"]+(ind_b_emu[,"iwe"]-1)*nb_c-1
-      nb_bcol=w
-   } else {
-      iv0=ind_b[,"irow"]-1
-      nb_bcol=1
-   }
-   o=order(iv0)
-   if (emu) {
-      ind_b_emu=ind_b_emu[o,]
-   } else {
-      ind_b=ind_b[o,]
-   }
+spa=sparse2spa(spa)
 #browser()
-   iv0=iv0[o]
-   lrep=lrepx=rle(iv0)
-   lrepx$values=seq_along(lrep$values)
-   bmat=simple_triplet_matrix(i=unlist(lapply(lrep$lengths, seq_len)),
-      j=inverse.rle(lrepx), v=rep(1, length(iv0)))
-   iu0=lrep$values
-   i=as.integer(iu0%%%%nb_c)
-   j=as.integer(iu0%%/%%nb_c)
-   l$b=simple_triplet_matrix(i=i+1, j=j+1, v=rep(pi, length(iu0)), nrow=nb_c, ncol=nb_bcol)
-})}
-
 # composite labeling vector incu c(1, xi, xc) names
 nm_inlab=c("one", nm_inp, nm_x); # the constant 1 has name "one"
 nm_list$x=nm_x
@@ -608,7 +569,7 @@ nb_f$x=nb_x
     "nm_xi": join(", ", netan["rcumo_input"].keys(), '"', '"'),
     "xiemu": join(", ", netan["emu_input"].values()),
     "nm_xiemu": join(", ", netan["emu_input"].keys(), '"', '"'),
-    "nm_emu": join(", ", valval(netan['vemu']), '"', '"'),
+    "nm_emu": join(", ", valval(netan.get('vemu', [])), '"', '"'),
 })
     if fullsys:
         d=netan2R_cumo(netan, org, f)
@@ -1900,15 +1861,15 @@ if (ncol(ui)) {
    zi=rep(TRUE, nrow(ui))
 }
 
-if (all(ci[zi]<=1.e-10)) {
-   ui=ui[!zi,,drop=F]
-   ci=ci[!zi]
-   nm_i=nm_i[!zi]
-} else {
+if (!all(ci[zi]<=1.e-10)) {
    cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
-   cat(nm_i[zi][ci[zi]>1.e-14], sep="\\n", file=fcerr)
-   stop_mes("", file=fcerr)
+   cat(nm_i[zi][ci[zi]>1.e-10], sep="\\n", file=fcerr)
+   cat("They are simply ignored.\\n", file=fcerr)
+   #stop_mes("", file=fcerr)
 }
+ui=ui[!zi,,drop=F]
+ci=ci[!zi]
+nm_i=nm_i[!zi]
 
 # complete ui by zero columns corresponding to scale params
 if (nb_sc) {
@@ -1917,7 +1878,7 @@ if (nb_sc) {
    ui=rBind(ui, cBind(matrix(0, nb_sc, nb_ff), diag(1, nb_sc)))
    ci=c(ci,rep(0., nb_sc))
    nm_i=c(nm_i, paste(nm_par[(nb_ff+1):nb_param], ">=0", sep=""))
-   dimnames(ui)[[1]]=nm_i
+   rownames(ui)=nm_i
    names(ci)=nm_i
 }
 
