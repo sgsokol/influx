@@ -13,7 +13,7 @@ Different tests are separated by a string "---<date>, <number>:<name>\n"
 Usage: case_tests.py [options] cases_influx_s.tab
 """
 
-import sys, os, datetime as dt, subprocess as subp, re
+import sys, os, datetime as dt, subprocess as subp, re, platform
 from time import time, asctime
 from optparse import OptionParser
 
@@ -24,6 +24,7 @@ def setvar(k, v):
     return(None)
 
 me=os.path.basename(sys.argv[0])
+ondos=platform.system() == "Windows"
 # create a parser for command line options
 parser = OptionParser(usage="usage: %prog [options] tabulated_file.txt",
     description=__doc__,
@@ -131,7 +132,9 @@ for line in tests:
     if not cmd:
         raise Exception("%s: the command to execute (third column) must not be empty (%s: %d)"%(me, fcases, icase))
     testcmd=testcmd.strip()
-    
+    # prepare path in cmd if we are in dos
+    if ondos:
+        cmd=cmd.replace("/", os.path.sep)
     # make tests
     #print cmd
     fd_log.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
@@ -143,7 +146,7 @@ for line in tests:
     #devnull=open(os.devnull, "w")
     print 'Running "%s" ...'%cmd
     if not dry:
-        if os.name=="nt":
+        if ondos:
             p=subp.call(cmd, stdout=fd_log, stderr=fd_err, shell=True)
         else:
             p=subp.call(cmd.split(), stdout=fd_log, stderr=fd_err)
