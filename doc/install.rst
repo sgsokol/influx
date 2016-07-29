@@ -24,10 +24,9 @@ support for help. We don't provide support for installation.
 Dependencies
 ------------
 
-- R-3.0.0 (or higher, cf http://www.r-project.org/ or your system packaging solution) + the following packages
+- R-3.3.0 (or higher, cf http://www.r-project.org/ or your system packaging solution) + the following packages. R of earlier versions starting from 3.0 can be also ok if you don't run Monte-Carlo simulations. But if you do, you had better upgrade R to at least v3.3.
   
   + nnls
-  + snow (optional, needed only on Windows platform for Monte-Carlo parallel simulations)
   + rmumps
   + arrApply
   + slam
@@ -37,7 +36,7 @@ Dependencies
 
   .. code-block:: rconsole
 
-     > install.packages(c("nnls", "snow", "rmumps", "arrApply", "slam", "limSolve"), dep=TRUE)
+     > install.packages(c("nnls", "rmumps", "arrApply", "slam", "limSolve"), dep=TRUE)
  
   (you can adapt the package list according to your needs by removing optional packages)
 
@@ -49,7 +48,7 @@ Dependencies
 - cytoscape is optional (http://www.cytoscape.org).
   It can be used to visualize your networks
   by intermediate of ``ftbl2xgmml.py`` utility.
-  You can also map flux values returned by ``influx_s`` on some
+  You can also map flux values returned by ``influx_si`` on some
   graphical parameter like edge width for visualizing purposes.
 
 Python and R are advised to be in your PATH variable,
@@ -64,7 +63,7 @@ Starting from version 3.0.0, some critical parts of code are written in C++ whic
 
 $ R CMD config CXX
 
-It is likely that it will be ``g++``. A compilation for a given version of ``influx_si`` will be done automatically only once at the very first execution of ``influx_s.py`` or ``influx_i.py``.
+It is likely to be ``g++``. A compilation for a given version of ``influx_si`` will be done automatically only once at the very first execution of ``influx_s.py`` or ``influx_i.py``.
 
 On Linux, all tools necessary for compilation are often available by default. If not, install Linux package (as well as its dependencies) containing ``g++`` compiler (or what ever was used to compile R).
 
@@ -110,7 +109,7 @@ First compilation
 -----------------
 To accomplish the installation, you have to run influx_s.py or influx_i.py for the first time as a user having write permissions to the installation directory. I.e. if you have installed influx_si as system administrator you have to make a first run also as a system administrator. This first run will compile a shared library ``mult_bxxc.so`` (a suffix ``.so`` can be different on your platform) needed for further influx_si executions. An example of a command to run is given in the next session "Test of installation".
 
-If in the future, for any reason (upgrading R version, changing the compiler, ...) you have to recompile the shared library, just remove the file ``mult_bxxc.so`` (or its equivalent if you are not on a Unix platform) and rerun influx_si on any FTBL file with write permission on installation directory.
+If in the future, for any reason (upgrading R version, changing the compiler, ...) you have to recompile the shared library, just remove the file ``mult_bxxc.so`` (or its equivalent if you are not on a Unix platform) and rerun influx_si on any FTBL file being a user with write permission on installation directory.
 
 ********************
 Test of installation
@@ -126,7 +125,7 @@ or ::
 
 if it is not in the PATH
 
-or drag-and-drop the icon of ``e_coli.ftbl`` to the icon of ``influx_s.py``
+or drag-and-drop the icon of ``e_coli.ftbl`` to the icon of ``influx_s.py``.
 
 If everything was correctly installed, you should see in your shell window an
 output looking like:
@@ -134,9 +133,9 @@ output looking like:
 .. code-block:: text
 
  "../influx_s.py" "e_coli.ftbl"
- code gen: 2013-02-15 16:42:37
- calcul  : 2013-02-15 16:42:44
- end     : 2013-02-15 16:43:06
+ code gen: 2016-07-29 12:06:04
+ calcul  : 2016-07-29 12:06:04
+ end     : 2016-07-29 12:06:08
 
 The meaning of this output is quit simple. First, an R code is  generated from FTBL file then it is executed till it ends. Time moments at which these three events occur are reported.
 
@@ -176,11 +175,11 @@ In this case, the output looks sightly different than in one by one run:
 .. code-block:: text
 
  "../influx_s.py" "e_coli.ftbl" "e_coli_growth.ftbl"
- e_coli: code gen: 2013-10-04 16:07:51
- e_coli_growth: code gen: 2013-10-04 16:07:51
- //calcul: 2013-10-04 16:07:55
- //end   : 2013-10-04 16:08:24
-
+ e_coli: code gen: 2016-07-29 12:13:32
+ e_coli_growth: code gen: 2016-07-29 12:13:32
+ //calcul: 2016-07-29 12:13:32
+ //end   : 2016-07-29 12:13:36
+ 
 The time moments for code generation is preceded by a short version of FTBL file names. The symbol ``//`` means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.
 
 It is the operating system that dispatches and equilibrates the charge
