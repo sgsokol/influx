@@ -298,7 +298,9 @@ if len(rfiles) > 1:
     fpar=open("parallel.R", "wb")
     fpar.write("""
     suppressPackageStartupMessages(library(parallel))
-    suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # to economize this loading in every parallel worker
+    suppressPackageStartupMessages(library(Rcpp))
+    dirx="%(dirx)s"
+    source(file.path(dirx, "opt_cumo_tools.R"))
     doit=function(fR) {
        f=substr(fR, 1, nchar(fR)-2)
        nm_flog=sprintf("%%s.log", f)
@@ -318,19 +320,19 @@ if len(rfiles) > 1:
        close(flog)
        return(retcode)
     }
-    nodes=%d
-    if (.Platform$OS.type=="unix") {
-       type="FORK"
-    } else {
-       type="PSOCK"
-       nodes=rep("localhost", nodes)
-    }
+    # build dyn lib
+    nodes=%(np)d
+    type="PSOCK"
     cl=makeCluster(nodes, type)
-    flist=c(%s)
+    flist=c(%(flist)s)
     retcode=max(unlist(parLapply(cl, flist, doit)))
     stopCluster(cl)
     q("no", status=retcode)
-"""%(min(np, len(rfiles)), ", ".join('"'+f+'"' for f in rfiles)))
+"""%{
+        "np": min(np, len(rfiles)),
+        "flist": ", ".join('"'+f+'"' for f in rfiles),
+        "dirx": direx
+    })
     fpar.close()
     # execute R code on cluster
     rcmd="R --vanilla --slave"
