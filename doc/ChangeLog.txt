@@ -2,6 +2,34 @@
 Change Log for influx_si
 ========================
 
+2016-07-29 version 3.2
+----------------------
+New features:
+ - added controls for the coherence of label transitions
+ - added detection of incoherent fragments in MASS_MEASUREMENTS (e.g. longer one than a whole molecule)
+ - in LABEL_INPUT section, if incomplete labeled forms don't sum up to 1, and several labeled forms are absent, the lacking label fraction is assigned to the fully unlabeled form
+ - R package 'snow' is no more needed on windows platform to run Monte-Carlo simulations in parallel mode
+ - on all platforms, Monte-Carlo simulations are now run on a socket cluster and no more by a fork as it was e.g. on Linux
+ - inequalities involving only constrained fluxes or depending solely on such fluxes are now simply ignored with a warning
+ - fixed Jacobian calculation when no free fluxe exist
+ 
+Bug fixes:
+ - fixed building a library mult_bxxc.dll on Windows platform (reported by Tony Palama, INSA/MetaToul Toulouse, France)
+ - fixed formulas in equalities and inequalities with flux names having parenthesis, brackets, spaces and alike
+ - cluster workers are parsimoniously created in case of multiple starting points
+ 
+2016-06-13 version 3.1
+----------------------
+New features:
+ - added controls and explicit error messages for DEVIATION=0 in FTBL file
+ - added column "p-value" to residual values in _res.kvh file (may help for outlier choice)
+ - added check-points for infinite values that can appear in residual and Jacobian
+
+Bug fixes:
+ - fixed EMU mode in instationary case
+ - fixed renewal of mult_bxxc.so library in case of source update
+ - fixed cost value calculation in case of outlier exclusion
+
 2016-04-18 version 3.0.1
 ------------------------
 Bug fixes:
