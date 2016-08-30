@@ -6,7 +6,7 @@ _v, _i, and _j describing triplet storage.
 the size of c which is dense array is (ldc, nc_c, ntico) and those
 of a (also a 3D array) is (nr_b, nc_c, ntico).
 The parameter ldc must be >= ncol(b)
-The result is subtracted from a so if a pure multiplication result is needed,
+The result is subtracted from a, so if a pure multiplication result is needed,
 user must initialized a to 0 before call
 
 To compile do in R
@@ -52,6 +52,8 @@ void mult_bxxc(NumericVector a, List b, NumericVector c) {
       stop("dim(c)[3] must be equal to dim(a)[3]");
    if (dic[1] != nc_c)
       stop("dim(c)[2] must be equal to dim(a)[2]");
+   if (ldc < nc_b)
+      stop("dim(c)[1] must be greater or equal to ncol(b)");
    
    IntegerVector it(bi.size()), irb(bi.size());
    std::transform(bi.begin(), bi.end(), irb.begin(), std::bind(my_mod, _1, nr_b));
@@ -90,8 +92,8 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<XPtr<Rmumps>> ali, cube s, iv
    // Calculations are done in-place so s is modified and contains the
    // solution on exit. The others parameters are not modified.
    // s_i can be a matrix or a vector(== 1-column matrix)
-   int nti=invdt.size();
-   int nxrow=x0.n_rows, nxcol=x0.n_cols;
+   unsigned int nti=invdt.size();
+   unsigned int nxrow=x0.n_rows, nxcol=x0.n_cols;
    // sanity control
    if (M.n_rows != nxrow)
       stop("nrow(M) != nrow(x0)");
@@ -106,7 +108,7 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<XPtr<Rmumps>> ali, cube s, iv
    if (ilua.size() != nti)
       stop("length(ilua) != length(invdt)");
    // prepare starting s
-   for (int i=0; i < nti; i++) {
+   for (unsigned int i=0; i < nti; i++) {
 //Rcout << "i=" << i << std::endl;
       if (i == 0)
          s.slice(i)=s.slice(i)+(M%x0)*invdt[i];
