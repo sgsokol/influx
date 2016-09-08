@@ -137,6 +137,8 @@ def ftbl_parse(f):
     if isstr(f):
         if f[-5:].lower() != ".ftbl":
             f=f+".ftbl"
+        ftbl["name"]=f
+        ftbl["base_name"]=os.path.basename(f)[:-5]
         fc=codecs.open(f, "r", encoding="utf-8-sig")
         try:
            lines=fc.readlines()
@@ -145,6 +147,8 @@ def ftbl_parse(f):
            fc=open(f, "r")
            lines=fc.readlines()
            fc.close()
+    else:
+        Exception("parameter 'f' must be a string with FTBL file name")
     
     #print f;##
     reblank=re.compile("^[\t ]*$")
@@ -346,15 +350,15 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
             "flux_free":{},
             "flux_constr":{},
             "flux_measured":{},
-            "iso_input":{},
-            "cumo_input":{},
-            "rcumo_input":{},
-            "emu_input":{},
+            "iso_input":[],
+            "cumo_input":[],
+            "rcumo_input":[],
+            "emu_input":[],
             "flux_inequal":{"net":[], "xch":[]},
             "flux_equal":{"net":[], "xch":[]},
-            "label_meas":{},
-            "peak_meas":{},
-            "mass_meas":{},
+            "label_meas":[],
+            "peak_meas":[],
+            "mass_meas":[],
             "vcumo":[],
             "Afl":[],
             "bfl":[],
@@ -375,6 +379,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
             "metab_measured":{},
         })
     res="";     # auxiliary short-cut to current result
+    netan["exp_names"]=[ftbl["base_name"]]
+    netan["fullsys"]=fullsys
 
     # Isotopomer dynamics and other options
     for row in ftbl.get("OPTIONS",[]):
@@ -826,52 +832,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
                 "val": val, \
                 "dev": sdev}
     
-    # input isotopomers
-    for row in ftbl.get("LABEL_INPUT",[]):
-        metab=row.get("META_NAME", "") or metab
-        if metab not in netan["Clen"]:
-            raise Exception("Input metabolite `%s` is not defined in NETWORK (row: %d)."%(metab, row["irow"]))
-        ilen=len(row.get("ISOTOPOMER", ""))-1; # -1 for '#' sign
-        if ilen != netan["Clen"][metab]:
-            raise Exception("Input isotopomer `%s` is of bad length (%d). A length of %d is expected (row: %d)."%
-                (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), ilen,  netan["Clen"][metab], row["irow"]))
-        iiso=strbit2int(row["ISOTOPOMER"])
-        if metab not in netan["iso_input"]:
-            netan["iso_input"][metab]={}
-        val=eval(row["VALUE"])
-        netan["iso_input"][metab][iiso]=val
-        if val < 0 or val > 1:
-            raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (row: %d)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, row["irow"]))
-    # check that all isoforms sum up to 1 for all inputs
-    for metab in netan["iso_input"]:
-        le=len(netan["iso_input"][metab])
-        nfo=2**netan["Clen"][metab]
-        su=sum(netan["iso_input"][metab].values())
-        if su > 1.+1.e-10:
-            raise Exception("Input metabolite `%s` has label summing up to %g which is greater than 1."%(metab, su))
-        if le == nfo:
-            # all forms are given => must sum up to 1
-            if abs(su-1.) > 1.e-10:
-                raise Exception("Input metabolite `%s` has label summing up to %g instead of 1."%(metab, su))
-        elif le < nfo-1:
-            # many forms are lacking (not just one)
-            # if fully unlabeled is lacking, use it to complete to 1
-            # otherwise raise an error
-            if 0 not in netan["iso_input"][metab]:
-                netan["iso_input"][metab][0]=1.-su
-            elif abs(su-1.) > 1.e-10:
-                raise Exception("Input metabolite `%s` has lacking labels to sum up to 1 (we get sum=%g instead)."%(metab, su))
-        elif le == nfo-1:
-            # just one form is lacking
-            if su != 1.:
-                # add it to complete to 1
-                la=list(set(range(nfo))-set(netan["iso_input"][metab]))[0]
-                netan["iso_input"][metab][la]=1.-su
-    if set(netan["iso_input"].keys()) != set(netan["input"]):
-        raise Exception("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them\n"+
-            "LABEL_INPUT: "+str(netan["iso_input"].keys())+"\n"+
-            "NETWORK input: "+str(netan["input"])+"\n")
-    
+    # proceed LABEL_INPUT
+    proc_label_input(ftbl, netan)
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
     # and comp is of "<", "<=", ...
@@ -937,257 +899,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
                     raise Exception("%s %s flux `%s` is not defined in NETWORK neither EQUALITY sections."%
                        (affdfcg, affnx, fl))
                 netan["nx2dfcg"][nxsh+fl]=dfcgsh+nxsh+fl
-
-    # label measurements
-    # [metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}
-    metabs=""
-    for row in ftbl.get("LABEL_MEASUREMENTS", []):
-        #print row;##
-        # test the cumomer pattern validity
-        if (not re.match(r"#[01x]+(\+#[01x]+)*", row["CUM_CONSTRAINTS"])):
-            raise Exception("Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"' (row: %d)"%row["irow"])
-        metabs=row["META_NAME"] or metabs
-        group=row["CUM_GROUP"] or group
-        # metabs can be metab1[+metab2[+...]]
-        metabl=metabs.split("+")
-        if (len(metabl) > 1):
-            # pooling metabolites will need their concentraions
-            mdif=set(metabl).difference(netan["met_pools"])
-            if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
-
-        # check that all metabs are unique
-        count=dict((i, metabl.count(i)) for i in set(metabl))
-        notuniq=set((i for i in count if count[i] > 1))
-        if notuniq:
-            raise Exception("Metabolite(s) '%s' is present twice or more (row: %d)"%(join(", ", notuniq), row["irow"]))
-
-        metab0=metabl[0] if metabl else ""
-        if not metab0 in netan["metabs"]:
-            raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (row: %d)"%(metab0, row["irow"]))
-        clen0=netan["Clen"][metab0] if metab0 else 0
-        for metab in metabl:
-            if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (row: %d)"%(metab, row["irow"]))
-            if metab in netan["output"]:
-                raise Exception("""Measured metabolites have to be internal to network (found in output metabolites).
-You can add a fictious metabolite in your network immediatly after '"""+metab+"' (seen in LABEL_MEASUREMENTS).")
-            mlen=netan["Clen"][metab]
-            clen=netan["Clen"][metab]
-            if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (ftbl row: %d)"%(metab, clen, metab0, clen0, row["irow"]))
-        if not metabs in netan["label_meas"]:
-            netan["label_meas"][metabs]={}
-        if not group in netan["label_meas"][metabs]:
-            netan["label_meas"][metabs][group]=[]
-        # prepare cumos list
-        # if bcumos is not empty use it
-        # else use group name as carbon number (starting from # character)
-        if row.get("CUM_CONSTRAINTS",""):
-            bcumos=row["CUM_CONSTRAINTS"].split("+")
-        else:
-            try:
-                # just put "1" in group-th place
-                i=int(group)
-                bcumos="#"+"x"*netan["Clen"][metabl[0]]
-                bcumos[i]="1"
-                bcumos=[bcumos]
-            except:
-                raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row "+row["irow"])
-        if not row["VALUE"]:
-            raise Exception("The field VALUE is empty (row: %d)"%row["irow"])
-        if not row["DEVIATION"]:
-            raise Exception("The field DEVIATION is empty (row: %d)"%row["irow"])
-        try:
-            val=float(eval(row["VALUE"]))
-        except:
-            val=NaN
-        try:
-            sdev=float(eval(row["DEVIATION"]))
-        except:
-            raise Exception("DEVIATION must evaluate to a real positive number (row: %d)."%row["irow"])
-        if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
-        netan["label_meas"][metabs][group].append({
-                "val":val,
-                "dev":sdev,
-                "bcumos":row["CUM_CONSTRAINTS"].split("+"),
-                "id":":".join(["l", metabs, row["CUM_CONSTRAINTS"], str(row["irow"])]),
-                "pooled":metabl,
-        })
-        # test the icumomer lengths
-        if not all(len(ic)==mlen+1 for ic in 
-                netan["label_meas"][metabs][group][-1]["bcumos"]):
-            raise Exception("Wrong cumomer length for %s in %s (row: %d)"%(metab, row["CUM_CONSTRAINTS"], row["irow"]))
-    
-    # peak measurements
-    # [metab][c_no][peak_type in (S,D-,D+,(DD|T))]={val:x, dev:y}
-    metabs=""
-    for row in ftbl.get("PEAK_MEASUREMENTS",[]):
-        #print row;##
-        # test the pattern validity
-        if (row.get("VALUE_DD","") and row.get("VALUE_T","")):
-            raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row))
-        metabs=row["META_NAME"] or metabs
-        metabl=metabs.split("+")
-        if (len(metabl) > 1):
-            # pooling metabolites will need their concentraions
-            mdif=set(metabl).difference(netan["met_pools"])
-            if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
-
-        # check that all metabs are unique
-        count=dict((i, metabl.count(i)) for i in set(metabl))
-        notuniq=set((i for i in count if count[i] > 1))
-        if notuniq:
-            raise Exception("Metabolite(s) '%s' is present twice or more (row: %d)"%(join(", ", notuniq), row["irow"]))
-
-        metab0=metabl[0] if metabl else ""
-        if not metab0 in netan["metabs"]:
-            raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (row: %d)"%(metab0, row["irow"]))
-        clen0=netan["Clen"][metab0] if metab0 else 0
-        for metab in metabl:
-            if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (row: %d)"%(metab, row["irow"]))
-            if metab in netan["output"]:
-                raise Exception("""Measured metabolites have to be internal to network (seen in output metabolites).
-You can add a fictious metabolite in your network immediatly after '"""+metab+"' (seen in PEAK_MEASUREMENTS).")
-            clen=netan["Clen"][metab]
-            if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (row: %d)"%(metab, clen, metab0, clen0, row["irow"]))
-        netan["peak_meas"].setdefault(metabs,{})
-        for suff in ("S", "D-", "D+", "DD", "T"):
-            # get val and dev for this type of peak
-            val=row.get("VALUE_"+suff,"")
-            if (not val or val=="-"):
-                continue
-            dev=row.get("DEVIATION_"+suff,"") or row.get("DEVIATION_S")
-            if suff in ("DD", "T"):
-               dev=row.get("DEVIATION_DD/T","") or row.get("DEVIATION_S")
-            if not dev:
-                raise Exception("The field DEVIATION_%s is empty (row: %d)"%(suff, row["irow"]))
-            try:
-                val=float(eval(val))
-            except:
-                val=NaN
-            try:
-                dev=float(eval(dev))
-            except:
-                continue
-            # test validity
-            if not dev:
-                raise Exception("Deviation is not valid for VALUE_"+suff+" on row "+str(row["irow"]))
-            c_no=int(row["PEAK_NO"])
-            if c_no > clen0:
-                raise Exception("Carbon number "+str(c_no)+" is greater than carbon length "+str(clen0)+" for metabolite '"+metab0+"' (row: %d)"%row["irow"])
-            if suff == "D-" and c_no == 1:
-                raise Exception("Peak D- cannot be set for metabolite "+metab0+", c_no=1 (row: %d)"%row["irow"])
-            if suff == "D+" and c_no == clen:
-                raise Exception("Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" (row: %d)"%row["irow"])
-            if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
-                raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" (row: %d)"%row["irow"])
-            netan["peak_meas"][metabs].setdefault(row["irow"],{})
-            netan["peak_meas"][metabs][row["irow"]][suff]={
-               "val": val,
-               "dev": dev,
-               "id": ":".join(["p", metabs, row["PEAK_NO"], suff, str(row["irow"])]),
-               "irow": str(row["irow"]),
-               "c_no": c_no,
-               "pooled":metabl,
-            }
-    
-    # mass measurements
-    # dict:[metab][frag_mask][weight]={val:x, dev:y}
-    metabs=""
-    for row in ftbl.get("MASS_SPECTROMETRY",[]):
-        #print row;##
-        metabs=row["META_NAME"] or metabs
-        if row["META_NAME"]:
-            irow=row["irow"]
-        # metabs can be metab1[+metab2[+...]]
-        metabl=metabs.split("+")
-        if (len(metabl) > 1):
-            # pooling metabolites will need their concentraions
-            mdif=set(metabl).difference(netan["met_pools"])
-            if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
-
-        # check that all metabs are unique
-        count=dict((i, metabl.count(i)) for i in set(metabl))
-        #print(count)
-        notuniq=set((i for i in count if count[i] > 1))
-        if notuniq:
-            raise Exception("Metabolite(s) '%s' is present twice or more (row: %d)"%(join(", ", notuniq), row["irow"]))
-
-        metab0=metabl[0] if metabl else ""
-        if not metab0 in netan["metabs"]:
-            raise Exception("Unknown metabolite name '%s' in MASS_MEASUREMENTS (row: %d)"%(metab0, row["irow"]))
-        clen0=netan["Clen"][metab0] if metab0 else 0
-        frag=row["FRAGMENT"] or frag
-        for metab in metabl:
-            clen=netan["Clen"][metab]
-            # test the validity
-            if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '%s' in MASS_SPECTROMETRY (row: %d)"%(metab, row["irow"]))
-            if metab in netan["output"]:
-                raise Exception("""Measured metabolites have to be internal to network.
-You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
-            clen=netan["Clen"][metab]
-            if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (row: %d)"%(metab, clen, metab0, clen0, row["irow"]))
-        if row["FRAGMENT"]:
-            # recalculate fragment mask
-            mask=0
-            for item in frag.split(","):
-                try:
-                    i=int(item)
-                    if i > clen0:
-                        raise Exception("An item '"+item+"' of carbon fragment is higher than metabolite '"+metab0+"' length "+str(clen0)+" (row: %d)"%irow)
-                    # add this simple item to the mask
-                    mask|=1<<(clen0-i)
-                except ValueError:
-                    # try the interval
-                    try:
-                        (start,end)=item.split("~")
-                        #print "start,end=%s,%s" % (start,end);##
-                        try:
-                            for i in xrange(int(start),int(end)+1):
-                                if i > clen0:
-                                    raise Exception("End of interval '"+item+"' is higher than metabolite '"+metab0+"' length "+str(clen0)+" (row: %d)"%irow)
-                                mask|=1<<(clen0-i)
-                        except:
-                            raise Exception("Badly formed fragment interval '"+item+"' (row: %d)"%irow)
-                    except:
-                        raise Exception("Badly formed fragment interval '"+item+"' (row: %d)"%irow)
-        m_id=":".join(["m", metabs, frag, str(irow)])
-        weight=int(row["WEIGHT"])
-        if sumbit(mask) < weight:
-            raise Exception("Weight "+str(weight)+" is higher than fragment length "+frag+" (row: %d)"%irow)
-        if clen < sumbit(mask):
-            raise Exception("Fragment "+frag+" is longer than metabolite length "+str(clen)+" (row: %d)"%irow)
-        netan["mass_meas"].setdefault(m_id, {})
-        netan["mass_meas"][m_id].setdefault(mask, {})
-        if not row["VALUE"]:
-            raise Exception("The field VALUE is empty (row: %d)"%row["irow"])
-        if not row["DEVIATION"]:
-            raise Exception("The field DEVIATION is empty (row: %d)"%row["irow"])
-        try:
-            val=float(eval(row["VALUE"]))
-        except:
-            val=NaN
-        try:
-            sdev=float(eval(row["DEVIATION"]))
-        except:
-            raise Exception("DEVIATION must evaluate to a real positive number (row: %d)."%row["irow"])
-        if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
-        netan["mass_meas"][m_id][mask][weight]={
-                "val":val,
-                "dev":sdev,
-                "id":":".join(["m", metabs, frag, row["WEIGHT"], str(row["irow"])]),
-                "irow":str(row["irow"]),
-                "pooled":metabl,
-        }
+    # labeled measurements
+    proc_label_meas(ftbl, netan)
+    proc_peak_meas(ftbl, netan)
+    proc_mass_meas(ftbl, netan)
     
     # discard empty entries
     for e in netan:
@@ -1222,7 +937,6 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 res[metab]["out"].append("rev."+reac)
 
     # metabolite network
-    del(res)
     res=netan["metab_netw"]
     # left part or reaction points to right part
     for reac,parts in netan["formula"].iteritems():
@@ -1242,7 +956,6 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
     # b is a list of right hand parts (still in weight order)
     # the dimensions of various weights in b are not the same
     # too short metabolites are dropped when going to higher weights.
-    del(res)
     res=netan["cumo_sys"]
     res["A"]=[{} for i in xrange(Cmax)]
     res["b"]=[{} for i in xrange(Cmax)]
@@ -1310,9 +1023,9 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                                     res["b"][w-1][cumo][flux]={}
                                 if imetab not in res["b"][w-1][cumo][flux]:
                                     res["b"][w-1][cumo][flux][imetab]=[]
-                                if in_cumo not in netan["cumo_input"]:
+                                if not netan["cumo_input"] or in_cumo not in netan["cumo_input"][0]:
                                     # put this in_cumo ih the dict
-                                    netan["cumo_input"][in_cumo]=iso2cumo(in_icumo, netan["iso_input"][in_metab])
+                                    iso2cumo(netan, "cumo_input", in_cumo, in_icumo, in_metab)
                                 res["b"][w-1][cumo][flux][imetab].append(in_cumo)
                             else:
                                 if in_cumo not in res["A"][w-1][cumo]:
@@ -1604,6 +1317,20 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                 if fl in eq[1]:
                     dtmp["g."+nxl+"."+fl]=dtmp.get("c."+nxl+"."+fl,0)-float(eq[1][fl])
 
+    # read parallel experiments if any
+    proc_kinopt(ftbl, netan)
+    if "opt" in netan and "prl_exp" in netan["opt"] and netan["opt"]["prl_exp"]:
+        # parse ftbl files
+        fli=re.split(";\s*", netan["opt"]["prl_exp"])
+        for fn in fli:
+            fp=ftbl_parse(fn)
+            netan["exp_names"].append(fp["base_name"])
+            proc_label_input(fp, netan)
+            proc_label_meas(fp, netan)
+            proc_peak_meas(fp, netan)
+            proc_mass_meas(fp, netan)
+            proc_kinopt(fp, netan)
+
 def enum_path(starts, netw, outs, visited=set()):
     """Enumerate metabilites along to reaction pathways.
     Algo: start from an input, follow chemical pathways till an output or
@@ -1819,12 +1546,34 @@ def cumo_iw(w,nlen):
             for subi in cumo_iw(w-1,w+i-1):
                 yield movbit+subi
             movbit<<=1
-def iso2cumo(icumo, iso_dic):
+
+def iso2cumo(netan, strin, in_cumo, icumo, in_metab):
     """calculate cumomer fraction from isotopomer ones"""
     #return sum(iso_dic.get(iiso,0.)
     #    for iiso in icumo2iiso(icumo, Clen))
     w=sumbit(icumo)
-    return sum(val for (iso, val) in iso_dic.iteritems() if sumbit(iso&icumo) == w)
+    n=len(netan["iso_input"])
+    if len(netan[strin]) != n:
+        # init cumo_input list of dicts
+        netan[strin]=[{} for i in xrange(n)]
+    for ili in xrange(len(netan["iso_input"])):
+        d=netan["iso_input"][ili][in_metab]
+        netan[strin][ili][in_cumo]=sum(val for (iso, val) in d.iteritems() if sumbit(iso&icumo) == w)
+
+def iso2emu(netan, inmetab, mask, mpi, e):
+    """calculate emu fraction from isotopomer dict iso_input.
+    The fraction corresponds to a fragment defined by a mask and the mass component mpi.
+    Return a real number in [0; 1] interval.
+    """
+    #return(sum([val for (frag, val) in iso_input[inmetab].iteritems() if sumbit(frag&mask) == mpi]))
+    n=len(netan["iso_input"])
+    if len(netan["emu_input"]) != n:
+        # init emu_input list of dicts
+        netan["emu_input"]=[{} for i in xrange(n)]
+    for ili in xrange(n):
+        d=netan["iso_input"][ili][inmetab]
+        netan["emu_input"][ili][e]=sum([val for (frag, val) in d.iteritems() if sumbit(frag&mask) == mpi])
+
 def formula2dict(f):
     """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
@@ -1854,8 +1603,10 @@ def formula2dict(f):
         else:
             raise Exception("Not parsed term '"+term+"' in formula '"+f+"'.")
     return res
+
 def label_meas2matrix_vec_dev(netan):
-    """use netan["label_meas"] to construct a corresponding measure matrix matx_lab
+    """use netan["label_meas"] list to construct a corresponding list of
+    measure matrix matx_lab
     such that scale_diag*metab_pool_diag*matx_lab*(cumos_vector,1) corresponds to label_measurements_vector.
     matx_lab is defined as
     list of dict{"scale":scale_name, "coefs":dict{icumo:coef}, "metab": metabolite, "poolid": metabolite pool id if pooled}
@@ -1872,41 +1623,47 @@ def label_meas2matrix_vec_dev(netan):
     # lab[metab][group]=list of {id:txt, val:x, dev:y, bcumos:list of #bcumo}
     # bcumo is like #1xx01 (0,1 and x are allowed)
     # their sum have to be transformed in cumomer linear combination
-    mat=[]
-    vec=[]
-    dev=[]
-    pooled=[]
-    ids=[]
-    imrow=-1
-    for (metabs,groups) in netan.get("label_meas", {}).iteritems():
-        for (group,rows) in groups.iteritems():
-            for row in rows:
-                vec.append(row["val"])
-                dev.append(row["dev"])
-                ids.append(row["id"])
-                res={}
-                for cumostr in row["bcumos"]:
-                    decomp=bcumo_decomp(cumostr)
-                    for icumo in decomp["+"]:
-                        res.setdefault(icumo,0)
-                        res[icumo]+=1
-                    for icumo in decomp["-"]:
-                        res.setdefault(icumo,0)
-                        res[icumo]-=1
-                emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
-                if len(row["pooled"]) > 1:
-                    # init index list
-                    pooled.append([row["id"]])
-                for metab in row["pooled"]:
-                    imrow+=1
-                    mat.append({"id": row["id"], "scale": metabs+";"+group, "coefs":res,
-                        "bcumos": row["bcumos"], "metab": metab, "emuco": emuco})
+    nexp=len(netan["iso_input"])
+    mli=range(nexp)
+    for ili in xrange(nexp):
+        mat=[]
+        vec=[]
+        dev=[]
+        pooled=[]
+        ids=[]
+        imrow=-1
+        for (metabs,groups) in netan["label_meas"][ili].iteritems():
+            for (group,rows) in groups.iteritems():
+                for row in rows:
+                    vec.append(row["val"])
+                    dev.append(row["dev"])
+                    ids.append(row["id"])
+                    res={}
+                    for cumostr in row["bcumos"]:
+                        decomp=bcumo_decomp(cumostr)
+                        for icumo in decomp["+"]:
+                            res.setdefault(icumo,0)
+                            res[icumo]+=1
+                        for icumo in decomp["-"]:
+                            res.setdefault(icumo,0)
+                            res[icumo]-=1
+                    emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
                     if len(row["pooled"]) > 1:
-                        # indeed something is pooled
-                        pooled[-1].append(imrow)
-    return {"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled}
+                        # init index list
+                        pooled.append([row["id"]])
+                    for metab in row["pooled"]:
+                        imrow+=1
+                        mat.append({"id": row["id"], "scale": metabs+";"+group, "coefs":res,
+                            "bcumos": row["bcumos"], "metab": metab, "emuco": emuco})
+                        if len(row["pooled"]) > 1:
+                            # indeed something is pooled
+                            pooled[-1].append(imrow)
+        mli[ili]={"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled}
+    return mli
+
 def mass_meas2matrix_vec_dev(netan):
-    """use netan["mass_meas"] to construct a corresponding measure matrix matx_mass
+    """use netan["mass_meas"] list to construct a corresponding list of
+    measure matrix matx_mass
     such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.
     matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()
     Elements in matx_mass, vec and dev are ordered in the same way.
@@ -1915,61 +1672,65 @@ def mass_meas2matrix_vec_dev(netan):
     """
     # mass[metab][frag_mask][weight]={val:x, dev:y}
     # weight has to be transformed in cumomer linear combination
-    mat=[]
-    vec=[]
-    dev=[]
-    pooled=[]
-    ids=[]
-    imrow=-1
-    for (m_id,frag_masks) in netan.get("mass_meas",{}).iteritems():
-        #print "mass matx calc for ", metab;##
-        (l, metabs, frag, m_irow)=m_id.split(":")
-        for (fmask,weights) in frag_masks.iteritems():
-            onepos=[b_no for (b_no,b) in iternumbit(fmask) if b]
-            nmask=sumbit(fmask)
-#            aff("weights for met,fmask "+", ".join((metab,strbit(fmask))), weights);##
-            for (weight,row) in weights.iteritems():
-                vec.append(row["val"])
-                dev.append(row["dev"])
-                ids.append(row["id"])
-                metabl=row["pooled"]
-                metab0=metabl[0]
-                n=netan["Clen"][metab0]
-                str0="0"*n
-                strx="x"*n
-                str1="1"*n
-                fmask0x=setcharbit(strx,"0",fmask)
-                fmask01=setcharbit(str0,"1",fmask)
-                # for a given weight construct bcumo sum: #x10x+#x01x+...
-                bcumos=["#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
-                        for iw in xrange(1<<nmask) if sumbit(iw)==weight]
-#                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
-                res={}
-                for cumostr in bcumos:
-                    #print cumostr;##
-                    decomp=bcumo_decomp(cumostr)
-                    for icumo in decomp["+"]:
-                        res.setdefault(icumo,0)
-                        res[icumo]+=1
-                    for icumo in decomp["-"]:
-                        res.setdefault(icumo,0)
-                        res[icumo]-=1
-                emuco={str(fmask)+"+"+str(weight): 1}
-                if len(row["pooled"]) > 1:
-                    # init index list
-                    pooled.append([row["id"]])
-                for metab in row["pooled"]:
-                    imrow+=1
+    nexp=len(netan["iso_input"])
+    mli=range(nexp)
+    for ili in xrange(nexp):
+        mat=[]
+        vec=[]
+        dev=[]
+        pooled=[]
+        ids=[]
+        imrow=-1
+        for (m_id,frag_masks) in netan["mass_meas"][ili].iteritems():
+            #print "mass matx calc for ", metab;##
+            (l, metabs, frag, m_irow)=m_id.split(":")
+            for (fmask,weights) in frag_masks.iteritems():
+                onepos=[b_no for (b_no,b) in iternumbit(fmask) if b]
+                nmask=sumbit(fmask)
+    #            aff("weights for met,fmask "+", ".join((metab,strbit(fmask))), weights);##
+                for (weight,row) in weights.iteritems():
+                    vec.append(row["val"])
+                    dev.append(row["dev"])
+                    ids.append(row["id"])
+                    metabl=row["pooled"]
+                    metab0=metabl[0]
+                    n=netan["Clen"][metab0]
+                    str0="0"*n
+                    strx="x"*n
+                    str1="1"*n
+                    fmask0x=setcharbit(strx,"0",fmask)
+                    fmask01=setcharbit(str0,"1",fmask)
+                    # for a given weight construct bcumo sum: #x10x+#x01x+...
+                    bcumos=["#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
+                            for iw in xrange(1<<nmask) if sumbit(iw)==weight]
+    #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+                    res={}
+                    for cumostr in bcumos:
+                        #print cumostr;##
+                        decomp=bcumo_decomp(cumostr)
+                        for icumo in decomp["+"]:
+                            res.setdefault(icumo,0)
+                            res[icumo]+=1
+                        for icumo in decomp["-"]:
+                            res.setdefault(icumo,0)
+                            res[icumo]-=1
+                    emuco={str(fmask)+"+"+str(weight): 1}
                     if len(row["pooled"]) > 1:
-                        # indeed something is pooled
-                        pooled[-1].append(imrow)
-                    mat.append({"id": row["id"], "scale": metabs+";"+fmask01+";"+m_irow, "coefs":res,
-                        "bcumos": bcumos, "metab": metab, "emuco": emuco})
-    return {"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled}
+                        # init index list
+                        pooled.append([row["id"]])
+                    for metab in row["pooled"]:
+                        imrow+=1
+                        if len(row["pooled"]) > 1:
+                            # indeed something is pooled
+                            pooled[-1].append(imrow)
+                        mat.append({"id": row["id"], "scale": metabs+";"+fmask01+";"+m_irow, "coefs":res,
+                            "bcumos": bcumos, "metab": metab, "emuco": emuco})
+        mli[ili]={"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled}
+    return mli
 
 def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD": 7}):
-    """use netan["peak_meas"] to construct a corresponding measure
-    matrix matx_peak
+    """use netan["peak_meas"] list to construct a corresponding list of
+    measure matrix matx_peak
     such that scale_diag*matx_peak*cumos_vector corresponds to
     peak_measures_vector.
     dmask is a dictionary with 3 carbon labeling pattern mask for
@@ -1984,76 +1745,80 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
     # peak[metab][c_no][peak_type]={val:x, dev:y}
     # c_no+peak_type have to be transformed in cumomer linear combination
     # c_no is 1-based and left (just after # sign) started.
-    mat=[]
-    vec=[]
-    dev=[]
-    pooled=[]
-    ids=[]
-    imrow=-1
-    for (metabs,irows) in netan.get("peak_meas",{}).iteritems():
-        #print "peak matx calc for ", metab;##
-        metabl=irows.values()[0].values()[0]["pooled"]
-        #print(metabl)
-        #metabl=metabl["pooled"]
-        
-        metab0=metabl[0]
-        n=netan["Clen"][metab0]
-        strx="#"+"x"*n
-        for (irow,peaks) in irows.iteritems():
-            # pmask0x put 0 on three targeted carbons and leave x elsewhere
-            c_no=peaks.values()[0]["c_no"]
-            pmask0x=setcharbit(strx,"0",1<<(n-c_no))
-            if c_no > 1:
-                # add left neighbour
-                pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no+1))
-            if c_no < n:
-                # add right neighbour
-                pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no-1))
-#            aff("peaks for met,c_no,pmask0x="+", ".join((metab,str(c_no),pmask0x)), peaks);##
-            for (peak,row) in peaks.iteritems():
-                vec.append(row["val"])
-                dev.append(row["dev"])
-                ids.append(row["id"])
-                res={}
-                # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
-                # shift the 3-bit mask to the right carbon position
+    nexp=len(netan["iso_input"])
+    mli=range(nexp)
+    for ili in xrange(nexp):
+        mat=[]
+        vec=[]
+        dev=[]
+        pooled=[]
+        ids=[]
+        imrow=-1
+        for (metabs,irows) in netan["peak_meas"][0].iteritems():
+            #print "peak matx calc for ", metab;##
+            metabl=irows.values()[0].values()[0]["pooled"]
+            #print(metabl)
+            #metabl=metabl["pooled"]
+            
+            metab0=metabl[0]
+            n=netan["Clen"][metab0]
+            strx="#"+"x"*n
+            for (irow,peaks) in irows.iteritems():
+                # pmask0x put 0 on three targeted carbons and leave x elsewhere
+                c_no=peaks.values()[0]["c_no"]
+                pmask0x=setcharbit(strx,"0",1<<(n-c_no))
+                if c_no > 1:
+                    # add left neighbour
+                    pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no+1))
                 if c_no < n:
-                    pmask=dmask[peak]<<(n-c_no-1)
-                else:
-                    pmask=dmask[peak]>>1
-                bcumos=[setcharbit(pmask0x,"1",pmask)]
-                if peak=="D-" and "T" in peaks:
-                    # D+===D- => add D+ to the list of measured bcumomers
-                    # set the 3-bit mask to the right carbon position
+                    # add right neighbour
+                    pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no-1))
+    #            aff("peaks for met,c_no,pmask0x="+", ".join((metab,str(c_no),pmask0x)), peaks);##
+                for (peak,row) in peaks.iteritems():
+                    vec.append(row["val"])
+                    dev.append(row["dev"])
+                    ids.append(row["id"])
+                    res={}
+                    # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
+                    # shift the 3-bit mask to the right carbon position
                     if c_no < n:
-                        pmask=dmask["D+"]<<(n-c_no-1)
+                        pmask=dmask[peak]<<(n-c_no-1)
                     else:
-                        pmask=dmask["D+"]>>1
-                    bcumos.append(setcharbit(pmask0x,"1",pmask))
-#                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
-                for cumostr in bcumos:
-                    #print cumostr;##
-                    decomp=bcumo_decomp(cumostr)
-                    for icumo in decomp["+"]:
-                        res.setdefault(icumo,0)
-                        res[icumo]+=1
-                    for icumo in decomp["-"]:
-                        res.setdefault(icumo,0)
-                        res[icumo]-=1
-                emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
-                if len(row["pooled"]) > 1:
-                    # init index list
-                    pooled.append([row["id"]])
-                for metab in row["pooled"]:
-                    imrow+=1
-                    mat.append({"id": row["id"], "scale": metabs+";"+str(c_no)+";"+row["irow"], "coefs":res,
-                        "bcumos": bcumos, "metab": metab, "emuco": emuco})
+                        pmask=dmask[peak]>>1
+                    bcumos=[setcharbit(pmask0x,"1",pmask)]
+                    if peak=="D-" and "T" in peaks:
+                        # D+===D- => add D+ to the list of measured bcumomers
+                        # set the 3-bit mask to the right carbon position
+                        if c_no < n:
+                            pmask=dmask["D+"]<<(n-c_no-1)
+                        else:
+                            pmask=dmask["D+"]>>1
+                        bcumos.append(setcharbit(pmask0x,"1",pmask))
+    #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+                    for cumostr in bcumos:
+                        #print cumostr;##
+                        decomp=bcumo_decomp(cumostr)
+                        for icumo in decomp["+"]:
+                            res.setdefault(icumo,0)
+                            res[icumo]+=1
+                        for icumo in decomp["-"]:
+                            res.setdefault(icumo,0)
+                            res[icumo]-=1
+                    emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
                     if len(row["pooled"]) > 1:
-                        # indeed something is pooled
-                        pooled[-1].append(imrow)
-                #print "metab,c_no,peak="+",".join((metab,str(c_no),str(peak)));##
-                #print "res=",str(res);##
-    return {"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled}
+                        # init index list
+                        pooled.append([row["id"]])
+                    for metab in row["pooled"]:
+                        imrow+=1
+                        mat.append({"id": row["id"], "scale": metabs+";"+str(c_no)+";"+row["irow"], "coefs":res,
+                            "bcumos": bcumos, "metab": metab, "emuco": emuco})
+                        if len(row["pooled"]) > 1:
+                            # indeed something is pooled
+                            pooled[-1].append(imrow)
+                    #print "metab,c_no,peak="+",".join((metab,str(c_no),str(peak)));##
+                    #print "res=",str(res);##
+        mli[ili]={"ids": ids, "mat": mat, "vec": vec, "dev": dev, "pooled": pooled}
+    return mli
 
 def bcumo_decomp(bcumo):
     """bcumo is a string of the form #[01x]+. It has to be decomposed
@@ -2241,14 +2006,16 @@ def rcumo_sys(netan, emu=False):
     meas_cumos=set()
     if emu:
         for meas in measures:
-            for row in measures[meas]["mat"]:
-                metab=row["metab"]
-                meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() if i[-2:]!="+0")
+            for item in measures[meas]:
+                for row in item["mat"]:
+                    metab=row["metab"]
+                    meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() if i[-2:]!="+0")
     else:
         for meas in measures:
-            for row in measures[meas]["mat"]:
-                metab=row["metab"]
-                meas_cumos.update(metab+":"+str(icumo) for icumo in row["coefs"].keys() if icumo != 0)
+            for item in measures[meas]:
+                for row in item["mat"]:
+                    metab=row["metab"]
+                    meas_cumos.update(metab+":"+str(icumo) for icumo in row["coefs"].keys() if icumo != 0)
     # make list of observed weights
     weights=set(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos)
     if not weights:
@@ -2305,10 +2072,10 @@ def rcumo_sys(netan, emu=False):
                     if inmetab in netan["input"]:
                         if emu:
                             # tuple emu (mask, m+i, string)
-                            emus=[(inicumo, i, incumo+"+"+str(i)) for i in xrange(inw+1)]
-                            netan["emu_input"].update((e,iso2emu(netan, inmetab, mask, mpi)) for (mask, mpi, e) in emus)
-                        if incumo not in netan["rcumo_input"]:
-                            netan["rcumo_input"][incumo]=iso2cumo(inicumo, netan["iso_input"][inmetab])
+                            for mask, mpi, e in ((inicumo, i, incumo+"+"+str(i)) for i in xrange(inw+1)):
+                                iso2emu(netan, inmetab, mask, mpi, e)
+                        if not netan["rcumo_input"] or incumo not in netan["rcumo_input"][0]:
+                            iso2cumo(netan, "rcumo_input", incumo, inicumo,inmetab)
                         #netan["rcumo_input"][incumo]=netan["cumo_input"][incumo]
                     # main part: write equations
                     if inw==w :
@@ -2349,13 +2116,14 @@ def rcumo_sys(netan, emu=False):
     #print("A=", A)
     netan["rcumo_sys"]={"A": A, "b": b}
     # make order list for emu_input
-    netan["vemu_input"]=netan["emu_input"].keys()
-    # make order list for internal emus
-    netan["vemu"]=copy.deepcopy(netan["vrcumo"])
-    for w in xrange(len(netan["vemu"])):
-        l=netan["vemu"][w]
-        netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w+2) for m in l]
-    netan["emu2i0"]=dict((emu,i) for (i, emu) in enumerate(valval(netan["vemu"])))
+    if emu:
+        netan["vemu_input"]=netan["emu_input"][0].keys()
+        # make order list for internal emus
+        netan["vemu"]=copy.deepcopy(netan["vrcumo"])
+        for w in xrange(len(netan["vemu"])):
+            l=netan["vemu"][w]
+            netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w+2) for m in l]
+        netan["emu2i0"]=dict((emu,i) for (i, emu) in enumerate(valval(netan["vemu"])))
     return netan["rcumo_sys"]
 
 def cumo_infl(netan, cumo):
@@ -2466,11 +2234,12 @@ def ms_frag_gath(netan):
     """
     frags=set()
     to_visit=set()
-    for m_id in netan["mass_meas"]:
-        for mask in netan["mass_meas"][m_id]:
-            # just the first weight item is sufficient
-            item=netan["mass_meas"][m_id][mask].values()[0]
-            to_visit.update(met+":"+str(mask) for met in item["pooled"])
+    for di in netan["mass_meas"]:
+        for m_id in di:
+            for mask in di[m_id]:
+                # just the first weight item is sufficient
+                item=di[m_id][mask].values()[0]
+                to_visit.update(met+":"+str(mask) for met in item["pooled"])
     while to_visit:
         for frag in list(to_visit):
             if frag in frags:
@@ -2483,12 +2252,356 @@ def ms_frag_gath(netan):
             to_visit.update(incumo for (incumo,fl,imetab,iinmetab) in cumo_infl(netan, frag))
             break
     return(frags)
-def iso2emu(netan, inmetab, mask, mpi):
-    """calculate emu fraction from isotopomer dict in netan["iso_input"].
-    The fraction corresponds to a fragment defined by a mask and the mass component mpi.
-    Return a real number in [0; 1] interval.
-    """
-    return(sum([val for (frag, val) in netan["iso_input"][inmetab].iteritems() if sumbit(frag&mask) == mpi]))
 def ntimes(n):
     """Return charcater string 'once' for n=1, 'twice' for n=2 and 'n times' for other n"""
     return("once" if n==1 else "twice" if n==2 else "%d times"%n)
+def proc_label_input(ftbl, netan):
+    """Proceed LABEL_INPUT section in ftbl and add result to the list netan["iso_input"]
+    List item is a dict {}metab;{isotop_int_index:fraction}}
+    """
+    ili=len(netan["iso_input"]) # label_input list index
+    netan["iso_input"]+=[{}]
+    res=netan["iso_input"][ili]
+    # input isotopomers
+    for row in ftbl.get("LABEL_INPUT",[]):
+        metab=row.get("META_NAME", "") or metab
+        if metab not in netan["Clen"]:
+            raise Exception("Input metabolite `%s` is not defined in NETWORK (row: %d)."%(metab, row["irow"]))
+        ilen=len(row.get("ISOTOPOMER", ""))-1; # -1 for '#' sign
+        if ilen != netan["Clen"][metab]:
+            raise Exception("Input isotopomer `%s` is of bad length (%d). A length of %d is expected (%s: %d)."%
+                (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), ilen,  netan["Clen"][metab], ftbl["name"], row["irow"]))
+        iiso=strbit2int(row["ISOTOPOMER"])
+        if metab not in res:
+            res[metab]={}
+        val=eval(row["VALUE"])
+        res[metab][iiso]=val
+        if val < 0 or val > 1:
+            raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %d)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
+    # check that all isoforms sum up to 1 for all inputs
+    for metab in res:
+        le=len(res[metab])
+        nfo=2**netan["Clen"][metab]
+        su=sum(res[metab].values())
+        if su > 1.+1.e-10:
+            raise Exception("Input metabolite `%s` has label summing up to %g which is greater than 1 (%s)."%(metab, su, ftbl["name"]))
+        if le == nfo:
+            # all forms are given => must sum up to 1
+            if abs(su-1.) > 1.e-10:
+                raise Exception("Input metabolite `%s` has label summing up to %g instead of 1 (%s)."%(metab, su, ftbl["name"]))
+        elif le < nfo-1:
+            # many forms are lacking (not just one)
+            # if fully unlabeled is lacking, use it to complete to 1
+            # otherwise raise an error
+            if 0 not in res[metab]:
+                res[metab][0]=1.-su
+            elif abs(su-1.) > 1.e-10:
+                raise Exception("Input metabolite `%s` has lacking labels to sum up to 1 (we get sum=%g instead) (%s)."%(metab, su, ftbl["name"]))
+        elif le == nfo-1:
+            # just one form is lacking
+            if su != 1.:
+                # add it to complete to 1
+                la=list(set(range(nfo))-set(res[metab]))[0]
+                res[metab][la]=1.-su
+    if ili > 0:
+        # complete absent inputs by their values from the first ftbl
+        for m in set(netan["iso_input"][0])-set(res):
+            res[m]=netan["iso_input"][0][m];
+    if set(res.keys()) != set(netan["input"]):
+        raise Exception("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them (%s):\n"%ftbl["name"]+
+            "LABEL_INPUT: "+str(res.keys())+"\n"+
+            "NETWORK input: "+str(netan["input"])+"\n")
+
+def proc_label_meas(ftbl, netan):
+    """Proceed LABEL_MEASUREMENT section of ftbl file, add the result to a list of dicts
+    """
+    # label measurements
+    # [ili]][metab][group]->list of {val:x, dev:y, bcumos:list of #bcumo}
+    ili=len(netan["label_meas"])
+    netan["label_meas"]+=[{}]
+    res=netan["label_meas"][ili]
+    
+    metabs=""
+    for row in ftbl.get("LABEL_MEASUREMENTS", []):
+        #print row;##
+        # test the cumomer pattern validity
+        if (not re.match(r"#[01x]+(\+#[01x]+)*", row["CUM_CONSTRAINTS"])):
+            raise Exception("Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"' (%s: %d)"%(ftbl["name"], row["irow"]))
+        metabs=row["META_NAME"] or metabs
+        group=row["CUM_GROUP"] or group
+        # metabs can be metab1[+metab2[+...]]
+        metabl=metabs.split("+")
+        if (len(metabl) > 1):
+            # pooling metabolites will need their concentraions
+            mdif=set(metabl).difference(netan["met_pools"])
+            if mdif:
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
+
+        # check that all metabs are unique
+        count=dict((i, metabl.count(i)) for i in set(metabl))
+        notuniq=set((i for i in count if count[i] > 1))
+        if notuniq:
+            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %d)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
+
+        metab0=metabl[0] if metabl else ""
+        if not metab0 in netan["metabs"]:
+            raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %d)"%(metab0, ftbl["name"], row["irow"]))
+        clen0=netan["Clen"][metab0] if metab0 else 0
+        for metab in metabl:
+            if not metab in netan["metabs"]:
+                raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %d)"%(metab, ftbl["name"], row["irow"]))
+            if metab in netan["output"]:
+                raise Exception("""Measured metabolites have to be internal to network (found in output metabolites in %s).
+You can add a fictious metabolite in your network immediatly after '"""%ftbl["name"]+metab+"' (seen in LABEL_MEASUREMENTS).")
+            mlen=netan["Clen"][metab]
+            clen=netan["Clen"][metab]
+            if clen!=clen0 :
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %d)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
+        if not metabs in res:
+            res[metabs]={}
+        if not group in res[metabs]:
+            res[metabs][group]=[]
+        # prepare cumos list
+        # if bcumos is not empty use it
+        # else use group name as carbon number (starting from # character)
+        if row.get("CUM_CONSTRAINTS",""):
+            bcumos=row["CUM_CONSTRAINTS"].split("+")
+        else:
+            try:
+                # just put "1" in group-th place
+                i=int(group)
+                bcumos="#"+"x"*netan["Clen"][metabl[0]]
+                bcumos[i]="1"
+                bcumos=[bcumos]
+            except:
+                raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row "+row["irow"])
+        if not row["VALUE"]:
+            raise Exception("The field VALUE is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+        if not row["DEVIATION"]:
+            raise Exception("The field DEVIATION is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+        try:
+            val=float(eval(row["VALUE"]))
+        except:
+            val=NaN
+        try:
+            sdev=float(eval(row["DEVIATION"]))
+        except:
+            raise Exception("DEVIATION must evaluate to a real positive number (%s: %d)."%(ftbl["name"], row["irow"]))
+        if sdev <= 0.:
+            raise Exception("DEVIATION must be positive (%s: %d)."%(ftbl["name"], row["irow"]))
+        res[metabs][group].append({
+                "val":val,
+                "dev":sdev,
+                "bcumos":row["CUM_CONSTRAINTS"].split("+"),
+                "id":":".join(["l", metabs, row["CUM_CONSTRAINTS"], str(row["irow"])]),
+                "pooled":metabl,
+        })
+        # test the icumomer lengths
+        if not all(len(ic)==mlen+1 for ic in 
+                res[metabs][group][-1]["bcumos"]):
+            raise Exception("Wrong cumomer length for %s in %s (%s: %d)"%(metab, row["CUM_CONSTRAINTS"], ftbl["name"], row["irow"]))
+def proc_peak_meas(ftbl, netan):
+    """Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts
+    """
+    # peak measurements
+    # [ili]][metab][c_no][peak_type in (S,D-,D+,(DD|T))]={val:x, dev:y}
+    ili=len(netan["peak_meas"])
+    netan["peak_meas"]+=[{}]
+    res=netan["peak_meas"][ili]
+    # peak measurements
+    metabs=""
+    for row in ftbl.get("PEAK_MEASUREMENTS",[]):
+        #print row;##
+        # test the pattern validity
+        if (row.get("VALUE_DD","") and row.get("VALUE_T","")):
+            raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row)+" (%s: %d)"%(ftbl["name"], row["irow"]))
+        metabs=row["META_NAME"] or metabs
+        metabl=metabs.split("+")
+        if (len(metabl) > 1):
+            # pooling metabolites will need their concentraions
+            mdif=set(metabl).difference(netan["met_pools"])
+            if mdif:
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %d)"%(join(", ", mdif), ftbl["name"], row["irow"]))
+
+        # check that all metabs are unique
+        count=dict((i, metabl.count(i)) for i in set(metabl))
+        notuniq=set((i for i in count if count[i] > 1))
+        if notuniq:
+            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %d)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
+
+        metab0=metabl[0] if metabl else ""
+        if not metab0 in netan["metabs"]:
+            raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %d)"%(metab0, ftbl["name"], row["irow"]))
+        clen0=netan["Clen"][metab0] if metab0 else 0
+        for metab in metabl:
+            if not metab in netan["metabs"]:
+                raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %d)"%(metab, ftbl["name"], row["irow"]))
+            if metab in netan["output"]:
+                raise Exception("""Measured metabolites have to be internal to network (seen in output metabolites (%s: %d)).
+You can add a fictious metabolite in your network immediatly after '"""%(ftbl["name"], row["irow"])+metab+"' (seen in PEAK_MEASUREMENTS).")
+            clen=netan["Clen"][metab]
+            if clen!=clen0 :
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %d)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
+        res.setdefault(metabs,{})
+        for suff in ("S", "D-", "D+", "DD", "T"):
+            # get val and dev for this type of peak
+            val=row.get("VALUE_"+suff,"")
+            if (not val or val=="-"):
+                continue
+            dev=row.get("DEVIATION_"+suff,"") or row.get("DEVIATION_S")
+            if suff in ("DD", "T"):
+               dev=row.get("DEVIATION_DD/T","") or row.get("DEVIATION_S")
+            if not dev:
+                raise Exception("The field DEVIATION_%s is empty (%s: %d)"%(suff, ftbl["name"], row["irow"]))
+            try:
+                val=float(eval(val))
+            except:
+                val=NaN
+            try:
+                dev=float(eval(dev))
+            except:
+                continue
+            # test validity
+            if not dev:
+                raise Exception("Deviation is not valid for VALUE_"+suff+" (%s: %d)")%(ftbl["name"], row["irow"])
+            c_no=int(row["PEAK_NO"])
+            if c_no > clen0:
+                raise Exception("Carbon number "+str(c_no)+" is greater than carbon length "+str(clen0)+" for metabolite '"+metab0+"' (%s: %d)"%(ftbl["name"], row["irow"]))
+            if suff == "D-" and c_no == 1:
+                raise Exception("Peak D- cannot be set for metabolite "+metab0+", c_no=1 (%s: %d)"%(ftbl["name"], row["irow"]))
+            if suff == "D+" and c_no == clen:
+                raise Exception("Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" (%s: %d)"%(ftbl["name"], row["irow"]))
+            if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
+                raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" (%s: %d)"%(ftbl["name"], row["irow"]))
+            res[metabs].setdefault(row["irow"],{})
+            res[metabs][row["irow"]][suff]={
+               "val": val,
+               "dev": dev,
+               "id": ":".join(["p", metabs, row["PEAK_NO"], suff, str(row["irow"])]),
+               "irow": str(row["irow"]),
+               "c_no": c_no,
+               "pooled":metabl,
+            }
+def proc_mass_meas(ftbl, netan):
+    """Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts
+    """
+    ili=len(netan["mass_meas"])
+    netan["mass_meas"]+=[{}]
+    res=netan["mass_meas"][ili]
+    # mass measurements
+    # [ili]][metab][frag_mask][weight]={val:x, dev:y}
+    metabs=""
+    for row in ftbl.get("MASS_SPECTROMETRY",[]):
+        #print row;##
+        metabs=row["META_NAME"] or metabs
+        if row["META_NAME"]:
+            irow=row["irow"]
+        # metabs can be metab1[+metab2[+...]]
+        metabl=metabs.split("+")
+        if (len(metabl) > 1):
+            # pooling metabolites will need their concentraions
+            mdif=set(metabl).difference(netan["met_pools"])
+            if mdif:
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %d)"%(join(", ", mdif), ftbl["name"], row["irow"]))
+
+        # check that all metabs are unique
+        count=dict((i, metabl.count(i)) for i in set(metabl))
+        #print(count)
+        notuniq=set((i for i in count if count[i] > 1))
+        if notuniq:
+            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %d)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
+
+        metab0=metabl[0] if metabl else ""
+        if not metab0 in netan["metabs"]:
+            raise Exception("Unknown metabolite name '%s' in MASS_MEASUREMENTS (%s: %d)"%(metab0, ftbl["name"], row["irow"]))
+        clen0=netan["Clen"][metab0] if metab0 else 0
+        frag=row["FRAGMENT"] or frag
+        for metab in metabl:
+            clen=netan["Clen"][metab]
+            # test the validity
+            if not metab in netan["metabs"]:
+                raise Exception("Unknown metabolite name '%s' in MASS_SPECTROMETRY (row: %d)"%(metab, row["irow"]))
+            if metab in netan["output"]:
+                raise Exception("""Measured metabolites have to be internal to network.
+You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
+            clen=netan["Clen"][metab]
+            if clen!=clen0 :
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %d)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
+        if row["FRAGMENT"]:
+            # recalculate fragment mask
+            mask=0
+            for item in frag.split(","):
+                try:
+                    i=int(item)
+                    if i > clen0:
+                        raise Exception("An item '"+item+"' of carbon fragment is higher than metabolite '"+metab0+"' length "+str(clen0)+" (%s: %d)"%(ftbl["name"], irow))
+                    # add this simple item to the mask
+                    mask|=1<<(clen0-i)
+                except ValueError:
+                    # try the interval
+                    try:
+                        (start,end)=item.split("~")
+                        #print "start,end=%s,%s" % (start,end);##
+                        try:
+                            for i in xrange(int(start),int(end)+1):
+                                if i > clen0:
+                                    raise Exception("End of interval '"+item+"' is higher than metabolite '"+metab0+"' length "+str(clen0)+" (%s: %d)"%(ftbl["name"], irow))
+                                mask|=1<<(clen0-i)
+                        except:
+                            raise Exception("Badly formed fragment interval '"+item+"' (%s: %d)"%(ftbl["name"], irow))
+                    except:
+                        raise Exception("Badly formed fragment interval '"+item+"' (%s: %d)"%(ftbl["name"], irow))
+        m_id=":".join(["m", metabs, frag, str(irow)])
+        weight=int(row["WEIGHT"])
+        if sumbit(mask) < weight:
+            raise Exception("Weight "+str(weight)+" is higher than fragment length "+frag+" (%s: %d)"%(ftbl["name"], irow))
+        if clen < sumbit(mask):
+            raise Exception("Fragment "+frag+" is longer than metabolite length "+str(clen)+" (%s: %d)"%(ftbl["name"], irow))
+        res.setdefault(m_id, {})
+        res[m_id].setdefault(mask, {})
+        if not row["VALUE"]:
+            raise Exception("The field VALUE is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+        if not row["DEVIATION"]:
+            raise Exception("The field DEVIATION is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+        try:
+            val=float(eval(row["VALUE"]))
+        except:
+            val=NaN
+        try:
+            sdev=float(eval(row["DEVIATION"]))
+        except:
+            raise Exception("DEVIATION must evaluate to a real positive number (%s: %d)."%(ftbl["name"], row["irow"]))
+        if sdev <= 0.:
+            raise Exception("DEVIATION must be positive (%s: %d)."%(ftbl["name"], row["irow"]))
+        res[m_id][mask][weight]={
+                "val":val,
+                "dev":sdev,
+                "id":":".join(["m", metabs, frag, row["WEIGHT"], str(row["irow"])]),
+                "irow":str(row["irow"]),
+                "pooled":metabl,
+        }
+
+def proc_kinopt(ftbl, netan):
+    """Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt
+    """
+    # default values (used when absent in ftbl)
+    de={"file_labcin": "", "dt": 1, "tmax": float("inf"), "nsubdiv_dt": 1}
+    if "opt" not in netan:
+        netan["opt"]=dict((k, []) for k in de)
+    # get ftbl OPTIONS -> d
+    d={}
+    for row in ftbl.get("OPTIONS",[]):
+        try:
+            d[row["OPT_NAME"]]=eval(row["OPT_VALUE"])
+        except:
+            d[row["OPT_NAME"]]=row["OPT_VALUE"]
+    for k in de:
+        if k not in netan["opt"]:
+            netan["opt"][k]=[]
+        elif type(netan["opt"][k]) != type([]):
+            netan["opt"][k]=[] # if already set to a value, reset to a list
+        ili=len(netan["opt"][k])
+        netan["opt"][k]+=[{}]
+        res=netan["opt"][k]
+        res[ili]=d.get(k, de[k])
+
