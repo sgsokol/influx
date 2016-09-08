@@ -184,7 +184,7 @@ parser.add_option(
     help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
 parser.add_option(
 "--np", type="float",
-    help="""When integer >= 1, it is a number of parallel threads (on Unix) or subprocesses (on Windows) used in Monte-Carlo (M-C) simulations or for multiple FTBL inputs. When NP is a float number between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for M-C simulations.""")
+    help="""When integer >= 1, it is a number of parallel subprocesses used in Monte-Carlo (MC) simulations or for multiple FTBL inputs. When NP is a float number between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for MC simulations.""")
 parser.add_option(
 "--ln", action="store_true",
     help="Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
