@@ -110,6 +110,7 @@ if __name__ == "__main__":
     import time
     import copy
     import getopt
+    import math
     #import pdb
 
     me=os.path.realpath(sys.argv[0])
@@ -204,6 +205,7 @@ if __name__ == "__main__":
 
     netan=dict();
     C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
+
     # prepare rcumo system
     rAb=C13_ftbl.rcumo_sys(netan, emu)
 
@@ -312,106 +314,108 @@ measmatpool[i]=1.
         f.write("""
 ## variables for isotopomer kinetics
 tstart=0.
-tmax=%(tmax)f
-if (tmax < 0) {
-   stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g)", tmax), fcerr)
-}
-dt=%(dt)f
-if (dt <= 0) {
-   stop_mes(sprintf("The parameter dt must be positive (dt=%%g)", dt), fcerr)
-}
+tmax=c(%(tmax)s)
+dt=c(%(dt)s)
 
-# read measvecti from a file specified in ftbl
-flabcin="%(flabcin)s"
-if (nchar(flabcin)) {
-   if (substr(flabcin, 1, 1) == "/")
-      flabcin=file.path(flabcin)
-   else
-      flabcin=file.path(dirw, flabcin)
-   measvecti=as.matrix(read.table(flabcin, header=T, row.names=1, sep="\t", check=F, comment="#"))
-   nm_row=rownames(measvecti)
-   # put in the same row order as simulated measurements
-   # check if nm_meas are all in rownames
-   if (all(nm_meas %%in%% nm_row)) {
-      measvecti=measvecti[nm_meas,,drop=F]
-   } else {
-      # try to strip row number from measure id
-      nm_strip=sapply(strsplit(nm_meas, ":"), function(v) {
-         v[length(v)]=""
-         paste(v, sep="", collapse=":")
-      })
-      im=pmatch(nm_strip, nm_row)
-      ina=is.na(im)
-      if (any(ina)) {
-         mes=paste("Cannot match the following measurement(s) in the file '", flabcin, "':\\n", paste(nm_meas[ina], sep="", collapse="\\n"), "\\n", sep="", collapse="")
+# read measvecti from a file(s) specified in ftbl(s)
+flabcin=c(%(flabcin)s)
+measvecti=ti=tifull=tifull2=vector("list", nb_exp)
+nb_ti=nb_tifu=integer(nb_exp)
+nsubdiv_dt=pmax(1L, as.integer(c(%(nsubdiv_dt)s)))
+for (iexp in seq_len(nb_exp)) {
+   if (tmax[iexp] < 0) {
+      stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), fcerr)
+   }
+   if (dt[iexp] <= 0) {
+      stop_mes(sprintf("The parameter dt must be positive (dt=%%g in '%%s.ftbl')", dt[iexp], nm_exp[iexp]), fcerr)
+   }
+   if (nchar(flabcin[iexp])) {
+      if (substr(flabcin[iexp], 1, 1) == "/")
+         flabcin[iexp]=file.path(flabcin[iexp])
+      else
+         flabcin[iexp]=file.path(dirw, flabcin[iexp])
+      measvecti[[iexp]]=as.matrix(read.table(flabcin[iexp], header=T, row.names=1, sep="\t", check=F, comment="#"))
+      nm_row=rownames(measvecti[[iexp]])
+      # put in the same row order as simulated measurements
+      # check if nm_meas are all in rownames
+      if (all(nm_meas %%in%% nm_row)) {
+         measvecti[[iexp]]=measvecti[[iexp]][nm_meas,,drop=F]
+      } else {
+         # try to strip row number from measure id
+         nm_strip=sapply(strsplit(nm_meas[[iexp]], ":"), function(v) {
+            v=v[-c(1, length(v))]
+            paste(v, sep="", collapse=":")
+         })
+         im=pmatch(nm_strip, nm_row)
+         ina=is.na(im)
+         if (any(ina)) {
+            mes=paste("Cannot match the following measurement(s) in the file '", flabcin[iexp], "':\\n", paste(nm_meas[[iexp]][ina], sep="", collapse="\\n"), "\\n", sep="", collapse="")
+            stop_mes(mes, file=fcerr)
+         }
+         measvecti[[iexp]]=measvecti[[iexp]][im,,drop=F]
+         #stopifnot(all(!is.na(measvecti)))
+         stopifnot(typeof(measvecti[[iexp]])=="double" || all(is.na(measvecti[[iexp]])))
+      }
+      ti[[iexp]]=as.double(colnames(measvecti[[iexp]]))
+      if (any(is.na(ti[[iexp]]))) {
+         mes=sprintf("All time moments (in column names) could not be converted to real numbers in the file '%%s'\\nConverted times:\\n%%s", flabcin[[iexp]], join("\\n", ti[[iexp]]))
          stop_mes(mes, file=fcerr)
       }
-      measvecti=measvecti[im,,drop=F]
-      #stopifnot(all(!is.na(measvecti)))
-      stopifnot(typeof(measvecti)=="double" || all(is.na(measvecti)))
+      if (length(ti[[iexp]]) < 1L) {
+         mes=sprintf("No column found in the file '%%s'", flabcin[[iexp]])
+         stop_mes(mes, file=fcerr)
+      }
+      if (!all(diff(ti[[iexp]]) > 0.)) {
+         mes=sprintf("Time moments (in column names) are not monotonously increasing in the file '%%s'", flabcin[[iexp]])
+         stop_mes(mes, file=fcerr)
+      }
+      if (ti[[iexp]][1L] <= 0.) {
+         mes=sprintf("The first time moment cannot be negative or 0 in the file '%%s'", flabcin[[iexp]])
+         stop_mes(mes, file=fcerr)
+      }
+      if (ti[[iexp]][1L] != 0.) {
+         ti[[iexp]]=c(tstart, ti[[iexp]])
+      }
+      i=which(ti[[iexp]]<=tmax[[iexp]])
+      ti[[iexp]]=ti[[iexp]][i]
+      measvecti[[iexp]]=measvecti[[iexp]][,i[-1]-1,drop=F]
+   } else {
+      measvecti[[iexp]]=NULL
+      ti[[iexp]]=seq(tstart, tmax[[iexp]], by=dt[iexp])
+      if (optimize) {
+         cat(sprintf("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in '%%s.ftbl' file.
+   The fitting is ignored as if '--noopt' option were asked.\\n", nm_exp[[iexp]]), file=fcerr)
+         optimize=F
+      }
    }
-   ti=as.double(colnames(measvecti))
-   if (any(is.na(ti))) {
-      mes=sprintf("All time moments (in column names) could not be converted to real numbers in the file '%%s'\\nConverted times:\\n%%s", flabcin, join("\\n", ti))
+   nb_ti[iexp]=length(ti[[iexp]])
+   if (nb_ti[iexp] < 2L) {
+      mes=sprintf("After filtering by tmax, only %%d time moments are kept for experiment '%%s'. It is not sufficient.", nb_ti[iexp], nm_exp[iexp])
       stop_mes(mes, file=fcerr)
    }
-   if (length(ti) < 1L) {
-      mes=sprintf("No column found in the file '%%s'", flabcin)
-      stop_mes(mes, file=fcerr)
+   
+   # divide the first time interval by n1 geometric intervals
+   tifull[[iexp]]=ti[[iexp]]
+   
+   # divide each time interval by nsubdiv_dt
+   dt=diff(tifull[[iexp]])
+   dt=rep(dt/nsubdiv_dt[iexp], each=nsubdiv_dt[iexp])
+   tifull=c(tifull[1L], cumsum(dt))
+   nb_tifu[iexp]=length(tifull[[iexp]])
+   
+   tifull2[[iexp]]=c(tifull[[iexp]][1L], tifull[[iexp]][1L]+cumsum(rep(diff(tifull[[iexp]])/2., each=2L)))
+   
+   if (length(ijpwef[[iexp]])) {
+      # vector index for many time points
+      ijpwef[[iexp]]=cbind(ijpwef[[iexp]][,1L], rep(seq_len(nb_ti[[iexp]]-1L), each=nrow(ijpwef[[iexp]])), ijpwef[[iexp]][,2L])
+      dp_ones[[iexp]]=matrix(aperm(array(dp_ones[[iexp]], c(dim(dp_ones[[iexp]]), nb_ti[[iexp]]-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
    }
-   if (!all(diff(ti) > 0.)) {
-      mes=sprintf("Time moments (in column names) are not monotonously increasing in the file '%%s'", flabcin)
-      stop_mes(mes, file=fcerr)
-   }
-   if (ti[1L] < 0.) {
-      mes=sprintf("The first time moment cannot be negative in the file '%%s'", flabcin)
-      stop_mes(mes, file=fcerr)
-   }
-   if (ti[1L] != 0.) {
-      ti=c(tstart, ti)
-   }
-   i=which(ti<=tmax)
-   ti=ti[i]
-   measvecti=measvecti[,i[-1]-1,drop=F]
-} else {
-   measvecti=NULL
-   ti=seq(tstart, tmax, by=dt)
-   if (optimize) {
-      cat("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in the ftbl file.
-The fitting is ignored as if '--noopt' option were asked.\\n", file=fcerr)
-      optimize=F
-   }
-}
-nb_ti=length(ti)
-if (nb_ti < 2L) {
-   mes=sprintf("After filtering by tmax, only %%d time moments are kept. It is not sufficient.", nb_ti)
-   stop_mes(mes, file=fcerr)
-}
-
-# divide the first time interval by n1 geometric intervals
-n1=1
-tmp=cumsum(2**seq_len(n1))
-tifull=c(ti[1L], ti[2L]*tmp/tmp[n1], ti[-(1L:2L)])
-
-# divide each time interval by nsubdiv_dt
-dt=diff(tifull)
-nsubdiv_dt=max(1L, as.integer(%(nsubdiv_dt)s))
-dt=rep(dt/nsubdiv_dt, each=nsubdiv_dt)
-tifull=c(tifull[1L], cumsum(dt))
-nb_tifu=length(tifull)
-
-tifull2=c(tifull[1L], tifull[1L]+cumsum(rep(diff(tifull)/2., each=2L)))
-
-if (length(ijpwef)) {
-   # vector index for many time points
-   ijpwef=cbind(ijpwef[,1L], rep(seq_len(nb_ti-1L), each=nrow(ijpwef)), ijpwef[,2L])
-   dp_ones=matrix(aperm(array(dp_ones, c(dim(dp_ones), nb_ti-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
 }
 """%{
-    "dt": netan["opt"]["dt"],
-    "tmax": netan["opt"]["tmax"],
-    "flabcin": netan["opt"].get("file_labcin", ""),
-    "nsubdiv_dt": netan["opt"].get("nsubdiv_dt", "1"),
+    "dt": join(", ", netan["opt"]["dt"]),
+    "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
+    "flabcin": join(", ", netan["opt"]["file_labcin"], '"', '"'),
+    "nsubdiv_dt": join(", ", netan["opt"]["nsubdiv_dt"]),
 })
 
         f.write("""
@@ -455,7 +459,7 @@ measurements=list(
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
-nm_resid=c(if (case_i) outer(nm_meas, ti[-1L], paste, sep=", t=") else nm_meas, nm_fmn, nm_poolm)
+nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) outer(nm_meas[[iexp]], ti[[iexp]][-1L], paste, sep=", t="))) else unlist(nm_meas), nm_fmn, nm_poolm)
 nm_list$resid=nm_resid
 
 if (TIMEIT) {
@@ -548,11 +552,11 @@ nb_f$nbc_x=nbc_x
 
 # fixed part of jacobian (unreduced by SD)
 # measured fluxes
-dufm_dp=cbind(dufm_dff(nb_f, nm_list), matrix(0, nrow=nb_fmn, ncol=nb_sc+nb_poolf))
+dufm_dp=cbind(dufm_dff(nb_f, nm_list), matrix(0, nrow=nb_fmn, ncol=nb_sc_tot+nb_poolf))
 dimnames(dufm_dp)=list(nm_fmn, nm_par)
 
 # measured pools
-dupm_dp=matrix(0., nb_poolm, nb_ff+nb_sc)
+dupm_dp=matrix(0., nb_poolm, nb_ff+nb_sc_tot)
 if (nb_poolf > 0L) {
    dupm_dp=cbind(dupm_dp, measurements$mat$pool[,nm_list$poolf, drop=F])
 }
@@ -560,7 +564,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "dirw", "baseshort", "case_i")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "dirw", "baseshort", "case_i", "nb_exp", "noscale")
 """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
@@ -772,58 +776,16 @@ for (irun in seq_len(nseries)) {
    }
    rres=NULL
 """)
-    if case_i:
-        f.write("""
-   if (nb_sc && !is.null(measvecti)) {
-      if (TIMEIT) {
-         cat("res esti: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
-      }
-      capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
-      if (!is.null(rres$err) && rres$err) {
-         cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-         close(fkvh)
-         retcode[irun]=rres$err
-         next
-      }
-      if (sum(is.infinite(rres$res))) {
-         cat("Infinite values appeared in residual vector", file=fcerr)
-         retcode[irun]=1
-         close(fkvh)
-         next
-      }
-      # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
-      # for corresponding measurements
-      # unscaled simulated measurements (usm) [imeas, itime]
-      #browser()
-      inna=which(!is.na(measvecti))
-      simlab=jx_f$usm
-      measinvvar=1./measurements$dev$labeled**2
-      ms=(measvecti*simlab*measinvvar)[inna]
-      ss=(simlab*simlab*measinvvar)[inna]
-      for (i in nb_ff+1:nb_sc) {
-         im=outer(ir2isc==(i+1), rep(T, nb_ti), "&")[inna]
-         param[i]=sum(ms[im])/sum(ss[im])
-      }
-      # prepare is2mti which is extension of is2m ti times
-      nb_f$is2mti=array(0., dim=c(dim(nb_f$is2m), nb_ti))
-      nb_f$is2mti[]=nb_f$is2m
-      nb_f$is2mti[,1L,]=nb_f$is2m[,1L]+rep((0:(nb_ti-1))*nb_meas, each=nrow(nb_f$is2m))
-#browser()
-   } else if (nb_sc > 0) {
-      # we dont have measurements yet, just set all scalings to 1.
-      param[nb_ff+1:nb_sc]=1.
-   }
-""")
-    else:
-        f.write("""
+    if not case_i:
+         f.write("""
    # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
    # for corresponding measurements
-   if (nb_sc > 0) {
+   if (nb_sc_tot > 0) {
       if (optimize) {
          if (TIMEIT) {
             cat("res esti: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
-         capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
+         capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
          if (!is.null(rres$err) && rres$err) {
             cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
             close(fkvh)
@@ -836,23 +798,25 @@ for (irun in seq_len(nseries)) {
             close(fkvh)
             next
          }
-         simlab=jx_f$usimcumom
-         measinvvar=1./measurements$dev$labeled**2
-         ms=measvec*simlab*measinvvar
-         ss=simlab*simlab*measinvvar
-         # get only valid measurements
-         iva=!is.na(ms)
-         for (i in nb_ff+1:nb_sc) {
-            im=(ir2isc==(i+1)) & iva
-            if (sum(im) < 2) {
-               mes=sprintf("scaling: no sufficient valid data for scaling factor '%s'\\n", nm_par[i])
-               stop_mes(mes, fcerr)
+         for (iexp in seq_len(nb_exp)) {
+            simlab=jx_f$usimcumom[[iexp]]
+            measinvvar=1./measurements$dev$labeled[[iexp]]**2
+            ms=measvec[[iexp]]*simlab*measinvvar
+            ss=simlab*simlab*measinvvar
+            # get only valid measurements
+            iva=!is.na(ms)
+            for (i in nb_ff+nb_sc_base[iexp]+seq_len(nb_sc[[iexp]])) {
+               im=(ir2isc[[iexp]]==(i+1)) & iva
+               if (sum(im) < 2) {
+                  mes=sprintf("scaling: no sufficient valid data for scaling factor '%s'\\n", nm_par[i])
+                  stop_mes(mes, fcerr)
+               }
+               param[i]=sum(ms[im])/sum(ss[im])
             }
-            param[i]=sum(ms[im])/sum(ss[im])
          }
       } else {
          # if no optimization, set all scaling params to 1.
-         param[nb_ff+1:nb_sc]=1.
+         param[nb_ff+seq_len(nb_sc_tot)]=1.
       }
    }
 """)
@@ -895,7 +859,7 @@ for (irun in seq_len(nseries)) {
    obj2kvh(param, "starting free parameters", fkvh, indent=1)
 #browser()
    if (is.null(rres)) {
-      capture.output(rres <- lab_resid(param, cjac=F, labargs), file=fclog)
+      capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
          close(fkvh)
@@ -935,7 +899,7 @@ for (irun in seq_len(nseries)) {
          if (TIMEIT) {
             cat("check ja: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
-         rres=lab_resid(param, cjac=T, labargs)
+         rres=lab_resid(param, cjac=TRUE, labargs)
          if (sum(is.infinite(rres$res))) {
             cat("Infinite values appeared in residual vector (at identifiability check)", file=fcerr)
             retcode[irun]=1
@@ -1172,7 +1136,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 #browser()
    if (is.null(jx_f$jacobian)) {
       # final jacobian calculation
-      capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
+      capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
          close(fkvh)
@@ -1188,15 +1152,20 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # get z p-values on residual vector
    zpval=rz.pval.bi(rres$res)
    resid=list()
-   if (length(jx_f$reslab)) {
-      resid[["labeled data"]]=if (is.matrix(jx_f$reslab)) jx_f$reslab else cbind(residual=jx_f$reslab, `p-value`=zpval[seq_along(jx_f$reslab)])
+   if (sum(nb_meas)) {
+      resid[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) if (is.matrix(jx_f$reslab[[iexp]])) jx_f$reslab[[iexp]] else cbind(residual=jx_f$reslab[[iexp]], `p-value`=zpval[seq_along(jx_f$reslab[[iexp]])]))
+      names(resid[["labeled data"]])=nm_exp
    
-      if (is.matrix(jx_f$reslab)) {
-         mtmp=zpval[seq_along(jx_f$reslab)]
-         dim(mtmp)=dim(jx_f$reslab)
-         dimnames(mtmp)=dimnames(jx_f$reslab)
-         resid[["labeled data p-value"]]=mtmp
-         rm(mtmp)
+      if (case_i) {
+         resid[["labeled data p-value"]]=vector("list", nb_exp)
+         names(resid[["labeled data p-value"]])=nm_exp
+         for (iexp in seq_len(nb_exp)) {
+            mtmp=zpval[seq_along(jx_f$reslab[[iexp]])]
+            dim(mtmp)=dim(jx_f$reslab[[iexp]])
+            dimnames(mtmp)=dimnames(jx_f$reslab[[iexp]])
+            resid[["labeled data p-value"]][[iexp]]=mtmp
+            rm(mtmp)
+         }
       }
    }
    if (length(jx_f$resflu))
@@ -1216,11 +1185,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    } else {
       simul=list(
          "labeled data (unscaled)"=jx_f$usimcumom,
+         "labeled data (scaled)"=vector("list", nb_exp),
          "measured fluxes"=jx_f$simfmn,
          "measured pools"=jx_f$simpool
       )
-      if (nb_sc > 0) {
-         simul=append(simul, list("labeled data (scaled)"=jx_f$usimcumom*c(1.,param)[ir2isc]), after=1)
+      if (nb_sc_tot > 0) {
+         simul[["labeled data (scaled)"]]=lapply(seq_len(nb_exp), function(iexp) jx_f$usimcumom[[iexp]]*c(1.,param)[ir2isc[[iexp]]])
+         names(simul[["labeled data (scaled)"]])=nm_exp
+      } else {
+         simul[["labeled data (scaled)"]]=NULL
       }
    }
    obj2kvh(simul, "simulated measurements", fkvh)
@@ -1245,25 +1218,22 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       nm_flist$rcumo=nm_cumo
       nm_flist$rcumo_in_cumo=match(nm_rcumo, nm_cumo)
       nb_f$cumos=nb_cumos""")
+    cu_keys=netan["cumo_input"][0].keys() if netan["fullsys"] else []
     f.write("""
       nm_xi_f=c(%s)
-      xi_f=c(%s)"""%(join(", ", netan["cumo_input"].keys(), '"', '"'),
-      join(", ", netan["cumo_input"].values())))
+      xi_f=matrix(c(%s), ncol=nb_exp)"""%(join(", ", cu_keys, '"', '"'),
+         join(", ", [li[k] for li in netan["cumo_input"] for k in cu_keys], '"', '"'),
+    ))
     f.write("""
-      names(xi_f)=nm_xi_f
+      dimnames(xi_f)[[1]]=nm_xi_f
       nm_flist$xi=nm_xi_f
       labargs$emu=F
-      v=lab_sim(param, cjac=F, labargs)
+      v=lab_sim(param, cjac=FALSE, labargs)
       labargs$emu=emu
+      x=v$x
    } else {
-      v=lab_sim(param, cjac=F, labargs)
-   }
-   # set final variable depending on param
-   x=as.matrix(v$x)
-   if (fullsys) {
-      rownames(x)=nm_cumo
-   } else {
-      rownames(x)=nm_x
+      v=lab_sim(param, cjac=FALSE, labargs)
+      x=v$x
    }
 
    # write some info in result kvh
@@ -1435,7 +1405,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
    if (is.null(jx_f$jacobian)) {
-      capture.output(rres <- lab_resid(param, cjac=T, labargs), file=fclog)
+      capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
          close(fkvh)
@@ -1507,7 +1477,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       # "square root" of covariance matrix (to preserve numerical positive definitness)
       poolall[nm_poolf]=param[nm_poolf]
       # cov poolf
-      covpf=crossprod(rtcov[,nb_ff+nb_sc+1:nb_poolf, drop=F])
+      covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=F])
       dimnames(covpf)=list(nm_poolf, nm_poolf)
       sdpf[nm_poolf]=sqrt(diag(covpf))
    }
