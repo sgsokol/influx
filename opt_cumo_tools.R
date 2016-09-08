@@ -40,33 +40,43 @@ dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
 }
 
 cumo_resid=function(param, cjac=TRUE, labargs) {
-   nm_local=c("jx_f", "pool", "measurements", "nm", "ir2isc", "jacobian", "nb_f")
+   nm_local=c("jx_f", "pool", "measurements", "nm", "ir2isc", "jacobian", "nb_f", "nb_exp")
    for (item in nm_local) {
       assign(item, labargs[[item]])
    }
-   # find x for all weights
+   # find x for all weights and experiments
    lres=lab_sim(param, cjac, labargs)
    if (!is.null(lres$err) && lres$err) {
       return(list(err=1, mes=lres$mes))
    }
 
    # find simulated scaled measure vector scale*(measmat*x)
-   jx_f$simlab=jx_f$usimcumom*c(1.,param)[ir2isc]
+   if (is.null(jx_f$simlab)) {
+      jx_f$simlab=jx_f$ureslab=jx_f$reslab=vector("list", nb_exp)
+   }
+   for (iexp in seq_len(nb_exp)) {
+      if (noscale) {
+         jx_f$simlab[[iexp]]=jx_f$usimcumom[[iexp]]
+      } else {
+         jx_f$simlab[[iexp]]=jx_f$usimcumom[[iexp]]*c(1.,param)[ir2isc[[iexp]]]
+      }
+      # diff between simulated and measured
+      jx_f$ureslab[[iexp]]=(jx_f$simlab[[iexp]]-measurements$vec$labeled[[iexp]])
+      jx_f$reslab[[iexp]]=jx_f$ureslab[[iexp]]/measurements$dev$labeled[[iexp]]
+   }
 
    # diff between simulated and measured
    pool[nm$poolf]=param[nm$poolf]
    jx_f$simfmn=jx_f$lf$fallnx[nm$fmn]
    jx_f$simpool=as.numeric(measurements$mat$pool%*%pool)
-
-   jx_f$ureslab=(jx_f$simlab-measurements$vec$labeled)
-   jx_f$reslab=jx_f$ureslab/measurements$dev$labeled
    jx_f$uresflu=jx_f$simfmn-measurements$vec$flux
    jx_f$resflu=jx_f$uresflu/measurements$dev$flux
    jx_f$urespool=jx_f$simpool-measurements$vec$pool
    jx_f$respool=jx_f$urespool/measurements$dev$pool
-   jx_f$res=c(jx_f$reslab, jx_f$resflu, jx_f$respool)
+   jx_f$res=c(unlist(jx_f$reslab), jx_f$resflu, jx_f$respool)
    jx_f$res[measurements$outlier]=NA
-   jx_f$ures=c(jx_f$ureslab, jx_f$uresflu, jx_f$urespool)
+   jx_f$ures=c(unlist(jx_f$ureslab), jx_f$uresflu, jx_f$urespool)
+
    if (cjac) {
 #browser()
       # jacobian
@@ -79,7 +89,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
 #require(numDeriv)
 #r=function(p) cumo_resid(p, F, labargs)$res
 #jacobian=jacobian(r, param)
-      jacobian[]=as.numeric(with(measurements$dev, jx_f$udr_dp/c(labeled, flux, pool)))
+      jacobian[]=as.numeric(with(measurements$dev, jx_f$udr_dp/c(unlist(labeled), flux, pool)))
       jx_f$jacobian=jacobian
       jx_f$dr_dff=jacobian[,seq_len(nb_f$nb_ff),drop=F]
       labargs$jacobian=jacobian
@@ -136,11 +146,12 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       assign(item, labargs[[item]])
    }
    
-   nb_xi=length(xi)
+   nb_xi=nb_f$xi
    nb_ff=nb_f$nb_ff
    nb_poolf=nb_f$nb_poolf
    nb_fgr=nb_f$nb_fgr
    nb_meas=nb_f$nb_meas
+   nm_exp=nm_list$nm_exp
    nb_sc=nb_f$nb_sc
    fg=nb_f$mu*param[nm$poolf] # the same alphabetical order
    names(fg)=nm$fgr
@@ -148,227 +159,197 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
 
    # calculate all fluxes from free fluxes
    lf=param2fl(param, labargs)
-   # prepare measurement pooling operations
-   pwe[ipwe]=pool[ip2ipwe]
-   spwe=tapply(pwe, pool_factor, sum)
-   spwe=1./as.numeric(spwe[nm$measmat])
-   pwe=pwe*spwe
-   # construct the system A*x=b from fluxes
-   # and find x for every weight
-   # if fj_rhs is not NULL, calculate jacobian x_f
-   if (is.null(labargs$incu)) {
-      labargs$incu=incu=c(1, xi, double(nbc_x[nb_w+1L]))
+   if (is.null(jx_f$x)) {
+      jx_f$x=matrix(0, nrow=sum(nb_f$x), nb_exp)
+      dimnames(jx_f$x)=list(nm_x, nm_exp)
+      jx_f$usimcumom=vector("list", nb_exp)
+      names(jx_f$usimcumom)=nm_exp
    }
+   x=jx_f$x
+   usimcumom=jx_f$usimcumom
+
+   if (is.null(labargs$incu)) {
+      labargs$incu=incu=lapply(seq_len(nb_exp), function(iexp) c(1, xi[,iexp], double(nbc_x[nb_w+1L])))
+      # unreduced residuals derivated by scale params
+      labargs$dur_dsc=dur_dsc=lapply(seq_len(nb_exp), function(iexp) matrix(0., nrow=nb_meas[[iexp]], ncol=nb_sc_tot))
+      labargs$dux_dp=dux_dp=lapply(seq_len(nb_exp), function(iexp) matrix(0., nb_meas[[iexp]], nb_ff+nb_sc_tot+nb_poolf))
+   }
+   Ali=lapply(seq_len(nb_w), function(iw) fwrv2Abr(lf$fwrv, spa[[iw]], NULL, NULL, getb=FALSE, emu=emu)$A)
    if (cjac) {
       # derivation of fwrv fluxes by free parameters: free fluxes+concentrations
       mdf_dffp=df_dffp(param, jx_f$lf$flnx, nb_f, nm)
       jx_f$df_dffp=mdf_dffp
       if (is.null(labargs$x_f)) {
-         labargs$x_f=x_f=matrix(0., nrow=sum(nb_x), ncol=nb_ff+nb_fgr)
+         labargs$x_f=matrix(0., nrow=sum(nb_x), ncol=nb_ff+nb_fgr)
       }
-      
-      if (length(ijpwef)) {
-         dpwe=-pwe*spwe
-         # dpwe is shortened to non zero entries in dpw_dpf
-         dpwe=ifelse(ipf_in_ppw[ijpwef[,1L]]==ijpwef[,2L], (spwe+dpwe)[ijpwef[,1L]], dpwe[ijpwef[,1L]])
-      }
+      x_f=labargs$x_f
    } else {
       x_f=NULL
    }
-   
-   # simulate labeling weight by weight
-   ba_x=0
-   for (iw in seq_len(nb_w)) {
-      nb_c=spa[[iw]]$nb_c
-      emuw=ifelse(emu, iw, 1L)
-      if (nb_c == 0) {
-         next
+   for (iexp in seq_len(nb_exp)) {
+      # prepare measurement pooling operations
+      pwe[[iexp]][ipwe[[iexp]]]=pool[ip2ipwe[[iexp]]]
+      spwe=tapply(pwe[[iexp]], pool_factor[[iexp]], sum)
+      spwe=1./as.numeric(spwe[nm$measmat[[iexp]]])
+      pwe[[iexp]]=pwe[[iexp]]*spwe
+      # construct the system A*x=b from fluxes
+      # and find x for every weight
+      # if fj_rhs is not NULL, calculate jacobian x_f
+      if (cjac) {
+         if (length(ijpwef)) {
+            dpwe=-pwe[[iexp]]*spwe
+            # dpwe is shortened to non zero entries in dpw_dpf
+            dpwe=ifelse(ipf_in_ppw[[iexp]][ijpwef[[iexp]][,1L]]==ijpwef[[iexp]][,2L], (spwe+dpwe)[ijpwef[[iexp]][,1L]], dpwe[ijpwef[[iexp]][,1L]])
+         }
       }
-      ixw=(nbc_x[iw]+1L):nbc_x[iw+1]
-      incuw=(1L+nb_xi)+ixw
+      
+      # simulate labeling weight by weight
+      ba_x=0
+      for (iw in seq_len(nb_w)) {
+         nb_c=spa[[iw]]$nb_c
+         emuw=ifelse(emu, iw, 1L)
+         if (nb_c == 0) {
+            next
+         }
+         ixw=nbc_x[iw]+seq_len(nb_x[iw])
+         incuw=(1L+nb_xi)+ixw
 #cat("iw=", iw, "\there 1\n")
 #if (iw==1) {
 #   print(labargs)
 #   print(spa[[iw]])
 #}
-      if (emu) {
-         lAb=fwrv2Abr(lf$fwrv, spa[[iw]], incu, nm$emu[ixw], emu=emu)
-      } else {
-         lAb=fwrv2Abr(lf$fwrv, spa[[iw]], incu, nm$rcumo[ixw], emu=emu)
-      }
-#print(lAb$A)
+         if (emu) {
+            b=fwrv2Abr(lf$fwrv, spa[[iw]], incu[[iexp]], nm$emu[[iexp]][ixw], getA=FALSE, emu=emu)$b
+         } else {
+            b=fwrv2Abr(lf$fwrv, spa[[iw]], incu[[iexp]], nm$rcumo[[iexp]][ixw], getA=FALSE, emu=emu)$b
+         }
 #browser()
-      xw=try(solve(lAb$A, lAb$b), silent=TRUE)
+         xw=try(solve(Ali[[iw]], b), silent=TRUE)
 #print(head(xw))
-      if (inherits(xw, "try-error")) {
-         # find 0 rows if any
-         l=spa[[iw]]
-         ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
-         izc=ag$Group.1[ag$x <= 1.e-10]
-         izf=names(which(abs(lf$fwrv)<1.e-7))
-         mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
-            "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-            paste(nm$rcumo[ixw][izc+1], collapse="\n"), "\n",
-            "Zero fluxes are:\n",
-            paste(izf, collapse="\n"), "\n",
-            sep="")
-         #izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
-         #izf=names(which(abs(lf$fwrv)<1.e-7))
-         #if (sum(izc) && length(izf)) {
-         #   mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
-         #      "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-         #      paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
-         #      "Zero fluxes are:\n",
-         #      paste(izf, collapse="\n"), "\n",
-         #      sep="")
-         #} else {
-         #   mes="Cumomer matrix is singular.\n"
-         #}
-         return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
-      }
-      #} else {
-      #   wa=options(warn=2) # to cath singular matrix as error and not just a warning
-      #   lua=try(if (use_magma) magma::lu(magma(as.matrix(lAb$A))) else lu(as.matrix(lAb$A), errSing=T), silent=T)
-      #   options(wa) # restore warning situation
-      #   if (inherits(lua, "try-error")) {
-      #      # find 0 rows if any
-      #      izc=apply(lAb$A, 1L, function(v)sum(abs(v))<=1.e-10)
-      #      izf=names(which(abs(lf$fwrv)<1.e-7))
-      #      if (sum(izc) && length(izf)) {
-      #         mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
-      #            "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-      #            paste(rownames(lAb$A)[izc], collapse="\n"), "\n",
-      #            "Zero fluxes are:\n",
-      #            paste(izf, collapse="\n"), "\n",
-      #            sep="")
-      #      } else {
-      #         mes="Cumomer matrix is singular.\n"
-      #      }
-#browser()
-      #      return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
-      #   }
-      #   b=as.matrix(lAb$b); # may have several columns if emu is TRUE
-      #   #solve the system A*x=b
-      #   #lsolv=trisparse_solv(lAb$A, lAb$b, iw, lf$fwrv, method="sparse")
-      #   xw=lusolve(lua, b)
-      #}
-      if (emu) {
-         xw=c(xw, 1.-rowSums(xw))
-      }
-      incu[incuw]=xw
-      if (cjac && nb_ff+nb_fgr > 0) {
-         # calculate jacobian x_f
-         # first, calculate right hand side for jacobian calculation
-         # j_rhsw, b_x from sparse matrices
-         # bind cumomer vector
-         j_b_x=fx2jr(jx_f$lf$fwrv, spa[[iw]], nb_f, incu)
-         j_rhsw=j_b_x$j_rhsw%stm%mdf_dffp
-         b_x=j_b_x$b_x
-         if (iw > 1) {
-            if (ba_x > 0) {
-               j_rhsw=j_rhsw+b_x%stm%x_f[1L:ba_x,,drop=F]
+         if (inherits(xw, "try-error")) {
+            rerr=attr(xw, "condition")
+            if (length(grep("rmumps: info[1]=-10,", rerr$message, fixed=TRUE))) {
+               # find 0 rows if any
+               l=spa[[iw]]
+               ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
+               izc=ag$Group.1[ag$x <= 1.e-10]
+               izf=names(which(abs(lf$fwrv)<1.e-7))
+               mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
+                  "Zero rows in cumomer matrix A at weight ", iw, ":\n",
+                  paste(nm$rcumo[ixw][izc+1], collapse="\n"), "\n",
+                  "Zero fluxes are:\n",
+                  paste(izf, collapse="\n"), "\n",
+                  sep="")
+            } else {
+               mes=as.character(rerr$message)
+            }
+            return(list(x=NULL, fA=Ali[[iw]], err=1L, mes=mes))
+         }
+         if (emu) {
+            xw=c(xw, 1.-rowSums(xw))
+         }
+         incu[[iexp]][incuw]=xw
+         if (cjac && nb_ff+nb_fgr > 0) {
+            # calculate jacobian x_f
+            # first, calculate right hand side for jacobian calculation
+            # j_rhsw, b_x from sparse matrices
+            # bind cumomer vector
+            j_b_x=fx2jr(jx_f$lf$fwrv, spa[[iw]], nb_f, incu[[iexp]])
+            j_rhsw=j_b_x$j_rhsw%stm%mdf_dffp
+            b_x=j_b_x$b_x
+            if (iw > 1) {
+               if (ba_x > 0) {
+                  j_rhsw=j_rhsw+b_x%stm%x_f[seq_len(ba_x),,drop=F]
+               }
+            }
+            dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
+            tmp=try(solve(Ali[[iw]], j_rhsw))
+            if (inherits(tmp, "try-error")) {
+               #browser()
+               mes="Some obscure problem with label matrix.\n"
+               return(list(x=NULL, fA=Ali[[iw]], err=1L, mes=mes))
+            } else {
+               j_rhsw=tmp
+            }
+            if (emu) {
+               dim(j_rhsw)=c(nb_c, iw, nb_ff+nb_fgr)
+               x_f[ba_x+seq_len(iw*nb_c),]=j_rhsw
+               # m+N component
+               #x_f[ba_x+iw*nb_c+seq_len(nb_c),]= -apply(j_rhsw, c(1L,3L), sum)
+               x_f[ba_x+iw*nb_c+seq_len(nb_c),]=-arrApply(j_rhsw, 2, "sum")
+            } else {
+               x_f[ba_x+seq_len(nb_c),]=j_rhsw
             }
          }
-         #j_rhsw=as.double(j_rhsw)
-         dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
-         #if (use_mumps) {
-         tmp=try(solve(lAb$A, j_rhsw))
-         if (inherits(tmp, "try-error")) {
-            #browser()
-            mes="Some obscure problem with label matrix.\n"
-            return(list(x=NULL, fA=lAb$A, err=1L, mes=mes))
-         } else {
-            j_rhsw=tmp
-         }
-         #} else {
-         #   j_rhsw=lusolve(lua, j_rhsw)
-         #}
-         if (emu) {
-            dim(j_rhsw)=c(nb_c, iw, nb_ff+nb_fgr)
-            x_f[ba_x+seq_len(iw*nb_c),]=j_rhsw
-            # m+N component
-            #x_f[ba_x+iw*nb_c+seq_len(nb_c),]= -apply(j_rhsw, c(1L,3L), sum)
-            x_f[ba_x+iw*nb_c+seq_len(nb_c),]=-arrApply(j_rhsw, 2, "sum")
-         } else {
-            x_f[ba_x+seq_len(nb_c),]=j_rhsw
-         }
+         ba_x=ba_x+nb_x[iw]
       }
-      ba_x=ba_x+nb_x[iw]
-   }
-
-   names(incu)=c("one", nm$inp, nm$x)
-   x=tail(incu, -nb_xi-1L)
-   jx_f$x=x
    
-   # calculate unreduced and unscaled measurements
-   if (length(x) == ncol(measmat)) {
-      mx=measmat%*%x+memaone
-   } else {
-      mx=measmat%*%x[nm$rcumo_in_cumo]+memaone
-   }
-   if (length(ipooled) > 1L) {
-      mv=meas2sum%*%(pwe*mx)
-   } else {
-      mv=mx
-   }
-   jx_f$usimcumom=as.numeric(mv)
-   names(jx_f$usimcumom)=nm$meas
-   if (cjac) {
-      # unreduced residuals derivated by scale params
-      if (is.null(labargs$dur_dsc)) {
-         labargs$dur_dsc=dur_dsc=matrix(0., nrow=nb_meas, ncol=nb_sc)
-      }
-      if (is.null(labargs$dux_dp)) {
-         labargs$dux_dp=dux_dp=matrix(0., nb_meas, nb_ff+nb_sc+nb_poolf)
+      #rownames(incu)=c("one", nm$inp, nm$x)
+      x[, iexp]=tail(incu[[iexp]], -nb_xi-1L)
+      
+      # calculate unreduced and unscaled measurements
+      if (nrow(x) == ncol(measmat[[iexp]])) {
+         mx=measmat[[iexp]]%*%x[, iexp]+memaone[[iexp]]
+      } else {
+         mx=measmat[[iexp]]%*%x[nm$rcumo_in_cumo, iexp]+memaone[[iexp]]
       }
       # measurement vector before pool ponderation
-      # scale part of jacobian
-      if (nb_sc > 0) {
-         is2m=nb_f$is2m
-         dur_dsc[is2m]=mv[is2m[,1]]
-      }
-#browser()
-      # free flux part of jacobian (and partially free pools if present in x_f)
-      if (nb_ff+nb_fgr > 0) {
-         mffg=measmat%*%x_f
-         if (length(ipooled) > 1L) {
-            mffg=meas2sum%*%(pwe*mffg)
-         }
+      if (length(ipooled[[iexp]]) > 1L) {
+         mv=meas2sum[[iexp]]%*%(pwe[[iexp]]*mx)
       } else {
-         mffg=matrix(0., nrow=nb_meas, ncol=0L)
+         mv=mx
       }
-      # free pool part of jacobian
-      mff=mffg
-      mpf=matrix(0., nrow=nb_meas, ncol=nb_f$nb_poolf)
-      if (nb_f$nb_poolf > 0L) {
-         if (length(ijpwef) > 0L) {
-            # derivation of pool weights
-            dpw_dpf$v=as.double(mx[ijpwef[,1L]]*dpwe)
-            mpf[]=meas2sum%stm%dpw_dpf
-            # growth flux depending on free pools
-            if (nb_fgr > 0L) {
-               mpf=mpf+as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=F])
-               mff=mffg[,seq_len(nb_ff)]
-            } else {
-               mff=mffg
+      jx_f$usimcumom[[iexp]]=as.numeric(mv)
+      if (cjac) {
+         # scale part of jacobian
+         if (!noscale && nb_sc[[iexp]] > 0) {
+            is2m=nb_f$is2m
+            dur_dsc[[iexp]][is2m[[iexp]]]=mv[is2m[[iexp]][,1]]
+         }
+   #browser()
+         # free flux part of jacobian (and partially free pools if present in x_f)
+         if (nb_ff+nb_fgr > 0) {
+            mffg=measmat[[iexp]]%*%x_f
+            if (length(ipooled[[iexp]]) > 1L) {
+               mffg=meas2sum[[iexp]]%*%(pwe[[iexp]]*mffg)
+            }
+         } else {
+            mffg=matrix(0., nrow=nb_meas[[iexp]], ncol=0L)
+         }
+         # free pool part of jacobian
+         mff=mffg
+         mpf=matrix(0., nrow=nb_meas[[iexp]], ncol=nb_f$nb_poolf)
+         if (nb_f$nb_poolf > 0L) {
+            if (length(ijpwef[[iexp]]) > 0L) {
+               # derivation of pool weights
+               dpw_dpf[[iexp]]$v=as.double(mx[ijpwef[[iexp]][,1L]]*dpwe)
+               mpf[]=meas2sum[[iexp]]%stm%dpw_dpf[[iexp]]
+               # growth flux depending on free pools
+               if (nb_fgr > 0L) {
+                  mpf=mpf+as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=F])
+                  mff=mffg[,seq_len(nb_ff)]
+               } else {
+                  mff=mffg
+               }
             }
          }
+         mff=as.matrix(mff)
+         if (!noscale) {
+            vsc=c(1., param)[ir2isc[[iexp]]]
+            mff=vsc*mff
+            mpf=vsc*mpf
+         }
+         # store usefull information in global list jx_f
+         dux_dp[[iexp]][, seq_len(nb_ff)]=mff
+         dux_dp[[iexp]][, nb_ff+seq_len(nb_sc_tot)]=as.matrix(dur_dsc[[iexp]])
+         dux_dp[[iexp]][, nb_ff+nb_sc_tot+seq_len(nb_fgr)]=mpf
+         jx_f$param=param
+         jx_f$x_f[[iexp]]=x_f
+         jx_f$dux_dp[[iexp]]=dux_dp[[iexp]]
       }
-      mff=as.matrix(mff)
-      if (nb_sc > 0) {
-         vsc=c(1., param)[ir2isc]
-         mff=vsc*mff
-         mpf=vsc*mpf
-      }
-      # store usefull information in global list jx_f
-      dux_dp[, seq_len(nb_ff)]=mff
-      dux_dp[, nb_ff+seq_len(nb_sc)]=as.matrix(dur_dsc)
-      dux_dp[, nb_ff+nb_sc+seq_len(nb_fgr)]=mpf
-      jx_f$param=param
-      jx_f$x_f=x_f
-      jx_f$dux_dp=dux_dp
    }
-   return(list(x=x, lf=jx_f$lf))
+   jx_f$x=x
+   return(list(x=jx_f$x, lf=jx_f$lf))
 }
 
 Tiso2cumo=function(len) {
@@ -565,16 +546,26 @@ cumo_jacob=function(param, labargs) {
    # without applying invvar matrix
    # The result is in a returned list jx_f.
    jx_f=labargs$jx_f
+   nb_exp=labargs$nb_exp
+   nblr=sapply(jx_f$dux_dp, nrow) # labeled residual lengths
+   nblr_tot=sum(nblr)
+   tmp=double(nblr_tot*length(param))
+   dim(tmp)=c(nblr_tot, length(param))
+   base=0
+   for (iexp in seq_len(nb_exp)) {
+      tmp[base+seq_len(nblr[iexp]),]=jx_f$dux_dp[[iexp]]
+      base=base+nblr[iexp]
+   }
    if (is.null(jx_f$udr_dp)) {
-      jx_f$udr_dp=rbind(jx_f$dux_dp, labargs$dufm_dp, labargs$dupm_dp)
+      jx_f$udr_dp=rbind(tmp, labargs$dufm_dp, labargs$dupm_dp)
    } else {
-      jx_f$udr_dp[1L:nrow(jx_f$dux_dp),]=jx_f$dux_dp
+      jx_f$udr_dp[seq_len(nblr_tot),]=tmp
    }
    dimnames(jx_f$udr_dp)=list(labargs$nm$resid, labargs$nm$par)
    return(NULL)
 }
 
-fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
+fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getA=T, getb=T, emu=F) {
    # calculate sparse A and b (in A*x=b where x is cumomer vector)
    # from fields of the list spAbr
    # return a list(A, b)
@@ -599,21 +590,23 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
    if (nb_c == 0) {
       A=simple_triplet_zero_matrix(nb_c, nb_c)
       b=simple_triplet_zero_matrix(nb_c, 1)
-      return(list(A=A, b=b))
+      return(list(A=if (getA) A else NULL, b=if (getb) b else NULL))
    }
-   ind_a=spAbr$ind_a
-   if (!is.matrix(ind_a))
-      ind_a=t(ind_a)
-   #x=fwrv[ind_a[,"indf"]]
-   #i=which(ind_a[,"ir0"]==ind_a[,"ic0"])
-   #x[i]=-x[i] # diagonal terms are negative
-   #A=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"ic0"]+1, x=x, dims=c(nb_c, nb_c), giveCsparse=FALSE)
-   #dimnames(A)=list(head(nm_rcumo, nb_c), head(nm_rcumo, nb_c))
-   #A=Rmumps$new(ind_a[,"ir0"], ind_a[,"ic0"], x, nb_c)
-   spAbr$xmat$v <- fwrv[ind_a[,"indf"]]
-   x <- col_sums(spAbr$xmat)
-   x[spAbr$iadiag] <- -x[spAbr$iadiag]
-   spAbr$a$set_mat_data(x)
+   if (getA) {
+      ind_a=spAbr$ind_a
+      if (!is.matrix(ind_a))
+         ind_a=t(ind_a)
+      #x=fwrv[ind_a[,"indf"]]
+      #i=which(ind_a[,"ir0"]==ind_a[,"ic0"])
+      #x[i]=-x[i] # diagonal terms are negative
+      #A=sparseMatrix(i=ind_a[,"ir0"]+1, j=ind_a[,"ic0"]+1, x=x, dims=c(nb_c, nb_c), giveCsparse=FALSE)
+      #dimnames(A)=list(head(nm_rcumo, nb_c), head(nm_rcumo, nb_c))
+      #A=Rmumps$new(ind_a[,"ir0"], ind_a[,"ic0"], x, nb_c)
+      spAbr$xmat$v <- fwrv[ind_a[,"indf"]]
+      x <- col_sums(spAbr$xmat)
+      x[spAbr$iadiag] <- -x[spAbr$iadiag]
+      spAbr$a$set_mat_data(x)
+   }
    
    # construct a complete b vector
    if (getb) {
@@ -622,28 +615,8 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getb=T, emu=F) {
          ind_b=t(ind_b)
       spAbr$bmat$v=fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
       spAbr$b$v=-col_sums(spAbr$bmat)
-      return(list(A=spAbr$a, b=spAbr$b))
-      #if (emu) {
-         #b_pre=spAbr$b_pre_emu
-         #iwc=length(b_pre)
-         #for (iwe in 1:iwc) {
-         #   b_pre[[iwe]]@x=fwrv[spAbr$ind_fbe[[iwe]]]*incu[spAbr$ind_xe1[[iwe]]]*incu[spAbr$ind_xe2[[iwe]]]
-         #}
-         #b=-vapply(b_pre, colSums, numeric(nb_c))
-      #   ind_b=spAbr[["ind_b_emu"]]
-      #   x=-fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]]
-      #   b=sparseMatrix(i=ind_b[,"irow"], j=ind_b[,"iwe"], x=x, dims=c(nb_c, w))
-      #   dimnames(b)=list(head(nm_rcumo, nb_c), 1:w)
-      #} else {
-      #   ind_b=spAbr[["ind_b"]]
-      #   x=-fwrv[ind_b[,1]]*incu[ind_b[,2]]*incu[ind_b[,3]]
-      #   b=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=x, dims=c(nb_c, 1))
-      #   dimnames(b)=list(head(nm_rcumo, nb_c), 1)
-      #}
-      #return(list(A=spAbr$a, b=b))
-   } else {
-      return(list(A=spAbr$a, b=NULL))
    }
+   return(list(A=if (getA) spAbr$a else NULL, b=if (getb) spAbr$b else NULL))
 }
 
 fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
