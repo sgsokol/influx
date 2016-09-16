@@ -164,7 +164,7 @@ if (nb_c > 0) {
    
    # jacobian b_x
    i=ind_b[,"indx1"]>ba_x # exclude from derivation plain input entries
-   tmp=ind_b[i,,drop=F]
+   tmp=ind_b[i,,drop=FALSE]
    
    # term of d/d_x1 ( is garanted to be internal, not input cumomer)
    # => indx remain in place in indx2, ind_store remain in column indx1
@@ -974,15 +974,15 @@ if (ffguess) {
    if (rank==0) {
       stop_mes("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.\\n", file=fcerr)
    }
-   Afl=afd[irows, qafd$pivot[1L:rank], drop=F]
+   Afl=afd[irows, qafd$pivot[1L:rank], drop=FALSE]
    ka=kappa(Afl)
    if (ka > 1.e7) {
       mes=sprintf("Error: No working free/dependent flux partition could be proposed. Stoechiometric matrix has condition number %g.\\n", ka)
       stop_mes(mes, file=fcerr)
    }
-   p2bfl=-afd[irows, qafd$pivot[-(1L:rank)], drop=F]
-   c2bfl=c2bfl[irows, , drop=F]
-   g2bfl=g2bfl[irows, , drop=F]
+   p2bfl=-afd[irows, qafd$pivot[-(1L:rank)], drop=FALSE]
+   c2bfl=c2bfl[irows, , drop=FALSE]
+   g2bfl=g2bfl[irows, , drop=FALSE]
    cnst2bfl=cnst2bfl[irows]
    bp=bp[irows]
    
@@ -992,14 +992,14 @@ if (ffguess) {
    nm_fln=sort(grep("^d.n.", nm_fl, v=T))
    nm_flx=sort(grep("^d.x.", nm_fl, v=T))
    nm_fl=c(nm_fln, nm_flx)
-   Afl=Afl[, nm_fl, drop=F]
+   Afl=Afl[, nm_fl, drop=FALSE]
    
    nm_ff=sub("d.", "f.", colnames(p2bfl), fixed=T) # both net and xch
    colnames(p2bfl)=nm_ff
    nm_ffn=sort(grep("^f.n.", nm_ff, v=T))
    nm_ffx=sort(grep("^f.x.", nm_ff, v=T))
    nm_ff=c(nm_ffn, nm_ffx)
-   p2bfl=p2bfl[, nm_ff, drop=F]
+   p2bfl=p2bfl[, nm_ff, drop=FALSE]
    
    # remake param vector
    param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-seq_len(nb_ff)])
@@ -1065,13 +1065,13 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
       mes=paste("Candidate(s) for free or constrained flux(es):\\n",
          paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"),
          "\\nFor this choice, condition number of stoechiometric matrix will be ",
-         kappa(Afl[,qrAfl$pivot[1L:nrow(Afl)],drop=F]), "\\n", sep="")
+         kappa(Afl[,qrAfl$pivot[1L:nrow(Afl)],drop=FALSE]), "\\n", sep="")
    } else if (nrow(Afl) > rank) {
       nextra=nrow(Afl)-rank
       comb=combn(c(nm_ffn, colnames(Afl)[-qrAfl$pivot[1L:rank]]), nextra)
-      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank],drop=F], -p2bfl)
+      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl)
       colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl))
-      ara=Afl[,qrAfl$pivot[1L:rank],drop=F]
+      ara=Afl[,qrAfl$pivot[1L:rank],drop=FALSE]
       i=which.min(apply(comb, 2, function(i) kappa(cBind(ara, aextra[,i]))))[1L]
       nm_tmp=comb[,i]
       ka=kappa(cBind(ara, aextra[,nm_tmp]))
@@ -1085,7 +1085,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
       } else {
          # add constraint fluxes to candidate list
          if (nb_fcn > 0) {
-            aextra=as.matrix(cBind(Afl[,-qrAfl$pivot[1L:rank],drop=F], -p2bfl, -c2bfl))
+            aextra=as.matrix(cBind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl, -c2bfl))
             colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl), colnames(c2bfl))
          }
          aextended=aful
@@ -1308,6 +1308,8 @@ if (!noscale) {
    nb_sc=integer(nb_exp)
    nb_sc_tot=0
 }
+nb_f$nb_sc=nb_sc
+nb_f$nb_sc_tot=nb_sc_tot
 nm_list$par=nm_par
 """)
     # get the full dict of non zero cumomers involved in measures
@@ -1340,7 +1342,7 @@ nm_measmat[[%(ili)d]]=c(%(idmeasmat)s)
 nm_meas[[%(ili)d]]=c(%(idmeas)s)
 nb_meas[[%(ili)d]]=length(nm_meas[[%(ili)d]])
 nb_measmat[[%(ili)d]]=length(nm_measmat[[%(ili)d]])
-measmat[[%(ili)d]]=matrix(0., nb_measmat[[%(ili)d]], %(ncol)d)
+measmat[[%(ili)d]]=simple_triplet_zero_matrix(nrow=nb_measmat[[%(ili)d]], ncol=%(ncol)d)
 dimnames(measmat[[%(ili)d]])=list(nm_measmat[[%(ili)d]], nm_x)
 memaone[[%(ili)d]]=numeric(nb_measmat[[%(ili)d]])
 measvec[[%(ili)d]]=c(%(vmeas)s)
@@ -1436,9 +1438,7 @@ ind_mema=matrix(c(
 
         f.write(r"""
 NULL), ncol=3, byrow=T); # close ind_mema creation
-measmat[[%(iexp)d]][ind_mema[,1:2,drop=F]]=ind_mema[,3]
-measmat[[%(iexp)d]]=as.matrix(measmat[[%(iexp)d]])
-
+measmat[[%(iexp)d]][ind_mema[,1:2,drop=FALSE]]=ind_mema[,3]
 memaone[[%(iexp)d]]=c(%(memaone)s)
 """%{
     "iexp": ili+1,
@@ -1447,7 +1447,7 @@ memaone[[%(iexp)d]]=c(%(memaone)s)
         for row in measures[meas][ili]["mat"])),
 })
     f.write(r"""
-pwe=ipwe=ip2ipwe=pool_factor=ijpwef=dp_ones=meas2sum=dpw_dpf=vector("list", nb_exp)
+pwe=ipwe=ip2ipwe=pool_factor=ijpwef=dp_ones=meas2sum=dpw_dpf=ipf_in_ppw=vector("list", nb_exp)
 for (iexp in seq_len(nb_exp)) {
    names(memaone[[iexp]])=nm_measmat[[iexp]]
 
@@ -1475,26 +1475,25 @@ for (iexp in seq_len(nb_exp)) {
    # order ijpwef for sparse matrix ordering
    if (!is.null(ijpwef[[iexp]])) {
       o=order(ijpwef[[iexp]][,2L], ijpwef[[iexp]][,1L])
-      ijpwef[[iexp]]=ijpwef[o,,drop=F]
+      ijpwef[[iexp]]=ijpwef[[iexp]][o,,drop=FALSE]
    }
    pool_factor[[iexp]]=as.factor(nm_measmat[[iexp]])
    # free pool in principal pool weight
-   ipf_in_ppw=pmatch(mets_in_res, names(nm_poolf), dup=T)
-   ipf_in_ppw[is.na(ipf_in_ppw)]=0L
+   ipf_in_ppw[[iexp]]=pmatch(mets_in_res, names(nm_poolf), dup=T)
+   ipf_in_ppw[[iexp]][is.na(ipf_in_ppw[[iexp]])]=0L
    dp_ones[[iexp]]=matrix(0., nb_measmat[[iexp]], nb_poolf)
-   dp_ones[[iexp]][cbind(ipwe[[iexp]], ipf_in_ppw[ipwe[[iexp]]])]=1.
+   dp_ones[[iexp]][cbind(ipwe[[iexp]], ipf_in_ppw[[iexp]][ipwe[[iexp]]])]=1.
    
    # matrix for summing weighted measurements
    meas2sum[[iexp]]=simple_triplet_zero_matrix(length(ipooled[[iexp]]$ishort), nb_measmat[[iexp]])
    meas2sum[[iexp]][cbind(pmatch(nm_measmat[[iexp]], nm_measmat[[iexp]][ipooled[[iexp]]$ishort], dup=T),       seq_len(nb_measmat[[iexp]]))]=1.
    dimnames(meas2sum[[iexp]])=list(nm_meas[[iexp]], nm_measmat[[iexp]])
-   meas2sum[[iexp]]=as.matrix(meas2sum)
    
    # dpw_dpf - matrix for derivation of pool weights by free pools
    if (nb_poolf > 0L && length(ijpwef[[iexp]]) > 0) {
       # indeed, we'll have to do weight derivation by free pools
       dpw_dpf[[iexp]]=simple_triplet_zero_matrix(nb_measmat[[iexp]], nb_poolf)
-      dpw_dpf[[iexp]][ijpwef]=1.
+      dpw_dpf[[iexp]][ijpwef[[iexp]]]=1.
    }
 }
 
@@ -1916,7 +1915,7 @@ if (!all(ci[zi]<=1.e-10)) {
    cat("They are simply ignored.\\n", file=fcerr)
    #stop_mes("", file=fcerr)
 }
-ui=ui[!zi,,drop=F]
+ui=ui[!zi,,drop=FALSE]
 ci=ci[!zi]
 nm_i=nm_i[!zi]
 
@@ -1949,7 +1948,7 @@ if (nb_i > 1L) {
 }
 if (!is.null(ired)) {
    # remove all ired inequalities
-   ui=ui[-ired,,drop=F]
+   ui=ui[-ired,,drop=FALSE]
    ci=ci[-ired]
    nm_i=nm_i[-ired]
 }
