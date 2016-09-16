@@ -242,10 +242,10 @@ if (nb_poolf > 0) {
       # number of non zero entries per row in uip
       i_nz=rowSums(abs(uip) != 0.)
       # number of positive coeffs for alone metabs (i.e. low limit is set)
-      i_pos=colSums(uip[i_nz > 0,,drop=F] > 0)
+      i_pos=colSums(uip[i_nz > 0,,drop=FALSE] > 0)
       met_low=nm_poolf[i_pos > 0]
       # number of negative coeffs for alone metabs (i.e. upper limit is set)
-      i_neg=colSums(uip[i_nz > 0,,drop=F] < 0)
+      i_neg=colSums(uip[i_nz > 0,,drop=FALSE] < 0)
       met_up=nm_poolf[i_neg > 0]
    }
 
@@ -320,8 +320,10 @@ dt=c(%(dt)s)
 # read measvecti from a file(s) specified in ftbl(s)
 flabcin=c(%(flabcin)s)
 measvecti=ti=tifull=tifull2=vector("list", nb_exp)
-nb_ti=nb_tifu=integer(nb_exp)
+nb_ti=nb_tifu=nb_tifu2=integer(nb_exp)
 nsubdiv_dt=pmax(1L, as.integer(c(%(nsubdiv_dt)s)))
+nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
+nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
 for (iexp in seq_len(nb_exp)) {
    if (tmax[iexp] < 0) {
       stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), fcerr)
@@ -339,7 +341,7 @@ for (iexp in seq_len(nb_exp)) {
       # put in the same row order as simulated measurements
       # check if nm_meas are all in rownames
       if (all(nm_meas %%in%% nm_row)) {
-         measvecti[[iexp]]=measvecti[[iexp]][nm_meas,,drop=F]
+         measvecti[[iexp]]=measvecti[[iexp]][nm_meas,,drop=FALSE]
       } else {
          # try to strip row number from measure id
          nm_strip=sapply(strsplit(nm_meas[[iexp]], ":"), function(v) {
@@ -352,7 +354,7 @@ for (iexp in seq_len(nb_exp)) {
             mes=paste("Cannot match the following measurement(s) in the file '", flabcin[iexp], "':\\n", paste(nm_meas[[iexp]][ina], sep="", collapse="\\n"), "\\n", sep="", collapse="")
             stop_mes(mes, file=fcerr)
          }
-         measvecti[[iexp]]=measvecti[[iexp]][im,,drop=F]
+         measvecti[[iexp]]=measvecti[[iexp]][im,,drop=FALSE]
          #stopifnot(all(!is.na(measvecti)))
          stopifnot(typeof(measvecti[[iexp]])=="double" || all(is.na(measvecti[[iexp]])))
       }
@@ -378,7 +380,7 @@ for (iexp in seq_len(nb_exp)) {
       }
       i=which(ti[[iexp]]<=tmax[[iexp]])
       ti[[iexp]]=ti[[iexp]][i]
-      measvecti[[iexp]]=measvecti[[iexp]][,i[-1]-1,drop=F]
+      measvecti[[iexp]]=measvecti[[iexp]][,i[-1]-1,drop=FALSE]
    } else {
       measvecti[[iexp]]=NULL
       ti[[iexp]]=seq(tstart, tmax[[iexp]], by=dt[iexp])
@@ -400,17 +402,18 @@ for (iexp in seq_len(nb_exp)) {
    # divide each time interval by nsubdiv_dt
    dt=diff(tifull[[iexp]])
    dt=rep(dt/nsubdiv_dt[iexp], each=nsubdiv_dt[iexp])
-   tifull=c(tifull[1L], cumsum(dt))
+   tifull[[iexp]]=c(tifull[[iexp]][1L], cumsum(dt))
    nb_tifu[iexp]=length(tifull[[iexp]])
    
    tifull2[[iexp]]=c(tifull[[iexp]][1L], tifull[[iexp]][1L]+cumsum(rep(diff(tifull[[iexp]])/2., each=2L)))
+   nb_tifu2[iexp]=length(tifull2[[iexp]])
    
    if (length(ijpwef[[iexp]])) {
       # vector index for many time points
       ijpwef[[iexp]]=cbind(ijpwef[[iexp]][,1L], rep(seq_len(nb_ti[[iexp]]-1L), each=nrow(ijpwef[[iexp]])), ijpwef[[iexp]][,2L])
       dp_ones[[iexp]]=matrix(aperm(array(dp_ones[[iexp]], c(dim(dp_ones[[iexp]]), nb_ti[[iexp]]-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
    }
-}
+
 """%{
     "dt": join(", ", netan["opt"]["dt"]),
     "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
@@ -419,37 +422,39 @@ for (iexp in seq_len(nb_exp)) {
 })
 
         f.write("""
-# prepare mapping of metab pools on cumomers
-nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
-nb_f$ip2ircumo=match(nminvm, nm_poolall)
-nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
-for (iw in seq_len(nb_w)) {
-   ix=seq_len(nb_rcumos[iw])
-   ipf2ircumo=ipf2ircumo2=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
-   dims=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu-1L)
-   dims2=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), (nb_tifu-1L)*2)
-   i=as.matrix(ipf2ircumo)
-   i2=as.matrix(ipf2ircumo2)
-   for (id in 2L:length(dims)) {
-      cstr=sprintf("cbind(%srep(seq_len(dims[id]), each=prod(dims[seq_len(id-1L)])))", paste("i[, ", seq_len(id-1L), "], ", sep="", collapse=""))
-      i=eval(parse(text=cstr))
+   # prepare mapping of metab pools on cumomers
+   nb_f$ipf2ircumo[[iexp]]=nb_f$ipf2ircumo2[[iexp]]=list()
+   for (iw in seq_len(nb_w)) {
+      ix=seq_len(nb_rcumos[iw])
+      ipf2ircumo=ipf2ircumo2=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
+      dims=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu[iexp]-1L)
+      dims2=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu2[iexp]-1L)
+      i=as.matrix(ipf2ircumo)
+      i2=as.matrix(ipf2ircumo2)
+      for (id in 2L:length(dims)) {
+         cstr=sprintf("cbind(%srep(seq_len(dims[id]), each=prod(dims[seq_len(id-1L)])))", paste("i[, ", seq_len(id-1L), "], ", sep="", collapse=""))
+         i=eval(parse(text=cstr))
+      }
+      for (id in 2L:length(dims2)) {
+         cstr=sprintf("cbind(%srep(seq_len(dims2[id]), each=prod(dims2[seq_len(id-1L)])))", paste("i2[, ", seq_len(id-1L), "], ", sep="", collapse=""))
+         i2=eval(parse(text=cstr))
+      }
+      colnames(i)=c("ipoolf", "ic", "iw", "iti")
+      colnames(i2)=c("ipoolf", "ic", "iw", "iti")
+      i=i[i[,1L]!=0L,,drop=FALSE]
+      i2=i2[i2[,1L]!=0L,,drop=FALSE]
+      # put the poolf column last
+      nb_f$ipf2ircumo[[iexp]][[iw]]=cbind(i[,-1L,drop=FALSE], i[,1L,drop=FALSE])
+      nb_f$ipf2ircumo2[[iexp]][[iw]]=cbind(i2[,-1L,drop=FALSE], i2[,1L,drop=FALSE])
    }
-   for (id in 2L:length(dims2)) {
-      cstr=sprintf("cbind(%srep(seq_len(dims2[id]), each=prod(dims2[seq_len(id-1L)])))", paste("i2[, ", seq_len(id-1L), "], ", sep="", collapse=""))
-      i2=eval(parse(text=cstr))
-   }
-   colnames(i)=c("ipoolf", "ic", "iw", "iti")
-   colnames(i2)=c("ipoolf", "ic", "iw", "iti")
-   i=i[i[,1L]!=0L,,drop=F]
-   i2=i2[i2[,1L]!=0L,,drop=F]
-   # put the poolf column last
-   nb_f$ipf2ircumo[[iw]]=cbind(i[,-1L,drop=F], i[,1L,drop=F])
-   nb_f$ipf2ircumo2[[iw]]=cbind(i2[,-1L,drop=F], i2[,1L,drop=F])
 }
+nb_f$ip2ircumo=match(nminvm, nm_poolall)
+nb_f$tifu=nb_tifu
+nb_f$tifu2=nb_tifu2
 
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
 x0=NULL
-nb_ti=length(ti)
+nb_f$ti=nb_ti
 """)
     f.write("""
 # gather all measurement information
@@ -475,7 +480,7 @@ if (nchar(fseries) > 0) {
    if (!any(i)) {
       stop_mes("Option --fseries is used but no free parameter with known name is found.\\n")
    }
-   pstart=pstart[i,,drop=F]
+   pstart=pstart[i,,drop=FALSE]
    cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="", file=fclog)
    nseries=ncol(pstart)
    if (initrand) {
@@ -489,7 +494,7 @@ if (nchar(fseries) > 0) {
       iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
       iseries=iseries[iseries<=nseries]
       # subsample
-      pstart=pstart[,iseries, drop=F]
+      pstart=pstart[,iseries, drop=FALSE]
       nseries=ncol(pstart)
    } else {
       iseries=seq_len(nseries)
@@ -506,7 +511,7 @@ if (nchar(fseries) > 0) {
       pstart[]=runif(length(pstart))
    }
    # subsample
-   pstart=pstart[,iseries, drop=F]
+   pstart=pstart[,iseries, drop=FALSE]
    nseries=ncol(pstart)
 } else {
    iseries=1L
@@ -558,7 +563,7 @@ dimnames(dufm_dp)=list(nm_fmn, nm_par)
 # measured pools
 dupm_dp=matrix(0., nb_poolm, nb_ff+nb_sc_tot)
 if (nb_poolf > 0L) {
-   dupm_dp=cbind(dupm_dp, measurements$mat$pool[,nm_list$poolf, drop=F])
+   dupm_dp=cbind(dupm_dp, measurements$mat$pool[,nm_list$poolf, drop=FALSE])
 }
 dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
@@ -651,7 +656,7 @@ for (irun in seq_len(nseries)) {
    # remove zc inequalities from previous runs
    izc=grep("^zc ", nm_i)
    if (length(izc)) {
-      ui=ui[-izc,,drop=F]
+      ui=ui[-izc,,drop=FALSE]
       ci=ci[-izc]
       nm_i=rownames(ui)
    }
@@ -743,10 +748,10 @@ for (irun in seq_len(nseries)) {
          cat("Warning: The following constant zc inequalities are not satisfied:\n", file=fcerr)
          cat(nm_izc[zi][inotsat], sep="\n", file=fcerr)
       }
-      ui_zc=ui_zc[!zi,,drop=F]
+      ui_zc=ui_zc[!zi,,drop=FALSE]
       ci_zc=ci_zc[!zi]
       nm_izc=nm_izc[!zi]
-      mi_zc=mi_zc[!zi,,drop=F]
+      mi_zc=mi_zc[!zi,,drop=FALSE]
 
       # remove redundant/contradictory inequalities
       nb_zc=nrow(ui_zc)
@@ -761,10 +766,10 @@ for (irun in seq_len(nseries)) {
       if (length(ired) > 0L) {
          # remove all ired inequalities
          cat("The following ", length(ired), " zerocross inequalities are redundant and are removed:\n", paste(nm_izc[ired], collapse="\n"), "\n", sep="", file=fclog)
-         ui_zc=ui_zc[-ired,,drop=F]
+         ui_zc=ui_zc[-ired,,drop=FALSE]
          ci_zc=ci_zc[-ired]
          nm_izc=nm_izc[-ired]
-         mi_zc=mi_zc[-ired,,drop=F]
+         mi_zc=mi_zc[-ired,,drop=FALSE]
       }
       if (nrow(ui_zc)) {
          # add zc inequalities
@@ -976,17 +981,17 @@ for (irun in seq_len(nseries)) {
 of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="", file=fclog)
             ipos=grep(">=", nm_i[i], v=T)
             ineg=grep("<=", nm_i[i], v=T)
-            ui[i,]=-ui[i,,drop=F]
+            ui[i,]=-ui[i,,drop=FALSE]
             if (length(ipos)) {
                ipzc=str2ind(ipos, nm_izc)
                ipos=str2ind(ipos, nm_i)
-               ci[ipos]=as.numeric(zc+mi_zc[ipzc,,drop=F]%*%mic)
+               ci[ipos]=as.numeric(zc+mi_zc[ipzc,,drop=FALSE]%*%mic)
                nm_i[ipos]=sub(">=", "<=-", nm_i[ipos])
             }
             if (length(ineg)) {
                inzc=str2ind(ineg, nm_izc)
                ineg=str2ind(ineg, nm_i)
-               ci[ineg]=as.numeric(zc+mi_zc[inzc,,drop=F]%*%mic)
+               ci[ineg]=as.numeric(zc+mi_zc[inzc,,drop=FALSE]%*%mic)
                nm_i[ineg]=sub("<=-", ">=", nm_i[ineg])
             }
             rownames(ui)=nm_i
@@ -1030,7 +1035,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                if (TIMEIT) {
                   cat("last zc : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
                }
-               ui=ui[-i,,drop=F]
+               ui=ui[-i,,drop=FALSE]
                ci=ci[-i]
                nm_i=nm_i[-i]
                cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
@@ -1171,7 +1176,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (length(jx_f$resflu))
       resid[["measured fluxes"]]=cbind(residual=jx_f$resflu, `p-value`=zpval[length(jx_f$reslab)+seq_along(jx_f$resflu)])
    if (length(jx_f$respool))
-      resid[["measured pools"]]=cbind(residual=as.vector(jx_f$respool), `p-value`=zpval[length(jx_f$reslab)+length(jx_f$resflu)+seq_along(jx_f$respool)])
+      resid[["measured pools"]]=cbind(residual=if (is.matrix(jx_f$respool)) jx_f$respool[,1] else jx_f$respool, `p-value`=zpval[length(jx_f$reslab)+length(jx_f$resflu)+seq_along(jx_f$respool)])
    obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
    rm(resid, zpval)
 
@@ -1190,7 +1195,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          "measured pools"=jx_f$simpool
       )
       if (nb_sc_tot > 0) {
-         simul[["labeled data (scaled)"]]=lapply(seq_len(nb_exp), function(iexp) jx_f$usimcumom[[iexp]]*c(1.,param)[ir2isc[[iexp]]])
+         simul[["labeled data (scaled)"]]=jx_f$simlab
          names(simul[["labeled data (scaled)"]])=nm_exp
       } else {
          simul[["labeled data (scaled)"]]=NULL
@@ -1260,7 +1265,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       # Monte-Carlo simulation in parallel way (if asked and possible)
       if (np > 1L) {
          clusterExport(cl, c("param", "refsim", "runsuf"))
-         clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL)
+         clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL) # to rebuild sparse matrices on cores
          mc_res=parLapplyLB(cl, seq_len(nmc), cl_worker)
       } else {
          mc_res=lapply(seq_len(nmc), cl_worker)
@@ -1285,18 +1290,18 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       obj2kvh(nmc-nmc_real, "failed to calculate", fkvh, indent)
       # convergence section in kvh
       indent=1
-      mout=rbind(round(free_mc[1:2,,drop=F], 2),
-         format(free_mc[3,,drop=F], di=2, sci=T))
+      mout=rbind(round(free_mc[1:2,,drop=FALSE], 2),
+         format(free_mc[3,,drop=FALSE], di=2, sci=T))
       dimnames(mout)=list(c("cost", "it.numb", "normp"), seq_len(ncol(free_mc)))
       obj2kvh(mout, "convergence per sample", fkvh, indent)
       # remove failed m-c iterations
-      free_mc=free_mc[-(1:3),,drop=F]
+      free_mc=free_mc[-(1:3),,drop=FALSE]
       ifa=which(is.na(free_mc[1,]))
       if (length(ifa)) {
          if (ncol(free_mc) > length(ifa)) {
             cat("Some Monte-Carlo iterations failed.", "\\n", sep="", file=fcerr)
          }
-         free_mc=free_mc[,-ifa,drop=F]
+         free_mc=free_mc[,-ifa,drop=FALSE]
          cost_mc=cost_mc[-ifa]
       }
       if (nmc_real <= 1) {
@@ -1364,7 +1369,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
             "rsd (%)"=sdmc*100/abs(fallnx), ci_mc)
          o=order(nm_fallnx)
-         obj2kvh(fallout[o,,drop=F], "all net-xch01 fluxes", fkvh, indent)
+         obj2kvh(fallout[o,,drop=FALSE], "all net-xch01 fluxes", fkvh, indent)
          obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent)
 
          # fwd-rev stats
@@ -1388,7 +1393,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
             "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
          o=order(nm_fwrv)
-         obj2kvh(fallout[o,,drop=F], "forward-reverse fluxes", fkvh, indent)
+         obj2kvh(fallout[o,,drop=FALSE], "forward-reverse fluxes", fkvh, indent)
          obj2kvh(covmc[o,o], "covariance of forward-reverse fluxes", fkvh, indent)
       }
       break
@@ -1421,7 +1426,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       # we could not find very small d, take just the last
       i[length(i)]=T
    }
-   ibad=apply(svj$v[, i, drop=F], 2, which.contrib)
+   ibad=apply(svj$v[, i, drop=FALSE], 2, which.contrib)
    ibad=unique(unlist(ibad))
    if (length(ibad) > 0) {
       cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
@@ -1437,7 +1442,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    if (nb_ff > 0 || nb_fgr > 0) {
       i=1:nb_param
       i=c(head(i, nb_ff), tail(i, nb_fgr))
-      covfl=crossprod(rtcov[, i, drop=F]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
+      covfl=crossprod(rtcov[, i, drop=FALSE]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
       dimnames(covfl)=list(nm_flfd, nm_flfd)
       sdfl=sqrt(diag(covfl))
    } else {
@@ -1448,14 +1453,14 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    mtmp=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
    rownames(mtmp)=nm_flfd
    o=order(nm_flfd)
-   obj2kvh(mtmp[o,,drop=F], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
+   obj2kvh(mtmp[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
    obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
 
    # sd of all fwd-rev
    if (nb_ff > 0 || nb_fgr > 0) {
       i=1:nb_param
       i=c(head(i, nb_ff), tail(i, nb_fgr))
-      covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=F], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
+      covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=FALSE], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
       dimnames(covf)=list(nm_fwrv, nm_fwrv)
       sdf=sqrt(diag(covf))
    } else {
@@ -1477,7 +1482,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       # "square root" of covariance matrix (to preserve numerical positive definitness)
       poolall[nm_poolf]=param[nm_poolf]
       # cov poolf
-      covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=F])
+      covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=FALSE])
       dimnames(covpf)=list(nm_poolf, nm_poolf)
       sdpf[nm_poolf]=sqrt(diag(covpf))
    }
@@ -1485,7 +1490,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
       rownames(mtmp)=nm_poolall
       o=order(nm_poolall)
-      obj2kvh(mtmp[o,,drop=F], "metabolite pools (sorted by name)", fkvh, indent=1)
+      obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
       if (nb_poolf > 0) {
          o=order(nm_poolf)
          obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
