@@ -40,7 +40,7 @@ dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
 }
 
 cumo_resid=function(param, cjac=TRUE, labargs) {
-   nm_local=c("jx_f", "pool", "measurements", "nm", "ir2isc", "jacobian", "nb_f", "nb_exp")
+   nm_local=c("jx_f", "pool", "measurements", "nm", "ir2isc", "jacobian", "nb_f", "nb_exp", "noscale")
    for (item in nm_local) {
       assign(item, labargs[[item]])
    }
@@ -60,6 +60,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
       } else {
          jx_f$simlab[[iexp]]=jx_f$usimcumom[[iexp]]*c(1.,param)[ir2isc[[iexp]]]
       }
+      names(jx_f$simlab[[iexp]])=names(jx_f$usimcumom[[iexp]])=names(measurements$vec$labeled[[iexp]])
       # diff between simulated and measured
       jx_f$ureslab[[iexp]]=(jx_f$simlab[[iexp]]-measurements$vec$labeled[[iexp]])
       jx_f$reslab[[iexp]]=jx_f$ureslab[[iexp]]/measurements$dev$labeled[[iexp]]
@@ -68,7 +69,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
    # diff between simulated and measured
    pool[nm$poolf]=param[nm$poolf]
    jx_f$simfmn=jx_f$lf$fallnx[nm$fmn]
-   jx_f$simpool=as.numeric(measurements$mat$pool%*%pool)
+   jx_f$simpool=(measurements$mat$pool%*%pool)[,1]
    jx_f$uresflu=jx_f$simfmn-measurements$vec$flux
    jx_f$resflu=jx_f$uresflu/measurements$dev$flux
    jx_f$urespool=jx_f$simpool-measurements$vec$pool
@@ -91,7 +92,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
 #jacobian=jacobian(r, param)
       jacobian[]=as.numeric(with(measurements$dev, jx_f$udr_dp/c(unlist(labeled), flux, pool)))
       jx_f$jacobian=jacobian
-      jx_f$dr_dff=jacobian[,seq_len(nb_f$nb_ff),drop=F]
+      jx_f$dr_dff=jacobian[,seq_len(nb_f$nb_ff),drop=FALSE]
       labargs$jacobian=jacobian
       return(list(res=jx_f$res, jacobian=jacobian))
    } else {
@@ -152,7 +153,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    nb_fgr=nb_f$nb_fgr
    nb_meas=nb_f$nb_meas
    nm_exp=nm_list$nm_exp
+   nm_x=nm_list$x
    nb_sc=nb_f$nb_sc
+   nb_sc_tot=nb_f$nb_sc_tot
    fg=nb_f$mu*param[nm$poolf] # the same alphabetical order
    names(fg)=nm$fgr
    pool[nm$poolf]=param[nm$poolf] # inject variable pools to pool vector
@@ -196,7 +199,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       # and find x for every weight
       # if fj_rhs is not NULL, calculate jacobian x_f
       if (cjac) {
-         if (length(ijpwef)) {
+         if (length(ijpwef[[iexp]])) {
             dpwe=-pwe[[iexp]]*spwe
             # dpwe is shortened to non zero entries in dpw_dpf
             dpwe=ifelse(ipf_in_ppw[[iexp]][ijpwef[[iexp]][,1L]]==ijpwef[[iexp]][,2L], (spwe+dpwe)[ijpwef[[iexp]][,1L]], dpwe[ijpwef[[iexp]][,1L]])
@@ -259,7 +262,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             b_x=j_b_x$b_x
             if (iw > 1) {
                if (ba_x > 0) {
-                  j_rhsw=j_rhsw+b_x%stm%x_f[seq_len(ba_x),,drop=F]
+                  j_rhsw=j_rhsw+b_x%stm%x_f[seq_len(ba_x),,drop=FALSE]
                }
             }
             dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
@@ -289,13 +292,14 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       
       # calculate unreduced and unscaled measurements
       if (nrow(x) == ncol(measmat[[iexp]])) {
-         mx=measmat[[iexp]]%*%x[, iexp]+memaone[[iexp]]
+         mx=measmat[[iexp]]%stm%x[, iexp]+memaone[[iexp]]
       } else {
-         mx=measmat[[iexp]]%*%x[nm$rcumo_in_cumo, iexp]+memaone[[iexp]]
+         mx=measmat[[iexp]]%stm%x[nm$rcumo_in_cumo, iexp]+memaone[[iexp]]
       }
       # measurement vector before pool ponderation
+#browser()
       if (length(ipooled[[iexp]]) > 1L) {
-         mv=meas2sum[[iexp]]%*%(pwe[[iexp]]*mx)
+         mv=meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx)
       } else {
          mv=mx
       }
@@ -309,9 +313,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    #browser()
          # free flux part of jacobian (and partially free pools if present in x_f)
          if (nb_ff+nb_fgr > 0) {
-            mffg=measmat[[iexp]]%*%x_f
+            mffg=measmat[[iexp]]%stm%x_f
             if (length(ipooled[[iexp]]) > 1L) {
-               mffg=meas2sum[[iexp]]%*%(pwe[[iexp]]*mffg)
+               mffg=meas2sum[[iexp]]%stm%(pwe[[iexp]]*mffg)
             }
          } else {
             mffg=matrix(0., nrow=nb_meas[[iexp]], ncol=0L)
@@ -326,7 +330,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                mpf[]=meas2sum[[iexp]]%stm%dpw_dpf[[iexp]]
                # growth flux depending on free pools
                if (nb_fgr > 0L) {
-                  mpf=mpf+as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=F])
+                  mpf=mpf+as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=FALSE])
                   mff=mffg[,seq_len(nb_ff)]
                } else {
                   mff=mffg
@@ -416,16 +420,23 @@ cumo2mass=function(x, sep=":", emusep="+") {
       return(NULL)
    }
    # prepare x as matrix
-   if (is.vector(x)) {
+   nb_exp=NA
+   if (is.vector(x) && !is.list(x)) {
       nm_x=names(x)
       x=as.matrix(x)
-   } else {
+   } else if (is.matrix(x)) {
       nm_x=rownames(x)
+   } else if (is.list(x)) {
+      nm_x=rownames(x[[1]])
+      nb_exp=length(x)
+      nm_exp=names(x)
+   } else {
+      stop("x is an unknown structure. It must be vector, matrix or a list of matrices")
    }
    
    # is it emu or cumomer vector
    emu=TRUE
-   if (is.na(strsplit(nm_x[1], emusep, fixed=T)[[1]][2])) {
+   if (is.na(strsplit(nm_x[1], emusep, fixed=TRUE)[[1]][2])) {
       emu=FALSE
    }
    if (emu) {
@@ -438,12 +449,16 @@ cumo2mass=function(x, sep=":", emusep="+") {
       longest=longest[o]
       nm_l=names(longest)
       # select the MIDs of the longest fragment
-      res=x[unlist(sapply(nm_l, function(nm) which(spl[,1]==nm&spl[,2]==longest[nm]))),,drop=F]
+      if (is.na(nb_exp)) {
+         res=x[unlist(sapply(nm_l, function(nm) which(spl[,1]==nm&spl[,2]==longest[nm]))),,drop=FALSE]
+      } else {
+         i=unlist(sapply(nm_l, function(nm) which(spl[,1]==nm&spl[,2]==longest[nm])))
+         res=lapply(x, function(xx) xx[i,,drop=FALSE])
+      }
       return(res)
    }
 
    # separate cumos by name and order by weight
-   res=matrix(0., nrow=0, ncol=ncol(x))
    metabs=c(); # unique metab names
    spl=as.matrix(sapply(nm_x, function(s) {
       v=strsplit(s, sep, fixed=T)[[1]]
@@ -455,10 +470,14 @@ cumo2mass=function(x, sep=":", emusep="+") {
       }
    }))
    i=!is.na(spl[2,])
-   x=x[i,,drop=F]
-   spl=spl[,i,drop=F]
-   n=nrow(x)
-   i=1:n
+   if (is.na(nb_exp)) {
+      x=x[i,,drop=FALSE]
+   } else {
+      x=lapply(x, "[", i,,drop=FALSE)
+   }
+   spl=spl[,i,drop=FALSE]
+   n=if (is.na(nb_exp)) nrow(x) else nrow(x[[1]])
+   i=seq_len(n)
    icumo=as.integer(spl[2,])
    metabs=spl[1,]
    umetabs=union(metabs, NULL)
@@ -467,23 +486,50 @@ cumo2mass=function(x, sep=":", emusep="+") {
 #cat("tbl:\n")
 #print(tbl)
    # extract, order and convert each metab vector
-   for (metab in umetabs) {
-#      cat(paste(metab,":\n",sep=""))
-      im=metabs==metab
+   if (is.na(nb_exp)) {
+      res=matrix(0., nrow=0, ncol=ncol(x))
+      for (metab in umetabs) {
+#cat(paste(metab,":\n",sep=""))
+         im=metabs==metab
 #print(d)
-      o=order(icumo[im])
-      # ordered cumomer vector with #0==1 component
-      vcumo=rbind(1,x[im,,drop=F][o,,drop=F])
-      clen=log2(nrow(vcumo))
-      # check that we have all components
-      sb=sumbit(max(icumo[im]))
-      if (!isTRUE(all.equal(sb, clen))) {
-         next
+         o=order(icumo[im])
+         # ordered cumomer vector with #0==1 component
+         vcumo=rbind(1,x[im,,drop=FALSE][o,,drop=FALSE])
+         clen=log2(nrow(vcumo))
+         # check that we have all components
+         sb=sumbit(max(icumo[im]))
+         if (!isTRUE(all.equal(sb, clen))) {
+            next
+         }
+         # mass vector
+         mass=as.matrix(Tiso2mass(clen)%*%(Tcumo2iso(clen)%*%vcumo))
+         rownames(mass)=paste(metab, "+", 0:clen, sep="")
+         res=rbind(res, mass)
       }
-      # mass vector
-      mass=as.matrix(Tiso2mass(clen)%*%(Tcumo2iso(clen)%*%vcumo))
-      rownames(mass)=paste(metab, "+", 0:clen, sep="")
-      res=rbind(res, mass)
+   } else {
+      rres=lapply(seq_len(nb_exp), function(iexp) matrix(0., nrow=0, ncol=ncol(x[[iexp]])))
+      names(rres)=names(x)
+      for (iexp in seq_len(nb_exp)) {
+         res=rres[[iexp]]
+         for (metab in umetabs) {
+            im=metabs==metab
+            o=order(icumo[im])
+            # ordered cumomer vector with #0==1 component
+            vcumo=rbind(1,x[[iexp]][im,,drop=FALSE][o,,drop=FALSE])
+            clen=log2(nrow(vcumo))
+            # check that we have all components
+            sb=sumbit(max(icumo[im]))
+            if (!isTRUE(all.equal(sb, clen))) {
+               next
+            }
+            # mass vector
+            mass=as.matrix(Tiso2mass(clen)%*%(Tcumo2iso(clen)%*%vcumo))
+            rownames(mass)=paste(metab, "+", 0:clen, sep="")
+            res=rbind(res, mass)
+         }
+         rres[[iexp]]=res
+      }
+      res=rres
    }
    return(res)
 }
@@ -750,15 +796,15 @@ fx2jr=function(fwrv, spAbr, nb, incu, incup=NULL) {
       }
       spAbr[[nm_a_fx]]=l
    }
-   x=incu[(1L+nb$xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=F]
+   x=incu[(1L+nb$xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=FALSE]
    if (emu) {
       dim(x)=c(nb_c, w, nco)
-      tmp=x[ind_a[,"ic0"]+1L,,,drop=F]
+      tmp=x[ind_a[,"ic0"]+1L,,,drop=FALSE]
       tmp[spAbr[[nm_a_fx]]$ineg,,]=-tmp[spAbr[[nm_a_fx]]$ineg,,]
       #ia=(ind_a[,"ir0"]+1L)+rep((seq_len(w)-1L)*nb_c, each=nro)
       #ja=rep(ind_a[,"indf"], w)
    } else {
-      tmp=x[ind_a[,"ic0"]+1L,,drop=F]
+      tmp=x[ind_a[,"ic0"]+1L,,drop=FALSE]
       tmp[spAbr[[nm_a_fx]]$ineg,]=-tmp[spAbr[[nm_a_fx]]$ineg,]
       #ia=ind_a[,"ir0"]+1L
       #ja=ind_a[,"indf"]
@@ -861,7 +907,7 @@ put_inside=function(param, ui, ci) {
 #print(ineqd[iact])
       # solve an ldp pb to find non decreasing direction
       # for active inequalities
-      ma=ui[iact,,drop=F]
+      ma=ui[iact,,drop=FALSE]
       na=sum(iact)
       # find closest vector to c(1,1,...) making the direction increasing
       tma=tcrossprod(ma)
@@ -891,7 +937,7 @@ put_inside=function(param, ui, ci) {
          if (sum(i) > 0) {
             tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dpn[1:nb_ff], dpn[1:nb_ff])
             dimnames(tmp)=list(nm_par[1:nb_ff], c("outside", "inside", "delta"))
-            obj2kvh(tmp[i,,drop=F], "Free parameters put inside of feasible domain")
+            obj2kvh(tmp[i,,drop=FALSE], "Free parameters put inside of feasible domain")
          }
       }
       # move starting point slightly inside of feasible domain
@@ -1000,9 +1046,9 @@ plot_ti=function(ti, x, m=NULL, ...) {
    } else {
       o=order(nm)
       nm=nm[o]
-      x=x[o,,drop=F]
+      x=x[o,,drop=FALSE]
       if (!is.null(m) && nrow(x)==nrow(m)) {
-         m=m[o,,drop=F]
+         m=m[o,,drop=FALSE]
       }
    }
    # x and m may have different time moments
@@ -1036,7 +1082,7 @@ get_usm=function(f) {
    d=kvh_get_matrix(f, c("simulated unscaled labeling measurements"))
    ti=as.numeric(colnames(d))
    o=order(rownames(d))
-   return(list(ti=ti, usm=d[o,,drop=F]))
+   return(list(ti=ti, usm=d[o,,drop=FALSE]))
 }
 
 get_labcin=function(f, nm_meas=NULL) {
@@ -1249,7 +1295,7 @@ mc_sim=function(imc) {
 #print(labargs$spa[[1]])
    #set.seed(seeds[imc])
    #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", imc))
-   for (item in c("nb_f", "measurements", "case_i", "dirw", "baseshort")) {
+   for (item in c("nb_f", "measurements", "case_i", "dirw", "baseshort", "nb_exp")) {
       assign(item, labargs[[item]])
    }
    # random measurement generation
@@ -1257,12 +1303,12 @@ mc_sim=function(imc) {
 #print(head(as.double(refsim$simlab)))
    if (nb_f$nb_meas) {
       if (case_i) {
-         meas_mc=refsim$usm+rnorm(n=length(refsim$usm))*measurements$dev$labeled
+         meas_mc=lapply(seq_len(nb_exp), function(iexp) refsim$usm[[iexp]]+rnorm(n=length(refsim$usm[[iexp]]))*measurements$dev$labeled[[iexp]])
       } else {
-         meas_mc=refsim$simlab+rnorm(n=length(refsim$simlab))*measurements$dev$labeled
+         meas_mc=lapply(seq_len(nb_exp), function(iexp) refsim$simlab[[iexp]]+rnorm(n=length(refsim$simlab[[iexp]]))*measurements$dev$labeled[[iexp]])
       }
    } else {
-      meas_mc=c()
+      meas_mc=vector("list", nb_exp)
    }
 #cat("meas=\n")
 #print(head(meas_mc))
