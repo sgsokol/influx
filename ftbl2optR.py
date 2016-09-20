@@ -1181,27 +1181,31 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    rm(resid, zpval)
 
    # simulated measurements -> kvh
+   simul=list()
+#browser()
    if (case_i) {
-      simul=list(
-         "labeled data"=jx_f$usm,
-         "measured fluxes"=jx_f$simfmn,
-         "measured pools"=jx_f$simpool
-      )
+      if (sum(nb_meas))
+         simul[["labeled data"]]=jx_f$usm
    } else {
-      simul=list(
-         "labeled data (unscaled)"=jx_f$usimcumom,
-         "labeled data (scaled)"=vector("list", nb_exp),
-         "measured fluxes"=jx_f$simfmn,
-         "measured pools"=jx_f$simpool
-      )
-      if (nb_sc_tot > 0) {
-         simul[["labeled data (scaled)"]]=jx_f$simlab
-         names(simul[["labeled data (scaled)"]])=nm_exp
-      } else {
-         simul[["labeled data (scaled)"]]=NULL
+      if (sum(nb_meas)) {
+         if (nb_sc_tot > 0) {
+            simul[["labeled data (unscaled)"]]=jx_f$usimcumom
+            simul[["labeled data (scaled)"]]=jx_f$simlab
+         } else {
+            simul[["labeled data"]]=jx_f$simlab
+         }
       }
    }
+   if (nb_fmn)
+      simul[["measured fluxes"]]=jx_f$simfmn
+   if (nb_poolm)
+      simul[["measured pools"]]=jx_f$simpool
    obj2kvh(simul, "simulated measurements", fkvh)
+   
+   # SD -> kvh
+   # get index of non null components
+   iget=sapply(names(measurements$dev), function(nm) !is.null(measurements$dev[[nm]]) & nm %in% c("labeled", "flux", "pool"))
+   obj2kvh(measurements$dev[iget], "measurement SD", fkvh)
 
    # gradient -> kvh
    if (!is.null(jx_f$res)) {
@@ -1450,10 +1454,10 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       covfl=matrix(0., nb_fl, nb_fl)
    }
    fl=c(head(param, nb_ff), fgr, flnx)
-   mtmp=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
-   rownames(mtmp)=nm_flfd
+   stats_nx=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
+   rownames(stats_nx)=nm_flfd
    o=order(nm_flfd)
-   obj2kvh(mtmp[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
+   obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
    obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
 
    # sd of all fwd-rev
