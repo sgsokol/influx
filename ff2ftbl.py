@@ -116,7 +116,7 @@ for (fl, v) in ff.iteritems():
         else:
             continue;
         #lftbl[iflu]="\t\t%s\tF\t%.15g%s"%(flu, abs(v), os.linesep)
-        lftbl[iflu]=re.sub("\t\t[^\t]+\t(.)\t.*", "\t\t%s\t\\1\t%.15g"%(flu, v), lftbl[iflu])
+        lftbl[iflu]=re.sub("\t\t[^\t]+\t(.)\t.*", "\t\t%s\t\\1\t%.15g"%(flu, abs(v)), lftbl[iflu])
     elif fdc == "pf":
         # replace the value of pool
         ipfu=[i for (i,l) in enumerate(lftbl[ipool:]) if l.startswith("\t%s\t-"%flu)]
