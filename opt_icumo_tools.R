@@ -46,7 +46,7 @@ icumo_resid=function(param, cjac, labargs) {
       } else {
          jx_f$simlab[[iexp]]=jx_f$usm[[iexp]]
       }
-      rownames(jx_f$simlab[[iexp]])=rownames(jx_f$usm[[iexp]])=rownames(measvecti[[iexp]])
+      rownames(jx_f$simlab[[iexp]])=rownames(jx_f$usm[[iexp]])=nm$meas[[iexp]]
       # diff between simulated and measured
       #inna=which(!is.na(measvecti)) # for removing NA measurements
       pool[nm$poolf]=param[nm$poolf]
