@@ -1394,6 +1394,8 @@ ipooled[[%(ili)d]][["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
             base_pooled=base_pooled+len(measures[meas][ili]["vec"])+sum(len(item)-2 for item in measures[meas][ili]["pooled"])
     # preepare measmat indexes and values : ir, ic, val
     f.write("""
+names(measvec)=names(measdev)=nm_exp
+
 if (!noscale) {
    for (iexp in seq_len(nb_exp))
       ir2isc[[iexp]]=ir2isc[[iexp]][ipooled[[iexp]]$ishort]
@@ -1508,8 +1510,9 @@ nb_f$nb_fmn=nb_fmn
 # measured values
 fmn=c(%(fmn)s)
 
-# inverse of variance for flux measurements
+# SD for flux measurements
 fmndev=c(%(fmndev)s)
+names(fmndev)=names(fmn)=nm_fmn
 
 # indices for measured fluxes
 # fallnx[ifmn]=>fmn, here fallnx is complete net|xch flux vector
