@@ -1,23 +1,28 @@
 #!/usr/bin/env python
 """Parse _res.kvh file from stdin or from first parameter
-and write the measurment section of ftbl file on stdout
+and write the measurment section of ftbl file in file(s) suffixed with '_simN.ftbl'
+Where N is an integer corresponding to parallel experiment number.
+In case of instationary labeling, label kinetics are written in file(s)
+suffixed with '_cinlabN.txt'
 usage: res2ftbl_meas.py [network_res[.kvh]] > meas.ftbl
 """
 if __name__ == "__main__":
     import sys, os, getopt
     import tools_ssg
     import kvh
-    import pprint
+    #import pprint # for debuging only
+    import re
+    import datetime as dt
     def usage():
         print(__doc__)
     me="res2ftbl_meas"
     secdef={
-        "m": """
-MASS_SPECTROMETRY
+        "m": """MASS_SPECTROMETRY
 	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION""",
-        "p": """
-PEAK_MEASUREMENTS
+        "p": """PEAK_MEASUREMENTS
 	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T""",
+        "l": """LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS""",
     }
     pfield="META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T".split("\t")
     sdfield={
@@ -44,83 +49,139 @@ PEAK_MEASUREMENTS
             assert False, "unhandled option"
     fkvh=args[0] if len(args) else ""
     if fkvh and fkvh[-4:] != ".kvh":
-        fkvh+=".ftbl"
+        fkvh+=".kvh"
     if fkvh and not os.path.exists(fkvh):
         sys.stderr.write(me+": file '"+fkvh+"' does not exist.\n")
         sys.exit(1)
     fkvh=open(fkvh, "r") if fkvh else sys.stdin
 
-    d=kvh.kvh2tlist(fkvh)
+    d=kvh.kvh2tlist(fkvh) # all kvh data
     #pprint.pprint(d)
+    ivers=[int(v) if re.match("^\d+$", v) else -1 for v in d[0][1][0][1].split(".")]
+    if ivers[0] < 4:
+        Exception("This software is designed to work with kvh files produced by influx_si v4.0 and higher.") 
+    case_i=d[0][1][1] == ("labeling", "instationary")
     
-    # flux measurements
-    meas=[]
+    # base of output names
+    bout=fkvh.name[:-8] if fkvh.name[-4:] == ".kvh" else "stdin"
+    
+    # get all measurement SD
+    sdev=[]
     try:
-        meas=[ v for (k,v) in d if k == "simulated flux measurements" ].pop()
+        sdev=[ v for (k,v) in d if k == "measurement SD" ].pop()
     except:
         pass
-    if meas:
-        print("""FLUX_MEASUREMENTS
-	FLUX_NAME	VALUE	DEVIATION""")
-        for (k,v) in meas[1:]:
-            print("\t%s\t%s"%(k[4:], v))
-    # labeling measurments
-    meas=dict( t for t in d if t[0] in ("simulated scaled labeling measurements", "simulated unscaled labeling measurements") )
-    meas=meas.get("simulated scaled labeling measurements", meas["simulated unscaled labeling measurements"])
-    #pprint.pprint(meas)
+    if not sdev:
+        Exception("No section 'measurement SD' in '%s'"%fkvh.name)
+    sdev=dict((k,v) for (k,v) in sdev)
+    # get all simulated measurements
+    meas=[]
+    try:
+        meas=[ v for (k,v) in d if k == "simulated measurements" ].pop()
+    except:
+        pass
+    if not meas:
+        Exception("No section 'simulated measurements' in '%s'"%fkvh.name)
+    meas=dict((k,v) for (k,v) in meas)
     
-    mtype=""
-    dpeak={}
-    for m in meas[1:]:
-        # split id
-        sid=m[0].split(":")
-        if mtype != sid[0]:
-            # new measurement type starts here
-            mtype=sid[0]
-            print(secdef[mtype])
-            oldmetab=""
-            oldfrag=""
-            oldweight=-1
-            oldrid=""
-            oldc_no=0
-            # flush previous peak dict
-            if dpeak:
-                print("\t".join([""] + [dpeak.get(f, "") for f in pfield]))
-                dpeak={}
-        if mtype=="m":
-            ## mass measurement
-            metab, frag, weight, rid = sid[1:]
-            if metab != oldmetab or frag != oldfrag or int(weight) <= oldweight:
-                # new metab starts here
-                oldmetab, oldfrag, oldweight = (metab, frag, int(weight))
-                print("\t%s\t%s\t%d\t%s"%(metab, frag, int(weight), m[1]))
-            else:
-                print("\t%s\t%s\t%d\t%s"%("", "", int(weight), m[1]))
-        elif mtype=="p":
-            ## peak measurement
-            metab, c_no, ptype, rid = sid[1:]
-            val,sd=m[1].split("\t")
-            if oldmetab != metab:
-                ## new metab starts here
-                oldmetab=metab
-                oldrid=""
-                # flush previous dict
-                if dpeak:
-                    print("\t".join([""] + [dpeak.get(f, "") for f in pfield]))
-                    dpeak={}
-                dpeak["META_NAME"]=metab
-            if oldrid != rid:
-                # new peak for a given metab starts here
-                oldrid=rid
-                # flush previous dict
-                if "PEAK_NO" in dpeak:
-                    print("\t".join([""] + [dpeak.get(f, "") for f in pfield]))
-                    dpeak={}
-                dpeak["PEAK_NO"]=c_no
-            dpeak["VALUE_"+ptype]=val
-            dpeak[sdfield[ptype]]=sd
-    # flush last peak dict
-    if dpeak:
-        print("\t".join([""] + [dpeak.get(f, "") for f in pfield]))
+    
+    f_ftbl=open("%s_sim1.ftbl"%bout, "w")
+    # flux measurements
+    if "measured fluxes" in meas:
+        f_ftbl.write("""FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION\n""")
+        for (i, (k,v)) in enumerate(meas["measured fluxes"]):
+            f_ftbl.write("\t%s\t%s\t%s\n"%(k[4:], v, sdev["flux"][i][1]))
+    # pool measurements
+    if "measured pools" in meas:
+        f_ftbl.write("""METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION\n""")
+        for (i,(k,v)) in enumerate(meas["measured pools"]):
+            f_ftbl.write("\t%s\t%s\t%s\n"%(k[3:], v, sdev["pool"][i][1]))
+    f_ftbl.close()
+    # labeled measurements (for parallel experiments)
+    mlab=meas.get("labeled data", meas.get("labeled data (scaled)"))
+    if not mlab:
+        sys.exit(0)
+    nb_exp=len(mlab)
+    for iexp in xrange(nb_exp):
+        if not mlab[iexp]:
+            continue
+        f_ftbl=open("%s_sim%d.ftbl"%(bout, iexp+1), "w" if iexp else "a")
+        meas=mlab[iexp][1]
+        if case_i:
+            # write all kinetic data
+            f=open("%s_cinlab%d.txt"%(bout, iexp+1), "w")
+            f.write("# simulated measurement from %s\n"%mlab[iexp][0])
+            f.write("# generated by %s at %s\n"%(me, dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S")))
+            f.write("%s\t%s\n"%meas[0])
+            for (nm,row) in meas[1:]:
+                f.write("%s\t%s\n"%(":".join(nm.split(":")[1:]), row)) # skip iexp number in rowid
+            f.close()
+            meas=[(k,v.split("\t")[0]) for (k,v) in meas[1:]] # skip first row with row_col
+        mtype=""
         dpeak={}
+        for (i,m) in enumerate(meas):
+            sd=sdev["labeled"][iexp][1][i][1]
+            # split id
+            sid=m[0].split(":")
+            if mtype != sid[1]:
+                # new measurement type starts here
+                mtype=sid[1]
+                f_ftbl.write(secdef[mtype]+"\n")
+                oldmetab=""
+                oldfrag=""
+                oldweight=-1
+                oldrid=""
+                oldc_no=0
+                # flush previous peak dict
+                if dpeak:
+                    f_ftbl.write("\t".join([""] + [dpeak.get(f, "") for f in pfield])+"\n")
+                    dpeak={}
+            if mtype=="m":
+                ## mass measurement
+                metab, frag, weight, rid = sid[2:]
+                if metab != oldmetab or frag != oldfrag or int(weight) <= oldweight:
+                    # new metab starts here
+                    oldmetab, oldfrag, oldweight = (metab, frag, int(weight))
+                    f_ftbl.write("\t%s\t%s\t%d\t%s\t%s\n"%(metab, frag, int(weight), m[1], sd))
+                else:
+                    f_ftbl.write("\t%s\t%s\t%d\t%s\t%s\n"%("", "", int(weight), m[1], sd))
+            elif mtype=="p":
+                ## peak measurement
+                metab, c_no, ptype, rid = sid[2:]
+                val=m[1]
+                if oldmetab != metab:
+                    ## new metab starts here
+                    oldmetab=metab
+                    oldrid=""
+                    # flush previous dict
+                    if dpeak:
+                        f_ftbl.write("\t".join([""] + [dpeak.get(f, "") for f in pfield])+"\n")
+                        dpeak={}
+                    dpeak["META_NAME"]=metab
+                if oldrid != rid:
+                    # new peak for a given metab starts here
+                    oldrid=rid
+                    # flush previous dict
+                    if "PEAK_NO" in dpeak:
+                        f_ftbl.write("\t".join([""] + [dpeak.get(f, "") for f in pfield])+"\n")
+                        dpeak={}
+                    dpeak["PEAK_NO"]=c_no
+                dpeak["VALUE_"+ptype]=val
+                dpeak[sdfield[ptype]]=sd
+            elif mtype=="l":
+                ## label measurements
+                metab, constr, rid = sid[2:]
+                if metab != oldmetab:
+                    # new metab starts here
+                    oldmetab=metab
+                    f_ftbl.write("\t%s\t1\t%s\t%s\t%s\n"%(metab, m[1], sd, constr))
+                else:
+                    f_ftbl.write("\t%s\t1\t%s\t%s\t%s\n"%("", m[1], sd, constr))
+        # flush last peak dict
+        if dpeak:
+            f_ftbl.write("\t".join([""] + [dpeak.get(f, "") for f in pfield])+"\n")
+            dpeak={}
+        f_ftbl.close()
     sys.exit(0)
