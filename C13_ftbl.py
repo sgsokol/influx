@@ -139,6 +139,7 @@ def ftbl_parse(f):
             f=f+".ftbl"
         ftbl["name"]=f
         ftbl["base_name"]=os.path.basename(f)[:-5]
+        ftbl["abs_path"]=os.path.abspath(f)
         fc=codecs.open(f, "r", encoding="utf-8-sig")
         try:
            lines=fc.readlines()
@@ -1322,8 +1323,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     if "opt" in netan and "prl_exp" in netan["opt"] and netan["opt"]["prl_exp"]:
         # parse ftbl files
         fli=re.split(";\s*", netan["opt"]["prl_exp"])
+        dirw=os.path.dirname(ftbl["abs_path"])
         for fn in fli:
-            fp=ftbl_parse(fn)
+            fp=ftbl_parse(os.path.join(dirw, fn))
             netan["exp_names"].append(fp["base_name"])
             proc_label_input(fp, netan)
             proc_label_meas(fp, netan)
