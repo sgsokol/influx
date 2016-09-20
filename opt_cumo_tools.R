@@ -53,6 +53,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
    # find simulated scaled measure vector scale*(measmat*x)
    if (is.null(jx_f$simlab)) {
       jx_f$simlab=jx_f$ureslab=jx_f$reslab=vector("list", nb_exp)
+      names(jx_f$simlab)=names(jx_f$ureslab)=names(jx_f$reslab)=nm$nm_exp
    }
    for (iexp in seq_len(nb_exp)) {
       if (noscale) {
