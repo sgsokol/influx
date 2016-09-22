@@ -103,6 +103,7 @@ try:
     dfc_val.update(("d.x."+f, d[i+len(netan["vflux"]["net"])]) for (i,f) in enumerate(netan["vflux"]["xch"]))
     invAfl=np.matrix(Afl).I
 except Exception as err:
+    sys.stderr.write("Error: Afl is singular or is not square\n")
     sys.stderr.write("dependent net fluxes="+str(netan["vflux"]["net"])+"\n")
     sys.stderr.write("dependent xch fluxes="+str(netan["vflux"]["xch"])+"\n")
     sys.stderr.write("Afl="+str(netan["Afl"])+"\n")
@@ -159,7 +160,7 @@ for (ir,row) in enumerate(netan["Afl"]):
         "fxch": "\t".join(("" if coef==0 else ssign(coef)+(str(abs(coef)) if abs(coef) !=1. else "")+
             "d.x."+netan["vflux"]["xch"][i-nb_fnet]) for (i,coef) in enumerate(row)
             if i >= nb_fnet),
-        "b": join(" + ", (str(coef)+("*" if (coef and fl) else " ")+str(fl)
+        "b": join(" + ", ((str(coef) if abs(coef) != 1 else "" if coef == 1 else "-") +("*" if (abs(coef) != 1 and fl) else "")+str(fl)
             for (fl,coef) in netan["bfl"][ir].iteritems()), a="0"),
     })
 
@@ -200,8 +201,9 @@ if invAfl != None:
     f2bfl[i,j]=v
     fcv2dep=invAfl*np.matrix(f2bfl)
     f.write("""
-Dependent flux equations:
-dep.flux=f(cnst,net,xch)\n
+Dependent fluxes as functions of free and constrained fluxes:
+dep.flux=f(free.flux, constr.flux)
+----------------------------------
 """)
     ndn=len(netan["vflux"]["net"])
     ndx=len(netan["vflux"]["xch"])
@@ -223,18 +225,20 @@ measures={"label": {}, "mass": {}, "peak": {}}
 o_meas=measures.keys(); # ordered measure types
 # calculate measure matrices (mapping cumomers to observations)
 f.write("""
-Measures:
+Measurements:
 """)
 for meas in o_meas:
     measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas)
     # measure vector
     #aff(meas, measures[meas]);##
-    f.write(meas+":\n"+join("\n", (row["scale"]+" "+str(i)+": "+
-        join(", ", row["coefs"].iteritems()) for (i,row) in
-        enumerate(measures[meas]["mat"])))+"\n")
+    for iexp in xrange(len(measures[meas])):
+        f.write("%s:\n"%netan["exp_names"][iexp])
+        f.write(meas+":\n"+join("\n", (row["scale"]+" "+str(i)+": "+
+            join(", ", row["coefs"].iteritems()) for (i,row) in
+            enumerate(measures[meas][iexp]["mat"])))+"\n")
 
 Ab=C13_ftbl.rcumo_sys(netan, emu)
-vcumo=netan["vrcumo"]
+vcumo=netan.get("vrcumo")
 if emu:
     f.write("\n# EMU fragment system\n")
 elif reduced:
