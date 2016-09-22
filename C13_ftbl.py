@@ -159,6 +159,7 @@ def ftbl_parse(f):
     col_names=[]
     sec_name=subsec_name=""
     irow=0
+    dic={}
     for l in lines:
         irow+=1
         #print "raw l="+l;##
@@ -184,18 +185,18 @@ def ftbl_parse(f):
         flds=l.split("\t")
         
         #print "proceeding:"+l;##
-        if len(flds)==1:
+        if len(flds) == 1:
             # new section starts here
             sec_name=flds[0]
             subsec_name=""
             if not sec_name in defsec:
-                raise Exception("FTBL: Illegal section name '%s' (row: %d)"%(sec_name, irow))
+                raise Exception("FTBL: Illegal section name '%s' (%s: %d)"%(sec_name, ftbl["name"], irow))
             # prepare storage
             ftbl[sec_name]=[]
             # prepare storage for carbon transitions
             if sec_name=="NETWORK":
                #print "TRANS prepared";##
-               ftbl["TRANS"]={}
+               ftbl["TRANS"]=[]
             try: del stock
             except NameError: pass
             stock=ftbl[sec_name]
@@ -205,13 +206,13 @@ def ftbl_parse(f):
             col_names=[]
             subsec_name=""
             continue
-        if len(flds)==2 and len(flds[0])==0:
+        if len(flds) == 2 and len(flds[0]) == 0:
             # read subsection name or what ?
             if len(sec_name) and sec_name in defsec and len(defsec[sec_name]):
                 # we are expecting a subsection
                 subsec_name=flds[1]
                 if subsec_name not in defsec[sec_name]:
-                    raise Exception("A subsection '%s' cannot appear in the section '%s' (row: %d)."%(subsec_name, sec_name, irow))
+                    raise Exception("A subsection '%s' cannot appear in the section '%s' (%s: %d)."%(subsec_name, sec_name, ftbl["name"], irow))
                 # prepare sub-storage
                 if not ftbl[sec_name]:
                     # replace an empty list by an empty dictionary
@@ -229,8 +230,10 @@ def ftbl_parse(f):
                 # just a very short line
                 # it will fall in plain reading data
                 pass
-        if reading=="col_names" and len(flds)>2:
+        if reading=="col_names" and len(flds) > 2:
             # read column names
+            if len(l) < skiptab or l[:skiptab] != "\t"*skiptab:
+                raise Exception("Expected at least %d tabulation(s) at the row beginning. Got '%s' (%s: %d)"%(skiptab, l[:min(skiptab, len(l))], ftbl["name"], irow))
             col_names=l[skiptab:].split("\t")
             if len([ item for item in col_names if re.match("^\s*$", item) ]):
                 raise Exception("FTBL: row %d has empty column names:\n%s"%(irow,l))
@@ -238,27 +241,27 @@ def ftbl_parse(f):
             #print "col_names=", col_names;##
             continue
         if reading=="data":
+            if len(l) < skiptab or l[:skiptab] != "\t"*skiptab:
+                raise Exception("Expected at least %d tabulation(s) at the row beginning. Got '%s' (%s: %d)"%(skiptab, l[:min(skiptab, len(l))], ftbl["name"], irow))
             data=l[skiptab:].split("\t")
-            dic={"irow": irow}
-            if sec_name == "NETWORK" and len(data[0])==0:
+            prevdic=dic
+            dic={"irow": str(irow)}
+            if sec_name == "NETWORK" and len(data[0]) == 0:
                 # here, we are at carbon transition line (e.g. #ABC -> #AB +#C)
                 #print "data_count="+str(data_count), \
                 #    "\ndata="+str([l for l in enumerate(data)]), \
                 #    "\nstock="+str(stock);##
-                fl_name=str(stock[data_count-1][col_names[0]])
-                if fl_name in ftbl["TRANS"]:
-                   raise Exception("FTBL: the reaction '%s' has more than one carbon transitions (row: %d)."%(fl_name, irow))
+                fl_name=str(stock[data_count-1][col_names[0]]) if data_count else ""
+                if col_names[0] not in prevdic or len(prevdic[col_names[0]]) == 0:
+                    raise Exception("Carbon transition row '%s' is orphan (%s: %d)."%(l[skiptab:], ftbl["name"], irow))
                 for i in range(len(col_names)):
-                    try:
-                        item=data[i].strip()
-                        dic[col_names[i]]=item
-                        metab=stock[data_count-1][col_names[i]]
-                        if i > 0 and ((len(metab) and not len(item)) or (not len(metab) and len(item))):
-                            #print "i=%d, co='%s', m='%s', tr='%s';"%(i, col_names[i], metab, item)
-                            raise Exception("ftbl row %d: in the reaction '%s', metabolites seem to be misaligned with carbon transitions."%(irow, fl_name))
-                    except IndexError:
-                        pass
-                ftbl["TRANS"][fl_name]=dic
+                    item=data[i].strip() if i < len(data) else ""
+                    dic[col_names[i]]=item
+                    metab=stock[data_count-1][col_names[i]]
+                    if i > 0 and ((len(metab) and not len(item)) or (not len(metab) and len(item))):
+                        #print "i=%d, co='%s', m='%s', tr='%s';"%(i, col_names[i], metab, item)
+                        raise Exception("In the reaction '%s', metabolites are misaligned with carbon transitions (%s: %d)."%(fl_name, ftbl["name"], irow))
+                ftbl["TRANS"].append(dic)
                 continue
             for i in xrange(len(col_names)):
                 # classic data
@@ -282,6 +285,37 @@ def ftbl_parse(f):
         #print "len(flds)=", len(flds), flds, l, data;##
         #print "keys", ftbl.keys(), (ftbl[sec_name].keys() \
         #        if type(ftbl[sec_name])==type({}) else "");##
+    if "NETWORK" not in ftbl:
+        return ftbl
+    # assemble reactions with the same name in one
+    # long_reac={reac: {"left": [minp1, minp2, ...], "right": [mout1, mout2, ...]}
+    # and carbon transitions
+    # long_trans={reac: {"left": [minp1, minp2, ...], "right": [mout1, mout2, ...]}
+    # get unique reaction names
+    nw=ftbl["NETWORK"]
+    tr=ftbl["TRANS"]
+    ureac=set(row["FLUX_NAME"] for row in ftbl["NETWORK"])
+    long_reac={}
+    long_trans={}
+    for reac in ureac:
+        if reac not in long_reac:
+            long_reac[reac]={"left": [], "right": []}
+            long_trans[reac]={"left": [], "right": []}
+        # get rows
+        irows=[i for (i, row) in enumerate(nw) if row["FLUX_NAME"] == reac]
+        long_reac[reac]["irow"]=", ".join(str(nw[i]["irow"]) for i in irows)
+        long_reac[reac]["left"]+=[m for i in irows for m in (nw[i]["EDUCT_1"], nw[i]["EDUCT_2"]) if m]
+        long_reac[reac]["right"]+=[m for i in irows for m in (nw[i]["PRODUCT_1"], nw[i]["PRODUCT_2"]) if m]
+        long_trans[reac]["irow"]=", ".join(str(tr[i]["irow"]) for i in irows)
+        long_trans[reac]["left"]+=[m for i in irows for m in (tr[i]["EDUCT_1"], tr[i]["EDUCT_2"]) if m]
+        long_trans[reac]["right"]+=[m for i in irows for m in (tr[i]["PRODUCT_1"], tr[i]["PRODUCT_2"]) if m]
+        for lr in ("left", "right"):
+            nmet=len(long_reac[reac][lr])
+            ncarb=len(long_trans[reac][lr])
+            if nmet != ncarb:
+                raise Exception("Number of metabolites (%d) and carbon strings (%d) on the %s hand side of reaction 'reac' must be equal (%s: %s)"%(nmet, ncarb, lr, reac, ftbl["name"], long_reac[reac]["irow"]))
+    ftbl["long_reac"]=long_reac
+    ftbl["long_trans"]=long_trans
     return ftbl
 
 def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
@@ -399,11 +433,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     for suf in ["NET", "XCH"]:
         for row in ftbl.get("FLUXES", {}).get(suf, {}):
             if not "NAME" in row:
-                raise Exception("No requied field NAME in section FLUX/%s (row: %d)"%(suf, row["irow"]))
+                raise Exception("No requied field NAME in section FLUX/%s (row: %s)"%(suf, row["irow"]))
             if not "FCD" in row:
-                raise Exception("No requied field FCD in section FLUX/%s (row: %d)"%(suf, row["irow"]))
+                raise Exception("No requied field FCD in section FLUX/%s (row: %s)"%(suf, row["irow"]))
             if (row["FCD"]=="F" or row["FCD"]=="C") and not "VALUE(F/C)" in row:
-                raise Exception("For flux '%s' in section FLUX/%s, the field 'VALUE(F/C)' is requiered but is absent (row: %d)"%(row["NAME"], suf, row["irow"]))
+                raise Exception("For flux '%s' in section FLUX/%s, the field 'VALUE(F/C)' is requiered but is absent (row: %s)"%(row["NAME"], suf, row["irow"]))
     # quick consistency check between net and xch fluxes
     fnet=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("NET", {}))
     fxch=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}))
@@ -417,30 +451,20 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     # quick not reversible reactions for complete subs and prods accounting
     revreac=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
     # analyse networks
-    netw=ftbl.get("NETWORK")
+    netw=ftbl.get("long_reac")
     if not netw:
-        raise Exception("No NETWORK section in the ftbl file")
+        raise Exception("No long_reac section in the ftbl parameter")
     row_to_del=[]
-    for row in netw:
-        reac=row["FLUX_NAME"]
+    for (reac, row) in netw.iteritems():
         #print "reac="+reac;#
-        e1=row.get("EDUCT_1")
-        if not e1: raise Exception("EDUCT_1 must be defined in the reaction '%s' (row: %d)."%(reac, row["irow"]))
-        e2=row.get("EDUCT_2")
-        p1=row.get("PRODUCT_1")
-        if not p1: raise Exception("PRODUCT_1 must be defined in the reaction '%s'(row: %d)."%(reac, row["irow"]))
-        p2=row.get("PRODUCT_2")
-        
+        # corresponding carbon transition row
+        crow=ftbl["long_trans"][reac]
         # local substrate (es), product (ps) and metabolites (ms) sets
-        es=set((e1,))
-        if e2:
-            es.add(e2)
-        ps=set((p1,))
-        if p2:
-            ps.add(p2)
+        es=set(row["left"])
+        ps=set(row["right"])
         ms=es|ps
         if es&ps:
-           raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (row: %d)."%(join(", ", es&ps), reac, row["irow"]))
+           raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (%s: %s)."%(join(", ", es&ps), reac, ftbl["name"], row["irow"]))
         
         # all reactions A+B=C or C=A+B or A+B=C+D
         netan["reac"].add(reac)
@@ -453,46 +477,29 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         #aff("ms for "+reac, ms);##
 
         # create chemical formula
-        netan["formula"][reac]={"left":es, "right":ps, "all":ms}
+        netan["formula"][reac]={"left": row["left"], "right": row["right"], "all":ms}
 
         # Carbon length and transitions
-        try:
-            trans=ftbl["TRANS"][reac]
-            
-            netan["carbotrans"][reac]={"left":[], "right":[]}
-            for (m,carb,lr) in [(e1,trans.get("EDUCT_1"),"left"),
-                    (e2,trans.get("EDUCT_2"),"left"),
-                    (p1,trans.get("PRODUCT_1"),"right"),
-                    (p2,trans.get("PRODUCT_2"),"right")]:
-                    #print "m="+str(m), "; carb="+str(carb);##
-                if not m or not carb:
-                    continue
-                if carb[0] != "#":
-                    raise Exception("In carbon string for metabolite "+m+" a starting '#' is missing."+
-                        "\nreaction="+str(row)+"\ncarbons ="+str(trans)+" (row: %d)"%row["irow"])
-                # carbon transitions
-                netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
+        netan["carbotrans"][reac]={"left": [], "right": []}
+        for (m, carb, lr) in [(row[lr][i], crow[lr][i], lr) for lr in ("left", "right") for i in xrange(len(row[lr]))]:
+                #print "m="+str(m), "; carb="+str(carb);##
+            if carb[0] != "#":
+                raise Exception("In carbon string '%s' for metabolite '%s' a starting '#' is missing. (%s: %s)"%(carb, m, ftbl["name"], row["irow"]))
+            # carbon transitions
+            netan["carbotrans"][reac][lr].append((m,carb[1:])); # strip "#" character
 
-                # carbon length
-                if netan["Clen"].get(m, 0) and \
-                        netan["Clen"][m] != len(carb)-1:
-                    raise Exception("CarbonLength", "Metabolite "+m+" has length "+
-                            str(netan["Clen"][m])+" but in reaction "+reac+
-                            " it has length "+str(len(carb)-1)+" (row: %d)"%row["irow"])
-                netan["Clen"][m]=len(carb)-1; # don't count '#' character
-        except KeyError:
-            werr("CarbonTrans: No reaction '%s' in carbon transitions (row: %d)\n"%(reac, row["irow"]))
-        except Exception as inst:
-            werr(": ".join(inst)+"\n")
+            # carbon length
+            if netan["Clen"].get(m, 0) and \
+                    netan["Clen"][m] != len(carb)-1:
+                raise Exception("CarbonLength", "Metabolite "+m+" has length "+
+                        str(netan["Clen"][m])+" but in reaction "+reac+
+                        " it has length "+str(len(carb)-1)+" (%s: %s)"%(ftbl["name"], row["irow"]))
+            netan["Clen"][m]=len(carb)-1; # don't count '#' character
         # check equal carbon length on left and right sides
         lenl=sum(len(l) for m,l in netan["carbotrans"][reac]["left"])
         lenr=sum(len(l) for m,l in netan["carbotrans"][reac]["right"])
-        if not lenl:
-            raise Exception("No carbon pattern found in the left part of reaction '%s' (row: %d)"%(reac, row["irow"]))
-        if not lenr:
-            raise Exception("No carbon pattern found in the right part of reaction '%s' (row: %d)"%(reac, row["irow"]))
         if lenl!=lenr:
-            raise Exception("Carbon patterns have different lengths on both sides of reaction '%s' (%d on left, %d on right, row: %d)"%(reac, lenl, lenr, row["irow"]))
+            raise Exception("Carbon patterns have different lengths on both sides of reaction '%s' (%d on left, %d on right, %s: %s)"%(reac, lenl, lenr, ftbl["name"], row["irow"]))
         # check unique presence of each letter on each side
         lets=dict()
         uni=dict()
@@ -500,18 +507,18 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
             lets[lr]="".join(l for m,l in netan["carbotrans"][reac][lr])
             uni[lr]=set(lets[lr])
             if len(uni[lr]) != len(lets[lr]):
-                # find doubled letters
+                # find repeated letters
                 di=dict((l,lets[lr].count(l)) for l in uni[lr])
                 for (l,c) in di.iteritems():
                     if c > 1:
-                        raise Exception("Character '%s' is present %s on the %s side of carbon transition in reaction '%s' (row: %d)"%(l, ntimes(c), lr, reac, row["irow"]))
+                        raise Exception("Character '%s' is present %s on the %s side of carbon transition in reaction '%s' (%s: %s)"%(l, ntimes(c), lr, reac, ftbl["name"], row["irow"]))
         # check for perfect mapping
         lmr=uni["left"]-uni["right"]
         if lmr:
-            raise Exception("Letter(s) '%s' are present on the left but not on the right hand side in carbon transitions for reaction '%s' (row: %d)"%(", ".join(lmr), reac, row["irow"]))
+            raise Exception("Letter(s) '%s' are present on the left but not on the right hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(lmr), reac, ftbl["name"], row["irow"]))
         rml=uni["right"]-uni["left"]
         if rml:
-            raise Exception("Letter(s) '%s' are present on the right but not on the left hand side in carbon transitions for reaction '%s' (row: %d)"%(", ".join(lmr), reac, row["irow"]))
+            raise Exception("Letter(s) '%s' are present on the right but not on the left hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(lmr), reac, ftbl["name"], row["irow"]))
 
         # stocheometric matrix in dictionnary form
         # sto_r_m[reac]['left'|'right']=list(metab) and
@@ -519,12 +526,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         # substrates are in 'left' list
         # and products are in the 'right' one.
 
-        netan["sto_r_m"][reac]={"left":[e1], "right":[p1]}
-        if (e2):
-            netan["sto_r_m"][reac]["left"].append(e2)
-        if (p2):
-            netan["sto_r_m"][reac]["right"].append(p2)
-##        #print "col keys", col.keys();##
+        netan["sto_r_m"][reac]={"left":row["left"], "right":row["right"]}
         
         for s in netan["sto_r_m"][reac]["left"]:
            #print "sto_m_r s="+str(s);##
@@ -539,9 +541,13 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         # end netan["sto_m_r"]
         #aff("sto_m_r"+str(reac), netan["sto_m_r"]);##
 
+    # find input and output metabolites
+    netan["input"].update(netan["subs"]-netan["prods"])
+    netan["output"].update(netan["prods"]-netan["subs"])
     # internal metabs
     netan["metabint"]=netan["metabs"].copy()
     netan["metabint"].difference_update(netan["input"] | netan["output"])
+
     # all met_pools must be in internal metabolites
     mdif=set(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
@@ -575,12 +581,6 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
             netan["sto_m_r"][m]["left"].append(reac)
             netan["sto_m_r"][mgr]={"left": [], "right": [reac]}
             netan["sto_r_m"][reac]={"left":[m], "right":[mgr]}
-    # find input and output metabolites
-    netan["input"].update(netan["subs"]-netan["prods"])
-    netan["output"].update(netan["prods"]-netan["subs"])
-    # internal metabs
-    netan["metabint"]=netan["metabs"].copy()
-    netan["metabint"].difference_update(netan["input"] | netan["output"])
 
     # check metab names in pools and network
     # all met_pools must be in internal metabolites
@@ -615,7 +615,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         nb_nonc=sum(fl not in fcnstr for fl in dicf)
         if nb_nonc==0:
             wout("Warning: in EQUALITIES/NET section, the formula '"+
-                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (row: %d).\n"%row["irow"])
+                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (row: %s).\n"%row["irow"])
             continue
         netan["flux_equal"]["net"].append((
                 eval(row["VALUE"]),
@@ -630,7 +630,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         nb_nonc=sum(fl not in fcnstr for fl in dicf)
         if nb_nonc==0:
             wout("Warning: in EQUALITIES/XCH section, the formula '"+
-                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (row: %d).\n"%row["irow"])
+                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (row: %s).\n"%row["irow"])
             continue
         netan["flux_equal"]["xch"].append((
                 eval(row["VALUE"]),
@@ -646,12 +646,12 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         nb_neg=0
         for m in dicf:
             if m not in netan["metabint"]:
-                raise Exception("Metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
+                raise Exception("Metabolite `%s` is not internal metabolite (row: %s)."%(m, row["irow"]))
             if m not in netan["met_pools"]:
-                raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+                raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %s)."%(m, row["irow"]))
             nb_neg+=netan["met_pools"][m]<0
         if nb_neg==0:
-            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (row: %d)."%("', '".join(dicf.keys()), row["irow"]))
+            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (row: %s)."%("', '".join(dicf.keys()), row["irow"]))
         netan["metab_equal"].append((
                 eval(row["VALUE"]),
                 dicf,
@@ -786,10 +786,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     # measured fluxes
     for row in ftbl.get("FLUX_MEASUREMENTS",[]):
         if row["FLUX_NAME"] not in netan["reac"]|eqflux:
-            raise Exception("Mesured flux `%s` is not defined in NETWORK section neither in EQUALITIES (row: %d)."%(row["FLUX_NAME"], row["irow"]))
+            raise Exception("Mesured flux `%s` is not defined in NETWORK section neither in EQUALITIES (row: %s)."%(row["FLUX_NAME"], row["irow"]))
         if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
-            raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %d)."%(row["FLUX_NAME"], row["irow"]))
+            raise Exception("Mesured flux `%s` must be defined as either free or dependent (row: %s)."%(row["FLUX_NAME"], row["irow"]))
         try:
             val=eval(row["VALUE"])
         except:
@@ -797,9 +797,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         try:
             sdev=float(eval(row["DEVIATION"]))
         except:
-            raise Exception("DEVIATION must evaluate to a real number (row: %d)."%row["irow"])
+            raise Exception("DEVIATION must evaluate to a real number (row: %s)."%row["irow"])
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
+            raise Exception("DEVIATION must be positive (row: %s)."%row["irow"])
         
         netan["flux_measured"][row["FLUX_NAME"]]={\
                 "val": val, \
@@ -811,9 +811,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         found_neg=False
         for m in metabl:
             if m not in netan["metabint"]:
-                raise Exception("Mesured metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
+                raise Exception("Mesured metabolite `%s` is not internal metabolite (row: %s)."%(m, row["irow"]))
             if m not in netan["met_pools"]:
-                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+                raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (row: %s)."%(m, row["irow"]))
             found_neg=found_neg or netan["met_pools"][m] < 0.
         if not found_neg:
             werr("Warning: metabolite measurements on `%s` does not have a free metabolite (i.e. being negative in the METABOLITE_POOLS (row: %d).\n"%(row["META_NAME"], row["irow"]))
@@ -826,9 +826,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         try:
             sdev=float(eval(row["DEVIATION"]))
         except:
-            raise Exception("DEVIATION must evaluate to a real positive number (row: %d)."%row["irow"])
+            raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (row: %d)."%row["irow"])
+            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
         netan["metab_measured"][row["META_NAME"]]={\
                 "val": val, \
                 "dev": sdev}
@@ -842,7 +842,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     for row in ftbl.get("INEQUALITIES",{}).get("NET",[]):
         #print row;##
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
-            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
+            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %s)."%(row["COMP"], row["irow"]))
         dicf=formula2dict(row["FORMULA"])
         fl=dicf.keys()[0]
         if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
@@ -858,7 +858,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     for row in ftbl.get("INEQUALITIES",{}).get("XCH",[]):
         #print row;##
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
-            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
+            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %s)."%(row["COMP"], row["irow"]))
         netan["flux_inequal"]["xch"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
@@ -874,16 +874,16 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     for row in ftbl.get("INEQUALITIES",{}).get("METAB",[]):
         dicf=formula2dict(row["FORMULA"])
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
-            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %d)"%(row["COMP"], row["irow"]))
+            raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (row: %s)."%(row["COMP"], row["irow"]))
         nb_neg=0
         for m in dicf:
             if m not in netan["metabint"]:
-                raise Exception("Metabolite `%s` is not internal metabolite (row: %d)."%(m, row["irow"]))
+                raise Exception("Metabolite `%s` is not internal metabolite (row: %s)."%(m, row["irow"]))
             if m not in netan["met_pools"]:
-                raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %d)."%(m, row["irow"]))
+                raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (row: %s)."%(m, row["irow"]))
             nb_neg+=netan["met_pools"][m]<0
         if nb_neg==0:
-            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (row: %d)."%("', '".join(dicf.keys()), row["irow"]))
+            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (row: %s)."%("', '".join(dicf.keys()), row["irow"]))
         netan["metab_inequal"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
@@ -1249,6 +1249,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
             raise Exception("A balance on metabolite '%s' does not contain any dependent flux.\nAt least one of the following net fluxes %s\nmust be declared dependent in the FLUX/NET section (put letter 'D' in the column 'FCD' for some flux)."%(metab, coefs.keys()))
         qry=[coefs.get(fl,0) for fl in netan["vflux"]["net"]]
         qry.extend([0]*len(netan["vflux"]["xch"]))
+        mqry=-np.array(qry)
         #if qry==[0]*len(qry): must be included even if all zeros, so an R warning will work
         #    # degenerated equation, skip it
         #    #netan["flux_equal"]["net"].append((0., coefs))
@@ -1256,9 +1257,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         #    continue
         # check if this line was already entered before
         for (i,row) in enumerate(res):
-            if row==qry:
+            if row == qry or (np.array(row) == mqry).all():
                 wout("Warning: when trying to add a balance equation for metabolite '"+metab+
-                    "', got the same equation as for '"+netan["vrowAfl"][i]+"'\n")
+                    "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
                 wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
                 wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
                 wout(metab+":\t"+join("\t", qry)+"\n")
@@ -1286,19 +1287,20 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
         for eq in netan["flux_equal"][nx]:
             qry=[]
             qry.extend(eq[1].get(fl,0) for fl in netan["vflux"][nx])
-            if nx=="net":
+            if nx == "net":
                 # add xch zeros
                 qry.extend([0]*len(netan["vflux"]["xch"]))
             else:
                 # prepend zeros for net fluxes
                 qry[0:0]=[0]*len(netan["vflux"]["net"])
             # check qry
-            if qry==[0]*len(qry):
+            if qry == [0]*len(qry):
                 # degenerated equality
                 raise Exception("Equality in "+nx.upper()+" section: "+str(eq)+" must have at least one dependent flux\n")
             # check if this line was already entered before
+            mqry=-np.array(qry)
             for row in res:
-                if row==qry:
+                if row == qry or (np.array(row) == mqry).all():
                     raise Exception("An equality in "+nx.upper()+" section is redundant. eq:"+str(eq)+
                         "\nqry="+str(qry)+"\nrow="+str(row))
             res.append(qry)
@@ -1357,7 +1359,7 @@ def enum_path(starts, netw, outs, visited=set()):
             res.append([start])
     return res
 def cumo_path(starts, A, visited=set()):
-    """Enumerate cumomers along to reaction pathways.
+    """Enumerate cumomers along reaction pathways.
     Algo: start from an input, follow chemical pathways till no more
     neighbours or till only visited metabolite rest in network.
     Return a list of cumomer pathways.
@@ -2268,10 +2270,10 @@ def proc_label_input(ftbl, netan):
     for row in ftbl.get("LABEL_INPUT",[]):
         metab=row.get("META_NAME", "") or metab
         if metab not in netan["Clen"]:
-            raise Exception("Input metabolite `%s` is not defined in NETWORK (row: %d)."%(metab, row["irow"]))
+            raise Exception("Label input metabolite `%s` is not defined in NETWORK (row: %s)."%(metab, row["irow"]))
         ilen=len(row.get("ISOTOPOMER", ""))-1; # -1 for '#' sign
         if ilen != netan["Clen"][metab]:
-            raise Exception("Input isotopomer `%s` is of bad length (%d). A length of %d is expected (%s: %d)."%
+            raise Exception("Input isotopomer `%s` is of bad length (%d). A length of %d is expected (%s: %s)."%
                 (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), ilen,  netan["Clen"][metab], ftbl["name"], row["irow"]))
         iiso=strbit2int(row["ISOTOPOMER"])
         if metab not in res:
@@ -2279,7 +2281,7 @@ def proc_label_input(ftbl, netan):
         val=eval(row["VALUE"])
         res[metab][iiso]=val
         if val < 0 or val > 1:
-            raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %d)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
+            raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
     # check that all isoforms sum up to 1 for all inputs
     for metab in res:
         le=len(res[metab])
@@ -2309,10 +2311,13 @@ def proc_label_input(ftbl, netan):
         # complete absent inputs by their values from the first ftbl
         for m in set(netan["iso_input"][0])-set(res):
             res[m]=netan["iso_input"][0][m];
-    if set(res.keys()) != set(netan["input"]):
-        raise Exception("LabelInput: LABEL_INPUT section must contain all network input metabolites and only them (%s):\n"%ftbl["name"]+
-            "LABEL_INPUT: "+str(res.keys())+"\n"+
-            "NETWORK input: "+str(netan["input"])+"\n")
+    zeroc=set(m for m,n in netan["Clen"].iteritems() if n == 0)
+    lmi=set(res.keys())-set(netan["input"]) # label input - input
+    iml=set(netan["input"])-zeroc-set(res.keys()) # input - label input
+    if lmi:
+        raise Exception("LABEL_INPUT section contains metabolite(s) that are not network input(s): '%s' (%s)\n"%(", ".join(lmi), ftbl["name"]))
+    if iml:
+        raise Exception("LABEL_INPUT section lacks certain metabolite(s) that are network input(s): '%s' (%s)\n"%(", ".join(iml), ftbl["name"]))
 
 def proc_label_meas(ftbl, netan):
     """Proceed LABEL_MEASUREMENT section of ftbl file, add the result to a list of dicts
@@ -2337,7 +2342,7 @@ def proc_label_meas(ftbl, netan):
             # pooling metabolites will need their concentraions
             mdif=set(metabl).difference(netan["met_pools"])
             if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %d)"%(join(", ", mdif), row["irow"]))
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (row: %s)."%(join(", ", mdif), row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
@@ -2522,7 +2527,7 @@ def proc_mass_meas(ftbl, netan):
             clen=netan["Clen"][metab]
             # test the validity
             if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '%s' in MASS_SPECTROMETRY (row: %d)"%(metab, row["irow"]))
+                raise Exception("Unknown metabolite name '%s' in MASS_SPECTROMETRY (row: %s)."%(metab, row["irow"]))
             if metab in netan["output"]:
                 raise Exception("""Measured metabolites have to be internal to network.
 You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
