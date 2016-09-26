@@ -318,7 +318,7 @@ def ftbl_parse(f):
     ftbl["long_trans"]=long_trans
     return ftbl
 
-def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
+def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     """
     analyse ftbl dictionary to find
      
@@ -426,7 +426,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     for row in ftbl.get("METABOLITE_POOLS",[]):
         metab=row["META_NAME"]
         if metab in netan["met_pools"]:
-            raise Exception("Metabolite '%s' is present twice or more in the\nftbl secion METABOLITE_POOLS (second appearance on row %d)"%(metab, row["irow"]))
+            raise Exception("Metabolite '%s' is present more than once in the\nftbl secion METABOLITE_POOLS (second appearance on row %d)"%(metab, row["irow"]))
         netan["met_pools"][metab]=eval(row["META_SIZE"])
 
     # check the presence of fields "NAME", "FCD" and maybe "VALUE(F/C)"
@@ -552,7 +552,14 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False):
     mdif=set(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
         # unknown metabolite
-        raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
+        raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in section METABOLITE_POOLS are not internal metabolites in NETWORK section.")
+    if case_i:
+        # check it other way: all metabint must be in metpools
+        mdif=set(netan["metabint"]).difference(netan["met_pools"])
+        if len(mdif) :
+            # unknown metabolite
+            raise Exception("Unknown metabolite concentration. Metabolite(s) '"+", ".join(mdif)+"' defined in section NETWORK are not defined in METABOLITE_POOLS section.")
+
     # add growth fluxes if requested
     netan["flux_growth"]={"net": {}}
     netan["flux_vgrowth"]={"net": {}, "xch": {}}; # fluxes depending on variable pools
