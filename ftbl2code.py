@@ -31,53 +31,31 @@ def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
     Transform cumomer linear sytems collection (from ftbl file)
     to a R code calculating sparse matrix A and vector b
     in A*x+b=0 for a given weight of fragment iw (index in resulting list)
-    Flux vector fl of all fwd. and rev. fluxes is known from an
-    R environement.
+    Flux vector fl of all fwd. and rev. fluxes are known at R runtime.
     
     Resulting code is a list sprAb indexed by cumomer weight
     (cf. generated R comments for details on sprAb)
     cumomer vector incu=c(1, xi, xl), xi - input cumomers, xl - lighter cumomers.
     
     incu2i_b1 gives i in incu from cumomer name. i=1 corresponds to the constant 1.
-    Difference wrt netan2Abcumo_sp is that pure R code is used
-    (@i, @p and @x slots are those from Matrix::dgCMatrix class).
-    No need for Fortran compiler.
     """
     #2012-02-08 sokol
+    #2016-09-23 sokol: any number of fused fragments in b (not limited to 2 as before)
     
     nb_cumu=cumsum(len(l) for l in vcumol)
     f.write(
     """
 # sparse matrix static parts
 # $varname fields:
-#  ind_fa - flux index in a_pre@x=fwrv[ind_fa]
-#  a_pre - sparse matrix whose colsum gives the at@x vector
-#  ind_fb - flux index in b_pre@x=fwrv[ind_fb1]*x[ind_x1]*x[ind_x2]
-#  ind_x1 - cumomer index in b_pre@x=fwrv[ind_fb]*x[ind_x1]*x[ind_x2]
-#  ind_x2 - cumomer index in b_pre@x=fwrv[ind_fb]*x[ind_x1]*x[ind_x2]
+#  ind_fa - flux index in a_pre$vfwrv[ind_fa]
+#  a_pre - sparse matrix whose colsum() gives the a$v vector
+#  prodx - dense matrix whose colprod() will give x[ind_x1]*x[ind_x2]*...
+#  ind_fb - flux index in b_pre$v=fwrv[ind_fb1]*colprod(prodx)
+#  ind_b - dense matrix of indexes for  b_pre$v=f[ind_b[,"indf"]*x[ind_b[,2+1]]*x[ind_b[,2+2]], ...]
 #  b_pre - sparse matrix whose colsum gives b@x
 
-#  tA - unsigned sparse transpose of cumomer A matrix (off-diagonal part)
+#  a - unsigned sparse cumomer A matrix (off-diagonal part)
 #  b - unsigned sparse vector of right hand side
-#  
-#  f2ax indexes of fluxes to calculate tA@x slot (cf. fortran
-#   f2ax() subroutine in cumo.f)
-#  bfpr - unsigned sparse rhs of Ax=b.
-#   [(irow, iflux, incu_index1, incu_index2),...]
-#   to calculate terms like flux*x1*x2. When there is only one
-#   term x, x2 is set to 1
-#  ta_fx - unsigned sparse matrix t(dA_df*x)
-#   @i run through the fluxes contibuting to a row of dA_df*x
-#  x2ta_fx - 1-based indexes of x0=c(0,x) for dA_df*x which is
-#   comosed of differences (x_diag - x_off-diag) and (x_diag)
-#   when flux is in b term. In this case the index of x_off-diag is
-#   set to 1 (i.e. 0-value in x0).
-#   [irow, ixoff] irow is actually ixdiag
-#  tb_f - unsigned sparse matrix t(db_df) with indexes ix1, ix2 for product as in bfpr
-#   @i is running along fluxes
-#  x2tb_f - 2 row matrix with indexes ix1, ix2 for product as in bfpr
-#  tb_x - unsigned sparse transpose of db_dx over x in lighter weights
-#   @i runs over lighter cumomers
 
 if (TIMEIT) {
    cat("spAbr   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
@@ -108,8 +86,7 @@ nb_w=%(nb_w)d
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
         nb_maxfa=0; # how many fluxes in an off-diagonal term in a
-        #nb_maxfb=0; # how many fluxes in a term in b
-        #nb_ax=0
+        nb_maxprod=max(len(li) for cu,rdi in b.iteritems() for fl,d in rdi.iteritems() for i,li in d.iteritems()); # how many cumomer fragments are fused in b
         for irow in xrange(ncumo):
             cr=cumos[irow]
             row=A[cr]
@@ -120,9 +97,9 @@ nb_w=%(nb_w)d
             #    nb_maxfa=max(nb_maxfa, max(len(lf) for (ic, lf) in atuple))
             #elif cr not in b:
             #    raise Exception("Empty row in cumomer matrix, weight=%d (base 1), cumo=%s"%(w, cr))
-            # btuple is list of (iflux, icumo1, icumo2)
+            # btuple is list of [iflux, [icumo1, icumo2, icumo_i,...]]
             if cr in b:
-                btuple=[(fwrv2i[fl], incu2i_b1[l[0]], (incu2i_b1[l[1]] if len(l)==2 else 1))
+                btuple=[[fwrv2i[fl], [incu2i_b1[v] for v in l]+[1]*(nb_maxprod-len(l))]
                     for (fl, d) in b[cr].iteritems()
                     for (i,l) in d.iteritems()]
                 #nb_maxfb=max(nb_maxfb, len(btuple))
@@ -146,6 +123,7 @@ l$w=w
 l$nb_c=nb_c
 l$nb_fwrv=nb_fwrv
 l$nb_cl=%(ncucumo)d # number of lighter cumomers
+maxprod=%(maxprod)d
 if (nb_c > 0) {
    # matrix a
    ind_a=matrix(as.integer(c(%(ind_a)s)), ncol=3, byrow=T)
@@ -153,32 +131,22 @@ if (nb_c > 0) {
    l$ind_a=ind_a
    
    # vector b
-   ind_b=matrix(as.integer(c(%(ind_b)s)), ncol=4, byrow=T)
-   colnames(ind_b)=c("indf", "indx1", "indx2", "irow")
-   # put the lowest of ix1 and ix2 to ix2
-   ima=pmax(ind_b[,"indx1"], ind_b[,"indx2"])
-   imi=pmin(ind_b[,"indx1"], ind_b[,"indx2"])
-   ind_b[,"indx1"]=ima
-   ind_b[,"indx2"]=imi
+   ind_b=matrix(as.integer(c(%(ind_b)s)), ncol=2+%(maxprod)d, byrow=T)
+   colnames(ind_b)=c("indf", "irow", paste("indx", seq_len(%(maxprod)d), sep=""))
    l$ind_b=ind_b
    
    # jacobian b_x
-   i=ind_b[,"indx1"]>ba_x # exclude from derivation plain input entries
-   tmp=ind_b[i,,drop=FALSE]
-   
-   # term of d/d_x1 ( is garanted to be internal, not input cumomer)
-   # => indx remain in place in indx2, ind_store remain in column indx1
-   
-   # term of d/d_x2 (x2 can be an input cumomer => no derivation)
-   # => indx is taken from indx1 and goes to indx2, while ind_store goes to indx1
-   i=which(tmp[,"indx2"] > ba_x)
-   if (length(i)) {
-      ind_bx=rbind(tmp, tmp[i,c(1,3,2,4)])
-   } else {
-      ind_bx=tmp
+   imaxprod=seq_len(maxprod)
+   ind_bx=c()
+   for (ix in imaxprod) {
+      i=ind_b[,2+ix]>ba_x # exclude from differentiation plain input entries
+      tmp=ind_b[i,,drop=FALSE]
+      ind_bx=rbind(ind_bx, tmp[,c(1,2,ix+2,2+imaxprod[-ix])]) # move diff var to ic1 place
    }
-   colnames(ind_bx)=c("indf", "ic1", "indx", "irow")
-   ind_bx[,"ic1"]=ind_bx[,"ic1"]-ba_x
+   if (length(ind_bx)) {
+      colnames(ind_bx)=c("indf", "irow", "ic1", sprintf("indx%%d", seq_len(maxprod-1)))
+      ind_bx[,"ic1"]=ind_bx[,"ic1"]-ba_x
+   }
    l$ind_bx=ind_bx
 }
 %(var)s[[w]]=l
@@ -188,13 +156,14 @@ if (nb_c > 0) {
    "nbc": ncumo,
    "ncucumo": ncucumo,
    "ba_x": ba_x,
+   "maxprod": nb_maxprod,
    "ind_a": join(", ", valval((ifl, ir, ic)
       for (ir, lt) in enumerate(l_ia)
       for (ic, lf) in lt
       for ifl in lf)),
-   "ind_b": join(", ", valval((ifl, i1, i2, ir+1)
+   "ind_b": join(", ", valval((ifl, ir+1, ", ".join(str(i) for i in ii))
        for (ir, lt) in enumerate(l_ib)
-       for (ifl, i1, i2) in lt
+       for (ifl, ii) in lt
    )),
 })
         ba_xw+=ncumo
@@ -1512,7 +1481,8 @@ fmn=c(%(fmn)s)
 
 # SD for flux measurements
 fmndev=c(%(fmndev)s)
-names(fmndev)=names(fmn)=nm_fmn
+if (nb_fmn)
+   names(fmndev)=names(fmn)=nm_fmn
 
 # indices for measured fluxes
 # fallnx[ifmn]=>fmn, here fallnx is complete net|xch flux vector
