@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # reload(C13_ftbl)
 
     netan=dict();
-    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
+    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys, case_i)
 
     # prepare rcumo system
     rAb=C13_ftbl.rcumo_sys(netan, emu)
@@ -804,7 +804,7 @@ for (irun in seq_len(nseries)) {
             next
          }
          for (iexp in seq_len(nb_exp)) {
-            simlab=jx_f$usimcumom[[iexp]]
+            simlab=jx_f$usimlab[[iexp]]
             measinvvar=1./measurements$dev$labeled[[iexp]]**2
             ms=measvec[[iexp]]*simlab*measinvvar
             ss=simlab*simlab*measinvvar
@@ -1189,7 +1189,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    } else {
       if (sum(nb_meas)) {
          if (nb_sc_tot > 0) {
-            simul[["labeled data (unscaled)"]]=jx_f$usimcumom
+            simul[["labeled data (unscaled)"]]=jx_f$usimlab
             simul[["labeled data (scaled)"]]=jx_f$simlab
          } else {
             simul[["labeled data"]]=jx_f$simlab
