@@ -100,17 +100,16 @@ icumo_cost=function(param, labargs, resl=icumo_resid(param, cjac=FALSE, labargs)
    return(crossprod(resl$res))
 }
 
-fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
-   # calculate s and ds/dt in A*x+s (where x is cumomer vector
-   # and xp its first derivative in time)
-   # from fields of the spAbr
+fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
+   # calculate s in A*x+s (where x is cumomer vector
    # according to conventions explained in comments to python function
    # netan2Abcumo_spr() generating spAbr
-   # return a list with s and sp
+   # return s
    # 2012-03-07 sokol
-   # 2014-04-11 sokol, added emu option
+   # 2014-04-11 sokol: added emu option
+   # 2016-09-26 sokol: adapted for arbitrary long reactions; removed sp
    
-   # construct the sources s and its derivatives (if xp not null)
+   # construct the sources s
    # for this weight
 #options(warn=2)
    nb_c=spAbr$nb_c # cumomer or fragment number (when emu==T)
@@ -119,81 +118,42 @@ fwrv2sp=function(fwrv, spAbr, incu, incup=NULL, gets=TRUE, emu=FALSE) {
    incu=as.matrix(incu)
    nco=ncol(incu)
    
-   if (gets) {
-      if (nb_c == 0) {
-         s=simple_triplet_zero_matrix(nb_c, 1)
-         return(list(s=s), sp=if (is.null(incup)) NULL else s)
-      }
-      l=spAbr
-      first_sx=FALSE
-      if (is.null(l$sx1)) {
-         # we need sx1 and sx2 because of two different time sets (first and second order))
-         first_sx=TRUE
-         nm_sx="sx1"
-      } else if (l$sx1$nco != nco && is.null(l$sx2)) {
-         first_sx=TRUE
-         nm_sx="sx2"
-      } else if (l$sx1$nco == nco) {
-         nm_sx="sx1"
-      } else if (l$sx2$nco == nco) {
-         nm_sx="sx2"
-      } else {
-         stop("Must not happen: not sx1 neither sx2 fits nco")
-      }
-      if (first_sx) {
-         li=list()
-         li$nco=nco
-         li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
-            v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
-         li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=l$b$j+emuw*rep(seq_len(nco)-1, each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=l$b$ncol*nco)
-         l[[nm_sx]]=li
-      }
-      #if (emu) {
-      #   ind_b=spAbr[["ind_b_emu"]]
-      #   if (!is.matrix(ind_b))
-      #      ind_b=t(ind_b)
-      #   #spAbr$bmat$v=fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],]
-      #   #spAbr$b$v=col_sums(spAbr$bmat)
-      #   #s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
-      #   i=rep(ind_b[,"irow"]+(ind_b[,"iwe"]-1L)*nb_c, nco)
-      #   j=rep(seq_len(nco), each=nrow(ind_b))
-      #   s=simple_triplet_matrix(i=i, j=j, v=s, nrow=nb_c*w, ncol=nco)
-      #} else {
-      #   ind_b=spAbr[["ind_b"]]
-      #   if (!is.matrix(ind_b))
-      #      ind_b=t(ind_b)
-      #   s=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
-      #   #s=as.matrix(sparseMatrix(i=rep(ind_b[,"irow"], nco), j=rep(seq_len(nco), each=nrow(ind_b)), x=s, dims=c(nb_c, nco)))
-      #   s=simple_triplet_matrix(i=rep(ind_b[,"irow"], nco), j=rep(seq_len(nco), each=nrow(ind_b)), v=s, nrow=nb_c, ncol=nco)
-      #}
+   if (nb_c == 0) {
+      return(simple_triplet_zero_matrix(nb_c, 1))
+   }
+   l=spAbr
+   first_sx=FALSE
+   if (is.null(l$sx1)) {
+      # we need sx1 and sx2 because of two different time sets (first and second order))
+      first_sx=TRUE
+      nm_sx="sx1"
+   } else if (l$sx1$nco != nco && is.null(l$sx2)) {
+      first_sx=TRUE
+      nm_sx="sx2"
+   } else if (l$sx1$nco == nco) {
+      nm_sx="sx1"
+   } else if (l$sx2$nco == nco) {
+      nm_sx="sx2"
+   } else {
+      stop("Must not happen: not sx1 neither sx2 fits nco")
+   }
+   if (first_sx) {
+      li=list()
+      li$nco=nco
+      li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
+         v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
+      li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=l$b$j+emuw*rep(seq_len(nco)-1, each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=l$b$ncol*nco)
+      l[[nm_sx]]=li
+   }
 #browser()
-      ind_b=if (emu) spAbr[["ind_b_emu"]] else spAbr[["ind_b"]]
-      if (!is.matrix(ind_b))
-         ind_b=t(ind_b)
-      l[[nm_sx]]$sxmat$v=c(fwrv[ind_b[,"indf"]]*incu[ind_b[,"indx1"],]*incu[ind_b[,"indx2"],])
-      l[[nm_sx]]$s$v=c(arrApply(as.array(l[[nm_sx]]$sxmat), 1, "sum"))
-      s=l[[nm_sx]]$s
-   } else {
-      s=NULL
-   }
-   # sp
-   if (!is.null(incup)) {
-      if (emu) {
-         ind_b=spAbr[["ind_b_emu"]]
-         if (!is.matrix(ind_b))
-            ind_b=t(ind_b)
-         sp=fwrv[ind_b[,"indf"]]*(incup[ind_b[,"indx1"]]*incu[ind_b[,"indx2"]] + incu[ind_b[,"indx1"]]*incup[ind_b[,"indx2"]])
-      } else {
-         ind_b=spAbr[["ind_b"]]
-         if (!is.matrix(ind_b))
-            ind_b=t(ind_b)
-         sp=fwrv[ind_b[,"indf"]]*(xp[ind_b[,"indx1"]]*x[ind_b[,"indx2"]] + x[ind_b[,"indx1"]]*xp[ind_b[,"indx2"]])
-         sp=sparseMatrix(i=ind_b[,"irow"], j=rep.int(1, nrow(ind_b)), x=sp, dims=c(nb_c, 1))
-      }
-   } else {
-      sp=NULL
-   }
-   return(list(s=s, sp=sp))
+   ind_b=if (emu) spAbr[["ind_b_emu"]] else spAbr[["ind_b"]]
+   nprodx=ncol(ind_b)-2-emu
+   prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
+   dim(prodx)=c(nrow(ind_b), nprodx, nco)
+   l[[nm_sx]]$sxmat$v=c(fwrv[ind_b[,"indf"]]*arrApply(prodx, 2, "prod"))
+   l[[nm_sx]]$s$v=c(arrApply(as.array(l[[nm_sx]]$sxmat), 1, "sum"))
+   s=l[[nm_sx]]$s
+   return(s)
 }
 
 param2fl_usm_eul2=function(param, cjac, labargs) {
@@ -338,7 +298,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
          }
          # source terms
-         st=as.matrix(fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu)$s)
+         st=as.matrix(fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu))
          # calculate labeling for all time points
          xw1=x1[inrow]
          dim(xw1)=c(nb_c, emuw)
