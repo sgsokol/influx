@@ -574,7 +574,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             netan["reac"].add(reac)
             netan["subs"].add(m)
             netan["prods"].add(mgr)
-            netan["metabs"].update((m,mgr))
+            netan["metabs"].add(m)
+            netan["output"].add(mgr)
             if si > 0 :
                netan["flux_growth"]["net"][reac]=None
             else:
