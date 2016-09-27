@@ -1425,10 +1425,14 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # covariance matrix of free fluxes
    svj=svd(jx_f$jacobian)
-   i=svj$d/svj$d[1]<1.e-10
-   if (all(!i) && svj$d[1]<1.e-10) {
-      # we could not find very small d, take just the last
-      i[length(i)]=T
+   if (svj$d[1] == 0.) {
+      i=rep(TRUE, length(svj$d))
+   } else {
+      i=svj$d/svj$d[1]<1.e-10
+      if (all(!i) && svj$d[1]<1.e-10) {
+         # we could not find very small d, take just the last
+         i[length(i)]=TRUE
+      }
    }
    ibad=apply(svj$v[, i, drop=FALSE], 2, which.contrib)
    ibad=unique(unlist(ibad))
