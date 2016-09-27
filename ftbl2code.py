@@ -1582,7 +1582,7 @@ def netan2R_cumo(netan, org, f):
     cumos=list(valval(netan["vcumo"]))
     cumo2i=dict((c,i+1) for (i,c) in enumerate(cumos))
     # composite cumomer vector
-    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"].keys()+cumos))
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"][0].keys()+cumos))
 
     netan2Abcumo_spr("spAbr_f", netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
         netan["vcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1)
