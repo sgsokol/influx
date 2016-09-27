@@ -231,6 +231,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          xw=try(solve(Ali[[iw]], b), silent=TRUE)
 #print(head(xw))
          if (inherits(xw, "try-error")) {
+#browser()
             rerr=attr(xw, "condition")
             if (length(grep("rmumps: info[1]=-10,", rerr$message, fixed=TRUE))) {
                # find 0 rows if any
@@ -538,13 +539,14 @@ cumo2mass=function(x, sep=":", emusep="+") {
 cumo2lab=function(x) {
    # converts cumomer vector to fraction of labeled isotopomer 1-i#0
    # separate cumos by name and order by weight
-   n=length(x)
-   nm_x=names(x)
-   if (length(nm_x)!=n) {
-      return()
+   x=as.matrix(x)
+   n=nrow(x)
+   nm_x=rownames(x)
+   if (is.null(nm_x)) {
+      return(NULL)
    }
    metabs=c(); # unique metab names
-   spl=unlist(strsplit(nm_x,":",fix=T))
+   spl=unlist(strsplit(nm_x,":",fix=TRUE))
    i=1:n
    icumo=as.integer(spl[2*i])
    metabs=spl[2*i-1]
@@ -558,19 +560,47 @@ cumo2lab=function(x) {
    for (metab in umetabs) {
 #      cat(paste(metab,":\n",sep=""))
       im=metabs==metab
-#print(d)
       o=order(icumo[im])
-      # ordered cumomer vector with #0==1 component
-      vcumo=c(1,x[im][o])
-      clen=log2(length(vcumo))
+      # ordered cumomer matrix with #0==1 component
+      vcumo=rbind(1,x[im,,drop=FALSE][o,,drop=FALSE])
+      clen=log2(nrow(vcumo))
       # labeled fraction
       lab=1-Vcumo2iso0(clen)%*%vcumo
-      names(lab)=metab
-      res=c(res, lab)
+      rownames(lab)=metab
+      res=rbind(res, lab)
    }
    return(res)
 }
-
+cumo2iso=function(x) {
+   # converts cumomer vector to isotopomer vector
+   # separate cumos by name and order by weight
+   x=as.matrix(x)
+   n=nrow(x)
+   nm_x=rownames(x)
+   if (is.null(nm_x)) {
+      return(NULL)
+   }
+   metabs=c(); # unique metab names
+   spl=unlist(strsplit(nm_x,":",fix=TRUE))
+   i=1:n
+   icumo=as.integer(spl[2*i])
+   metabs=spl[2*i-1]
+   umetabs=union(metabs, NULL)
+   # extract, order and convert each metab vector
+   res=c()
+   for (metab in umetabs) {
+      im=metabs==metab
+      o=order(icumo[im])
+      # ordered cumomer matrix with #0==1 component
+      vcumo=rbind(1,x[im,,drop=FALSE][o,,drop=FALSE])
+      clen=round(log2(nrow(vcumo)))
+      # labeled fraction
+      lab=Tcumo2iso(clen)%*%vcumo
+      rownames(lab)=paste(metab, seq_len(2**clen)-1, sep=":")
+      res=rbind(res, lab)
+   }
+   return(res)
+}
 cumo_gradj=function(param, labargs) {
    # calculate gradient of cost function for cumomer minimization probleme
    grad=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
@@ -892,7 +922,7 @@ put_inside=function(param, ui, ci) {
       }
       names(param)=nm_par
       if (nb_ff > 0) {
-         i=abs(dpn[1:nb_ff])>=1.e-10
+         i=abs(dpn[seq_len(nb_ff)])>=1.e-10
          if (sum(i) > 0) {
             tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dpn[1:nb_ff], dpn[1:nb_ff])
             dimnames(tmp)=list(nm_par[1:nb_ff], c("outside", "inside", "delta"))
