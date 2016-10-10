@@ -5,6 +5,7 @@ usage: ftbl2netan.py network[.ftbl] [> network.netan]
 """
 if __name__ == "__main__":
     import sys, os, getopt, stat
+    sys.tracebacklimit=None
     import tools_ssg
     import C13_ftbl
     def usage():
