@@ -691,11 +691,11 @@ if (TIMEIT) {
     f2edge=dict()
     for (fl,lr) in netan["sto_r_m"].iteritems():
         if len(lr["left"])==1 and len(lr["right"])==1:
-           f2edge[fl]=[lr["left"][0]+" ("+fl+") "+lr["right"][0]]
+           f2edge[fl]=[lr["left"][0][0]+" ("+fl+") "+lr["right"][0][0]]
         else:
            f2edge[fl]=[]
-           subs=lr["left"] # substrates
-           prods=lr["right"] # products
+           subs=[m for m,_ in lr["left"]] # substrates
+           prods=[m for m,_ in lr["right"]] # products
            same_subs=len(subs)==2 and subs[0]==subs[1]
            same_prods=len(prods)==2 and prods[0]==prods[1]
            for (i, m) in enumerate(subs):
