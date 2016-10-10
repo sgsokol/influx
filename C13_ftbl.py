@@ -110,6 +110,7 @@ float_conv=set((
 defsec={
     "PROJECT": set(),
     "NETWORK": set(),
+    "NOTRACER_NETWORK": set(("FLUX_NAME", "EQUATION")),
     "FLUXES": set(("NET", "XCH")),
     "EQUALITIES": set(("NET", "XCH", "METAB")),
     "INEQUALITIES": set(("NET", "XCH", "METAB")),
@@ -243,7 +244,7 @@ def ftbl_parse(f):
         if reading=="data":
             if len(l) < skiptab or l[:skiptab] != "\t"*skiptab:
                 raise Exception("Expected at least %d tabulation(s) at the row beginning. Got '%s' (%s: %d)"%(skiptab, l[:min(skiptab, len(l))], ftbl["name"], irow))
-            data=l[skiptab:].split("\t")
+            data=[it.strip() for it in l[skiptab:].split("\t")]
             prevdic=dic
             dic={"irow": str(irow)}
             if sec_name == "NETWORK" and len(data[0]) == 0:
@@ -255,7 +256,7 @@ def ftbl_parse(f):
                 if col_names[0] not in prevdic or len(prevdic[col_names[0]]) == 0:
                     raise Exception("Carbon transition row '%s' is orphan (%s: %d)."%(l[skiptab:], ftbl["name"], irow))
                 for i in range(len(col_names)):
-                    item=data[i].strip() if i < len(data) else ""
+                    item=data[i] if i < len(data) else ""
                     dic[col_names[i]]=item
                     metab=stock[data_count-1][col_names[i]]
                     if i > 0 and ((len(metab) and not len(item)) or (not len(metab) and len(item))):
@@ -288,7 +289,7 @@ def ftbl_parse(f):
     if "NETWORK" not in ftbl:
         return ftbl
     # assemble reactions with the same name in one
-    # long_reac={reac: {"left": [minp1, minp2, ...], "right": [mout1, mout2, ...]}
+    # long_reac={reac: {"left": [(minp1, 1), (minp2, 1), ...], "right": [(mout1, 1), (mout2, 1), ...]}
     # and carbon transitions
     # long_trans={reac: {"left": [minp1, minp2, ...], "right": [mout1, mout2, ...]}
     # get unique reaction names
@@ -304,8 +305,8 @@ def ftbl_parse(f):
         # get rows
         irows=[i for (i, row) in enumerate(nw) if row["FLUX_NAME"] == reac]
         long_reac[reac]["irow"]=", ".join(str(nw[i]["irow"]) for i in irows)
-        long_reac[reac]["left"]+=[m for i in irows for m in (nw[i]["EDUCT_1"], nw[i]["EDUCT_2"]) if m]
-        long_reac[reac]["right"]+=[m for i in irows for m in (nw[i]["PRODUCT_1"], nw[i]["PRODUCT_2"]) if m]
+        long_reac[reac]["left"]+=[mecoparse(m) for i in irows for m in (nw[i]["EDUCT_1"], nw[i]["EDUCT_2"]) if m]
+        long_reac[reac]["right"]+=[mecoparse(m) for i in irows for m in (nw[i]["PRODUCT_1"], nw[i]["PRODUCT_2"]) if m]
         long_trans[reac]["irow"]=", ".join(str(tr[i]["irow"]) for i in irows)
         long_trans[reac]["left"]+=[m for i in irows for m in (tr[i]["EDUCT_1"], tr[i]["EDUCT_2"]) if m]
         long_trans[reac]["right"]+=[m for i in irows for m in (tr[i]["PRODUCT_1"], tr[i]["PRODUCT_2"]) if m]
@@ -460,11 +461,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # corresponding carbon transition row
         crow=ftbl["long_trans"][reac]
         # local substrate (es), product (ps) and metabolites (ms) sets
-        es=set(row["left"])
-        ps=set(row["right"])
+        es=set(m for m,_ in row["left"])
+        ps=set(m for m,_ in row["right"])
         ms=es|ps
-        if es&ps:
-           raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (%s: %s)."%(join(", ", es&ps), reac, ftbl["name"], row["irow"]))
+        #if es&ps:
+        #   raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (%s: %s)."%(join(", ", es&ps), reac, ftbl["name"], row["irow"]))
         
         # all reactions A+B=C or C=A+B or A+B=C+D
         netan["reac"].add(reac)
@@ -481,7 +482,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
         # Carbon length and transitions
         netan["carbotrans"][reac]={"left": [], "right": []}
-        for (m, carb, lr) in [(row[lr][i], crow[lr][i], lr) for lr in ("left", "right") for i in xrange(len(row[lr]))]:
+        for (m, carb, lr) in [(row[lr][i][0], crow[lr][i], lr) for lr in ("left", "right") for i in xrange(len(row[lr]))]:
                 #print "m="+str(m), "; carb="+str(carb);##
             if carb[0] != "#":
                 raise Exception("In carbon string '%s' for metabolite '%s' a starting '#' is missing. (%s: %s)"%(carb, m, ftbl["name"], row["irow"]))
@@ -521,25 +522,73 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             raise Exception("Letter(s) '%s' are present on the right but not on the left hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(lmr), reac, ftbl["name"], row["irow"]))
 
         # stocheometric matrix in dictionnary form
-        # sto_r_m[reac]['left'|'right']=list(metab) and
-        # sto_m_r[metab]['left'|'right']=list(reac)
+        # sto_r_m[reac]['left'|'right']=[(metab, coef)] and
+        # sto_m_r[metab]['left'|'right']=list((reac, coef))
         # substrates are in 'left' list
         # and products are in the 'right' one.
 
         netan["sto_r_m"][reac]={"left":row["left"], "right":row["right"]}
         
-        for s in netan["sto_r_m"][reac]["left"]:
-           #print "sto_m_r s="+str(s);##
+        for s,c in netan["sto_r_m"][reac]["left"]:
+            #print "sto_m_r s="+str(s);##
             if not s in netan["sto_m_r"]:
                 netan["sto_m_r"][s]={"left":[], "right":[]}
-            netan["sto_m_r"][s]["left"].append(reac)
-        for s in netan["sto_r_m"][reac]["right"]:
-           #print "sto_m_r s="+str(s)
+            netan["sto_m_r"][s]["left"].append((reac, c))
+        for s,c in netan["sto_r_m"][reac]["right"]:
+            #print "sto_m_r s="+str(s)
             if not s in netan["sto_m_r"]:
                 netan["sto_m_r"][s]={"left":[], "right":[]}
-            netan["sto_m_r"][s]["right"].append(reac)
+            netan["sto_m_r"][s]["right"].append((reac, c))
         # end netan["sto_m_r"]
         #aff("sto_m_r"+str(reac), netan["sto_m_r"]);##
+
+    for row in ftbl.get("NOTRACER_NETWORK", []):
+        reac=row["FLUX_NAME"]
+        if reac in netan["sto_r_m"]:
+            raise Exception("Reaction '%s' from NOTRACER_NETWORK section was already introduced in NETWORK section (%s: %s)."%(reac, ftbl["name"], row["irow"]))
+        spl=row["EQUATION"].split("=")
+        if len(spl) < 2:
+            raise Exception("Not found '=' sign in NOTRACER_NETWORK reaction: '%s' (%s: %s)"%(reac, ftbl["name"], row["irow"]))
+        elif len(spl) > 2:
+            raise Exception("Too many '=' signs (%d) in NOTRACER_NETWORK reaction: '%s' (%s: %s)"%(reac, len(spl)-1, ftbl["name"], row["irow"]))
+        lr=("left", "right")
+        di={}
+        for i,su in enumerate(spl):
+            terms=su.split("+")
+            try:
+                di[lr[i]]=mecoparse(terms)
+            except:
+                werr("Error occured in '%s': %s\n"%(ftbl["name"], row["irow"]))
+                raise
+        netan["sto_r_m"][reac]=di
+        for s,c in netan["sto_r_m"][reac]["left"]:
+            #print "sto_m_r s="+str(s);##
+            if not s in netan["sto_m_r"]:
+                netan["sto_m_r"][s]={"left":[], "right":[]}
+            netan["sto_m_r"][s]["left"].append((reac, c))
+        for s,c in netan["sto_r_m"][reac]["right"]:
+            #print "sto_m_r s="+str(s)
+            if not s in netan["sto_m_r"]:
+                netan["sto_m_r"][s]={"left":[], "right":[]}
+            netan["sto_m_r"][s]["right"].append((reac, c))
+        netan["reac"].add(reac)
+        es=set(m for m,co in di["left"])
+        ps=set(m for m,co in di["right"])
+        ms=es|ps
+        for m in ms:
+            if m not in netan["Clen"]:
+                netan["Clen"][m]=0
+        netan["subs"].update(es)
+        netan["prods"].update(ps)
+        netan["metabs"].update(ms)
+        if reac in revreac:
+            netan["subs"].update(ps)
+            netan["prods"].update(es)
+        #aff("ms for "+reac, ms);##
+
+        # create chemical formula
+        netan["formula"][reac]=di
+        netan["formula"][reac]["all"]=ms
 
     # find input and output metabolites
     netan["input"].update(netan["subs"]-netan["prods"])
@@ -584,11 +633,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             #aff("ms for "+reac, ms);##
 
             # create chemical formula
-            netan["formula"][reac]={"left":[m], "right":[mgr], "all":[m,mgr]}
+            netan["formula"][reac]={"left":[(m, 1.)], "right":[(mgr, 1)], "all":[m,mgr]}
             # stoicheometry
-            netan["sto_m_r"][m]["left"].append(reac)
-            netan["sto_m_r"][mgr]={"left": [], "right": [reac]}
-            netan["sto_r_m"][reac]={"left":[m], "right":[mgr]}
+            netan["sto_m_r"][m]["left"].append((reac, 1.))
+            netan["sto_m_r"][mgr]={"left": [], "right": [(reac, 1.)]}
+            netan["sto_r_m"][reac]={"left":[(m, 1.)], "right":[(mgr, 1.)]}
 
     # check metab names in pools and network
     # all met_pools must be in internal metabolites
@@ -605,8 +654,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK, are not defined in the METABOLITE_POOLS section.")
     
     # input and output flux names
-    netan["flux_in"]=set(valval(netan["sto_m_r"][m]["left"] for m in netan["input"]))
-    netan["flux_out"]=set(valval(netan["sto_m_r"][m]["right"] for m in netan["output"]))
+    netan["flux_in"]=set(f for m in netan["input"] for f,_ in netan["sto_m_r"][m]["left"])
+    netan["flux_out"]=set(f for m in netan["output"] for f,_ in netan["sto_m_r"][m]["right"])
     netan["flux_inout"]=netan["flux_in"] | netan["flux_out"]
     #print "fl in + out="+str(netan["flux_in"])+"+"+str( netan["flux_out"]);##
     
@@ -930,14 +979,14 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         #print "fwd metab="+str(metab);##
         if not metab in res:
             res[metab]={"in":[], "out":[]}
-        for reac in lr["left"]:
+        for reac,_ in lr["left"]:
             # here metabolite is consumed in fwd reaction
             # and produced in the reverse one.
             res[metab]["out"].append("fwd."+reac)
             #if reac not in netan["notrev"]:
             if reac not in netan["flux_inout"]:
                 res[metab]["in"].append("rev."+reac)
-        for reac in lr["right"]:
+        for reac,_ in lr["right"]:
             # here metabolite is consumed in rev reaction
             # and produced in the forward one.
             res[metab]["in"].append("fwd."+reac)
@@ -949,10 +998,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     res=netan["metab_netw"]
     # left part or reaction points to right part
     for reac,parts in netan["formula"].iteritems():
-        for metab in parts["left"]:
+        for metab,_ in parts["left"]:
             if not metab in res:
                 res[metab]=set()
-            res[metab].update(parts["right"])
+            res[metab].update(m for m,_ in parts["right"])
     # order cumomers by weight. For a given weight, cumomers are sorted by
     # metabolites order.
     netan["Cmax"]=max(netan["Clen"].values())
@@ -1243,15 +1292,15 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # stocheometric part
     res=netan["Afl"]
     for (metab,lr) in netan["sto_m_r"].iteritems():
-        if (metab in netan["input"] or metab in netan["output"]):
+        if metab in netan["input"] or metab in netan["output"]:
             continue
         # calculate coefs (repeated fluxes)
-        # 'left' part consumes metab
-        coefs=list2count(lr["left"], -1)
+        coefs=dict((re, []) for re,co in lr["left"]+lr["right"])
+        # 'left' part consumes metab, hence the sign '-' in -co
+        _=[coefs[re].append(-co) for re,co in lr["left"]]
         # 'right' part produces metab
-        # NB: it is assumed that metab cannot appear
-        # both in left and right hand side of reaction
-        coefs.update(list2count(lr["right"]))
+        _=[coefs[re].append(co) for re,co in lr["right"]]
+        coefs=dict((re, sum(li)) for re,li in coefs.iteritems())
         deps=set(coefs.keys()).intersection(netan["vflux"]["net"])
         if not deps:
             raise Exception("A balance on metabolite '%s' does not contain any dependent flux.\nAt least one of the following net fluxes %s\nmust be declared dependent in the FLUX/NET section (put letter 'D' in the column 'FCD' for some flux)."%(metab, coefs.keys()))
@@ -1461,8 +1510,7 @@ def allprods(srcs, prods, isos, metab, isostr):
     produce isotopes having at least one labeled carbon from
     metab+isostr.
     Co-substrate isotops are
-    in a dictionary isos[cmetab]=list(cisotopes). It is assumed that no
-    more than two metabolites can exist in both part of reaction"""
+    in a dictionary isos[cmetab]=list(cisotopes)."""
     # run through all combinations of srcs isotopes
     # to get all products
     # |isostr|*|iso2|[+|iso1|*|isostr| if metab is in both position]
@@ -1586,12 +1634,10 @@ def iso2emu(netan, inmetab, mask, mpi, e):
         d=netan["iso_input"][ili][inmetab]
         netan["emu_input"][ili][e]=sum([val for (frag, val) in d.iteritems() if sumbit(frag&mask) == mpi])
 
-def formula2dict(f):
+def formula2dict(f, pterm=re.compile(r'\W*([+-])\W*'), pflux=re.compile(r'(?P<coef>\d+\.?\d*|^)?\s*\*?\s*(?P<var>[a-zA-Z_[\]()][\w\. -\[\]]*)\W*')):
     """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
     character (# is allowed). Output is a dict f_i:[+-]a_i"""
-    pterm=re.compile(r'\W*([+-])\W*'); # returns list of match1,sep,match2,...
-    pflux=re.compile(r'(?P<coef>\d+\.?\d*|^)?\s*\*?\s*(?P<var>[a-zA-Z_[\]()][\w\. -\[\]]*)\W*')
     res={}
     sign=1
     l=(i for i in pterm.split(str(f)))
@@ -1605,7 +1651,7 @@ def formula2dict(f):
         if (len(term) == 0):
             continue
         m=pflux.match(term)
-        if (m):
+        if m:
             coef=m.group("coef")
             coef=1. if coef==None or not len(coef) else float(coef)
             var=m.group("var")
@@ -1613,7 +1659,32 @@ def formula2dict(f):
             res[var]=res.get(var, 0.)+sign*coef
             sign=next_sign
         else:
-            raise Exception("Not parsed term '"+term+"' in formula '"+f+"'.")
+            raise Exception("Term '"+term+"' in formula '"+f+"' cannot be parsed.")
+    return res
+def mecoparse(terms, pmeco=re.compile(r'\s*((?P<coef>\d+\.?\d*|^)\s*\*\s*)?(?P<metab>[^*+ ]*)\s*$')):
+    """Parse a string term from a list (or a sing string) of chemical equation entries.
+    The general form of each term is 'coef*metab'.
+    coef (if present) must be separated from metab by '*' and be convertible to float.
+    metab can start with a number (e.g. '6PG') so the presence of '*' is mandatory to
+    separate coef from metab.If coef is absent, it is considered to be 1. 
+    Return a list of (or a single for str) tuples (metab (str), coef (real)).
+    """
+    single=isstr(terms)
+    if single:
+        terms=[terms]
+    res=[]
+    for term in terms:
+        m=pmeco.match(term)
+        if not m:
+            raise Exception("Wrong format for term '%s'"%term)
+        coef=m.group("coef")
+        coef=1. if coef==None or not len(coef) else float(coef)
+        metab=m.group("metab")
+        if not metab:
+            raise Exception("Metabolite cannot be empty in term '%s'"%term)
+        res.append((metab, coef))
+    if single:
+        res=res.pop()
     return res
 
 def label_meas2matrix_vec_dev(netan):
@@ -2151,7 +2222,9 @@ def cumo_infl(netan, cumo):
     icumo=int(icumo)
     res=[]
     # run through input forward fluxes of this metab
-    for reac in set(netan["sto_m_r"][metab]["right"]):
+    for reac,coef in set(netan["sto_m_r"][metab]["right"]):
+        if reac not in netan["carbotrans"]:
+            continue # it can happen because of NOTRACER_NETWORK
         # get all cstr for given metab
         for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["right"])
             if m==metab):
@@ -2162,7 +2235,7 @@ def cumo_infl(netan, cumo):
                     in_cumo=in_metab+":"+str(in_icumo)
                     res.append((in_cumo, "fwd."+reac, imetab, iin_metab))
     # run through input reverse fluxes of this metab
-    fluxset=set(netan["sto_m_r"][metab]["left"])
+    fluxset=set(f for f,c in netan["sto_m_r"][metab]["left"])
     if (clownr):
         # non reversible reactions are all positive
         fluxset=fluxset.difference(netan["notrev"])
@@ -2185,10 +2258,10 @@ def infl(metab, netan):
     List incoming fluxes for this metabolite (fwd.reac, rev.reac, ...)
     """
     # run through input forward fluxes of this metab
-    res=set("fwd."+reac for reac in netan["sto_m_r"][metab]["right"])
+    res=set("fwd."+reac for reac,_ in netan["sto_m_r"][metab]["right"])
     # run through input reverse fluxes of this metab
     res.update("rev."+reac for reac in
-        set(netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]))
+        set(f for f,_ in netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]))
 #        set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]))
     return(res)
 
