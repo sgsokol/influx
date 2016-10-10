@@ -104,6 +104,7 @@ try:
     invAfl=np.matrix(Afl).I
 except Exception as err:
     sys.stderr.write("Error: Afl is singular or is not square\n")
+    sys.stderr.write("nrow x ncol = %d x %d\n"%Afl.shape)
     sys.stderr.write("dependent net fluxes="+str(netan["vflux"]["net"])+"\n")
     sys.stderr.write("dependent xch fluxes="+str(netan["vflux"]["xch"])+"\n")
     sys.stderr.write("Afl="+str(netan["Afl"])+"\n")
@@ -124,17 +125,16 @@ f.write("""
 Stoichiometric equations:
 Metab:<tab>sum influxes=sum outfluxes
 """)
-for metab in sorted(netan["sto_m_r"].keys()):
+for metab,lr in sorted(netan["sto_m_r"].iteritems()):
     f.write("%s:\t"%metab)
-    lr=netan["sto_m_r"][metab]
     f.write("%(in)s=%(out)s\n"%{
-    "in": "+".join(lr["right"]) or "<entering flux>",
-    "out": "+".join(lr["left"]) or "<exiting flux>",
+    "in": "+".join((str(co)+"*" if co != 1. else "")+r for r,co in lr["right"]) or "<entering flux>",
+    "out": "+".join((str(co)+"*" if co != 1. else "")+r for r,co in lr["left"]) or "<exiting flux>",
     })
     if lr["right"] and lr["left"]:
         #print "left | right=", str(lr["right"])+"|"+str(lr["left"]);##
-        infl=join("+", (get_net(r, dfc_val) for r in lr["right"]))
-        outfl=join("+", (get_net(r, dfc_val) for r in lr["left"]))
+        infl=join("+", ((str(co)+"*" if co != 1. else "")+str(get_net(r, dfc_val)) for r,co in lr["right"]))
+        outfl=join("+", ((str(co)+"*" if co != 1. else "")+str(get_net(r, dfc_val)) for r,co in lr["left"]))
         try:
            dif=abs(eval(infl)-eval(outfl))
            verdict="OK" if dif < 1.e-10 else "bad ("+str(dif)+")"
