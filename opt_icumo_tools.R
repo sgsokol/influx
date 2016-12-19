@@ -18,6 +18,8 @@ icumo_resid=function(param, cjac, labargs) {
    measvecti=measurements$vec$kin
    nb_ti=nb_f$ti
    nb_sc=nb_f$nb_sc
+   nb_sc_tot=nb_f$nb_sc_tot
+   nb_ff=nb_f$nb_ff
    nb_poolf=nb_f$nb_poolf
    
    # find simulated cumomers
@@ -31,7 +33,7 @@ icumo_resid=function(param, cjac, labargs) {
    ir=lapply(seq_len(nb_exp), function(iexp) sum(nb_lab[seq_len(iexp-1)])+seq_len(nb_lab[[iexp]]))
    if (is.null(jx_f$jacobian)) {
       # init variables in jx_f
-      jx_f$jacobian=matrix(0., nrow=nb_lab_tot+nb_f$nb_fmn+nb_f$nb_poolm, ncol=nb_f$nb_ff+nb_sc_tot+nb_poolf)
+      jx_f$jacobian=matrix(0., nrow=nb_lab_tot+nb_f$nb_fmn+nb_f$nb_poolm, ncol=nb_ff+nb_sc_tot+nb_poolf)
       dimnames(jx_f$jacobian)=list(nm$resid, nm$par)
       # constant part of jacobian
       jx_f$simlab=jx_f$ureslab=jx_f$reslab=vector("list", nb_exp)
@@ -87,9 +89,13 @@ icumo_resid=function(param, cjac, labargs) {
    jx_f$resflu=jx_f$uresflu/sqf
    jx_f$respool=jx_f$urespool/sqp
    jx_f$res=c(unlist(jx_f$reslab), jx_f$resflu, jx_f$respool)
-   names(jx_f$res)=nm$resid
+   if (length(jx_f$res)) {
+      names(jx_f$res)=nm$resid
+   }
    jx_f$ures=c(unlist(jx_f$ureslab), jx_f$uresflu, jx_f$urespool)
-   names(jx_f$ures)=nm$resid
+   if (length(jx_f$ures)) {
+      names(jx_f$ures)=nm$resid
+   }
    return(list(res=jx_f$res, jacobian=if (cjac) jx_f$jacobian else NULL))
 }
 
@@ -122,37 +128,27 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
       return(simple_triplet_zero_matrix(nb_c, 1))
    }
    l=spAbr
-   first_sx=FALSE
-   if (is.null(l$sx1)) {
-      # we need sx1 and sx2 because of two different time sets (first and second order))
-      first_sx=TRUE
-      nm_sx="sx1"
-   } else if (l$sx1$nco != nco && is.null(l$sx2)) {
-      first_sx=TRUE
-      nm_sx="sx2"
-   } else if (l$sx1$nco == nco) {
-      nm_sx="sx1"
-   } else if (l$sx2$nco == nco) {
-      nm_sx="sx2"
-   } else {
-      stop("Must not happen: not sx1 neither sx2 fits nco")
+   nm_sx=as.character(nco)
+   if (is.null(l$sx)) {
+      # we need sx because of many different time sets (first and second order + possible parallel experiments))
+      l$sx=list()
    }
-   if (first_sx) {
+   if (is.null(l$sx[[nm_sx]])) {
       li=list()
       li$nco=nco
       li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
          v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
       li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=l$b$j+emuw*rep(seq_len(nco)-1, each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=l$b$ncol*nco)
-      l[[nm_sx]]=li
+      l$sx[[nm_sx]]=li
    }
 #browser()
    ind_b=if (emu) spAbr[["ind_b_emu"]] else spAbr[["ind_b"]]
    nprodx=ncol(ind_b)-2-emu
    prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
    dim(prodx)=c(nrow(ind_b), nprodx, nco)
-   l[[nm_sx]]$sxmat$v=c(fwrv[ind_b[,"indf"]]*arrApply(prodx, 2, "prod"))
-   l[[nm_sx]]$s$v=c(arrApply(as.array(l[[nm_sx]]$sxmat), 1, "sum"))
-   s=l[[nm_sx]]$s
+   l$sx[[nm_sx]]$sxmat$v=c(fwrv[ind_b[,"indf"]]*arrApply(prodx, 2, "prod"))
+   l$sx[[nm_sx]]$s$v=c(arrApply(as.array(l$sx[[nm_sx]]$sxmat), 1, "sum"))
+   s=l$sx[[nm_sx]]$s
    return(s)
 }
 
@@ -169,7 +165,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # branched from param2fl_usm_eul().
    # 2014-07-09 sokol
    
-   
+#browser()   
    # from labargs to local vars
    for (item in ls(labargs)) {
       assign(item, get(item, env=labargs))
@@ -280,7 +276,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             if (length(dt_rm)) {
                ali_w[[iw]][dt_rm]=NULL
             }
-            if (length(dt_rm)) {
+            if (length(dt_add)) {
                nm_tmp=names(ali_w[[iw]])
                ali_w[[iw]]=append(ali_w[[iw]], lapply(invdt[pmatch(dt_add, dtr)], function(dti) {
                   am$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spa[[iw]]$iadiag]
