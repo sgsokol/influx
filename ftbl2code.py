@@ -301,18 +301,7 @@ if (length(find("bitwAnd"))==0L) {
    suppressPackageStartupMessages(library(bitops))
    bitwAnd=bitAnd
 }
-suppressPackageStartupMessages(library(nnls)); # for non negative least square
-#suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
-#options(Matrix.quiet=TRUE)
-suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
-suppressPackageStartupMessages(library(parallel))
-#use_magma=suppressWarnings(suppressPackageStartupMessages(require(magma, quietly=T)))
-#use_magma=F
-suppressPackageStartupMessages(library(Rcpp))
-suppressPackageStartupMessages(library(RcppArmadillo))
-suppressPackageStartupMessages(library(rmumps))
-suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
-
+source(file.path(dirx, "libs.R"))
 
 # define matprod for simple_triplet_matrix
 `%%stm%%` = slam::matprod_simple_triplet_matrix
@@ -324,13 +313,13 @@ source(file.path(dirx, "nlsic.R"))
 source(file.path(dirx, "kvh.R"))
 
 # default options
-version=F
-noopt=F
-noscale=F
+version=FALSE
+noopt=FALSE
+noscale=FALSE
 meth="nlsic"
-fullsys=F
-emu=F
-irand=F
+fullsys=FALSE
+emu=FALSE
+irand=FALSE
 sens=""
 cupx=0.999
 cupn=1.e3
@@ -339,18 +328,20 @@ clownr=0
 cinout=0
 clowp=1.e-8
 np=0
-ln=F
-tikhreg=F
-sln=F
-lim=F
+ln=FALSE
+tikhreg=FALSE
+sln=FALSE
+lim=FALSE
 zc=-.Machine$double.xmax
-ffguess=F
+ffguess=FALSE
+fdfit=FALSE
+addnoise=FALSE
 fseries=""
 iseries=""
 seed=-.Machine$integer.max
-excl_outliers=F
-TIMEIT=F
-prof=F
+excl_outliers=FALSE
+TIMEIT=FALSE
+prof=FALSE
 time_order="1"
 
 # get runtime arguments
@@ -714,11 +705,16 @@ names(edge2fl)=c(%(nedge2fl)s)
 # unknown net flux names
 nm_fln=c(%(nm_fln)s)
 nb_fln=length(nm_fln)
+fln=c(%(fln)s)
+names(fln)=nm_fln
 # unknown xch flux names
 nm_flx=c(%(nm_flx)s)
 nb_flx=length(nm_flx)
+flx=c(%(flx)s)
+names(flx)=nm_flx
 nm_fl=c(nm_fln, nm_flx)
 nb_fl=nb_fln+nb_flx
+fl=c(fln, flx)
 # gather flux names in a list
 nm_list$flnx=nm_fl
 nm_list$fwrv=nm_fwrv
@@ -764,7 +760,9 @@ if (nb_fl) {
     "nb_flr": len(netan["Afl"]),
     "nm_fwrv": join(", ", netan["vflux_fwrv"]["fwrv"], '"', '"'),
     "nm_fln": join(", ", netan["vflux"]["net"], '"d.n.', '"'),
+    "fln": join(", ", (netan["flux_dep"]["net"][k] for k in netan["vflux"]["net"])),
     "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
+    "flx": join(", ", (netan["flux_dep"]["xch"][k] for k in netan["vflux"]["xch"])),
     "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
     "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.iteritems() for e in l)),
     "clen": join(",", netan["Clen"].values()),
@@ -809,6 +807,7 @@ if (nb_ffx) {
    nm_par=c(nm_par, nm_ffx)
 }
 names(param)=nm_par
+ff=param
 nm_ff=c(nm_ffn, nm_ffx)
 nm_list$ff=nm_ff
 nb_param=length(param)
@@ -882,11 +881,11 @@ nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
 # prepare p2bfl, c2bfl, g2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
 # c2bfl%*%fc+g2bfl%*%fgr+cnst2bfl=bfl
 # replace f.[nx].flx by corresponding param coefficient
-p2bfl=matrix(0., nrow=nb_flr, ncol=nb_ff)
+p2bfl=simple_triplet_zero_matrix(nrow=nb_flr, ncol=nb_ff)
 # replace c.[nx].flx by corresponding fc coefficient
-c2bfl=matrix(0., nrow=nb_flr, ncol=nb_fc)
+c2bfl=simple_triplet_zero_matrix(nrow=nb_flr, ncol=nb_fc)
 # variable growth fluxes
-g2bfl=matrix(0., nrow=nb_flr, ncol=nb_fgr)
+g2bfl=simple_triplet_zero_matrix(nrow=nb_flr, ncol=nb_fgr)
 cnst2bfl=numeric(nb_flr); # may be coming from equalities
 colnames(p2bfl)=nm_par
 colnames(c2bfl)=nm_fc
@@ -903,19 +902,19 @@ colnames(g2bfl)=nm_fgr
         row["g"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="g.")
         f.write("\n")
         if row["f"]:
-            f.write("p2bfl[%(i)d, c(%(if)s)]=c(%(rowf)s);\n"%\
+            f.write("p2bfl[%(i)d, pmatch(c(%(if)s), nm_par)]=c(%(rowf)s);\n"%\
                 {"i": i+1,
                 "if": join(", ", row["f"].keys(), p='"', s='"'),
                 "rowf": join(", ", row["f"].values()),
                 })
         if row["c"]:
-            f.write("c2bfl[%(i)d, c(%(ic)s)]=c(%(rowc)s);\n"%\
+            f.write("c2bfl[%(i)d, pmatch(c(%(ic)s), nm_fc)]=c(%(rowc)s);\n"%\
                 {"i": i+1,
                 "ic": join(", ", row["c"].keys(), p='"', s='"'),
                 "rowc": join(", ", row["c"].values()),
                 })
         if row["g"]:
-            f.write("g2bfl[%(i)d, c(%(ig)s)]=c(%(rowg)s);\n"%\
+            f.write("g2bfl[%(i)d, pmatch(c(%(ig)s), nm_fgr)]=c(%(rowg)s);\n"%\
                 {"i": i+1,
                 "ig": join(", ", row["g"].keys(), p='"', s='"'),
                 "rowg": join(", ", row["g"].values()),
@@ -923,7 +922,7 @@ colnames(g2bfl)=nm_fgr
         if row["cnst"]:
             f.write("cnst2bfl[%(i)d]=%(rowcnst)s;\n"%{"i": i+1, "rowcnst": row["cnst"],})
     f.write("""
-bp=as.numeric(c2bfl%*%fc+cnst2bfl)
+bp=as.numeric(c2bfl%stm%fc+cnst2bfl)
 """)
 
     f.write("""
@@ -949,7 +948,7 @@ if (ffguess) {
       mes=sprintf("Error: No working free/dependent flux partition could be proposed. Stoechiometric matrix has condition number %g.\\n", ka)
       stop_mes(mes, file=fcerr)
    }
-   p2bfl=-afd[irows, qafd$pivot[-(1L:rank)], drop=FALSE]
+   p2bfl=-as.simple_triplet_matrix(afd[irows, qafd$pivot[-seq_len(rank)], drop=FALSE])
    c2bfl=c2bfl[irows, , drop=FALSE]
    g2bfl=g2bfl[irows, , drop=FALSE]
    cnst2bfl=cnst2bfl[irows]
@@ -971,7 +970,8 @@ if (ffguess) {
    p2bfl=p2bfl[, nm_ff, drop=FALSE]
    
    # remake param vector
-   param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-seq_len(nb_ff)])
+   if (!fdfit)
+      param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-seq_len(nb_ff)])
    names(param)[seq(along=nm_ff)]=nm_ff
 #browser()
 }
@@ -1119,14 +1119,21 @@ invAfl=solve(qrAfl)
     "n_ftbl": escape(org+".ftbl", "\\"),
     })
     f.write("""
+if (fdfit) {
+#browser()
+   # choose free fluxe values such that they fit starting values from ftbl
+   #dep=invAfl%*%(p2bfl%*%ff+bp)
+   #ff=ff
+   ff=qr.solve(rbind(invAfl%stm%p2bfl, diag(ncol(p2bfl))), c(fl-invAfl%*%bp, param))
+}
 # intermediate jacobian
 if (TIMEIT) {
    cat("dfl_dffg: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
-dfl_dffg=invAfl %*% p2bfl
+dfl_dffg=invAfl%stm%p2bfl
 if (nb_fgr > 0L) {
-   dfl_dffg=cBind(dfl_dffg, invAfl%*%g2bfl)
+   dfl_dffg=cBind(dfl_dffg, invAfl%stm%g2bfl)
 }
 dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
 dfl_dffg[abs(dfl_dffg) < 1.e-14]=0.
@@ -1323,10 +1330,10 @@ ipooled[[%(ili)d]]=list(ishort=pmatch(nm_meas[[%(ili)d]], nm_measmat[[%(ili)d]])
     "ili": ili+1,
     "nrow": len([measures[meas][ili]["vec"] for meas in measures]),
     "ncol": sum(len(l) for l in (netan["vemu"] if emu else netan["vrcumo"])),
-    "idmeasmat": join(", ", (str(ili+1)+":"+row["id"] for row in
+    "idmeasmat": join(", ", (row["id"] for row in
         valval(measures[o][ili]["mat"] for o in o_meas)),
         p='"', s='"'),
-    "idmeas": join(", ",  valval([str(ili+1)+":"+v for o in o_meas for v in measures[o][ili]["ids"]]), p='"', s='"'),
+    "idmeas": join(", ",  valval([v for o in o_meas for v in measures[o][ili]["ids"]]), p='"', s='"'),
     "vmeas": join(", ", valval(measures[o][ili]["vec"] for o in o_meas)).replace("nan", "NA"),
     "dev": join(", ", (sd for sd in valval(measures[o][ili]["dev"]
         for o in o_meas))),
@@ -1815,8 +1822,8 @@ names(li)=nm_i
 
 # constraints such that ui%*%param-ci>=0
 # first flux part
-ui=mi%*%(md%*%invAfl%*%p2bfl+mf)
-mic=(md%*%invAfl%*%(c2bfl%*%fc+cnst2bfl) + mc%*%fc)
+ui=mi%*%(md%*%invAfl%stm%p2bfl+mf)
+mic=(md%*%invAfl%*%(c2bfl%stm%fc+cnst2bfl) + mc%*%fc)
 ci=as.numeric(li-mi%*%mic)
 """)
     f.write("""
