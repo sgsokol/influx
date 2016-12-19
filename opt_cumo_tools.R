@@ -1,5 +1,6 @@
 #TIMEIT=0; # 1 to enable time printing at some stages
-if (length(find("TIMEIT")) && TIMEIT && length(find("fclog"))) {
+tmp=try(flush(fclog), silent=TRUE)
+if (length(find("TIMEIT")) && TIMEIT && !inherits(tmp, "try-error")) {
    cat("load    : ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
 }
 build_mult_bxxc=function(dirx) {
@@ -103,7 +104,7 @@ cumo_resid=function(param, cjac=TRUE, labargs) {
 
 cumo_cost=function(param, labargs, resl=lab_resid(param, cjac=FALSE, labargs)) {
    if (!is.null(resl$err) && resl$err) {
-      return(NULL)
+      return(NA)
    }
    res=resl$res
    if (is.null(res))
@@ -128,7 +129,7 @@ param2fl=function(param, labargs) {
    if (nb_f$nb_fgr > 0) {
       fg[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
    }
-   flnx=as.numeric(invAfl%*%(p2bfl%*%param[seq_len(nb_f$nb_ff)]+c(bp)+g2bfl%*%fg))
+   flnx=as.numeric(invAfl%*%(p2bfl%stm%param[seq_len(nb_f$nb_ff)]+c(bp)+g2bfl%stm%fg))
    names(flnx)=nm$flnx
    fallnx=c(dfcg2fallnx(nb_f, flnx, param, fc, fg))
    names(fallnx)=nm$fallnx
@@ -739,24 +740,14 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    nro=nrow(ind_a)
    emuw=ifelse(emu, w, 1L)
    nb_xw=nb_c*emuw
-   # first a_fx creation for futher updates (a_fx can be of two different sizes
-   # depending on the time scheme for ODE)
-   first_a_fx=FALSE
-   if (is.null(spAbr$a_fx1)) {
-      # create auxiliary data for a_fx1
-      nm_a_fx="a_fx1"
-      first_a_fx=TRUE
-   } else if (spAbr$a_fx1$nco != nco && is.null(spAbr$a_fx2)) {
-      nm_a_fx="a_fx2"
-      first_a_fx=TRUE
-   } else if (spAbr$a_fx1$nco==nco) {
-      nm_a_fx="a_fx1"
-   } else if (spAbr$a_fx2$nco==nco) {
-      nm_a_fx="a_fx2"
-   } else {
-      stop("Must not happen: not a_fx1 neither a_fx2 fits nco")
-   }
-   if (first_a_fx) {
+   # first a_fx creation for further updates (a_fx can be of many different sizes
+   # depending on the time scheme for ODE and possible parallel experiments)
+   nm_a_fx=as.character(nco)
+   if (is.null(spAbr$a_fxx)) {
+      # create auxiliary data for a_fx
+      spAbr$a_fxx=list()
+   }   
+   if (is.null(spAbr$a_fxx[[nm_a_fx]])) {
       l=list()
       l$nco=nco
       if (emu) {
@@ -785,8 +776,6 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       
       # prepare b_f auxiliaries
       ind_b=if(emu) spAbr$ind_b_emu else spAbr$ind_b
-      if (!is.matrix(ind_b))
-         ind_b=t(ind_b)
       nro=nrow(ind_b)
       ib=ind_b[,"irow"]+if(emu) nb_c*(ind_b[,"iwe"]-1L) else 0L
       jb=ind_b[,"indf"]
@@ -828,20 +817,20 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       } else {
          l$b_x=simple_triplet_zero_matrix(nrow=nar, ncol=nb$nbc_x[w])
       }
-      spAbr[[nm_a_fx]]=l
+      spAbr$a_fxx[[nm_a_fx]]=l
    }
    x=incu[(1L+nb$xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=FALSE]
    if (emu) {
       dim(x)=c(nb_c, w, nco)
       tmp=x[ind_a[,"ic0"]+1L,,,drop=FALSE]
-      tmp[spAbr[[nm_a_fx]]$ineg,,]=-tmp[spAbr[[nm_a_fx]]$ineg,,]
+      tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,,]=-tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,,]
    } else {
       tmp=x[ind_a[,"ic0"]+1L,,drop=FALSE]
-      tmp[spAbr[[nm_a_fx]]$ineg,]=-tmp[spAbr[[nm_a_fx]]$ineg,]
+      tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,]=-tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,]
    }
-   spAbr[[nm_a_fx]]$xmat$v=tmp[spAbr[[nm_a_fx]]$oa_x]
-   spAbr[[nm_a_fx]]$a_fx$v=slam::col_sums(spAbr[[nm_a_fx]]$xmat)
-   a_fx=spAbr[[nm_a_fx]]$a_fx
+   spAbr$a_fxx[[nm_a_fx]]$xmat$v=tmp[spAbr$a_fxx[[nm_a_fx]]$oa_x]
+   spAbr$a_fxx[[nm_a_fx]]$a_fx$v=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$xmat)
+   a_fx=spAbr$a_fxx[[nm_a_fx]]$a_fx
    
    # prepare b_f
    # NB emu: b is shorter than xw by the last M+N vector which is added as (1-sum(lighter weights))
@@ -849,9 +838,9 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    nprodx=ncol(ind_b)-2-emu
    prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
    dim(prodx)=c(nrow(ind_b), nprodx, nco)
-   spAbr[[nm_a_fx]]$b_fmat$v=-arrApply(prodx, 2, "prod")[spAbr[[nm_a_fx]]$ob_f]
-   spAbr[[nm_a_fx]]$b_f$v=slam::col_sums(spAbr[[nm_a_fx]]$b_fmat)
-   b_f=spAbr[[nm_a_fx]]$b_f
+   spAbr$a_fxx[[nm_a_fx]]$b_fmat$v=-arrApply(prodx, 2, "prod")[spAbr$a_fxx[[nm_a_fx]]$ob_f]
+   spAbr$a_fxx[[nm_a_fx]]$b_f$v=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_fmat)
+   b_f=spAbr$a_fxx[[nm_a_fx]]$b_f
    
    # prepare b_x
    if (length(spAbr$ind_bx) > 0) {
@@ -860,12 +849,12 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       if (nprodx >= 1) {
          prodx=incu[c(ind_bx[,3+emu+seq_len(nprodx)]),]
          dim(prodx)=c(nrow(ind_bx), nprodx, nco)
-         spAbr[[nm_a_fx]]$b_xmat$v=(-fwrv[ind_bx[,"indf"]]*arrApply(prodx, 2, "prod"))[spAbr[[nm_a_fx]]$ob_x]
+         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v=(-fwrv[ind_bx[,"indf"]]*arrApply(prodx, 2, "prod"))[spAbr$a_fxx[[nm_a_fx]]$ob_x]
       } else {
-         spAbr[[nm_a_fx]]$b_xmat$v=(-fwrv[ind_bx[,"indf"]])[spAbr[[nm_a_fx]]$ob_x]
+         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v=(-fwrv[ind_bx[,"indf"]])[spAbr$a_fxx[[nm_a_fx]]$ob_x]
       }
-      spAbr[[nm_a_fx]]$b_x$v=slam::col_sums(spAbr[[nm_a_fx]]$b_xmat)
-      b_x=spAbr[[nm_a_fx]]$b_x
+      spAbr$a_fxx[[nm_a_fx]]$b_x$v=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_xmat)
+      b_x=spAbr$a_fxx[[nm_a_fx]]$b_x
    } else {
       b_x=simple_triplet_zero_matrix(nrow=nb_xw*nco, ncol=nb$nbc_x[w])
    }
@@ -1003,7 +992,11 @@ df_dffp=function(param, flnx, nb_f, nm_list) {
    if (length(nb_f$crv_fg) > 0)
       df_dffd[nb_f$crv_fg]=0.
    
-   res=(df_dfl%stm%nb_f$dfl_dffg+df_dffd)%mrv%c(rep.int(1., nb_ff), rep(nb_f$mu, nb_fgr))
+   res=df_dfl%stm%nb_f$dfl_dffg+df_dffd
+   if (nb_fgr > 0) {
+      i=res$j > nb_ff
+      res$v[i]=res$v[i]*nb_f$mu
+   }
    dimnames(res)=list(nm_list$fwrv, names(param)[c(i_ffn, i_ffx, i_fgn, i_fgx)])
    return(res)
 }
