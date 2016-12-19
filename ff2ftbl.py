@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-This program gets free flux and free pool values from kvh file
+This program gets free and dependent fluxes as well as free pool values from kvh file
 and put them in a ftbl file after rounding values to 9 digits
 (default value but can be changed with -r option).
 
