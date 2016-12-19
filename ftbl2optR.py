@@ -317,7 +317,7 @@ tstart=0.
 tmax=c(%(tmax)s)
 dt=c(%(dt)s)
 
-# read measvecti from a file(s) specified in ftbl(s)
+# read measvecti from file(s) specified in ftbl(s)
 flabcin=c(%(flabcin)s)
 measvecti=ti=tifull=tifull2=vector("list", nb_exp)
 nb_ti=nb_tifu=nb_tifu2=integer(nb_exp)
@@ -345,8 +345,7 @@ for (iexp in seq_len(nb_exp)) {
       } else {
          # try to strip row number from measure id
          nm_strip=sapply(strsplit(nm_meas[[iexp]], ":"), function(v) {
-            v=v[-c(1, length(v))]
-            paste(v, sep="", collapse=":")
+            paste(v[-length(v)], sep="", collapse=":")
          })
          im=pmatch(nm_strip, nm_row)
          ina=is.na(im)
@@ -382,7 +381,6 @@ for (iexp in seq_len(nb_exp)) {
       ti[[iexp]]=ti[[iexp]][i]
       measvecti[[iexp]]=measvecti[[iexp]][,i[-1]-1,drop=FALSE]
    } else {
-      measvecti[[iexp]]=NULL
       ti[[iexp]]=seq(tstart, tmax[[iexp]], by=dt[iexp])
       if (optimize) {
          cat(sprintf("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in '%%s.ftbl' file.
@@ -464,7 +462,7 @@ measurements=list(
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
-nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) outer(nm_meas[[iexp]], ti[[iexp]][-1L], paste, sep=", t="))) else unlist(nm_meas), nm_fmn, nm_poolm)
+nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, outer(nm_meas[[iexp]], ti[[iexp]][-1L], paste, sep=", t="), sep=":"))) else unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, nm_meas[[iexp]], sep=":"))), nm_fmn, nm_poolm)
 nm_list$resid=nm_resid
 
 if (TIMEIT) {
@@ -727,10 +725,10 @@ for (irun in seq_len(nseries)) {
       }
       rownames(mi_zc)=nm_izc
       li_zc=rep(zc, length(nm_izc)) # that's ok for both pos and neg constraints
-      ui_zc=cbind(mi_zc%*%(md%*%invAfl%*%p2bfl+mf),
+      ui_zc=cbind(mi_zc%*%(md%*%invAfl%stm%p2bfl+mf),
          matrix(0., nrow=nrow(mi_zc), ncol=nb_sc))
       if (nb_fgr > 0) {
-         ui_zc=cbind(ui_zc, mi_zc%*%((md%*%invAfl%*%g2bfl)+mg*nb_f$mu))
+         ui_zc=cbind(ui_zc, mi_zc%*%((md%*%invAfl%stm%g2bfl)+mg*nb_f$mu))
       } else if (nb_poolf > 0) {
          ui_zc=cbind(ui_zc, matrix(0., nrow=nrow(mi_zc), ncol=nb_poolf))
       }
@@ -863,7 +861,7 @@ for (irun in seq_len(nseries)) {
    names(param)=nm_par
    obj2kvh(param, "starting free parameters", fkvh, indent=1)
 #browser()
-   if (is.null(rres)) {
+   if (!length(rres)) {
       capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
@@ -878,7 +876,7 @@ for (irun in seq_len(nseries)) {
          next
       }
    }
-   rcost=if (is.null(rres$res)) NA else sum(crossprod(rres$res))
+   rcost=if (length(rres$res)) sum(crossprod(rres$res)) else NA
    obj2kvh(rcost, "starting cost value", fkvh, indent=1)
 
    obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
@@ -887,7 +885,7 @@ for (irun in seq_len(nseries)) {
    if (nb_f$nb_fgr > 0) {
       fg[paste("g.n.", substring(nm_list$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm_list$poolf]
    }
-   btmp=as.numeric(p2bfl%*%param[seq_len(nb_f$nb_ff)]+bp+g2bfl%*%fg)
+   btmp=as.numeric(p2bfl%stm%param[seq_len(nb_f$nb_ff)]+bp+g2bfl%stm%fg)
    names(btmp)=dimnames(Afl)[[1]]
    obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
 
@@ -1043,7 +1041,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
                if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
                   cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
                }
-               if(!res$err && !is.null(res$par) && !any(is.na(res$par))) {
+               if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
                   param=reso$par
                   res=reso
                   jx_f=labargs$jx_f
@@ -1184,22 +1182,42 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    simul=list()
 #browser()
    if (case_i) {
-      if (sum(nb_meas))
-         simul[["labeled data"]]=jx_f$usm
+      if (sum(nb_meas)) {
+         if (addnoise) {
+            simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) jx_f$usm[[iexp]]+rnorm(length(jx_f$usm[[iexp]]))*measurements$dev$labeled[[iexp]])
+            names(simul[["labeled data"]])=nm_exp
+         } else {
+            simul[["labeled data"]]=jx_f$usm
+         }
+      }
    } else {
       if (sum(nb_meas)) {
+         if (addnoise) {
+            simlab=lapply(seq_len(nb_exp), function(iexp) jx_f$simlab[[iexp]]+rnorm(length(jx_f$simlab[[iexp]]))*measurements$dev$labeled[[iexp]])
+            names(simlab)=nm_exp
+         } else {
+            simlab=jx_f$simlab
+         }
          if (nb_sc_tot > 0) {
             simul[["labeled data (unscaled)"]]=jx_f$usimlab
-            simul[["labeled data (scaled)"]]=jx_f$simlab
+            simul[["labeled data (scaled)"]]=simlab
          } else {
-            simul[["labeled data"]]=jx_f$simlab
+            simul[["labeled data"]]=simlab
          }
       }
    }
-   if (nb_fmn)
-      simul[["measured fluxes"]]=jx_f$simfmn
-   if (nb_poolm)
-      simul[["measured pools"]]=jx_f$simpool
+   if (nb_fmn) {
+      if (addnoise)
+         simul[["measured fluxes"]]=jx_f$simfmn+rnorm(length(jx_f$simfm))*measurements$dev$flux
+      else
+         simul[["measured fluxes"]]=jx_f$simfmn
+   }
+   if (nb_poolm) {
+      if (addnoise)
+         simul[["measured pools"]]=jx_f$simpool+rnorm(length(jx_f$simpool))*measurements$dev$pool
+      else
+         simul[["measured pools"]]=jx_f$simpool
+   }
    obj2kvh(simul, "simulated measurements", fkvh)
    
    # SD -> kvh
@@ -1208,7 +1226,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    obj2kvh(measurements$dev[iget], "measurement SD", fkvh)
 
    # gradient -> kvh
-   if (!is.null(jx_f$res)) {
+   if (length(jx_f$res)) {
       gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
       names(gr)=nm_par
       obj2kvh(gr, "gradient vector", fkvh)
@@ -1507,7 +1525,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # khi2 test for goodness of fit
    # goodness of fit (khi2 test)
-   if (!is.null(jx_f$res)) {
+   if (length(jx_f$res)) {
       nvres=sum(!is.na(jx_f$res))
       if (nvres >= nb_param) {
          khi2test=list("khi2 value"=rcost, "data points"=nvres,
