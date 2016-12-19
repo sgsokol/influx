@@ -203,6 +203,9 @@ parser.add_option(
 parser.add_option(
 "--ffguess", action="store_true",
        help="Don't use free/dependent flux definitions from FTBL file(s). Make an automatic guess."),
+#parser.add_option(
+#"--fdfit", action="store_true",
+#       help="Choose starting values for free fluxes such that they match at best free and dependent values given in FTBL file."),
 parser.add_option(
 "--fseries",
        help="File name with free parameter values for multiple starting points. Default: '' (empty, i.e. only one starting point from the FTBL file is used)"),
@@ -218,6 +221,9 @@ parser.add_option(
 parser.add_option(
 "--nocalc", action="store_true",
        help="generate an R code but not execute it.")
+parser.add_option(
+"--addnoise", action="store_true",
+       help="Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from FTBL file"),
 if case_i:
     parser.add_option(
 "--time_order", type="choice",
