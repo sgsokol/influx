@@ -42,27 +42,32 @@ where
  metab_i is i-th metabolite name
  (carb_i) is optional 1-letter carbon names for carbon transition mapping
 
-reversible reaction are represented by "<->" sign
+reversible reaction is represented by "<->" sign
+non reversible reaction is represented by "->" sign.
+reaction with imposed sens of reaction (from left to right) is representd with double ">>",
+i.e. "->>" for non reversible reaction or "<->>" for reversible reaction. This
+reaction with imposed sens will have an inequality "reac_name >= 0" in
+FTBL/INEQUAITIES/NET section.
 
 Retrun a list with four items:
 - a list of carbon exchange reactions
 - a list of non carbon echanging reactions
 - a list of equalities net and xch
-- a list of flux tuples (reac, rev)
+- a list of flux tuples (reac, rev, imposed_sens)
 - a list of two lists: left and right metabolites [(metab, clen),]
 
 the first item is a list of:
 plain string == just a comments
 list == reaction items: input, output: lists of tuples (metab, carb, coeff)
 """
-    res=[] # main result. Each item can be a plain str (== comment) or a 4-tuple: reac, reversible?, list of in-metabo-tuples, list of out-metabo-tuples
+    res=[] # main result. Each item can be a plain str (== comment) or a 4-tuple: reac, reversible?, imposed_sens?, list of in-metabo-tuples, list of out-metabo-tuples
     # each metabo-tuple is (coef, metab, labeling-pattern)
     
-    # transpose of stoechiometric matrix st[("reac", True|False)]={metab1: coef1, metab2: coef2, ...}
-    # True|False is for reversible or not
-    eqs=[[], []] # list of equalities: tuple (value string, equation string)
+    eqs=[[], []] # lists (net & xch) of equalities: tuple (value, formula)
+    ineqs=[[], []] # lists (net & xch) of inequalities: tuple (value, comp_sign, formula)
     fluxes=[] # list of tuples (nm_reac, rev)
     resnotr=[] # list of reaction without tracer (like biomass)
+    comment=""
     
     open_here=False
     if isstr(fname):
@@ -74,7 +79,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     m_right={} # metab products
     sto={} # stoechiometric matrix dictionary {flux:{metab: coef}}}
     ireac=0
-    ipath=0
+    ipath=1
     iline=0
     for l in fc.readlines():
         iline=iline+1
@@ -82,9 +87,9 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         if len(l) == 0:
             continue
         if l[0]=="#":
-            res.append(l)
+            comment+="//"+l[1:]+"\n"
+            ipath=ipath+(ireac != 0)
             ireac=0
-            ipath=ipath+1
             continue
         # parse reaction
         ireac=ireac+1
@@ -96,12 +101,17 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             nm_reac="r"+str(ipath)+"."+str(ireac)
             reac=li[0].strip()
         in_out=[side.strip() for side in reac.split("->")]
+        if len(in_out) != 2:
+            raise Exception("Bad syntax. No reaction detected on the line %d"%iline)
+        # True|False is for reversible or not, imposed_sens or not
         rev=False
+        imposed_sens=False
+        if in_out[1][0] == ">":
+            in_out[1]=in_out[1][1:].strip()
+            imposed_sens=True
         if in_out[0][-1:] == "<":
             in_out[0]=in_out[0][:-1].strip()
             rev=True
-        if len(in_out) != 2:
-            raise Exception("Bad syntax. No reaction detected on the line %d"%iline)
         # parse metabo-tuples
         # we cannot just split by "+" because of possible scrambling patterns having "+" in them
         lr=[[(c, m, [elab for lab in t.split("+") for elab in re_labpat.findall(lab)]) for (c, m, t) in re_metab.findall(io) if m != "+"] for io in in_out]
@@ -109,9 +119,12 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         if any(len(t) == 0 for side in lr for c,m,t in side):
             raise Exception("Wrong format for labeling pattern on row %d."%iline)
         if not tr_reac:
-            resnotr.append([(nm_reac, rev)]+lr)
-            fluxes.append((nm_reac, rev, "F"))
-            # add a row to stoechimetric matrix
+            if comment:
+                resnotr.append(comment)
+                comment=""
+            resnotr.append([(nm_reac, rev, imposed_sens)]+lr)
+            fluxes.append((nm_reac, rev, imposed_sens, "F"))
+            # add a row to stoechiometric matrix
             if nm_reac in sto:
                 raise Exception("Reaction '%s' was already met (row: %d)"%(nm_reac, iline))
             d={}
@@ -160,31 +173,40 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             m_left.update((m,clen) for m, clen in es.iteritems() if m not in m_left)
             m_right.update((m,clen) for m, clen in ps.iteritems() if m not in m_right)
             rgr=[] # reaction group (for possible long reactions)
-            r=[(nm_r, rev), [], []] # lace for elementary reaction (no more than 2 metabs on each side)
-            fluxes.append((nm_r, rev, "D" if ilr else "F"))
+            r=[(nm_r, rev, imposed_sens), [], []] # lace for elementary reaction (no more than 2 metabs on each side)
+            fluxes.append((nm_r, rev, imposed_sens, "D" if ilr else "F"))
             if ilr:
                 teq=(0, "%s - %s"%(nm_reac+"_1", nm_r))
                 eqs[0].append(teq)
                 if rev:
                     eqs[1].append(teq)
-                # add sto row
+            if ilr == 0 and imposed_sens:
+                ineqs[0].append((0, "<=", nm_r))
+            # add sto row
             while len(lr[0]) or len(lr[1]):
                 # split this reaction in many: max two metabolites on each side
                 if len(lr[0]):
                     r[1].append(lr[0].pop(0))
+                else:
+                    r[1].append(("", "", ""))
                 if len(lr[1]):
                     r[2].append(lr[1].pop(0))
-                if tr_reac and (len(r[1]) == 2 or len(r[2]) == 2) and (len(lr[0]) or len(lr[1])):
+                else:
+                    r[2].append(("", "", ""))
+                if (len(r[1]) == 2 or len(r[2]) == 2) and (len(lr[0]) or len(lr[1])):
                     # we have to split here
                     rgr.append(r[:])
                     r[1]=[]
                     r[2]=[]
             rgr.append(r[:]) # final flush
+            if comment:
+                res.append(comment)
+                comment=""
             res+=rgr
         
     if open_here:
         fc.close()
-    return [res, resnotr, eqs, fluxes, [m_left, m_right], sto]
+    return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto]
 
 if __name__ == "__main__":
     import sys
@@ -236,7 +258,7 @@ if __name__ == "__main__":
 
     # Parse .txt file
     try:
-        (netw, notr_netw, eqs, fluxes, (m_left, m_right), sto)=txt_parse(path_txt)
+        (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto)=txt_parse(path_txt)
     except Exception as inst:
         werr(str(inst)+"\n")
         raise
@@ -246,7 +268,7 @@ if __name__ == "__main__":
     m_r=set(m_right.keys())
     m_inp=m_l-m_r
     m_out=m_r-m_l
-    nm_met=(m_l|m_r) - m_inp - m_out
+    nm_met=sorted((m_l|m_r) - m_inp - m_out)
     fl2i=dict((fl, i) for i, fl in enumerate(nm_flux))
     met2i=dict((m, i) for i, m in enumerate(nm_met))
     afl=np.zeros((len(nm_met)+len(eqs[0]), len(nm_flux)))
@@ -255,6 +277,12 @@ if __name__ == "__main__":
             if m not in met2i:
                 continue
             afl[met2i[m], fl2i[fl]]=c
+    # store matrix for R reading
+    fmat=open("sto_mat.txt", "w")
+    fmat.write("\t".join(["row_col"]+nm_flux)+"\n")
+    for ir in xrange(len(nm_met)):
+        fmat.write(nm_met[ir]+"\t"+"\t".join(str(v) for v in afl[ir,:])+"\n")
+    fmat.close()
     # add net equations
     for i,eq in enumerate(eqs[0]):
         fls=eq[1].split(" - ")
@@ -281,7 +309,7 @@ NETWORK
     # write the ftbl content
     for row in netw:
         if isstr(row):
-            fout.write("//%s\n"%row[1:])
+            fout.write("%s"%row)
             continue
         fout.write("\t%s"%row[0][0]) # reac name
         # input metabs
@@ -290,7 +318,7 @@ NETWORK
         for (coef, metab, carb) in row[1]:
             imetab=imetab+1
             fout.write("\t%s%s"%(coef+"*" if coef and coef != "1" else "", metab))
-            carbs=carbs+"\t#%s"%carb
+            carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
         if imetab==1:
             # complete by empty metabolite
             fout.write("\t")
@@ -300,14 +328,18 @@ NETWORK
         for (coef, metab, carb) in row[2]:
             imetab=imetab+1
             fout.write("\t%s"%metab)
-            carbs=carbs+"\t#%s"%carb
+            carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
         fout.write("\n%s\n"%carbs)
     if notr_netw:
         fout.write(
-"""NOTRACER_NETWORK
+"""
+NOTRACER_NETWORK
 	FLUX_NAME	EQUATION
 """)
         for row in notr_netw:
+            if isstr(row):
+                fout.write("%s"%row)
+                continue
             fout.write("\t%s\t%s\n"%(row[0][0], " = ".join("+".join((c+"*" if c and c != "1" else "")+m  for c,m,t in side) for side in row[1:3])))
     fout.write("""
 EQUALITIES
@@ -326,12 +358,12 @@ FLUXES
 	NET
 		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
 """)
-    for f, rev, fd in fluxes:
+    for f, rev, imposed_sens, fd in fluxes:
         fout.write("\t\t%s\t%s\t0.2E0\n"%(f, "F" if f in ff else "D"))
     fout.write("""	XCH
 		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
 """)
-    for f, rev, fd in fluxes:
+    for f, rev, imposed_sens, fd in fluxes:
         fout.write("\t\t%s\t%s\n"%(f, "C\t0" if not rev else "%s\t0.01E0"%fd))
     fout.write("""
 LABEL_INPUT
@@ -347,7 +379,10 @@ LABEL_INPUT
 INEQUALITIES
 	NET
 		VALUE	COMP	FORMULA
-	XCH
+""")
+    for ine in ineqs[0]:
+        fout.write("\t\t%s\t%s\t%s\n"%ine)
+    fout.write("""	XCH
 		VALUE	COMP	FORMULA
 FLUX_MEASUREMENTS
 	FLUX_NAME	VALUE	DEVIATION
@@ -360,3 +395,4 @@ MASS_SPECTROMETRY
 OPTIONS
 	OPT_NAME	OPT_VALUE
 """)
+    fout.close()
