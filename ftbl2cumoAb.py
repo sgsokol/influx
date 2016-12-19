@@ -137,7 +137,7 @@ for metab,lr in sorted(netan["sto_m_r"].iteritems()):
         outfl=join("+", ((str(co)+"*" if co != 1. else "")+str(get_net(r, dfc_val)) for r,co in lr["left"]))
         try:
            dif=abs(eval(infl)-eval(outfl))
-           verdict="OK" if dif < 1.e-10 else "bad ("+str(dif)+")"
+           verdict="OK" if dif < 1.e-9 else "bad ("+str(dif)+")"
         except:
            verdict="No check status"
         f.write("\t%(in)s=%(out)s\t%(verdict)s\n"%{
