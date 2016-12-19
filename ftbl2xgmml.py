@@ -255,7 +255,7 @@ if __name__ == "__main__":
                "col_s": ec[rv_dfcg],
                "col_t": ec[fw_dfcg],
                "line": els[rnr],
-               } for (isu, m) in enumerate(subs))
+               } for (isu, (m, c)) in enumerate(subs))
             eds.extend({
                "label": r+" ("+r+(str(ipr+1) if same_prods else "")+") "+m,
                "id_s": rid,
@@ -266,11 +266,11 @@ if __name__ == "__main__":
                "col_s": ec[rv_dfcg],
                "col_t": ec[fw_dfcg],
                "line": els[rnr],
-               } for (ipr, m) in enumerate(prods))
+               } for (ipr, (m, c)) in enumerate(prods))
         else:
             # simple reaction
-            s=d["left"][0]
-            t=d["right"][0]
+            s=d["left"][0][0]
+            t=d["right"][0][0]
             eds.append({
                "label": s+" ("+r+") "+t,
                "id_s": metab2id[s],
