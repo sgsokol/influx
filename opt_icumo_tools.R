@@ -65,21 +65,26 @@ icumo_resid=function(param, cjac, labargs) {
          jx_f$udr_dp[ir[[iexp]],]=jx_f$dux_dp[[iexp]]
          if (!noscale && nb_sc[[iexp]] > 0) {
             # scale it
+            # cp_dm()
             jx_f$jacobian[ir[[iexp]],]=vsc*jx_f$dux_dp[[iexp]]
             # add scale part of jacobian (the sparsity pattern doesn't change)
             jx_f$dr_dsc[[iexp]][nb_f$is2mti[[iexp]]]=jx_f$reslab[[iexp]][is2mti[[iexp]]][,1]
             jx_f$jacobian[ir[[iexp]], nb_ff+seq_len(nb_sc[[iexp]])]=jx_f$dr_dsc[[iexp]]
          } else {
+            # cp_dm()
             jx_f$jacobian[ir[[iexp]],]=jx_f$dux_dp[[iexp]]
          }
       }
    }
    if (cjac) {
+      # cp_dm()
       jx_f$jacobian[nb_lab_tot+seq_len(nb_f$nb_fmn),]=dufm_dp
+      # cp_dm()
       jx_f$jacobian[nb_lab_tot+nb_f$nb_fmn+seq_len(nb_f$nb_poolm),]=dupm_dp
       # reduce it
+      # cp_dm()
       jx_f$jacobian[]=with(measurements$dev, jx_f$jacobian/c(unlist(kin), flux, pool))
-      # for later usage
+      # for later use
       jx_f$dr_dff=jx_f$jacobian[,seq_len(nb_ff),drop=FALSE]
    }
    jx_f$simfmn=lres$lf$fallnx[nm$fmn]
@@ -146,8 +151,8 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
    nprodx=ncol(ind_b)-2-emu
    prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
    dim(prodx)=c(nrow(ind_b), nprodx, nco)
-   l$sx[[nm_sx]]$sxmat$v=c(fwrv[ind_b[,"indf"]]*arrApply(prodx, 2, "prod"))
-   l$sx[[nm_sx]]$s$v=c(arrApply(as.array(l$sx[[nm_sx]]$sxmat), 1, "sum"))
+   l$sx[[nm_sx]]$sxmat$v[]=fwrv[ind_b[,"indf"]]*arrApply(prodx, 2, "prod")
+   l$sx[[nm_sx]]$s$v[]=arrApply(as.array(l$sx[[nm_sx]]$sxmat), 1, "sum")
    s=l$sx[[nm_sx]]$s
    return(s)
 }
@@ -232,7 +237,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       
 #browser()
       xsim=matrix(x1, nrow=length(x1), ncol=ntico)
-      xsim[1+seq_len(nb_xi),]=xi[,iexp] # set input label profile
+      #xsim[1+seq_len(nb_xi),]=xi[,iexp] # set input label profile
+      bop(xsim, c(1, 0, nb_xi), "=", xi[,iexp])
       
       dimnames(xsim)=list(names(x1), tifull[[iexp]][-1L])
       if (cjac) {
@@ -314,9 +320,12 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          dim(st)=c(nb_c, emuw, ntico)
          solve_ieu(invdt, xw1, vmw, ali_w[[iw]], st, ilua)
          #dim(xw2)=c(nb_c, emuw, ntico)
-         xsim[inrow,]=st #xw2
-         if (emu)
-            xsim[1L+nb_xi+imwl,]=1.-arrApply(st, 2, "sum")
+         #xsim[inrow,]=st #xw2
+         bop(xsim, c(1, nb_xi+nbc_x[iw], nb_row), "=", st)
+         if (emu) {
+            #xsim[1L+nb_xi+imwl,]=1.-arrApply(st, 2, "sum")
+            bop(xsim, c(1, nb_xi+nbc_x[iw]+nb_row, nb_c), "=", 1.-arrApply(st, 2, "sum"))
+         }
          if (cjac) {
 #browser()
             # prepare jacobian ff, pf
@@ -335,7 +344,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             if (nb_ff+nb_fgr > 0) {
                tmp=sj$j_rhsw%stm%jx_f$df_dffp
                dim(tmp)=c(nb_row, ntico, nb_ff+nb_fgr)
-               xpfw[,seq_len(nb_ff+nb_fgr),]=-aperm(tmp, c(1L, 3L, 2L))
+               #xpfw[,seq_len(nb_ff+nb_fgr),]=-aperm(tmp, c(1L, 3L, 2L))
+               bop(xpfw, c(2, 0, nb_ff+nb_fgr), "=", -aperm(tmp, c(1L, 3L, 2L)))
             }
             # poolf part
             if (nb_poolf > 0) {
@@ -347,7 +357,12 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
                #dim(tmp)=c(nb_c, emuw, ntico)
                #sfpw[i2x]=tmp[i2x[,-4L]]
                sfpw[i2x]=xw2[i2x[,-4L]]
-               xpfw[,nb_ff+seq_len(nb_poolf),]=(if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0.) + aperm(sfpw, c(1L, 2L, 4L, 3L))
+               #xpfw[,nb_ff+seq_len(nb_poolf),]=(if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0.) + aperm(sfpw, c(1L, 2L, 4L, 3L))
+               if (nb_fgr > 0) {
+                  bop(xpfw, c(2, nb_ff, nb_poolf), "+=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
+               } else {
+                  bop(xpfw, c(2, nb_ff, nb_poolf), "=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
+               }
             }
             # add lighter xpf (b_x%*%...)
             if (iw > 1L) {
@@ -378,10 +393,13 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             solve_ieu(invdt, xpf1, vmw, ali_w[[iw]], xpfw, ilua)
             dim(xpfw)=c(nb_c, emuw, nb_ff+nb_poolf, ntico)
             #xpfw[]=aperm(xpfw, c(1L, 2L, 4L, 3L))
-            xpf[imw,,]=xpfw
+#browser()
+            #xpf[imw,,]=xpfw
+            bop(xpf, c(1, nbc_x[iw], nb_row), "=", xpfw) 
             if (emu) {
                # treat the last weight
-               xpf[imwl,,]=-arrApply(xpfw, 2, "sum")
+               #xpf[imwl,,]=-arrApply(xpfw, 2, "sum")
+               bop(xpf, c(1, nbc_x[iw]+nb_row, nb_c), "=", -arrApply(xpfw, 2, "sum"))
             }
          }
       } # iw loop
@@ -459,12 +477,15 @@ param2fl_usm_rich=function(param, cjac, labargs) {
       labargs$nb_f$tifu=nb_f$tifu2
       res2=param2fl_usm_eul2(param, cjac, labargs)
       # restore labargs for order=1
-      labargs$tifull=tifull
-      labargs$nb_f=nb_f
-      labargs$jx_f2=labargs$jx_f
-      labargs$jx_f=jx_f
-      labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo
-      labargs$nb_f$tifu=nb_f$tifu
+      for (item in nm1) {
+         assign(item, get(item), envir=labargs)
+      }
+      #labargs$tifull=tifull
+      #labargs$nb_f=nb_f
+      #labargs$jx_f2=labargs$jx_f
+      #labargs$jx_f=jx_f
+      #labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo
+      #labargs$nb_f$tifu=nb_f$tifu
       if (!is.null(res2$err) && res2$err) {
          return(list(err=1, mes=res2$mes))
       }
