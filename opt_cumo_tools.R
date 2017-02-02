@@ -11,12 +11,15 @@ build_mult_bxxc=function(dirx) {
       # freshly compile the code (==first use or .so is outdated)
       frmu=file.path(system.file(package="rmumps"), "libs", .Platform$r_arch, paste("rmumps", .Platform$dynlib.ext, sep=""))
       Sys.setenv(PKG_LIBS=sprintf('"%s"', frmu))
-      Sys.setenv(PKG_CXXFLAGS="-std=c++11")
+      Sys.setenv(PKG_CXXFLAGS="-std=c++11 -fopenmp") # ‑mveclibabi=svml
       tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
-      ftmp=sub(".*'(.*)'.*", "\\1", grep("dyn.load", tes, value=TRUE))
+      dl_str=grep("dyn.load", tes, value=TRUE)
+      ftmp=sub(".*'(.*)'.*", "\\1", dl_str)
+      dl_inf=sub("^(.*) <- dyn.load\\(.*$", "\\1", dl_str)
+      fu_li=sub("// ", "", grep("// ", tes, value=TRUE))
       file.copy(ftmp, file.path(dirx, fso), overwrite = TRUE, copy.date=TRUE)
-      sy=sapply(c("mult_bxxc", "solve_ieu", "match_ij"), function(it) {s=grep(paste(it, " <- ", sep=""), tes, value=TRUE, fixed=TRUE); sub(paste(".*'(sourceCpp_.*_", it, ")'.*", sep=""), "\\1", s)})
-      write.table(sy, file=file.path(dirx, "mult_bxxc.txt"), col.names=FALSE)
+      sy=sapply(fu_li, function(it) {s=grep(paste(it, " <- ", sep=""), tes, value=TRUE, fixed=TRUE); sub(dl_inf, "multdll", s)})
+      write.table(sy, file=file.path(dirx, "mult_bxxc.txt"), col.names=FALSE, row.names=FALSE)
    }
 }
 # build compiled code
@@ -26,10 +29,10 @@ so=.Platform$dynlib.ext
 fso=paste("mult_bxxc", so, sep="")
 # define R functions from mult_bxxc.so
 multdll=dyn.load(file.path(dirx, fso))
-sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE, row.names=1))[,1]
-mult_bxxc <- Rcpp:::sourceCppFunction(function(a, b, c) {}, TRUE, multdll, sy["mult_bxxc"])
-solve_ieu <- Rcpp:::sourceCppFunction(function(invdt, x0, M, ali, s, ilua) {}, TRUE, multdll, sy["solve_ieu"])
-match_ij <- Rcpp:::sourceCppFunction(function(ix, jx, ti, tj) {}, TRUE, multdll, sy["match_ij"])
+sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE))[,1]
+for (rsy in sy) {
+   eval(parse(text=rsy))
+}
 rm(multdll)
 
 dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
