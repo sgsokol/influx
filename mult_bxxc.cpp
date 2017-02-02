@@ -23,15 +23,23 @@ v 0.2 2016-03-04 added solve_ieu(), margins of c are permuted (ntico is last now
 #include <RcppArmadillo.h>
 using namespace arma;
 using namespace std;
+using namespace Rcpp;
+
+#include <string>
 
 // [[Rcpp::depends(rmumps)]]
 #include <rmumps.h>
 
-using namespace Rcpp;
+using namespace std;
 using namespace std::placeholders;
 int my_mod(int a, int b) { return a%b; }
 int my_div(int a, int b) { return a/b; }
 
+// not exported (auxiliary) function)
+constexpr unsigned int s2i(const char* str, int h = 0)
+{
+    return !str[h] ? 5381 : (s2i(str, h+1) * 33) ^ str[h];
+}
 // [[Rcpp::export]]
 void mult_bxxc(NumericVector a, List b, NumericVector c) {
    if (!b.inherits("simple_triplet_matrix")) {
@@ -64,7 +72,7 @@ void mult_bxxc(NumericVector a, List b, NumericVector c) {
 //print(irb);
 //Rcout << "it=" << std::endl;
 //print(it);
-   
+   //#pragma omp parallel for ordered private(iic,iia) schedule(dynamic) num_threads(2) // little or not at all acceleration
    for (int icc=0; icc < nc_c; icc++) {
       for (int i=0; i < bv.size(); i++) {
          iic=bj[i]+(icc+it[i]*nc_c)*ldc;
@@ -214,3 +222,155 @@ NumericVector crossprod_st(List x, NumericVector y_) {
    return r_;
 }
 */
+// [[Rcpp::export]]
+void cp_dm(NumericVector& dst, unsigned int irdst, unsigned int nr, NumericVector& src) {
+   // copy src array to dst[irdst:irdst+nr,,...]
+   // Both arrays are supposed to be of type 'double'
+   // The copy is done 'in place' without new memory allocation
+   // src is reshaped and possibly replicated to fit dst[nr,...]
+   
+   // layaout arrays as matrices
+   unsigned int nrl, ncl;
+   if (dst.hasAttribute("dim")) {
+      IntegerVector did(dst.attr("dim"));
+      nrl=did[0];
+      ncl=dst.size()/nrl;
+   } else {
+      nrl=dst.size();
+      ncl=1;
+   }
+   irdst--;
+   mat mdst(dst.begin(), nrl, ncl, false, true);
+   if (src.size() == 1) {
+      //double cnst=src[0];
+      mdst.submat(irdst, 0, irdst+nr-1, ncl-1).fill(src[0]);
+      return;
+   }
+   if (src.size() < nr) {
+      stop("not enough elemnts in src to fill a column in dst");
+   }
+   nrl=nr;
+   if (src.hasAttribute("dim")) {
+      ncl=src.size()/nrl;
+   } else {
+      ncl=1;
+   }
+   mat msrc(src.begin(), nrl, ncl, false, false);
+   if (msrc.n_cols < mdst.n_cols) {
+      // replicate src as many time as needed (i.e. add columns)
+      msrc=repmat(msrc, 1, mdst.n_cols/msrc.n_cols);
+   } else if (msrc.n_cols > mdst.n_cols) {
+      stop("Destination columns ("+to_string(mdst.n_cols)+") are not numerous enough to accept source columns ("+to_string(msrc.n_cols)+")");
+   }
+   mdst.submat(irdst, 0, size(msrc))=msrc;
+}
+// [[Rcpp::export]]
+void bop(NumericVector& dst, const uvec& b, const string& sop, NumericVector& src) {
+   // bop=bloc operation in place
+   // src array is added (if sop=="+=") to dst[...]
+   // or any other manipulation is made according to sop parameter
+   // Both arrays are supposed to be of type 'double'
+   // The operation is done 'in place' without new memory allocation for dst
+   // src is reshaped and possibly replicated to fit the designated block of dst.
+   // b is a 3 component vector describing the block: 1-margin number of dst, 2-offset, 3-length
+   // sop is one off: "=" (copy src to dst[]), "+=", "-=", "*=", "/="
+   
+   // layaout arrays as cubes
+   uvec did, dis; // array dimensions
+   uvec dfi(3), dla(3), dlen; // destination first and last indexes by margin, and lengths
+   uvec cdid(3), cdis(3); // cube dimensions
+   unsigned int margin=b[0]-1, ioff=b[1], len=b[2];
+   if (dst.hasAttribute("dim")) {
+      did=as<uvec>(dst.attr("dim"));
+   } else {
+      did=uvec(1).fill(dst.size());
+   }
+   if (b.size() != 3)
+      stop("Block vector b must be of length 3 (not "+to_string(b.size())+")");
+   if (b[0] < 1 || b[0] > did.size()) {
+      stop("Margin value ("+to_string(b[0])+") is invalid. Must be in [1, length(dim(dst)]");
+   }
+   if (ioff < 0 || ioff >= did[margin]) {
+      stop("Block offset ("+to_string(ioff)+") is invalid. Must be in [0, dim(dst)[b[0]]-1]");
+   }
+   if (b[2] < 1 || b[2] > did[margin]) {
+      stop("Block length ("+to_string(len)+") is invalid. Must be in [1, dim(dst)[b[0]]]");
+   }
+   // prepare cdst dimensions (cdid)
+   if (margin > 0) {
+      cdid[0]=prod(did.head(margin));
+      cdid[1]=did[margin];
+      cdid[2]=prod(did.tail(did.size()-b[0]));
+      dfi={0, ioff, 0};
+      dla={cdid[0]-1, ioff+len-1, cdid[2]-1};
+      //Rcout << "dla=" << dla << endl;
+      //Rcout << "dfi=" << dfi << endl;
+   } else if (margin == 0) {
+      cdid[0]=did[0];
+      cdid[1]=prod(did.tail(did.size()-1));
+      cdid[2]=1;
+      dfi={ioff, 0, 0};
+      dla={ioff+len-1, cdid[1]-1, cdid[2]-1};
+   }
+   dlen=dla-dfi+1;
+   //Rcout << "dlen=" << dlen << endl;
+   cube cdst(dst.begin(), cdid[0], cdid[1], cdid[2], false);
+   if (src.size() == 1) {
+      switch(s2i(sop.c_str())) {
+      case(s2i("=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]).fill(src[0]);
+         break;
+      case(s2i("+=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) += src[0];
+         break;
+      case(s2i("-=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) -= src[0];
+         break;
+      case(s2i("*=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) *= src[0];
+         break;
+      case(s2i("/=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) /= src[0];
+         break;
+      default:
+         stop("Unknown operation '"+sop+"'");
+      }
+      return;
+   }
+   // resize src if needed
+   if (src.hasAttribute("dim")) {
+      dis=as<uvec>(src.attr("dim"));
+   } else {
+      dis=uvec(1).fill(src.size());
+   }
+   mat msrc(src.begin(), src.size(), 1, false);
+   unsigned int pdis=prod(dis), plen=prod(dlen);
+   if ( pdis < plen) {
+      // replicate msrc as many times as needed
+      msrc=repmat(msrc, 1, plen/pdis);
+   } else if (pdis > plen) {
+      stop("Destination is not big enough ("+to_string(plen)+") to accept source ("+to_string(pdis)+")");
+   }
+   cube csrc(msrc.begin(), dlen[0], dlen[1], dlen(2), false);
+      switch(s2i(sop.c_str())) {
+      case(s2i("=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2])=csrc;
+         break;
+      case(s2i("+=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) += csrc;
+         break;
+      case(s2i("-=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) -= csrc;
+         break;
+      case(s2i("*=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) %= csrc;
+         break;
+      case(s2i("/=")):
+         cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2]) /= csrc;
+         break;
+      default:
+         stop("Unknown operation '"+sop+"'");
+      }
+   if (sop == "=")
+      cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2])=csrc;
+}
