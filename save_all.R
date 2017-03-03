@@ -5,5 +5,5 @@
 # to explore later in an interactive R session.
 
 # file name to save
-f=file.path(dirw, sprintf("%s.RData", baseshort))
+f=file.path(dirw, sprintf("%s/%s.RData", dirw, baseshort))
 save(list = ls(all = TRUE), file = f)

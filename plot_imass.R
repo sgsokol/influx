@@ -55,7 +55,7 @@ for (iexp in seq_len(nb_exp)) {
    nm_sel=sort(nm_sel)
    if (length(nm_sel) > 0) {
       nm=unique(sapply(strsplit(nm_sel, ":"), "[", 1:4)[2,])
-      pdf(sprintf("%s.pdf", nm_exp[iexp]))
+      pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]))
       for (met in nm) {
          i=grep(sprintf("m:%s:", met), nm_sel, fix=T, v=T)
          isim=pmatch(sapply(strsplit(i, ":"), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
