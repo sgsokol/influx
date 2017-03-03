@@ -49,6 +49,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     flog.flush()
     sys.stdout.write(fshort+s)
     retcode=0
+    #import pdb
 
     try:
         if not os.path.exists(ft):
@@ -73,11 +74,14 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         #print("cmd_opts=", cmd_opts)
 
         # generate the R code
-        # leave python options as are and put R options as argument to --ropts
-        opt4py=list(pyopt.intersection("--"+kc for kc in cmd_opts.keys())) + \
+        # leave python options as they are and put R options as arguments to --ropts
+        #pdb.set_trace()
+        pykeys=pyopt.intersection(cmd_opts.keys())
+        opt4py=["--"+kc for kc in pykeys if cmd_opts[kc] is None] + \
+            [item for kc in pykeys if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
             ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
             if isinstance(v, type("")) else "T" if v is True else "F" \
-            if v is False else str(v)) for k,v in cmd_opts.iteritems()) + '"'] + \
+            if v is False else str(v)) for k,v in cmd_opts.iteritems() if k not in notropt) + '"'] + \
             (["--case_i"] if case_i else []) + [ft]
         pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
@@ -136,7 +140,9 @@ My basename must start with 'influx_s' or 'influx_i' instead of '%s'."""%me[:8])
 version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
-pyopt=set(("--fullsys", "--emu", "--clownr"))
+pyopt=set(("fullsys", "emu", "clownr", "tblimit"))
+# non valid options for R
+notropt=set(("tblimit",))
 
 # create a parser for command line options
 parser = OptionParser(usage="usage: %prog [options] /path/to/FTBL_file1 [FTBL_file2 [...]]",
@@ -232,10 +238,13 @@ if case_i:
 
 parser.add_option(
 "--TIMEIT", action="store_true",
-    help="developer option")
+    help="developer option: measure cpu time or not")
 parser.add_option(
 "--prof", action="store_true",
-    help="developer option")
+    help="developer option: do time profiling or not")
+parser.add_option(
+"--tblimit", type="int", default=0,
+    help="developer option: set trace back limit for python error messages")
 
 # parse commande line
 (opts, args) = parser.parse_args()
@@ -263,6 +272,7 @@ elif np > 1:
 else:
     np=avaco
 #print("np=", np)
+tblimit=dict_opts.get("tblimit")
 q=Queue() # arguments for threads
 qres=Queue() # results from threads (R file names)
 qret=Queue() # returned code from workers
