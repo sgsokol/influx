@@ -271,7 +271,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                   j_rhsw=j_rhsw+b_x%stm%x_f[seq_len(ba_x),,drop=FALSE]
                }
             }
-            dim(j_rhsw)=c(nb_c, emuw*(nb_ff+nb_fgr))
+            redim(j_rhsw, c(nb_c, emuw*(nb_ff+nb_fgr)))
             tmp=try(solve(Ali[[iw]], j_rhsw))
             if (inherits(tmp, "try-error")) {
                #browser()
@@ -281,7 +281,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                j_rhsw=tmp
             }
             if (emu) {
-               dim(j_rhsw)=c(nb_c, iw, nb_ff+nb_fgr)
+               redim(j_rhsw, c(nb_c, iw, nb_ff+nb_fgr))
                x_f[ba_x+seq_len(iw*nb_c),]=j_rhsw
                # m+N component
                #x_f[ba_x+iw*nb_c+seq_len(nb_c),]= -apply(j_rhsw, c(1L,3L), sum)
@@ -631,7 +631,7 @@ cumo_jacob=function(param, labargs) {
    nblr=sapply(jx_f$dux_dp, nrow) # labeled residual lengths
    nblr_tot=sum(nblr)
    tmp=double(nblr_tot*length(param))
-   dim(tmp)=c(nblr_tot, length(param))
+   redim(tmp, c(nblr_tot, length(param)))
    base=0
    for (iexp in seq_len(nb_exp)) {
       tmp[base+seq_len(nblr[iexp]),]=jx_f$dux_dp[[iexp]]
@@ -796,6 +796,9 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       i=as.integer((iu1-1)%%nar)+1L
       j=as.integer((iu1-1)%/%nar)+1L
       l$b_f=simple_triplet_matrix(i=i, j=j, v=rep(1, length(i)), nrow=nar, ncol=nb_fwrv)
+      # cach ind and pos for (b_f-a_fx)
+      l$bma_pos=if (l$b_f$nrow*l$b_f$ncol < 2251799813685248 && l$a_fx$nrow*l$a_fx$ncol < 2251799813685248) match(l$a_fx$i+l$a_fx$j*l$a_fx$nrow, l$b_f$i+l$b_f$j*l$b_f$nrow, nomatch=0L) else match_ij(l$a_fx$i, l$a_fx$j, l$b_f$i, l$b_f$j)
+      l$bma_ind=which(l$bma_pos == 0L)
       
       # prepare b_x auxiliaries
       if (length(spAbr$ind_bx) > 0) {
@@ -824,15 +827,16 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    }
    x=incu[(1L+nb$xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=FALSE]
    if (emu) {
-      dim(x)=c(nb_c, w, nco)
+      redim(x, c(nb_c, w, nco))
       tmp=x[ind_a[,"ic0"]+1L,,,drop=FALSE]
       tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,,]=-tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,,]
    } else {
       tmp=x[ind_a[,"ic0"]+1L,,drop=FALSE]
       tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,]=-tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,]
    }
-   spAbr$a_fxx[[nm_a_fx]]$xmat$v=tmp[spAbr$a_fxx[[nm_a_fx]]$oa_x]
-   spAbr$a_fxx[[nm_a_fx]]$a_fx$v=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$xmat)
+#browser()
+   spAbr$a_fxx[[nm_a_fx]]$xmat$v[]=tmp[spAbr$a_fxx[[nm_a_fx]]$oa_x]
+   spAbr$a_fxx[[nm_a_fx]]$a_fx$v[]=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$xmat)
    a_fx=spAbr$a_fxx[[nm_a_fx]]$a_fx
    
    # prepare b_f
@@ -841,8 +845,8 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    nprodx=ncol(ind_b)-2-emu
    prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
    dim(prodx)=c(nrow(ind_b), nprodx, nco)
-   spAbr$a_fxx[[nm_a_fx]]$b_fmat$v=-arrApply(prodx, 2, "prod")[spAbr$a_fxx[[nm_a_fx]]$ob_f]
-   spAbr$a_fxx[[nm_a_fx]]$b_f$v=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_fmat)
+   spAbr$a_fxx[[nm_a_fx]]$b_fmat$v[]=-arrApply(prodx, 2, "prod")[spAbr$a_fxx[[nm_a_fx]]$ob_f]
+   spAbr$a_fxx[[nm_a_fx]]$b_f$v[]=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_fmat)
    b_f=spAbr$a_fxx[[nm_a_fx]]$b_f
    
    # prepare b_x
@@ -862,7 +866,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       b_x=simple_triplet_zero_matrix(nrow=nb_xw*nco, ncol=nb$nbc_x[w])
    }
 #browser()
-   return(list(j_rhsw=stm_pm(b_f, a_fx, "-"), b_f=b_f, a_fx=a_fx, b_x=b_x))
+   return(list(j_rhsw=stm_pm(b_f, a_fx, "-", spAbr$a_fxx[[nm_a_fx]]$bma_pos, spAbr$a_fxx[[nm_a_fx]]$bma_ind), b_x=b_x))
 }
 
 put_inside=function(param, ui, ci) {
@@ -1372,21 +1376,17 @@ fallnx2fwrv=function(fallnx, nb_f) {
    fwrv=c(xch-pmin(-net,0),xch-pmin(net,0))
    return(fwrv)
 }
-stm_pm=function(e1, e2, pm=c("+", "-")) {
-   if (pm == "-") {
-      return(stm_pm(e1, -e2, "+"))
+stm_pm=function(e1, e2, pm=c("+", "-"), pos=if (e1$nrow*e1$ncol < 2251799813685248 && e2$nrow*e2$ncol < 2251799813685248) match(e2$i+e2$j*e2$nrow, e1$i+e1$j*e1$nrow, nomatch=0L) else match_ij(e2$i, e2$j, e1$i, e1$j), ind=which(pos == 0L)) {
+   # 2**51 is the max matrix size that fits the length of double mantissa (53 bits))
+   if (pm == "+") {
+      e1$v[pos] = e1$v[pos] + e2$v[pos > 0L]
+      e1$v = c(e1$v, e2$v[ind])
+   } else {
+      e1$v[pos] = e1$v[pos] - e2$v[pos > 0L]
+      e1$v = c(e1$v, -e2$v[ind])
    }
-   stopifnot(pm == "+")
-   #ipos=match(e2$i+e2$j*e2$nrow, e1$i+e1$j*e1$nrow, nomatch=0L)
-   pos=match_ij(e2$i, e2$j, e1$i, e1$j)
-   #if (any(pos!=ipos)) {
-   #   browser()
-   #}
-   ind=which(pos == 0L)
-   e1$v[pos] = e1$v[pos] + e2$v[pos > 0L]
    e1$i = c(e1$i, e2$i[ind])
    e1$j = c(e1$j, e2$j[ind])
-   e1$v = c(e1$v, e2$v[ind])
    return(e1)
 }
 # reorder indexes to accelerate sparse matrix construction
