@@ -30,6 +30,9 @@ using namespace Rcpp;
 // [[Rcpp::depends(rmumps)]]
 #include <rmumps.h>
 
+#include <Rinternals.h>
+#include <R.h>
+
 using namespace std;
 using namespace std::placeholders;
 int my_mod(int a, int b) { return a%b; }
@@ -94,7 +97,7 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<XPtr<Rmumps>> ali, cube s, iv
    // (M/dt_i-a)*x_i=(M/dt_i)*x_(i-1)+s_i
    // The rmumps matrix (M/dt_i-a) is stored in list ali as XPtr<Rmumps>
    // invdt is 1/dt
-   // x0 is the startin value at t0
+   // x0 is the starting value at t0
    // The source term is in array s, its last margin is time
    // The ilua[i] gives the list item number in ali for a given dt_i.
    // Calculations are done in-place so s is modified and contains the
@@ -223,48 +226,6 @@ NumericVector crossprod_st(List x, NumericVector y_) {
 }
 */
 // [[Rcpp::export]]
-void cp_dm(NumericVector& dst, unsigned int irdst, unsigned int nr, NumericVector& src) {
-   // copy src array to dst[irdst:irdst+nr,,...]
-   // Both arrays are supposed to be of type 'double'
-   // The copy is done 'in place' without new memory allocation
-   // src is reshaped and possibly replicated to fit dst[nr,...]
-   
-   // layaout arrays as matrices
-   unsigned int nrl, ncl;
-   if (dst.hasAttribute("dim")) {
-      IntegerVector did(dst.attr("dim"));
-      nrl=did[0];
-      ncl=dst.size()/nrl;
-   } else {
-      nrl=dst.size();
-      ncl=1;
-   }
-   irdst--;
-   mat mdst(dst.begin(), nrl, ncl, false, true);
-   if (src.size() == 1) {
-      //double cnst=src[0];
-      mdst.submat(irdst, 0, irdst+nr-1, ncl-1).fill(src[0]);
-      return;
-   }
-   if (src.size() < nr) {
-      stop("not enough elemnts in src to fill a column in dst");
-   }
-   nrl=nr;
-   if (src.hasAttribute("dim")) {
-      ncl=src.size()/nrl;
-   } else {
-      ncl=1;
-   }
-   mat msrc(src.begin(), nrl, ncl, false, false);
-   if (msrc.n_cols < mdst.n_cols) {
-      // replicate src as many time as needed (i.e. add columns)
-      msrc=repmat(msrc, 1, mdst.n_cols/msrc.n_cols);
-   } else if (msrc.n_cols > mdst.n_cols) {
-      stop("Destination columns ("+to_string(mdst.n_cols)+") are not numerous enough to accept source columns ("+to_string(msrc.n_cols)+")");
-   }
-   mdst.submat(irdst, 0, size(msrc))=msrc;
-}
-// [[Rcpp::export]]
 void bop(NumericVector& dst, const uvec& b, const string& sop, NumericVector& src) {
    // bop=bloc operation in place
    // src array is added (if sop=="+=") to dst[...]
@@ -272,29 +233,35 @@ void bop(NumericVector& dst, const uvec& b, const string& sop, NumericVector& sr
    // Both arrays are supposed to be of type 'double'
    // The operation is done 'in place' without new memory allocation for dst
    // src is reshaped and possibly replicated to fit the designated block of dst.
-   // b is a 3 component vector describing the block: 1-margin number of dst, 2-offset, 3-length
+   // b is a 1 or 3 component vector describing the block: 1-margin number of dst, 2-offset, 3-length
+   // if only the margin is present than offest is 0 and length is the total length of this margin
    // sop is one off: "=" (copy src to dst[]), "+=", "-=", "*=", "/="
    
    // layaout arrays as cubes
    uvec did, dis; // array dimensions
    uvec dfi(3), dla(3), dlen; // destination first and last indexes by margin, and lengths
    uvec cdid(3), cdis(3); // cube dimensions
-   unsigned int margin=b[0]-1, ioff=b[1], len=b[2];
+   if (b.size() != 3 && b.size() != 1)
+      stop("Block vector b must be of length 1 or 3 (not "+to_string(b.size())+")");
    if (dst.hasAttribute("dim")) {
       did=as<uvec>(dst.attr("dim"));
    } else {
       did=uvec(1).fill(dst.size());
    }
-   if (b.size() != 3)
-      stop("Block vector b must be of length 3 (not "+to_string(b.size())+")");
+   unsigned int margin=b[0]-1, ioff, len;
+   ioff=b.size()==3 ? b[1] : 0;
+   len=b.size()==3 ? b[2] : did[margin];
+   // if 0-length operation, leave now and do nothing
+   if (len == 0)
+      return;
    if (b[0] < 1 || b[0] > did.size()) {
       stop("Margin value ("+to_string(b[0])+") is invalid. Must be in [1, length(dim(dst)]");
    }
    if (ioff < 0 || ioff >= did[margin]) {
       stop("Block offset ("+to_string(ioff)+") is invalid. Must be in [0, dim(dst)[b[0]]-1]");
    }
-   if (b[2] < 1 || b[2] > did[margin]) {
-      stop("Block length ("+to_string(len)+") is invalid. Must be in [1, dim(dst)[b[0]]]");
+   if (len < 0 || len > did[margin]) {
+      stop("Block length ("+to_string(len)+") is invalid. Must be in [0, dim(dst)[b[0]]]");
    }
    // prepare cdst dimensions (cdid)
    if (margin > 0) {
@@ -373,4 +340,66 @@ void bop(NumericVector& dst, const uvec& b, const string& sop, NumericVector& sr
       }
    if (sop == "=")
       cdst.subcube(dfi[0], dfi[1], dfi[2], dla[0], dla[1], dla[2])=csrc;
+}
+// [[Rcpp::export]]
+void redim(NumericVector& x, uvec& di) {
+   // write new dimension vector while keeping the old memory
+   uvec dix;
+   dix=x.hasAttribute("dim") ? as<uvec>(x.attr("dim")) : uvec(1).fill(x.size());
+   if (prod(dix) != prod(di))
+      stop("Space in x ("+to_string(prod(dix))+") is not equal to new one ("+to_string(prod(di))+")");
+   x.attr("dim")=di;
+}
+// [[Rcpp::export]]
+void resize(SEXP& x_, uvec& di) {
+   // write new dimension vector while keeping the old memory
+   // new memory cannot be greater than the very first allocation
+   RObject x=as<RObject>(x_);
+   if (!x.inherits("resizable"))
+      stop("Cannot resize an object which is not of 'resisable' class");
+   //Rcout << "n=" << XLENGTH(x_) << endl;
+   unsigned int si=as<unsigned int>(x.attr("size")), pdi=prod(di);
+   SETLENGTH(x_, pdi);
+   if (si < pdi)
+      stop("Space in x ("+to_string(si)+") is not sufficient for new one ("+to_string(pdi)+")");
+   x.attr("dim")=di;
+}
+// [[Rcpp::export]]
+List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
+   // transforms a couple of index vectors ir and jc (ij of a sparse matrix)
+   // with possibly repeated values into a vector of unique indexes of non zero values.
+   // The response can be then used for repeated creation of sparse
+   // matrices with the same pattern by calling iv2v()
+   // i and j are supposed to be sorted in increasing order, column-wise (i runs first)
+   if (ir.size() != jc.size())
+      stop("Sizes of ir and jc must be the same");
+   size_t n=ir.size(), last=0;
+   IntegerVector iv(n);
+   uvec iu(n), ju(n);
+   if (n == 0) {
+      return List::create(_["i"]=iu, _["j"]=ju, _["iv"]=iv);
+   }
+   iv[0] = 0;
+   iu[0]=ir[0];
+   ju[0]=jc[0];
+   for (auto ii=1; ii < n; ii++) {
+      last += ir[ii] != ir[ii-1] || jc[ii] != jc[ii];
+      iv[ii] = last;
+      iu[last] = ir[ii];
+      ju[last] = jc[ii];
+   }
+   last++;
+   iu.resize(last);
+   ju.resize(last);
+   return List::create(_["i"]=as<vector<double>>(wrap(iu)), _["j"]=as<vector<double>>(wrap(ju)), _["iv"]=iv);
+}
+// [[Rcpp::export]]
+NumericVector iv2v(IntegerVector& iv, NumericVector& v) {
+   // sum values in v according to possibly repeated indexes in iv
+   if (iv.size() != v.size())
+      stop("Sizes of iv and v must be the same");
+   NumericVector res(iv[iv.size()-1]+1);
+   for (auto i=0; i < iv.size(); i++)
+      res[iv[i]] += v[i];
+   return res;
 }
