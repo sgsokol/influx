@@ -92,6 +92,7 @@ wout=sys.stdout.write
 me=os.path.realpath(sys.argv[0])
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
+#sys.tracebacklimit=0
 
 from tools_ssg import *
 NaN=float("nan")
@@ -241,17 +242,22 @@ def ftbl_parse(f):
             reading="data"
             #print "col_names=", col_names;##
             continue
-        if reading=="data":
+        if reading=="data" or reading=="transitions":
             if len(l) < skiptab or l[:skiptab] != "\t"*skiptab:
                 raise Exception("Expected at least %d tabulation(s) at the row beginning. Got '%s' (%s: %d)"%(skiptab, l[:min(skiptab, len(l))], ftbl["name"], irow))
             data=[it.strip() for it in l[skiptab:].split("\t")]
             prevdic=dic
             dic={"irow": str(irow)}
-            if sec_name == "NETWORK" and len(data[0]) == 0:
+            if reading=="data" and sec_name == "NETWORK" and len(data[0]) != 0:
+                reading="transitions"
+            elif reading=="transitions":
                 # here, we are at carbon transition line (e.g. #ABC -> #AB +#C)
                 #print "data_count="+str(data_count), \
                 #    "\ndata="+str([l for l in enumerate(data)]), \
                 #    "\nstock="+str(stock);##
+                if sec_name == "NETWORK" and len(data[0]) != 0:
+                    raise Exception("Expected label transitions. Got '%s' (%s: %d)"%(l, ftbl["name"], irow))
+                reading="data"
                 fl_name=str(stock[data_count-1][col_names[0]]) if data_count else ""
                 if col_names[0] not in prevdic or len(prevdic[col_names[0]]) == 0:
                     raise Exception("Carbon transition row '%s' is orphan (%s: %d)."%(l[skiptab:], ftbl["name"], irow))
@@ -295,6 +301,8 @@ def ftbl_parse(f):
     # get unique reaction names
     nw=ftbl["NETWORK"]
     tr=ftbl["TRANS"]
+    if (len(nw) != len(tr)):
+        raise Exception("Number of reactions (%d) is not equal to label transition number (%d)"%(len(nw), len(tr)) )
     ureac=set(row["FLUX_NAME"] for row in ftbl["NETWORK"])
     long_reac={}
     long_trans={}
@@ -431,7 +439,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     for row in ftbl.get("METABOLITE_POOLS",[]):
         metab=row["META_NAME"]
         if metab in netan["met_pools"]:
-            raise Exception("Metabolite '%s' is present more than once in the\nftbl secion METABOLITE_POOLS (second appearance on row %d)"%(metab, row["irow"]))
+            raise Exception("Metabolite '%s' is present more than once in the\nftbl secion METABOLITE_POOLS (second appearance on row %s)"%(metab, row["irow"]))
         netan["met_pools"][metab]=eval(row["META_SIZE"])
 
     # check the presence of fields "NAME", "FCD" and maybe "VALUE(F/C)"
@@ -2427,7 +2435,7 @@ def proc_label_meas(ftbl, netan):
         #print row;##
         # test the cumomer pattern validity
         if (not re.match(r"#[01x]+(\+#[01x]+)*", row["CUM_CONSTRAINTS"])):
-            raise Exception("Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"' (%s: %d)"%(ftbl["name"], row["irow"]))
+            raise Exception("Not valid cumomer's pattern in '"+row["CUM_CONSTRAINTS"]+"' (%s: %s)"%(ftbl["name"], row["irow"]))
         metabs=row["META_NAME"] or metabs
         group=row["CUM_GROUP"] or group
         # metabs can be metab1[+metab2[+...]]
@@ -2442,22 +2450,22 @@ def proc_label_meas(ftbl, netan):
         count=dict((i, metabl.count(i)) for i in set(metabl))
         notuniq=set((i for i in count if count[i] > 1))
         if notuniq:
-            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %d)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
+            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %s)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
 
         metab0=metabl[0] if metabl else ""
         if not metab0 in netan["metabs"]:
-            raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %d)"%(metab0, ftbl["name"], row["irow"]))
+            raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %s)"%(metab0, ftbl["name"], row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
         for metab in metabl:
             if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %d)"%(metab, ftbl["name"], row["irow"]))
+                raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %s)"%(metab, ftbl["name"], row["irow"]))
             if metab in netan["output"]:
                 raise Exception("""Measured metabolites have to be internal to network (found in output metabolites in %s).
 You can add a fictious metabolite in your network immediatly after '"""%ftbl["name"]+metab+"' (seen in LABEL_MEASUREMENTS).")
             mlen=netan["Clen"][metab]
             clen=netan["Clen"][metab]
             if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %d)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
         if not metabs in res:
             res[metabs]={}
         if not group in res[metabs]:
@@ -2477,9 +2485,9 @@ You can add a fictious metabolite in your network immediatly after '"""%ftbl["na
             except:
                 raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row "+row["irow"])
         if not row["VALUE"]:
-            raise Exception("The field VALUE is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+            raise Exception("The field VALUE is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         if not row["DEVIATION"]:
-            raise Exception("The field DEVIATION is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+            raise Exception("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         try:
             val=float(eval(row["VALUE"]))
         except:
@@ -2487,9 +2495,9 @@ You can add a fictious metabolite in your network immediatly after '"""%ftbl["na
         try:
             sdev=float(eval(row["DEVIATION"]))
         except:
-            raise Exception("DEVIATION must evaluate to a real positive number (%s: %d)."%(ftbl["name"], row["irow"]))
+            raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (%s: %d)."%(ftbl["name"], row["irow"]))
+            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
         res[metabs][group].append({
                 "val":val,
                 "dev":sdev,
@@ -2500,7 +2508,7 @@ You can add a fictious metabolite in your network immediatly after '"""%ftbl["na
         # test the icumomer lengths
         if not all(len(ic)==mlen+1 for ic in 
                 res[metabs][group][-1]["bcumos"]):
-            raise Exception("Wrong cumomer length for %s in %s (%s: %d)"%(metab, row["CUM_CONSTRAINTS"], ftbl["name"], row["irow"]))
+            raise Exception("Wrong cumomer length for %s in %s (%s: %s)"%(metab, row["CUM_CONSTRAINTS"], ftbl["name"], row["irow"]))
 def proc_peak_meas(ftbl, netan):
     """Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts
     """
@@ -2515,34 +2523,34 @@ def proc_peak_meas(ftbl, netan):
         #print row;##
         # test the pattern validity
         if (row.get("VALUE_DD","") and row.get("VALUE_T","")):
-            raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row)+" (%s: %d)"%(ftbl["name"], row["irow"]))
+            raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row)+" (%s: %s)"%(ftbl["name"], row["irow"]))
         metabs=row["META_NAME"] or metabs
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
             mdif=set(metabl).difference(netan["met_pools"])
             if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %d)"%(join(", ", mdif), ftbl["name"], row["irow"]))
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %s)"%(join(", ", mdif), ftbl["name"], row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
         notuniq=set((i for i in count if count[i] > 1))
         if notuniq:
-            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %d)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
+            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %s)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
 
         metab0=metabl[0] if metabl else ""
         if not metab0 in netan["metabs"]:
-            raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %d)"%(metab0, ftbl["name"], row["irow"]))
+            raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %s)"%(metab0, ftbl["name"], row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
         for metab in metabl:
             if not metab in netan["metabs"]:
-                raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %d)"%(metab, ftbl["name"], row["irow"]))
+                raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %s)"%(metab, ftbl["name"], row["irow"]))
             if metab in netan["output"]:
                 raise Exception("""Measured metabolites have to be internal to network (seen in output metabolites (%s: %d)).
 You can add a fictious metabolite in your network immediatly after '"""%(ftbl["name"], row["irow"])+metab+"' (seen in PEAK_MEASUREMENTS).")
             clen=netan["Clen"][metab]
             if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %d)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
         res.setdefault(metabs,{})
         for suff in ("S", "D-", "D+", "DD", "T"):
             # get val and dev for this type of peak
@@ -2553,7 +2561,7 @@ You can add a fictious metabolite in your network immediatly after '"""%(ftbl["n
             if suff in ("DD", "T"):
                dev=row.get("DEVIATION_DD/T","") or row.get("DEVIATION_S")
             if not dev:
-                raise Exception("The field DEVIATION_%s is empty (%s: %d)"%(suff, ftbl["name"], row["irow"]))
+                raise Exception("The field DEVIATION_%s is empty (%s: %s)"%(suff, ftbl["name"], row["irow"]))
             try:
                 val=float(eval(val))
             except:
@@ -2564,16 +2572,16 @@ You can add a fictious metabolite in your network immediatly after '"""%(ftbl["n
                 continue
             # test validity
             if not dev:
-                raise Exception("Deviation is not valid for VALUE_"+suff+" (%s: %d)")%(ftbl["name"], row["irow"])
+                raise Exception("Deviation is not valid for VALUE_"+suff+" (%s: %s)")%(ftbl["name"], row["irow"])
             c_no=int(row["PEAK_NO"])
             if c_no > clen0:
-                raise Exception("Carbon number "+str(c_no)+" is greater than carbon length "+str(clen0)+" for metabolite '"+metab0+"' (%s: %d)"%(ftbl["name"], row["irow"]))
+                raise Exception("Carbon number "+str(c_no)+" is greater than carbon length "+str(clen0)+" for metabolite '"+metab0+"' (%s: %s)"%(ftbl["name"], row["irow"]))
             if suff == "D-" and c_no == 1:
-                raise Exception("Peak D- cannot be set for metabolite "+metab0+", c_no=1 (%s: %d)"%(ftbl["name"], row["irow"]))
+                raise Exception("Peak D- cannot be set for metabolite "+metab0+", c_no=1 (%s: %s)"%(ftbl["name"], row["irow"]))
             if suff == "D+" and c_no == clen:
-                raise Exception("Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" (%s: %d)"%(ftbl["name"], row["irow"]))
+                raise Exception("Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" (%s: %s)"%(ftbl["name"], row["irow"]))
             if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
-                raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" (%s: %d)"%(ftbl["name"], row["irow"]))
+                raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" (%s: %s)"%(ftbl["name"], row["irow"]))
             res[metabs].setdefault(row["irow"],{})
             res[metabs][row["irow"]][suff]={
                "val": val,
@@ -2603,18 +2611,18 @@ def proc_mass_meas(ftbl, netan):
             # pooling metabolites will need their concentraions
             mdif=set(metabl).difference(netan["met_pools"])
             if mdif:
-                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %d)"%(join(", ", mdif), ftbl["name"], row["irow"]))
+                raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %s)"%(join(", ", mdif), ftbl["name"], row["irow"]))
 
         # check that all metabs are unique
         count=dict((i, metabl.count(i)) for i in set(metabl))
         #print(count)
         notuniq=set((i for i in count if count[i] > 1))
         if notuniq:
-            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %d)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
+            raise Exception("Metabolite(s) '%s' is present twice or more (%s: %s)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
 
         metab0=metabl[0] if metabl else ""
         if not metab0 in netan["metabs"]:
-            raise Exception("Unknown metabolite name '%s' in MASS_MEASUREMENTS (%s: %d)"%(metab0, ftbl["name"], row["irow"]))
+            raise Exception("Unknown metabolite name '%s' in MASS_MEASUREMENTS (%s: %s)"%(metab0, ftbl["name"], row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
         frag=row["FRAGMENT"] or frag
         for metab in metabl:
@@ -2627,7 +2635,7 @@ def proc_mass_meas(ftbl, netan):
 You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
             clen=netan["Clen"][metab]
             if clen!=clen0 :
-                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %d)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
+                raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
         if row["FRAGMENT"]:
             # recalculate fragment mask
             mask=0
@@ -2661,9 +2669,9 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         res.setdefault(m_id, {})
         res[m_id].setdefault(mask, {})
         if not row["VALUE"]:
-            raise Exception("The field VALUE is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+            raise Exception("The field VALUE is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         if not row["DEVIATION"]:
-            raise Exception("The field DEVIATION is empty (%s: %d)"%(ftbl["name"], row["irow"]))
+            raise Exception("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         try:
             val=float(eval(row["VALUE"]))
         except:
@@ -2671,9 +2679,9 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
         try:
             sdev=float(eval(row["DEVIATION"]))
         except:
-            raise Exception("DEVIATION must evaluate to a real positive number (%s: %d)."%(ftbl["name"], row["irow"]))
+            raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (%s: %d)."%(ftbl["name"], row["irow"]))
+            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
         res[m_id][mask][weight]={
                 "val":val,
                 "dev":sdev,
