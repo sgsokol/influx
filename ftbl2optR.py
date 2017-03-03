@@ -131,11 +131,11 @@ if __name__ == "__main__":
         pass
 
     def usage():
-        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--ropts ROPTS] network_name[.ftbl]\n")
+        sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--tblimit[=0]] [--ropts ROPTS] network_name[.ftbl]\n")
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "ropts=", "case_i"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i"])
     except getopt.GetoptError, err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -147,6 +147,7 @@ if __name__ == "__main__":
     clownr=False
     ropts=['""']
     case_i=False
+    tblimit=0
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -161,6 +162,8 @@ if __name__ == "__main__":
             ropts=a.split("; ") if len(a) else ['""']
         elif o=="--case_i":
             case_i=True
+        elif o=="--tblimit":
+            tblimit=int(a)
         else:
             #assert False, "unhandled option"
             # unknown options can come from shell
@@ -175,6 +178,7 @@ if __name__ == "__main__":
         exit(1)
     org=os.path.basename(args[0])
     dirorg=os.path.dirname(args[0]) or '.'
+    sys.tracebacklimit=tblimit
 
     # cut .ftbl if any
     if org[-5:]==".ftbl":
@@ -726,7 +730,7 @@ for (irun in seq_len(nseries)) {
       rownames(mi_zc)=nm_izc
       li_zc=rep(zc, length(nm_izc)) # that's ok for both pos and neg constraints
       ui_zc=cbind(mi_zc%*%(md%*%invAfl%stm%p2bfl+mf),
-         matrix(0., nrow=nrow(mi_zc), ncol=nb_sc))
+         matrix(0., nrow=nrow(mi_zc), ncol=nb_sc_tot))
       if (nb_fgr > 0) {
          ui_zc=cbind(ui_zc, mi_zc%*%((md%*%invAfl%stm%g2bfl)+mg*nb_f$mu))
       } else if (nb_poolf > 0) {
