@@ -7,6 +7,162 @@
 User's manual
 =============
 
+Before diving in ``influx_si`` features let us present FTBL format evolution that was necessary to support ``influx_si`` innovations.
+
+FTBL format evolution
+---------------------
+FTBL format was conceived by authors of ``13CFlux`` software in late 1990's (cf. https://www.13cflux.net/). At the beginning of 2000's, ``13CFlux`` became well spread in scientific community working on metabolism and isotope labeling. When we published the first version of ``influx_s`` in 2011, we adopted FTBL format to avoid cumbersome rewriting of networks and data already in use by the community. Second version of 13CFlux, published in 2012, abandoned FTBL format which was replaced by FluxML (XML) and was accompanied by a tool for automatic conversion of FTBL to FluxML.
+
+On our side, we decided to continue to use FTBL by extending and evolving some of its features. These extensions and evolution are presented hereafter. Version number in titles indicates when presented feature was first introduced to ``influx_s(i)``.
+ 
+``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` (v2.0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added. These sections can be useful for stationary labeling when growth fluxes are modeled with :math:`\mu M` terms (cf. `Growth flux option`_) or when some metabolites are confounded in measurements due to cell compartmentation of co-elution during HPLC step or whatever reason. These sections become mandatory for ``influx_i`` usage for instationary labeling as not only fluxes but also metabolite concentrations impact label propagation dynamics.
+
+``METABOLITE_POOLS`` is structured in two columns named ``META_NAME`` and ``META_SIZE`` and as ussual for FTBL indented and separated by tabulations, e.g. ::
+
+		METABOLITE_POOLS
+			META_NAME	META_SIZE
+			AKG	-0.5
+			...
+
+.. note::
+  
+  The value ``-0.5`` is not aligned with its column name ``META_SIZE`` because by default, tab characters are expanded to 8 spaces. As ``META_NAME`` occupies 9 spaces, ``META_SIZE`` is just shifted to the next tab position. User has to use only one tab character to separate columns even if they don't look aligned on his screen.
+
+For ``influx_i``, every internal metabolite (i.e. metabolites present in ``NETWORK`` section and not being input or output metabolites) and participating in carbon exchange must be referenced in this section. The value given in the column ``META_SIZE`` is a metabolite concentration. The unit used for these values must be in accordance with the units used for fluxes. For example, if metabolite concentrations are measured in mM/g then fluxes are supposed to be measured in mM/(g*[time_unit]). If the value is positive then corresponding metabolite is considered as having constant concentration which does not vary during fitting iterations. If the value is negative, then this metabolite concentration will be part of fitted variables and its absolute value is used as a starting value for these iterations.
+A final fitted value will be expressed as a positive number.
+
+For ``influx_s``, this section is optional and only few (not all) internal metabolites can be present in this section.
+
+``METAB_MEASUREMENTS`` section regroups measurements of internal metabolite concentrations. Input and output metabolites may have concentrations varying during an experiment as they are consumed or produced. So they cannot appear in this section.  ``METAB_MEASUREMENTS`` section has 3 columns: ``META_NAME``, ``VALUE`` and ``DEVIATION``, e.g. ::
+
+	METAB_MEASUREMENTS
+		META_NAME	VALUE	DEVIATION
+		Fru6P	0.43	0.01
+		...
+
+Column names are self explanatory.
+
+In case of confounded measurements, confounded metabolites can be given as a sum, e.g. ::
+
+	METAB_MEASUREMENTS
+		META_NAME	VALUE	DEVIATION
+		R5P_c+R5P_m	0.32	0.01
+		...
+  
+In this case, the value ``0.32`` will be fitted by a sum of simulated metabolite concentrations.
+
+Long reactions (v4.0)
+~~~~~~~~~~~~~~~~~~~~~
+Initially, FTBL admitted no more than 2 metabolites on each side of reactions put in ``NETWORK`` section. We had to overcome this limit to facilitate FTBL creation for studies including reactions much longer than that. Now, chemical reaction having more than two metabolites on any side can be split in several sub-reactions, each of which has no more then 2 metabolites on every side. It is important that all sub-reactions be put together one after another and that they  have the same name. Based on this name, ``influx_si`` will assemble all parts in one reaction. E.g. a reaction named ``Val_syn`` ::
+
+  Val_syn: Pyr (abc) + Pyr (def) + Glu (ghijk) + NADPH -> Val (abcef) + CO2 (d) + AKG (ghijk)
+  
+can be translated into FTBL format as ::
+
+ NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+	Val_syn	Pyr	Pyr	Val	CO2
+		#abc	#def	#abcef	#d
+	Val_syn	Glu	NADPH	AKG	
+		#ghijk	#	#ghijk	
+
+If some reactions have the same name but not placed sequentially one after another, it will be signaled as an error.
+
+Cofactors (v4.0)
+~~~~~~~~~~~~~~~~~
+Here, we call cofactors metabolites that does not participate in carbon transfer from one or several molecules to another. The main interest of entering cofactors in carbon transferring reactions is additional balance equations that we can put in stoechiometric system. Thus the number of free fluxes is diminished and fluxes are constrained to more realistic values, not violating cofactor balances.
+
+To indicate that a metabolite is a cofactor, user can simply put an empty carbon string in the corresponding carbon transferring line. For example, a reaction ::
+
+ v8: PEP (abc) -> Pyr (abc) + ATP
+ 
+can be translated into FTBL as ::
+
+ NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+	v8	PEP		Pyr	ATP
+		#abc		#abc	#
+
+Note an empty carbon string ``#`` at the place corresponding to ``ATP``.
+An important difference between cofactors and other metabolites that the former are allowed to have stoechiometric coefficients different from 1. These coefficients must be separated from cofactors by ``*`` sign, e.g. a reaction ::
+
+  v41: Asp (abcd) + 2 ATP + NH3 -> Asn (abcd)
+
+can be translated into FTBL as ::
+
+ NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+	v41	Asp	2*ATP	Asn	
+		#abcd	#	#abcd	
+	v41	NH3		
+		#		
+
+Note the presence of ``2*ATP`` term.
+
+Same metabolite on both sides of reaction (v4.0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In some particular cases, it can be necessary to have a same metabolite on both sides of reaction. Let us illustrate this situation with the following example: ::
+
+ v71: CO2.unlabeled (a) + CO2 (b) -> CO2 (a) + CO2.out (b)
+ 
+Metabolite CO2 is present on both sides of reaction but its carbon atom is not the same. This is the main reason for introducing this feature, to allow tracer rearrangement. In FTBL, it gives ::
+
+ NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+	v71	CO2.unlabeled	CO2	CO2	CO2.out
+		#a	#b	#a	#b
+
+
+Section ``NOTRACER_NETWORK`` (v4.0)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to reactions with carbon rearrangements, it can be useful to add reactions with no carbon transfer. The most known reaction of such type is biomass composition but it can there be others, e.g. involving exclusively cofactors: ::
+
+  v61: NADH + 0.5 O2 -> 2 ATP
+  
+This optional section is structured in 2 columns: ``FLUX_NAME`` and ``EQUATION``: ::
+
+ NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+	v61	NADH+0.5*O2 = 2*ATP
+
+You can see that the reaction is written in a manner very different form ``NETWORK`` section. Its sides are separated by ``=`` sign, metabolites are separated by ``+`` and they can have stoechiometric coefficients separated by ``*`` symbol. It is not visible in this example, but there can be as many metabolites as desired on each side of reaction. The limit "no more than 2 metabolites by side" proper to ``NETWORK`` section does not apply here.
+
+Sub-sections ``EQUALITY/METAB`` and ``INEQUALITY/METAB`` (v2.11)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In the same manner as for fluxes, user can have to constrain variable metabolite concentrations. Constraints can be by equalities and inequalities. These subsections are organized in the same way as for fluxes. In ``EQUALITY/METAB`` there are 2 columns ``VALUE`` and ``FORMULA`` while in ``INEQUALITY/METAB`` there are 3 of them: ``VALUE``, ``COMP`` and ``FORMULA``. For example, ::
+
+ EQUALITIES
+	METAB
+		VALUE	FORMULA
+		0	R5P - 1.5*X5P
+		...
+ INEQUALITIES
+	METAB
+		VALUE	COMP	FORMULA
+		0.001	<=	PEP
+		10	>=	PEP
+		...
+
+``NA`` in measurements (v2.5)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Missing values marked as ``NA`` are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as ``NA`` is that the latter will be simulated and reported in corresponding simulation sections of the result file.
+This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to ``NA`` (but not their SD).
+
+Convention evolution
+~~~~~~~~~~~~~~~~~~~~~
+Not only FTBL format evolved but also some conventions between its parts and content. Here is a complete list of them:
+  - user must explicitly declare input-output fluxes as non reversible (set them as ``C`` with a value ``0`` in the section ``FLUX/XCH``) to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0 and have net flux equal to 0 while exchange flux non zero).
+  - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections (even if this feature is maintained in v4.0 its interest has diminished since cofactors can now be directly introduced in ``NETWORK`` and ``NOTRACER_NETWORK`` sections);
+  - in LABEL_INPUT section following conventions apply since v3.2:
+      * *"the rest is unlabeled"*: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;
+      * *"guess the lacking one"*: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.
+
+Basic influx_si usage
+---------------------
 ``influx_si`` can be run without any option on most common cases. So its usage can be as simple as ::
 
  $ influx_s.py mynetwork
@@ -18,20 +174,6 @@ or ::
 we suppose here that a valid `FTBL <https://www.13cflux.net/>`_ file ``mynetwork.ftbl`` was created. Moreover, we supposed ``influx_s.py`` and ``influx_i.py`` is in the PATH variable.
 
 In the rest of this manual, we'll use just ``influx_s.py`` as example if the example is valid for both stationary and instationary contexts. If some usage is valid exclusively for ``influx_i.py``, it will be duly signaled.
-
-.. note::
- A documentation on FTBL syntax rules can be found in its original place, i.e. in the documentation on 13CFlux software freely available at https://www.13cflux.net/
- For some specific features of ``influx_si``, the FTBL format was extended. Here is a complete list of such extensions:
- 
-  - sections ``METABOLITE_POOLS`` and ``METAB_MEASUREMENTS`` concerning metabolite pools were added (cf. `Growth flux option`_);
-  - user must explicitly declare input-output fluxes as non reversible to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0).
-  - starting from the version 2.5, ``NA`` (missing values) are admitted in measurement sections;
-  - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections;
-  - starting from the version 2.11, new subsections ``EQUALITY/METAB`` and ``INEQUALITY/METAB`` can appear in FTBL file. They can be useful, e.g. to impose a fixed ratio between variable metabolite concentrations (that are part of fitted variables) and/or to limit their variations to some interval. Their syntax is identical to the flux counterpart of these sections.
-  - in LABEL_INPUT section following conventions apply:
-  
-    * *"the rest is unlabeled"*: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;
-    * *"guess the lacking one"*: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.
 
 
 In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g. ::
@@ -62,113 +204,113 @@ Here after the available options with their full names are enumerated and detail
 
 ``influx_si`` command line options
 ----------------------------------
-  --version        show program's version number and exit
-  -h, --help       show the help message and exit
-  --noopt          no optimization, just use free fluxes as is (after a projection on feasibility domain), to calculate
-                   dependent fluxes, cumomers, stats and so on
-  --noscale        no scaling factors to optimize => all scaling factors are assumed to be 1
+	--version        show program's version number and exit
+	-h, --help       show the help message and exit
+	--noopt          no optimization, just use free fluxes as is (after a projection on feasibility domain), to calculate
+									 dependent fluxes, cumomers, stats and so on
+	--noscale        no scaling factors to optimize => all scaling factors are assumed to be 1
 
-                   This option can be useful if your measurements are already scaled to sum up to 1 which is often the case of MS data. Then, user saves some free parameters corresponding to scaling factors. This option can become mandatory if user wants to prevent scaling factors to be adjusted by optimization process.
-  --meth=METH      method for optimization, one of nlsic|BFGS|Nelder-Mead.
-                   Default: nlsic
-  --fullsys        calculate all cumomer set (not just the reduced one
-                   necessary to simulate measurements)
+									 This option can be useful if your measurements are already scaled to sum up to 1 which is often the case of MS data. Then, user saves some free parameters corresponding to scaling factors. This option can become mandatory if user wants to prevent scaling factors to be adjusted by optimization process.
+	--meth=METH      method for optimization, one of nlsic|BFGS|Nelder-Mead.
+									 Default: nlsic
+	--fullsys        calculate all cumomer set (not just the reduced one
+									 necessary to simulate measurements)
 
-                   This option influences only post-optimization treatment. The fitting itself is still done with the reduced cumomer set or EMU variables if requested so. See the original paper on ``influx_s`` for more information on the reduced cumomer set.
-  --emu            simulate labeling in EMU approach
+									 This option influences only post-optimization treatment. The fitting itself is still done with the reduced cumomer set or EMU variables if requested so. See the original paper on ``influx_s`` for more information on the reduced cumomer set.
+	--emu            simulate labeling in EMU approach
 
-                   This option should not produce a different result in parameter fitting. It is implemented and provided in a hope that on some network the results can be obtained in a shorter time
-  --irand          ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries
-                   option) and use random values drawn uniformly from [0,1]
-                   
-                   It is recommended to use this option in conjunction with "--zc 0" option.
-  --sens=SENS      sensitivity method: SENS can be 'mc[=N]', mc stands for
-                   Monte-Carlo. N is the number of Monte-Carlo simulations.
-                   Default for N: 10
+									 This option should not produce a different result in parameter fitting. It is implemented and provided in a hope that on some network the results can be obtained in a shorter time
+	--irand          ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries
+									 option) and use random values drawn uniformly from [0,1]
+									 
+									 It is recommended to use this option in conjunction with "--zc 0" option.
+	--sens=SENS      sensitivity method: SENS can be 'mc[=N]', mc stands for
+									 Monte-Carlo. N is the number of Monte-Carlo simulations.
+									 Default for N: 10
 
-                   The sensitivity information (i.e. the influence of the noise in the data on the estimated parameter variation) based on linearized statistics is always provided. So the user has to use this option only if he wants to compare this linearized information to the Monte-Carlo simulations. Note that the default value 10 for the number of simulations is far from to be sufficient to get reliable statistical estimations. This default option allows only to quickly check that this option is working as expected.
-  --cupx=CUPX      upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999
-  --cupn=CUPN      upper limit for net fluxes. Default: 1.e3
-  --cupp=CUPP      upper limit for metabolite pool. Default: 1.e5
-  --clownr=CLOWNR  lower limit for not reversible free and dependent fluxes.
-                   Zero value (default) means no lower limit
+									 The sensitivity information (i.e. the influence of the noise in the data on the estimated parameter variation) based on linearized statistics is always provided. So the user has to use this option only if he wants to compare this linearized information to the Monte-Carlo simulations. Note that the default value 10 for the number of simulations is far from to be sufficient to get reliable statistical estimations. This default option allows only to quickly check that this option is working as expected.
+	--cupx=CUPX      upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999
+	--cupn=CUPN      upper limit for net fluxes. Default: 1.e3
+	--cupp=CUPP      upper limit for metabolite pool. Default: 1.e5
+	--clownr=CLOWNR  lower limit for not reversible free and dependent fluxes.
+									 Zero value (default) means no lower limit
 
-                   A byproduct of this option is that it can drastically reduce  cumomer system sizes. As it ensures that non reversible fluxes cannot change the sign, revers fluxes can be eliminated from pathways leading to observable cumomers. 
-  --cinout=CINOUT  lower limit for input/output free and dependent fluxes.
-                   Must be non negative. Default: 0
-  --clowp=CLOWP    lower limit for free metabolite pools. Must be positive. Default 1.e-8
-  --np=NP            When integer >= 1, it is a number of parallel threads (on
-                     Unix) or subprocesses (on Windows) used in Monte-Carlo
-                     (M-C) simulations or for multiple FTBL inputs. When NP is
-                     a float number between 0 and 1, it gives a fraction of
-                     available cores (rounded to closest integer) to be used.
-                     Without this option or for NP=0, all available cores in a
-                     given node are used for M-C simulations.
-  --ln             Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
+									 A byproduct of this option is that it can drastically reduce  cumomer system sizes. As it ensures that non reversible fluxes cannot change the sign, revers fluxes can be eliminated from pathways leading to observable cumomers. 
+	--cinout=CINOUT  lower limit for input/output free and dependent fluxes.
+									 Must be non negative. Default: 0
+	--clowp=CLOWP    lower limit for free metabolite pools. Must be positive. Default 1.e-8
+	--np=NP            When integer >= 1, it is a number of parallel threads (on
+										 Unix) or subprocesses (on Windows) used in Monte-Carlo
+										 (M-C) simulations or for multiple FTBL inputs. When NP is
+										 a float number between 0 and 1, it gives a fraction of
+										 available cores (rounded to closest integer) to be used.
+										 Without this option or for NP=0, all available cores in a
+										 given node are used for M-C simulations.
+	--ln             Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient
 
-                   Jacobian can become rank deficient if provided data are not sufficient to resolve all free fluxes. It can be useful to determine fluxes that can still be resolved by the available measurements. If the Jacobian does not become rank deficient, this option has no influence on the found solution neither on the optimization process. But if the Jacobian does become rank deficient, a warning message is printed in the error file even if the optimization process could go to the end.
+									 Jacobian can become rank deficient if provided data are not sufficient to resolve all free fluxes. It can be useful to determine fluxes that can still be resolved by the available measurements. If the Jacobian does not become rank deficient, this option has no influence on the found solution neither on the optimization process. But if the Jacobian does become rank deficient, a warning message is printed in the error file even if the optimization process could go to the end.
 
-                   .. note:: Use this option with caution, in particular, when used in conjunction with Monte-Carlo simulations. As undetermined fluxes will be given some particular value, this value can be more or less stable from one Monte-Carlo simulation to another. This can create an illusion that a flux is well determined. See the linearized statistics in the result file to decide which fluxes are badly resolved.
+									 .. note:: Use this option with caution, in particular, when used in conjunction with Monte-Carlo simulations. As undetermined fluxes will be given some particular value, this value can be more or less stable from one Monte-Carlo simulation to another. This can create an illusion that a flux is well determined. See the linearized statistics in the result file to decide which fluxes are badly resolved.
 
-                   A correct way to deal with badly defined metabolic network is to provide additional data that can help to resolve all the fluxes and/or to optimize input label, not just put ``--ln`` option and cross the fingers.
+									 A correct way to deal with badly defined metabolic network is to provide additional data that can help to resolve all the fluxes and/or to optimize input label, not just put ``--ln`` option and cross the fingers.
 
-                   .. warning:: In this option, the notion of "least norm" is applied to *increments* during the optimization, not to the final solution. So undetermined fluxes could vary from one run to another if the optimization process is started from different points while well determined fluxes should keep stable values.
-  --sln            Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient
-  --tikhreg        Approximate least norm solution is used for increments
-                   during the non-linear iterations when Jacobian is rank
-                   deficient
-                   
-                   To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only one of the options ``--ln`` and ``--tikhreg`` can be activated in a given run.
-  --lim            The same as --ln but with a function limSolve::lsei()
-  --zc=ZC          Apply zero crossing strategy with non negative threshold
-                   for net fluxes
-                   
-                   This option can accelerate convergence in situations when a net flux has to change its sign during the optimization iterations. Once such flux is identified, it is better to write the corresponding reaction in an opposite sens in the FTBL file or to give a starting value with a correct sign to avoid such zero crossing situation.
-  --ffguess        Don't use free/dependent flux definitions from FTBL
-                   file(s). Make an automatic guess.
-                   
-                   The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1] interval). An option ``--seed`` can be useful to make the results reproducible.
-  --fseries=FSERIES  File name with free parameter values for multiple
-                     starting points. Default: '' (empty, i.e. only one
-                     starting point from the FTBL file is used)
-                     
-                     The file must be formatted as plain text file with tab separator. There must be as many columns as starting points and at least as many rows as free parameters assigned in this file. A subset of free parameters can be used in this file. In this case, the rest of parameters take their unique starting values from the FTBL file. The first column must contain the names of free parameters used in this file. If there are extra rows whose names are not in the set of free parameter names, they are simply ignored. The first row must contain the names of starting points. These names can be just numbers from 1 to the number of starting points.
-  --iseries=ISERIES  Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default '' (empty, i.e. all provided starting points are used)
-                     
-                     When used with conjunction with ``--fseries``, this option indicates the starting points to use from FSERIES file. But this option can also be used in conjunction with ``--irand`` to generate a required number of random starting points, e.g. ``influx_s.py --irand --iseries 1:10 mynetwork`` will generate and use 10 random starting points.
-                     
-                     For both ``--fseries`` and ``--iseries``, one result file is generated per starting point, e.g. ``mynetwork_res.V1.kvh``, ``mynetwork_res.V2.kvh`` and so on. If starting points comes from a ``--fseries`` then the suffixes ``V1``, ``V2``, ... are replaced by the column names from this file. In addition, a file ``mynetwork.pres.csv`` resuming all estimated parameters and final cost values is written.
-  --seed=SEED        Integer (preferably a prime integer) used for
-                     reproducible random number generating. It makes
-                     reproducible random starting points (--irand) but also
-                     Monte-Carlo simulations for sensitivity analysis.
-                     Default: none, i.e. current system value is used, so
-                     random drawing will be varying at each run.
-  --excl_outliers    This option takes an optional argument, a p-value between
-                     0 and 1 which is used to filter out measurement outliers.
-                     The filtering is based on Z statistics calculated on
-                     reduced residual distribution. Default: 0.01.
+									 .. warning:: In this option, the notion of "least norm" is applied to *increments* during the optimization, not to the final solution. So undetermined fluxes could vary from one run to another if the optimization process is started from different points while well determined fluxes should keep stable values.
+	--sln            Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient
+	--tikhreg        Approximate least norm solution is used for increments
+									 during the non-linear iterations when Jacobian is rank
+									 deficient
+									 
+									 To obtain an approximate solution a Tikhonov regularization is used when solving an LSI problem. Only one of the options ``--ln`` and ``--tikhreg`` can be activated in a given run.
+	--lim            The same as --ln but with a function limSolve::lsei()
+	--zc=ZC          Apply zero crossing strategy with non negative threshold
+									 for net fluxes
+									 
+									 This option can accelerate convergence in situations when a net flux has to change its sign during the optimization iterations. Once such flux is identified, it is better to write the corresponding reaction in an opposite sens in the FTBL file or to give a starting value with a correct sign to avoid such zero crossing situation.
+	--ffguess        Don't use free/dependent flux definitions from FTBL
+									 file(s). Make an automatic guess.
+									 
+									 The fact that free fluxes are chosen automatically does not allow to specify a starting point for optimization iterations so a random starting point is used (drawn uniformly in [0; 1] interval). An option ``--seed`` can be useful to make the results reproducible.
+	--fseries=FSERIES  File name with free parameter values for multiple
+										 starting points. Default: '' (empty, i.e. only one
+										 starting point from the FTBL file is used)
+										 
+										 The file must be formatted as plain text file with tab separator. There must be as many columns as starting points and at least as many rows as free parameters assigned in this file. A subset of free parameters can be used in this file. In this case, the rest of parameters take their unique starting values from the FTBL file. The first column must contain the names of free parameters used in this file. If there are extra rows whose names are not in the set of free parameter names, they are simply ignored. The first row must contain the names of starting points. These names can be just numbers from 1 to the number of starting points.
+	--iseries=ISERIES  Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default '' (empty, i.e. all provided starting points are used)
+										 
+										 When used with conjunction with ``--fseries``, this option indicates the starting points to use from FSERIES file. But this option can also be used in conjunction with ``--irand`` to generate a required number of random starting points, e.g. ``influx_s.py --irand --iseries 1:10 mynetwork`` will generate and use 10 random starting points.
+										 
+										 For both ``--fseries`` and ``--iseries``, one result file is generated per starting point, e.g. ``mynetwork_res.V1.kvh``, ``mynetwork_res.V2.kvh`` and so on. If starting points comes from a ``--fseries`` then the suffixes ``V1``, ``V2``, ... are replaced by the column names from this file. In addition, a file ``mynetwork.pres.csv`` resuming all estimated parameters and final cost values is written.
+	--seed=SEED        Integer (preferably a prime integer) used for
+										 reproducible random number generating. It makes
+										 reproducible random starting points (--irand) but also
+										 Monte-Carlo simulations for sensitivity analysis.
+										 Default: none, i.e. current system value is used, so
+										 random drawing will be varying at each run.
+	--excl_outliers    This option takes an optional argument, a p-value between
+										 0 and 1 which is used to filter out measurement outliers.
+										 The filtering is based on Z statistics calculated on
+										 reduced residual distribution. Default: 0.01.
 
-                     Excluded outliers (if any) and their residual values are reported in the ``mytework.log`` file. Non available (``NA``) measurements are considered as outliers for any p-value.
-                     An optional p-value used here does not give a proportion of residuals that will be excluded from optimization process but rather a degree of beeing a valuable measurements. So, closer to zero is the p-value, the less data is filtered out. If in contary, you want to filter out more outliers than with the default p-value, use a value grater than the default value of 0.01, e.g.: ::
+										 Excluded outliers (if any) and their residual values are reported in the ``mytework.log`` file. Non available (``NA``) measurements are considered as outliers for any p-value.
+										 An optional p-value used here does not give a proportion of residuals that will be excluded from optimization process but rather a degree of beeing a valuable measurements. So, closer to zero is the p-value, the less data is filtered out. If in contary, you want to filter out more outliers than with the default p-value, use a value grater than the default value of 0.01, e.g.: ::
 
-                      influx_s.py --excl_outliers 0.02 mynetwork.ftbl
+											influx_s.py --excl_outliers 0.02 mynetwork.ftbl
 
-                     .. note::
+										 .. note::
 
-                      Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).
-  --nocalc          generate an R code but not execute it.
-                      
-                    This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
-  --DEBUG           developer option
+											Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).
+	--nocalc          generate an R code but not execute it.
+											
+										This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
+	--addnoise        Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from       FTBL file
+	
+										 This option can be helpful for generating synthetic FTBL files with realistic simulated measurements (cf. :ref:`How to make FTBL file with synthetic data?<howto>`).
+	--TIMEIT          developer option
 
-                    Produce a lot of run-time information in the log-file and many additional files. This also can slow down the program in a drastic way. Don't use this option unless your know what your are doing.
-  --TIMEIT          developer option
+										Some portions of code are timed and the results is printed in the log-file. A curious user can use this option without any harm.
+	--prof            developer option
 
-                    Some portions of code are timed and the results is printed in the log-file. A curious user can use this option without any harm.
-  --prof            developer option
-
-                    This option provides much more detailed profiling of the execution than ``--TIMEIT`` option. Only developers can be interested in using such information.
+										This option provides much more detailed profiling of the execution than ``--TIMEIT`` option. Only developers can be interested in using such information.
 
 All command line options can be also provided in the FTBL file. A user can put them in the field ``commandArgs`` in the ``OPTIONS`` section. The corresponding portion of the FTBL file could look like
 
@@ -182,6 +324,33 @@ In such a way, a user can just drag-and-drop an FTBL file icon on the icon of th
 
 If an option is provided both on the command line and in the FTBL file, it is the command line that has the priority. In such a way, a user is given an opportunity to overwrite any option at the run time. Nevertheless, there is no way to cancel a flag option (an option without argument) on a command line if it is already set in the FTBL file. For example, if ``--fullsys`` flag is set in the FTBL file, the full system information will be produced whatever command line options are.
 
+Parallel experiments
+--------------------
+Staring from v4.0, ``influx_si`` offers possibility to treat labeling  data from parallel experiments. Parallel experiments for stationary labeling were described in the literature (e.g. cf. "Parallel labeling experiments and metabolic flux analysis: Past, present and future methodologies.", Crown SB, Antoniewicz MR., *Metab Eng.* 2013 Mar;16:21-32. doi: 10.1016/j.ymben.2012.11.010). But for instationary labeling, at the best of our knowledge, ``influx_si`` is the first software offering parallel experiments treatment.
+
+The main interest of parallel experiments is increased precision of flux estimations. This comes at price of additional work for experiments and data gathering but the result is often worth the effort. As usual, before doing a real "wet" experiment, it can be useful to run few  "dry" simulations to see if planned experiments will deliver desired precision.
+
+To deal with parallel experiments, a user have to prepare a series of FTBL files, one per experiment. One of them will be referred to as a main file. It has to provide the following sections common to all experiments: ``NETWORK``, ``FLUXES``, ``EQUALITIES`` (if any), ``INEQUALITIES`` (if any), ``FLUX_MEASUREMENTS`` (if any), ``METABOLITE_POOLS`` (if any), ``METAB_MEASUREMENTS`` (if any) and some entries in ``OPTIONS``. 
+
+The secondary FTBL files as well as the main one are to provide experimental labeling data corresponding to each experiment. These data have to be presented in the following sections: ``LABEL_INPUT``, ``LABEL_MEASUREMENTS`` (if any), ``PEAK_MEASUREMENTS`` (if any), ``MASS_SPECTROMETRY`` (if any). In instationary context, text files with labeling kinetics have to be provided, one per experiment. Their names have to be placed in the field ``OPTION/file_labcin`` of a corresponding FTBL. Finally, the names of secondary FTBL files have to be put in the field ``OPTIONS/prl_exp`` of the main file as plain list separated by semicolon ``;`` and optionally by one or more spaces.
+
+This file architecture ensures that a network topology, flux and metabolite values are common to all experiments while entry label and measurements on labeled metabolites are proper to each experiment.
+
+Secondary FTBL files can also contain ``NETWORK`` and other sections found in the main file but are simply ignored at processing step. When FTBL files are ready, you can run ``influx_si`` on them by providing the name of main FTBL on the command line (and only it, don't list secondary files), e.g. in installation directory run: ::
+
+ $ ./influx_s.py test/prl_exp/e_coli_glc1-6n
+
+You can find an example of parallel experiment data in the directory ``test/prl_exp`` in files 
+e_coli_glc1-6n.ftbl (main file), e_coli_glc2n.ftbl, e_coli_glc3n.ftbl, e_coli_glc4n.ftbl, e_coli_glc5n.ftbl, e_coli_glc6n.ftbl. These files correspond to stationary labeling experiments described in "Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis", Robert W. Leighty, Maciek R. Antoniewicz, *Metabolic Engineering* 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).
+
+We also provide an example of simulated instationary parallel experiments in the files ``e_coli_GX_prl.ftbl`` (main file) and ``e_coli_GX_X.ftbl`` (secondary file) corresponding to simultaneous consumption of glucose and xylose. The network for this simulations was borrowed from "13C metabolic flux analysis of microbial and mammalian systems is enhanced with GC-MS measurements of glycogen and RNA labeling", Christopher P. Long, Jennifer Au, Jacqueline E. Gonzalez, Maciek R. Antoniewicz, Metabolic Engineering 38 (2016) 65–72. The experiment consisted in dynamic labeling by uniformly labeled glucose (main experiment)  and by uniformly labeled xylose (secondary one). Labeling kinetics MS data are given in ``e_coli_GX_MS.txt`` and ``e_coli_GX_X_MS.txt`` files respectively. To play with this example, you can run (still in installation directory): ::
+ 
+ $ ./influx_i.py test/prl_exp/e_coli_GX_prl
+
+The secondary files in all examples contain also the full information about the network, fluxes and so on, so they can be used as classical mono-experimental files to see how much the precision of flux estimation increased due to parallel experiment methodology.
+
+Note that set of measured metabolite fragments as well as sampling time points for instationary labeling are not necessary the same for all parallel experiments. They do can differ.
+
 Optimization options
 --------------------
 These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). They can be given only in an FTBL file, in the section OPTIONS. These options are prefixed with ``optctrl_`` which is followed by a particular option name. For example, ``optctrl_errx`` corresponds to the stopping criterion hereafter and the corresponding FTBL portion could look like
@@ -194,41 +363,41 @@ These options can help to tune the convergence process of the NLSIC (or any othe
 
 All possible options and their default values for NLSIC algorithm follow:
 
-   errx=1.e-5
-    stopping criterion. When the L2 norm of the increment vector of free parameters is below this value, the iterations are stopped.
+	 errx=1.e-5
+		stopping criterion. When the L2 norm of the increment vector of free parameters is below this value, the iterations are stopped.
 
-   maxit=50
-    maximal number for non-linear iterations.
+	 maxit=50
+		maximal number for non-linear iterations.
 
-   btstart=1.
-    backtracking starting coefficient
+	 btstart=1.
+		backtracking starting coefficient
 
-   btfrac=0.25
-    backtracking fraction parameter. It corresponds to the alpha parameter in the paper on ``influx_s``
+	 btfrac=0.25
+		backtracking fraction parameter. It corresponds to the alpha parameter in the paper on ``influx_s``
 
-   btdesc=0.1
-    backtracking descending parameter. It corresponds to the beta parameter in the paper on ``influx_s``
+	 btdesc=0.1
+		backtracking descending parameter. It corresponds to the beta parameter in the paper on ``influx_s``
 
-   btmaxit=15
-    maximal number of backtracking iterations
+	 btmaxit=15
+		maximal number of backtracking iterations
 
-   trace=1
-    report (=1) or not (=0) minimal convergence information
+	 trace=1
+		report (=1) or not (=0) minimal convergence information
 
-   rcond=1.e10
-    condition number over which a matrix is considered as rank deficient
+	 rcond=1.e10
+		condition number over which a matrix is considered as rank deficient
 
-   ci=list(p=0.95, report=F)
-    confidence interval reporting. This option is own to ``nlsic()`` function. It has no impact on the reporting of linear stats information in the result kvh file after the post-optimization treatment. This latter is always done.
+	 ci=list(p=0.95, report=F)
+		confidence interval reporting. This option is own to ``nlsic()`` function. It has no impact on the reporting of linear stats information in the result kvh file after the post-optimization treatment. This latter is always done.
 
-   history=FALSE
-    return or not (default) the matrices with optimization steps and residual vectors during optimization. These matrices can then be found as part of ``optimization process information/history`` field in ``mynetwork_res.kvh`` file. Use it with caution, big size matrices can be generated requiring much of memory and disk space.
+	 history=FALSE
+		return or not (default) the matrices with optimization steps and residual vectors during optimization. These matrices can then be found as part of ``optimization process information/history`` field in ``mynetwork_res.kvh`` file. Use it with caution, big size matrices can be generated requiring much of memory and disk space.
 
-   adaptbt=TRUE
-    use (default) or not an adaptive backtracking algorithm.
-    
-   monotone=FALSE
-    should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.
+	 adaptbt=TRUE
+		use (default) or not an adaptive backtracking algorithm.
+		
+	 monotone=FALSE
+		should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.
 
 Names and default values for BFGS and Nelder-Mead algorithms can be found in the R help on ``optim()`` function.
 
@@ -298,14 +467,14 @@ An example of an FTBL file having metabolite sections and involving growth fluxe
 Post treatment option
 ---------------------
 
-User can specify a name of one or several R scripts that will be automatically executed after non aborted influx_s run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file ``test/save_all.R`` and its use can be found in the options of ``test/e_coli.ftbl`` file.
+User can specify a name of one or several R scripts that will be automatically executed after non aborted ``influx_si`` run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file ``test/save_all.R`` and its use can be found in the options of ``test/e_coli.ftbl`` file.
 
 To activate this option, the script names must be provided in the ``OPTIONS`` section, in the field ``posttreat_R`` and separated by ``'; '``, e.g. ::
 
  OPTIONS
-  OPT_NAME	OPT_VALUE
-  posttreat_R	save_all.R; plot_something.pdf
-  
+	OPT_NAME	OPT_VALUE
+	posttreat_R	save_all.R; plot_something.pdf
+	
 The script name is interpreted as a relative path to the directory where the original FTBL file is located. After execution of ``save_all.R``, a file ``e_coli.RData`` is created. This particular example can be used to restore a calculation R environment by launching R and executing::
 
  > load("e_coli.RData")
@@ -315,32 +484,32 @@ After that, all variables defined in influx_s at the end of the calculations wil
 To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:
 
 dirw
-  is a working directory (where the original FTBL file is)
+	is a working directory (where the original FTBL file is)
 dirx
-  is an executable directory (where influx_s.py is)
+	is an executable directory (where influx_s.py is)
 baseshort
-  is a short name of the input FTBL file (without the suffix ``.ftbl`` neither the directory part of the path)
+	is a short name of the input FTBL file (without the suffix ``.ftbl`` neither the directory part of the path)
 param
-  is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and metabolite concentrations (if any)
+	is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and metabolite concentrations (if any)
 jx_f
-  is a environment regrouping calculated quantities. Here are some of its fields:
-  
-  fallnx
-    a vector of all net and exchange fluxes (here, exchange fluxes are mapped on [0; 1[ interval)
-  fwrv
-    a vector of forward and reverse fluxes (reverse fluxes are "as is", i.e. not mapped)
-  x
-    is an internal state label vector
-  simlab, simfmn and simpool
-    are vectors of simulated measurements for label, net flux and metabolite pools respectively (fitting at the best of influx_s' capacity the provided measurements in the FTBL file)
-  res
-   is the reduced residual vector, i.e. (simulated-measured)/SD
-  ures
-   is the unreduced residual vector, i.e. (simulated-measured)
-  jacobian
-   as its names indicates, is the Jacobian matrix (d res/d param)
-  udr_dp
-   is the jacobian matrix for the unreduced residual vector (d ures/d param)
+	is a environment regrouping calculated quantities. Here are some of its fields:
+	
+	fallnx
+		a vector of all net and exchange fluxes (here, exchange fluxes are mapped on [0; 1[ interval)
+	fwrv
+		a vector of forward and reverse fluxes (reverse fluxes are "as is", i.e. not mapped)
+	x
+		is an internal state label vector
+	simlab, simfmn and simpool
+		are vectors of simulated measurements for label, net flux and metabolite pools respectively (fitting at the best of influx_s' capacity the provided measurements in the FTBL file)
+	res
+	 is the reduced residual vector, i.e. (simulated-measured)/SD
+	ures
+	 is the unreduced residual vector, i.e. (simulated-measured)
+	jacobian
+	 as its names indicates, is the Jacobian matrix (d res/d param)
+	udr_dp
+	 is the jacobian matrix for the unreduced residual vector (d ures/d param)
 
 measurements
  is a list regrouping various measurements and their SD
@@ -361,67 +530,67 @@ Exclusive ``influx_i`` options
 ------------------------------
 There is only one exclusive option that can be given on a command line:
 
-  --time_order=TIME_ORDER     Time order for ODE solving (1 (default), 2 or 1,2).
-                              Order 2 is more precise but more time consuming. The
-                              value '1,2' makes to start solving the ODE with the first
-                              order scheme then continues with the order 2.
-                              
-                              The scheme order can be important for the precision of flux and concentration estimations. The impact is not direct but can be very important. Please note that it can happen that order 1 fits the data with lower cost value function but it does not mean that the fluxes/concentrations are better estimated.
+	--time_order=TIME_ORDER     Time order for ODE solving (1 (default), 2 or 1,2).
+															Order 2 is more precise but more time consuming. The
+															value '1,2' makes to start solving the ODE with the first
+															order scheme then continues with the order 2.
+															
+															The scheme order can be important for the precision of flux and concentration estimations. The impact is not direct but can be very important. Please note that it can happen that order 1 fits the data with lower cost value function but it does not mean that the fluxes/concentrations are better estimated.
 
 Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
 
  ``file_labcin``
-   gives the name of the text file with label kinetics. If the file name starts with a "/", it is considered as 
-   
-   The values must be organized in a matrix where each row corresponds to a measured isotopomer/cumomer/mass-isotopologue while each column corresponds to a given time point. First column gives the names of labeled measured species and the first row contains time points.
-   
-   Matrix must be written one row per line and its entries (cells) must be separated by tabulations. Missing data can be signaled as ``NA`` or just an empty cell. Comments are allowed and must start with ``#`` sign. The rest of the line after ``#`` is simply ignored.
-   Empty lines are ignored. In such a way, comments can help to annotate the data and empty lines can help to format the file for better human readability.
-   All lines (a part from blank lines and comments) must have the same number of cells.
-   
-   The specie names must fit the names used in corresponding measurement sections of FTBL file. For example, a name ``m:Rib5P:1,2,3,4,5:0:693`` is composed of several fields separated by a column ``:``
-   
-   ``m``
-     indicates that data are of ``MASS_SPECTROMETRY`` type. Other possible values are ``l`` for ``LABEL_MEASUREMENTS`` and ``p`` for ``PEAK_MEASUREMENTS``
-   ``Rib5P``
-     metabolite name
-   ``1,2,3,4,5``
-     carbon numbers present in the measured fragment
-   ``0``
-     mass shift relative to fully unlabeled mass isotopologue: ``0`` corresponds to a fraction of unlabeled fragment, ``1`` to a fraction of fragments with only one labeled carbon atom and so on
-   ``693``
-     line number in FTBL file corresponding to this measurement. If previous fields are sufficient to unambiguously identify the measurement, this field can be omitted.
-     
-   Cf. ``test/e_coli_msne.txt`` (and corresponding ``test/e_coli_i.ftbl``) for more examples.
-   
-   The measurement precision (SD) is considered as constant during time and its values (one per measured specie) is given in the FTBL file, in the corresponding measurement section.
-   
-   All time points must be positive and put in increasing order. The time point 0 must be absent and is considered as labeling start. At that point all species are supposed to be fully unlabeled. This means also that all label measurements must be provided with a correction for natural 13C labeling. To prepare MS data with such correction, a software `IsoCor <https://metatoul.insa-toulouse.fr/metasys/software/isocor>`_ can help.
-   
-   There can be fictitious time points without any data in them. This feature can be used to increase the time resolution at some time intervals. The simulation of label propagation will be done and reported at these fictitious time points but the fitting will be obviously done only at time points having real data in them. For a regular time interval sub-division, it is more practical to use a parameter ``nsubdiv_dt`` (cf. hereafter) instead of fictitious time point in this file.
-   
-   If this field is empty or absent in the FTBL file then no fit can be done and a simple label simulation is calculated as if ``--noopt`` option were activated. Such simulation can be done only if a time grid is defined with the help of two other parameters: ``dt`` and ``tmax`` (cf. hereafter).
+	 gives the name of the text file with label kinetics. If the file name starts with a "/", it is considered as 
+	 
+	 The values must be organized in a matrix where each row corresponds to a measured isotopomer/cumomer/mass-isotopologue while each column corresponds to a given time point. First column gives the names of labeled measured species and the first row contains time points.
+	 
+	 Matrix must be written one row per line and its entries (cells) must be separated by tabulations. Missing data can be signaled as ``NA`` or just an empty cell. Comments are allowed and must start with ``#`` sign. The rest of the line after ``#`` is simply ignored.
+	 Empty lines are ignored. In such a way, comments can help to annotate the data and empty lines can help to format the file for better human readability.
+	 All lines (a part from blank lines and comments) must have the same number of cells.
+	 
+	 The specie names must fit the names used in corresponding measurement sections of FTBL file. For example, a name ``m:Rib5P:1,2,3,4,5:0:693`` is composed of several fields separated by a column ``:``
+	 
+	 ``m``
+		 indicates that data are of ``MASS_SPECTROMETRY`` type. Other possible values are ``l`` for ``LABEL_MEASUREMENTS`` and ``p`` for ``PEAK_MEASUREMENTS``
+	 ``Rib5P``
+		 metabolite name
+	 ``1,2,3,4,5``
+		 carbon numbers present in the measured fragment
+	 ``0``
+		 mass shift relative to fully unlabeled mass isotopologue: ``0`` corresponds to a fraction of unlabeled fragment, ``1`` to a fraction of fragments with only one labeled carbon atom and so on
+	 ``693``
+		 line number in FTBL file corresponding to this measurement. If previous fields are sufficient to unambiguously identify the measurement, this field can be omitted.
+		 
+	 Cf. ``test/e_coli_msne.txt`` (and corresponding ``test/e_coli_i.ftbl``) for more examples.
+	 
+	 The measurement precision (SD) is considered as constant during time and its values (one per measured specie) is given in the FTBL file, in the corresponding measurement section.
+	 
+	 All time points must be positive and put in increasing order. The time point 0 must be absent and is considered as labeling start. At that point all species are supposed to be fully unlabeled. This means also that all label measurements must be provided with a correction for natural 13C labeling. To prepare MS data with such correction, a software `IsoCor <https://metatoul.insa-toulouse.fr/metasys/software/isocor>`_ can help.
+	 
+	 There can be fictitious time points without any data in them. This feature can be used to increase the time resolution at some time intervals. The simulation of label propagation will be done and reported at these fictitious time points but the fitting will be obviously done only at time points having real data in them. For a regular time interval sub-division, it is more practical to use a parameter ``nsubdiv_dt`` (cf. hereafter) instead of fictitious time point in this file.
+	 
+	 If this field is empty or absent in the FTBL file then no fit can be done and a simple label simulation is calculated as if ``--noopt`` option were activated. Such simulation can be done only if a time grid is defined with the help of two other parameters: ``dt`` and ``tmax`` (cf. hereafter).
  ``nsubdiv_dt``
-   integer number of sub-intervals by which every time interval is divided to increase the precision of time resolution.
-   
-   It can happen that the value 1 (default) is sufficient for a satisfactory flux/concentration estimation. User can gradually increase this value (2, 3, ...) in successive ``influx_i`` runs to be sure that better time resolution does not impact parameter estimation. This property is called *grid convergence*. A grid convergence is necessary to overcome the result dependency on the choice of a numerical discretization scheme. A grid convergence can be considered as achieved when changes in estimated parameters provoked by a grid refinement are significantly lower than estimated confidence intervals for these parameters.
+	 integer number of sub-intervals by which every time interval is divided to increase the precision of time resolution.
+	 
+	 It can happen that the value 1 (default) is sufficient for a satisfactory flux/concentration estimation. User can gradually increase this value (2, 3, ...) in successive ``influx_i`` runs to be sure that better time resolution does not impact parameter estimation. This property is called *grid convergence*. A grid convergence is necessary to overcome the result dependency on the choice of a numerical discretization scheme. A grid convergence can be considered as achieved when changes in estimated parameters provoked by a grid refinement are significantly lower than estimated confidence intervals for these parameters.
  ``dt``
-   a real positive number, defines a time step in a regular grid in absence of a file in ``file_labcin`` field.
-   If a file with label kinetics is well present then this parameter has no effect.
-   
-   A regular time grid for label simulations can be useful on preliminary stage when user only elaborates FTBL file and wants to see if label simulation are plausible. It can also help to produce simulated measurements (which can be extracted from the ``_res.kvh`` file) for further numerical experiments like studying convergence speed, parameter identifiability, noise impact and so on.
+	 a real positive number, defines a time step in a regular grid in absence of a file in ``file_labcin`` field.
+	 If a file with label kinetics is well present then this parameter has no effect.
+	 
+	 A regular time grid for label simulations can be useful on preliminary stage when user only elaborates FTBL file and wants to see if label simulation are plausible. It can also help to produce simulated measurements (which can be extracted from the ``_res.kvh`` file) for further numerical experiments like studying convergence speed, parameter identifiability, noise impact and so on.
  ``tmax``
-   a real positive number, defines the end of a regular time grid if the field ``file_labcin`` is empty or absent. Parameters ``dt`` and ``tmax`` must be defined in such a way that there will be at least 2 time points greater then 0 in the time grid.
-   
-   If a file with label kinetics is well present then this parameter can be used to limit time grid on which simulations are done. If the value in ``tmax`` is greater then the maximal time value defined in the kinetics file then this parameter has no effect.
-   
+	 a real positive number, defines the end of a regular time grid if the field ``file_labcin`` is empty or absent. Parameters ``dt`` and ``tmax`` must be defined in such a way that there will be at least 2 time points greater then 0 in the time grid.
+	 
+	 If a file with label kinetics is well present then this parameter can be used to limit time grid on which simulations are done. If the value in ``tmax`` is greater then the maximal time value defined in the kinetics file then this parameter has no effect.
+	 
 .. note::
-  It is very important that the values for time, flux and metabolite concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.
-  
-  For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.
-  
+	It is very important that the values for time, flux and metabolite concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.
+	
+	For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.
+	
 .. note::
-  Option ``--noscale`` must be always activated for instationary calculations. So that for example, MS measurements must be always composed of fully measured fragments (i.e. with all isotopologues present) and normalized to sum up to 1.
+	Option ``--noscale`` must be always activated for instationary calculations. So that for example, MS measurements must be always composed of fully measured fragments (i.e. with all isotopologues present) and normalized to sum up to 1.
 
 Result file fields
 ------------------
@@ -431,25 +600,25 @@ Generally speaking, the names of the fields in the result KVH file are chosen to
 At the beginning of the ``mynetwork_res.kvh`` file, some system information is provided. Here "system" should be taken in two sens: informatics and biological. The information is reported in the fields  ``influx`` and  ``system sizes``. These fields are followed by  ``starting point`` information regrouping ``starting free parameters``,  ``starting cost value``, ``flux system (Afl)`` and ``flux system (bfl)``. Name conventions used in these and other fields are following:
 
  net and exchange fluxes
-  are prefixed by ``n.`` or ``x.`` respectively
+	are prefixed by ``n.`` or ``x.`` respectively
  free, dependent, constrained and variable growth fluxes
-  are prefixed by ``f.``, ``d.``, ``c.`` and ``g.`` respectively. So, a complete flux name could look like ``f.n.zwf`` which means `free net ZWF flux`.
-  Growth fluxes which depend on constant metabolite concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with ``_gr`` (as `growth`) string. For example, a flux ``g.n.Cit_gr`` corresponds to a net growth flux of Citrate metabolite. The growth fluxes are all set as non reversible, so all exchange fluxes like ``g.x.M_gr`` or ``c.x.M_gr`` are set to 0.
+	are prefixed by ``f.``, ``d.``, ``c.`` and ``g.`` respectively. So, a complete flux name could look like ``f.n.zwf`` which means `free net ZWF flux`.
+	Growth fluxes which depend on constant metabolite concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with ``_gr`` (as `growth`) string. For example, a flux ``g.n.Cit_gr`` corresponds to a net growth flux of Citrate metabolite. The growth fluxes are all set as non reversible, so all exchange fluxes like ``g.x.M_gr`` or ``c.x.M_gr`` are set to 0.
  scaling factors names
-  are formed according to a pattern similar to ``label;Ala;1`` which corresponds to the first group of measurements on Alanine molecule in labeling experiments. Other possible types of experiments are ``peak`` and ``mass``.
+	are formed according to a pattern similar to ``label;Ala;1`` which corresponds to the first group of measurements on Alanine molecule in labeling experiments. Other possible types of experiments are ``peak`` and ``mass``.
  MID vector names
-  are looking like ``METAB+N`` where ``METAB`` is metabolite name and ``N`` goes from 0 to the number of carbon atoms in the considered molecule.
+	are looking like ``METAB+N`` where ``METAB`` is metabolite name and ``N`` goes from 0 to the number of carbon atoms in the considered molecule.
  cumomer names
-  follow classical convention ``METAB#pattern_of_x_and_1``, e.g. ``Ala#x1x``
+	follow classical convention ``METAB#pattern_of_x_and_1``, e.g. ``Ala#x1x``
  forward and reverse fluxes
-   are prefixed by ``fwd.`` and ``rev.`` respectively, e.g. ``fwd.zwf`` or ``rev.zwf``
+	 are prefixed by ``fwd.`` and ``rev.`` respectively, e.g. ``fwd.zwf`` or ``rev.zwf``
  measurement names
-   have several fields separated by a colon ``:``. For example, ``l:Asp:#xx1x:694`` deciphers like:
+	 have several fields separated by a colon ``:``. For example, ``l:Asp:#xx1x:694`` deciphers like:
 
-     * ``l`` stands for `labeling` experiment (others possibilities are ``p`` for `peak`, ``m`` for `mass` and ``pm`` for `metabolite pool`)
-     * ``Asp`` is a metabolite name
-     * ``#xx1x`` is a measurement identification
-     * ``694`` is a line number in the FTBL file corresponding to this measurement.
+		 * ``l`` stands for `labeling` experiment (others possibilities are ``p`` for `peak`, ``m`` for `mass` and ``pm`` for `metabolite pool`)
+		 * ``Asp`` is a metabolite name
+		 * ``#xx1x`` is a measurement identification
+		 * ``694`` is a line number in the FTBL file corresponding to this measurement.
 
 The field ``optimization process information`` is the key field presenting the results of an optimization process. The fitted parameters are in the subfield ``par``. Other subfields provide some additional information.
 
@@ -485,41 +654,41 @@ Problems can appear in all stages of a software run:
 * R code writing
 * R code execution
 
-  * vector-matrix initialization
-  * optimization
-  * post-optimization treatment
+	* vector-matrix initialization
+	* optimization
+	* post-optimization treatment
 
 Most of the error messages are automatically generated by underlying languages Python and R. These messages can appear somewhat cryptic for a user unfamiliar with these languages. But the most important error messages are edited to be as explicit as possible. For example, a message telling that free fluxes are badly chosen could look like::
 
-  Error : Flux matrix is not square or singular: (56eq x 57unk)
-  You have to change your choice of free fluxes in the 'mynetwork.ftbl' file.
-  Candidate(s) for free flux(es):
-  d.n.Xylupt_U
+	Error : Flux matrix is not square or singular: (56eq x 57unk)
+	You have to change your choice of free fluxes in the 'mynetwork.ftbl' file.
+	Candidate(s) for free flux(es):
+	d.n.Xylupt_U
 
 a message about badly structurally defined network could be similar to
 
 .. code-block:: text
 
-  Error : Provided measurements (isotopomers and fluxes) are not
-    sufficient to resolve all free fluxes.
-  Unsolvable fluxes may be:
-    f.x.tk2, f.n.Xylupt_1, f.x.maldh, f.x.pfk, f.x.ta, f.x.tk1
-  Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
+	Error : Provided measurements (isotopomers and fluxes) are not
+		sufficient to resolve all free fluxes.
+	Unsolvable fluxes may be:
+		f.x.tk2, f.n.Xylupt_1, f.x.maldh, f.x.pfk, f.x.ta, f.x.tk1
+	Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
 
 a message about singular cumomer balance matrix could resemble to
 
 .. code-block:: text
 
-  lab_sim: Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero Zero rows in cumomer matrix A at weight 1:
-  cit_c:16
-  ac_c:2
-  ...
-  Zero fluxes are:
-  fwd.ACITL
-  ...
+	lab_sim: Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero Zero rows in cumomer matrix A at weight 1:
+	cit_c:16
+	ac_c:2
+	...
+	Zero fluxes are:
+	fwd.ACITL
+	...
 
 
-  
+	
 .. note:: In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here ``cit_c:<N>`` cumomers, where <N> is an integer, its binary mask indicates the "1"s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option ``--cinout=CINOUT`` or even all non reversible ones with the option ``--clownr=CLOWNR``) to stay out of 0, e.g.:
  
  ``$ influx_s.py --clownr 0.0001 mynetwork``
@@ -576,10 +745,10 @@ Several options are then available for a user facing such situation.
 
  .. code-block:: text
 
-   lsi_ln: Rank deficient matrix in least squares
-   1 free variable(s):
-   f.n.PPDK        7
-   Least L2-norm solution is provided.
+	 lsi_ln: Rank deficient matrix in least squares
+	 1 free variable(s):
+	 f.n.PPDK        7
+	 Least L2-norm solution is provided.
  
  informing you that some flux(es) in the network is(are) still undefined. This option can be helpful if undefined fluxes are without particular interest for biological question in hand and their actual values can be safely ignored.
 
@@ -614,16 +783,16 @@ In all cases, a slow convergence is due to high non linearity of the solved prob
  This option splits the convergence process in two parts. First, a minimum is searched for fluxes under additional constraints to keep the same sign during this step. Second, for fluxes that reached zero after the first step, a sign change is imposed and a second optimization is made with these new constraints.
  If ``--zc`` option is used with an argument 0 (``--zc=0`` or ``--zc 0``), it can happen that fluxes reaching zero produce a singular (non invertible) cumomer balance matrix. In this case, an execution is aborted with an error starting like
  
-  .. code-block:: text
-   
-    Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero
-    ...
-   
+	.. code-block:: text
+	 
+		Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero
+		...
+	 
  To avoid such situation, an argument to ``--zc`` must be a small positive number, say ``--zc 0.001``. In this case, positive net fluxes are kept over 0.001 and negative fluxes are kept under -0.001 value. In this manner, an exact zero is avoided.
  
  Another way to avoid problem induced by using module function :math:`|x|` is to add inequality(-ies) imposing sens of reaction in ``INEQUALITIES/NET`` section, e.g. ::
-  
-   0.0001	<=	mae
+	
+	 0.0001	<=	mae
  
  Naturally, in this example, you have to be sure that the reaction catalyzed by malic enzyme (here ``mae``) must go in the sens written in your FTBL file.
  
@@ -649,6 +818,37 @@ Additional tools
 Tools described in this section are not strictly necessary for running ``influx_si`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
 
 Most of the utilities produce an output written on standard output or in a file who's name is derived from the input file name. This latter situation is signaled with a phrase "The output redirection is optional" and in the usage examples the output redirection is taken in square brackets ``[> output.txt]`` which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.
+
+txt2ftbl: conversion of txt format to FTBL format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+An easily readable/writable text format can be used to create *de novo* an FTBL file. Reactions in this text format can look like:
+
+.. code-block:: text
+ 
+	v48: Asp (abcd) + Pyr (efg) + Glu (hijkl) + SucCoA (mnop) + ATP + 2 NADPH ->
+	 LL-DAP (0.5 abcdgfe + 0.5 efgdcba) + AKG (hijkl) + Suc (0.5 mnop + 0.5 ponm)
+
+This long reaction illustrates several format features:
+
+ - ``v48`` is the reaction name. It is optional. If reaction names (and theirs separators ``:`` signs) are omitted, reactions will be just numbered. The numbering restarts after each comment block (a comment starts with a ``#`` sign). This is done to give an opportunity to organize reactions in pathways. In such a case, a comment is considered as stating a new pathway which is also numbered. Thus an automatic reaction name can look like ``r2.3`` where ``2`` is pathway number and ``3`` is a reaction number in this pathway.
+ 
+  Note that in this example, the reaction is split in two lines only for convenience of presentation. In a text file, a reaction must be written on only one line. No line breaks are admitted in reactions and no more than one reaction can be written on a given line.
+ - ``Asp (abcd)`` is a metabolite name ``Asp`` followed by its optional carbon id string between parentheses ``(abcd)``. All carbon id must be a unique letter on each side of the reaction and if present on one side of reaction, must also be present on the other one. Thus carbon atom balance is preserved. In case of symmetric molecule, the carbon scrambling can be indicated as ``(0.5 mnop + 0.5 ponm)`` as e.g. for succinate ``Suc`` in the example above. Numeric coefficients of carbon forms (here ``0.5``) can be omitted as all forms are considered as equally probable and automatically normalized to sum up to 1. So a completely equivalent form could be ``(mnop + ponm)``.
+ - ``+`` sign separates metabolites on each side of reaction
+ - ``->`` separates two sides of reaction and indicates that this reaction is irreversible, i.e. its exchange flux is zero. It does not precludes about the sens of reaction. Here we consider that a reaction can be irreversible and have a negative net flux. If in addition, you wish to indicate that a reaction must operate only from left to right, i.e. to have a positive net flux, then use ``->>`` sign. To indicate a reversible reaction use ``<->`` and a reversible reaction with imposed positive net flux use ``<->>``.
+ - ``ATP`` is an example of a cofactor, it does not have a carbon id string. It participates in mass balance but not in carbon balance equations.
+ - ``2 NADPH`` is an example of a cofactor with a stoechiometric coefficient different from 1. Coefficients different from 1 are not allowed for metabolites participating in carbon exchanges in a given reaction. But if a reaction has no carbon exchanges, then all metabolites are allowed to have a coefficient different from 1 like for example in biomass reactions.
+ 
+An example of a full featured metabolite network can be found in ``test/prl_exp/e_coli_anto.txt``.
+
+To convert it to FTBL file, you can run (in installation directory):
+
+ .. code-block:: text
+
+	$ ./txt2ftbl.py test/prl_exp/e_coli_anto.txt [> test/prl_exp/e_coli_anto.ftbl]
+ 
+Note that output redirection ``> ...`` is optional. In absence of such redirection, the output file name is guessed from input file by replacing ``.txt`` with ``.ftbl`` extension.
+Thus obtained FTBL file must be completed with several kinds of information like label input, label measurements and so on to be fully functional and suitable for ``influx_si``.
 
 ftbl2xgmml: cytoscape view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -676,15 +876,15 @@ Graphical conventions used in the generated XGMML are the following:
 * reversible reactions are represented by a double parallel line and have a solid circle on the source end;
 * color code for arrows:
 
-  * green for free net flux;
-  * blue for dependent net flux;
-  * black for constrained net flux;
+	* green for free net flux;
+	* blue for dependent net flux;
+	* black for constrained net flux;
 
 * color code for solid circles:
 
-  * green for free exchange flux;
-  * blue for dependent exchange flux;
-  * black for constrained exchange flux.
+	* green for free exchange flux;
+	* blue for dependent exchange flux;
+	* black for constrained exchange flux.
 
 ftbl2netan: FTBL parsing
 ~~~~~~~~~~~~~~~~~~~~~~~~
