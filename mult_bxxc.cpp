@@ -43,6 +43,9 @@ constexpr unsigned int s2i(const char* str, int h = 0)
 {
     return !str[h] ? 5381 : (s2i(str, h+1) * 33) ^ str[h];
 }
+
+char mes[512]={0};
+
 // [[Rcpp::export]]
 void mult_bxxc(NumericVector a, List b, NumericVector c) {
    if (!b.inherits("simple_triplet_matrix")) {
@@ -371,8 +374,10 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
    // The response can be then used for repeated creation of sparse
    // matrices with the same pattern by calling iv2v()
    // i and j are supposed to be sorted in increasing order, column-wise (i runs first)
-   if (ir.size() != jc.size())
-      stop("Sizes of ir and jc must be the same");
+   if (ir.size() != jc.size()) {
+      int n=sprintf(mes, "Sizes of ir (%d) and jc (%d) must be equal", ir.size(), jc.size());
+      stop(mes);
+   }
    size_t n=ir.size(), last=0;
    IntegerVector iv(n);
    uvec iu(n), ju(n);
@@ -383,7 +388,7 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
    iu[0]=ir[0];
    ju[0]=jc[0];
    for (auto ii=1; ii < n; ii++) {
-      last += ir[ii] != ir[ii-1] || jc[ii] != jc[ii];
+      last += ir[ii] != ir[ii-1] || jc[ii] != jc[ii-1];
       iv[ii] = last;
       iu[last] = ir[ii];
       ju[last] = jc[ii];
@@ -396,8 +401,10 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
 // [[Rcpp::export]]
 NumericVector iv2v(IntegerVector& iv, NumericVector& v) {
    // sum values in v according to possibly repeated indexes in iv
-   if (iv.size() != v.size())
-      stop("Sizes of iv and v must be the same");
+   if (iv.size() != v.size()) {
+      int n=sprintf(mes, "Sizes of iv (%d) and v (%d) must be equal", iv.size(), v.size());
+      stop(mes);
+   }
    NumericVector res(iv[iv.size()-1]+1);
    for (auto i=0; i < iv.size(); i++)
       res[iv[i]] += v[i];
