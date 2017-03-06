@@ -5,7 +5,7 @@
 # The modified ftbl file name is optional. If omited it is
 # extracted from kvh name, here for example it would be network.ftbl
 
-[ $# -eq 0 -o $# -gt 2 ] && { echo 1>&2 "ffre2ftbl: Wrong parameter number\
+[ $# -eq 0 -o $# -gt 2 ] && { echo 1>&2 "ffres2ftbl: Wrong parameter number\
 \nusage: ffres2ftbl.sh network_res.kvh [base.ftbl] > new.ftbl"; }
 fkvh="$1"
 # strip "_res.kvh"
