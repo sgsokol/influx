@@ -2,9 +2,8 @@
 Introduction
 ============
 
-``influx_s`` and ``influx_i`` are programs designed for flux calculation based on
-labeling data using 13C isotope. The former works with stationary data while the latter
-is able to simulate instationary labeling. Both work in metabolically stationary context. The whole project is referred as ``influx_si``.
+``influx_s`` and ``influx_i`` are programs designed for flux and metabolite concentration estimation based on labeling data using 13C isotopes. The former works with stationary data while the latter
+is able to simulate instationary labeling. Both work in metabolically stationary context. The whole project is referred as ``influx_si``. Note also that the term ``influx_si`` is used in contexts where ``influx_s`` and ``influx_i`` are interchangeable.
 
 ``influx_si``
 -------------
@@ -21,16 +20,16 @@ For the theory behind flux calculations in stationary labeling context see the f
 
 Wiechert, W., Möllney, M., Isermann, N., Wurzel, M., and de Graaf, A. A. (1999).
 Bidirectional reaction steps in metabolic networks: III. Explicit solution and analysis
-of isotopomer labeling systems. Biotechnol Bioeng, 66(2), 69-85.
+of isotopomer labeling systems. *Biotechnol Bioeng,* 66(2), 69-85.
 
 Antoniewicz, M. R., Kelleher, J. K., and Stephanopoulos, G. (2007). Elementary
 metabolite units (EMU): a novel framework for modeling isotopic distributions.
-Metab Eng, 9(1), 68-86.
+*Metab Eng*, 9(1), 68-86.
 
 Sokol, S., Millard, P., and Portais, J-C. (2012). 
 influx_s: increasing numerical stability and precision for
 metabolic flux analysis in isotope labeling experiment.
-Bioinformatics, 2012, 28, 687-693
+*Bioinformatics*, 2012, 28, 687-693
 
 The main additional value to flux calculation of ``influx_si`` compared to other publicly
 available software (`13CFlux <https://www.13cflux.net>`_,
@@ -45,7 +44,8 @@ For more details, see the paper on ``influx_s`` cited above.
 
 Moreover, ``influx_s`` provides:
 
- - both cumomer and EMU formalisms for describing label distribution in the metabolites;
+ - both cumomer and EMU frameworks for describing label distribution in the metabolites;
+ - parallel experiment treatment;
  - metabolite concentration estimation in particular stationary contexts (since v2.0. A methodology behind metabolite concentration evaluation is not yet published at the moment of this writing.); 
  - a possibility to deal with metabolite pool confusion appearing either in compartmentation or in coelution;
  - taking into account non carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;
@@ -67,16 +67,17 @@ The theory of instationary labeling was developed for example in
 
 Katharina Nöh, Wolfgang Wiechert (2006)
 Experimental Design Principles for Isotopically Instationary 13C Labeling Experiments
-Biotechnology and Bioengineering, 94(2), 234-251
+*Biotechnology and Bioengineering*, 94(2), 234-251
 
 Sokol S, Portais J-C (2015)
 Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks under Step and Periodic Inputs.
-PLoS ONE 10(12): e0144652. doi:10.1371/journal.pone.0144652
+*PLoS ONE* 10(12): e0144652. doi:10.1371/journal.pone.0144652
 
 As ``influx_i`` capitalizes on ``influx_s`` development and shares a big part of code, ``influx_i`` presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for ``influx_s``. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
 Some of the advantages of ``influx_i`` over the concurrent software coping with instationary labeling data are:
 
  - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in less then 25s and the most important optimization part takes as low as 17s);
+ - parallel experiment treatment;
  - available choice between first and second order time schemes for ODE (ordinary differential equations) resolution;
  - unconditional stability during ODE solving.
  
