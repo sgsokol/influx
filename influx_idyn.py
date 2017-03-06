@@ -417,7 +417,8 @@ def get_proj(fn):
     # parse ftbl to netan
     mainframe.SetStatusText("Parsing "+fn)
     #print("ftbl=",c13.ftbl_parse(fn));
-    netan=c13.ftbl_netan(c13.ftbl_parse(fn));
+    netan=dict()
+    c13.ftbl_netan(c13.ftbl_parse(fn), netan);
     
     # set file names
     network=os.path.basename(fn)[:-5];
