@@ -49,7 +49,6 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     flog.flush()
     sys.stdout.write(fshort+s)
     retcode=0
-    #import pdb
 
     try:
         if not os.path.exists(ft):
@@ -76,9 +75,8 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         # generate the R code
         # leave python options as they are and put R options as arguments to --ropts
         #pdb.set_trace()
-        pykeys=pyopt.intersection(cmd_opts.keys())
-        opt4py=["--"+kc for kc in pykeys if cmd_opts[kc] is None] + \
-            [item for kc in pykeys if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
+        opt4py=["--"+kc for kc in pyoptnota.intersection(cmd_opts.keys())] + \
+            [item for kc in pyopta.intersection(cmd_opts.keys()) if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
             ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
             if isinstance(v, type("")) else "T" if v is True else "F" \
             if v is False else str(v)) for k,v in cmd_opts.iteritems() if k not in notropt) + '"'] + \
@@ -119,6 +117,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             flog.close()
             return(retcode)
     except:
+        #print sys.exc_info()[0]
         pass
     return(retcode)
 
@@ -140,7 +139,8 @@ My basename must start with 'influx_s' or 'influx_i' instead of '%s'."""%me[:8])
 version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
-pyopt=set(("fullsys", "emu", "clownr", "tblimit"))
+pyopta=set(("tblimit",))
+pyoptnota=set(("fullsys", "emu", "clownr"))
 # non valid options for R
 notropt=set(("tblimit",))
 
