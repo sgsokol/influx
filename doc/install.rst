@@ -68,7 +68,7 @@ It is likely to be ``g++``. A compilation for a given version of ``influx_si`` w
 On Linux, all tools necessary for compilation are often available by default. If not, install Linux package (as well as its dependencies) containing ``g++`` compiler (or what ever was used to compile R).
 
 If you are on Windows platform, you have to install RTOOLS software collection available from https://cran.r-project.org/bin/windows/Rtools/
-Be sure to pick up a version that corresponds to your R version. This package will contain the necessary C++ compiler.
+Be sure to pick up a frozen version that corresponds to your R version. This package will contain the necessary C++ compiler.
 
 If you are on MacOS, your have to install Xcode from AppStore. Furthermore, if some of required R packages are not available in binary form for installation, they will be compiled from sources and this can require additional installation of gfortran-4.8 (or higher).
 
@@ -101,15 +101,15 @@ which is already in PATH. For example, as root you can do
 :: 
 
   $ cd /usr/local/bin
-  $ ln -s /path/to/dir/of/influx_s/{influx_s.py,influx_i.py,res2ftbl_meas.py,ftbl2cumoAb.py,ftbl2kvh.py,ftbl2netan.py,ftbl2xgmml.py,ff2ftbl.py,ffres2ftbl.sh} .
+  $ ln -s /path/to/dir/of/influx_s/{influx_s.py,influx_i.py,res2ftbl_meas.py,ftbl2cumoAb.py,ftbl2kvh.py,ftbl2netan.py,ftbl2xgmml.py,ff2ftbl.py,ffres2ftbl.py,txt2ftbl.py} .
 
 assuming that ``/usr/local/bin`` is already in the PATH.
 
 First compilation
 -----------------
-To accomplish the installation, you have to run influx_s.py or influx_i.py for the first time as a user having write permissions to the installation directory. I.e. if you have installed influx_si as system administrator you have to make a first run also as a system administrator. This first run will compile a shared library ``mult_bxxc.so`` (a suffix ``.so`` can be different on your platform) needed for further influx_si executions. An example of a command to run is given in the next session "Test of installation".
+To accomplish the installation, you have to run ``influx_s.py`` or ``influx_i.py`` for the first time as a user having write permissions to the installation directory. I.e. if you have installed ``influx_si`` as system administrator you have to make a first run also as a system administrator. This first run will compile a shared library ``mult_bxxc.so`` (a suffix ``.so`` can be different on your platform) needed for further ``influx_si`` executions. An example of a command to run is given in the next session "Test of installation".
 
-If in the future, for any reason (upgrading R version, changing the compiler, ...) you have to recompile the shared library, just remove the file ``mult_bxxc.so`` (or its equivalent if you are not on a Unix platform) and rerun influx_si on any FTBL file being a user with write permission on installation directory.
+If in the future, for any reason (upgrading R version, changing the compiler, ...) you have to recompile the shared library, just remove the file ``mult_bxxc.so`` (or its equivalent if you are not on a Unix platform) and rerun ``influx_si`` on any FTBL file being a user with write permission on installation directory.
 
 ********************
 Test of installation
