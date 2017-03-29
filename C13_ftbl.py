@@ -152,16 +152,19 @@ def ftbl_parse(f):
            fc.close()
     else:
         Exception("parameter 'f' must be a string with FTBL file name")
+    ftbl["pathway"]={}
     
     #print f;##
     reblank=re.compile("^[\t ]*$")
     recomm=re.compile("^[\t ]*//.*$")
+    repath=re.compile("^[\t ]*//##[\t ]*(.*)[\t ]*$")
     comm=re.compile("^([^(//)]+|.+)//.*$")
     reading="sec_name"
     col_names=[]
     sec_name=subsec_name=""
     irow=0
     dic={}
+    pathway=""
     for l in lines:
         irow+=1
         #print "raw l="+l;##
@@ -177,6 +180,10 @@ def ftbl_parse(f):
         #print "-ffq l="+l;##
         l=l.replace("\"\t", "\t");    # at the end
         #print "-lfq l="+l;##
+        
+        # check for pathway name "//## pathname"
+        if repath.match(l):
+            pathway=repath.sub(r"\1", l).rstrip()
         # skip comments and emty rows
         if recomm.match(l) or reblank.match(l): continue
         
@@ -281,7 +288,11 @@ def ftbl_parse(f):
                        dic[col_names[i]]=dic[col_names[i]].replace(",", ".")
                 except IndexError:
                     pass
-            if sec_name=="FLUXES" and subsec_name in ("NET", "XCH") and dic["FCD"] in ("F", "C"):
+            if sec_name == "NETWORK" and pathway:
+                if pathway not in ftbl["pathway"]:
+                    ftbl["pathway"][pathway]=[]
+                ftbl["pathway"][pathway]+=[dic["FLUX_NAME"]]
+            if sec_name == "FLUXES" and subsec_name in ("NET", "XCH") and dic["FCD"] in ("F", "C"):
                 try:
                     val=float(eval(dic["VALUE(F/C)"]))
                 except:
@@ -294,6 +305,8 @@ def ftbl_parse(f):
         #        if type(ftbl[sec_name])==type({}) else "");##
     if "NETWORK" not in ftbl:
         return ftbl
+    # prepare translator reac -> pathway
+    ftbl["reac2path"]=dict((reac,path) for path,li in ftbl["pathway"].iteritems() for reac in li)
     # assemble reactions with the same name in one
     # long_reac={reac: {"left": [(minp1, 1), (minp2, 1), ...], "right": [(mout1, 1), (mout2, 1), ...]}
     # and carbon transitions
@@ -429,6 +442,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     res="";     # auxiliary short-cut to current result
     netan["exp_names"]=[ftbl["base_name"]]
     netan["fullsys"]=fullsys
+    netan["pathway"]=ftbl["pathway"]
+    netan["reac2path"]=ftbl["reac2path"]
 
     # Isotopomer dynamics and other options
     for row in ftbl.get("OPTIONS",[]):
