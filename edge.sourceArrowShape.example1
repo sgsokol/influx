@@ -1,5 +1,0 @@
-edge.sourceArrowShape
-A (v1) B = NONE
-B (v2) C = DIAMOND
-B (v3) C = NONE
-C (v4) D = NONE
