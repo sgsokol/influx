@@ -488,7 +488,12 @@ nb_exp=%(nb_exp)d
 nm_exp=c(%(nm_exp)s)
 nm_list$nm_exp=nm_exp
 # input cumomer vectors
-xi=matrix(c(%(xi)s), ncol=nb_exp)
+xi=c(%(xi)s)
+if (length(xi)) {
+   dim(xi)=c(length(xi)/nb_exp, nb_exp)
+} else {
+   stop_mes("No reduced label entry is defined (may be because no measurement defined in FTBL). Cannot continue.", file=fcerr)
+}
 nm_xi=c(%(nm_xi)s)
 dimnames(xi)[[1]]=nm_xi
 nm_list$xi=nm_xi
