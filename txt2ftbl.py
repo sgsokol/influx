@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 r"""
-read a .txt file from a parameter and translate to NETWORK and FLUXES section of .fbtl file.
+read a .txt file from a parameter and translate to NETWORK and FLUXES section of .ftbl file.
 The generated FTBL file can be then edited by hand to be added
 other sections (MEASUREMENTS and so on)
-Comments in txt file separate pathways which are numbered
+Comments starting with '###' in txt file separate pathways which are numbered
 as well as reactions in them. If no explicite name "reac: " is given at
 the begining of the line, ractions in ftbl will be named as
 "rX.Y" where X is pathhway number and Y is reaction number in the
@@ -29,7 +29,7 @@ import re
 def txt_parse(fname, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$")):
     """Parse txt file from fname which is in format:
-# Glycolysis and OPP pathway
+### Glycolysis and OPP pathway
 GLYC (abcdef) ->  G6P (abcdef)
 G6P (abcdef)  <-> F6P (abcdef)
 i.e.
@@ -88,8 +88,9 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             continue
         if l[0]=="#":
             comment+="//"+l[1:]+"\n"
-            ipath=ipath+(ireac != 0)
-            ireac=0
+            if len(l) > 2 and l[:3] == "###":
+                ipath=ipath+(ireac != 0)
+                ireac=0
             continue
         # parse reaction
         ireac=ireac+1
