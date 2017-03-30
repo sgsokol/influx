@@ -2120,6 +2120,12 @@ def rcumo_sys(netan, emu=False):
             measures[meas]=eval("%s_meas2matrix_vec_dev(netan)"%meas)
         netan["measures"]=measures
     measures=netan["measures"]
+
+    # init rcumo_input
+    n=len(netan["iso_input"])
+    if len(netan["rcumo_input"]) != n:
+        # init rcumo_input list of dicts
+        netan["rcumo_input"]=[{} for i in xrange(n)]
     
     # get cumomers involved in measurements
     meas_cumos=set()
@@ -2138,12 +2144,15 @@ def rcumo_sys(netan, emu=False):
     # make list of observed weights
     weights=set(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos)
     if not weights:
-        return {"A": {}, "b": {}}
+        netan["vrcumo"]=[]
+        netan["rcumo2i0"]={}
+        netan["rcumo_sys"]={"A": [], "b": []}
+        return {"A": [], "b": []}
     
     maxw=max(weights)
     weights=range(1,maxw+1)
     weights.reverse()
-
+    
     # cumomers to visit are stored in lists by weights
     to_visit=dict((w,[]) for w in weights)
     A=[{} for i in xrange(maxw)]; # store matrices by weight
@@ -2194,7 +2203,7 @@ def rcumo_sys(netan, emu=False):
                             for mask, mpi, e in ((inicumo, i, incumo+"+"+str(i)) for i in xrange(inw+1)):
                                 iso2emu(netan, inmetab, mask, mpi, e)
                         if not netan["rcumo_input"] or incumo not in netan["rcumo_input"][0]:
-                            iso2cumo(netan, "rcumo_input", incumo, inicumo,inmetab)
+                            iso2cumo(netan, "rcumo_input", incumo, inicumo, inmetab)
                         #netan["rcumo_input"][incumo]=netan["cumo_input"][incumo]
                     # main part: write equations
                     if inw==w :
