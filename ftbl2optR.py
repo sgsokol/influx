@@ -659,6 +659,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
 #print(labargs$labargs2)
 #print(labargs$spa)
 #print(labargs$labargs2$spa)
+         NULL
       })
       clusterSetRNGStream(cl)
       # set worker id
