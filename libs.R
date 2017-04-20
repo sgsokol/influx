@@ -9,3 +9,4 @@ suppressPackageStartupMessages(library(Rcpp))
 suppressPackageStartupMessages(library(RcppArmadillo))
 suppressPackageStartupMessages(library(rmumps))
 suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
+#suppressPackageStartupMessages(library(Rdsm)); # for shared memory on cluster
