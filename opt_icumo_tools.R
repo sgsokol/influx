@@ -502,9 +502,9 @@ param2fl_usm_rich=function(param, cjac, labargs) {
             #jx_f$dux_dp=labargs$jx_f$dux_dp
          }
       }
-      res1$usm=jx_f$usm
-      res1$x=jx_f$xsim
-      res1$dux_dp=jx_f$dux_dp
+      res1$usm[]=jx_f$usm
+      res1$x[]=jx_f$xsim
+      res1$dux_dp[]=jx_f$dux_dp
       jx_f$df_dffp=res1$df_dffp
    } else {
       res1=param2fl_usm_eul2(param, cjac, labargs)
