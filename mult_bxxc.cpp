@@ -375,7 +375,7 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
    // matrices with the same pattern by calling iv2v()
    // i and j are supposed to be sorted in increasing order, column-wise (i runs first)
    if (ir.size() != jc.size()) {
-      int n=sprintf(mes, "Sizes of ir (%d) and jc (%d) must be equal", ir.size(), jc.size());
+      int n=sprintf(mes, "Sizes of ir (%d) and jc (%d) must be equal", (int) ir.size(), (int) jc.size());
       stop(mes);
    }
    size_t n=ir.size(), last=0;
@@ -402,7 +402,7 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
 NumericVector iv2v(IntegerVector& iv, NumericVector& v) {
    // sum values in v according to possibly repeated indexes in iv
    if (iv.size() != v.size()) {
-      int n=sprintf(mes, "Sizes of iv (%d) and v (%d) must be equal", iv.size(), v.size());
+      int n=sprintf(mes, "Sizes of iv (%d) and v (%d) must be equal", (int) iv.size(), (int) v.size());
       stop(mes);
    }
    NumericVector res(iv[iv.size()-1]+1);
