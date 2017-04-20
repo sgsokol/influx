@@ -420,7 +420,7 @@ cumo2mass=function(x, sep=":", emusep="+") {
    # x may be multiple column matrix,
    # each of its column is then translated into MID column.
    # x names expected in format Metab:N, where N is an integer.
-   # or Metab:N+m, where m is emu M+m weght.
+   # or Metab:N+m, where m is emu weight M+m .
    
    if (length(x)==0) {
       return(NULL)
@@ -686,6 +686,7 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getA=T, getb=T, emu=F) {
       spAbr$xmat$v <- fwrv[ind_a[,"indf"]]
       x <- col_sums(spAbr$xmat)
       x[spAbr$iadiag] <- -x[spAbr$iadiag]
+#print(spAbr)
       spAbr$a$set_mat_data(x)
    }
    
@@ -1281,6 +1282,7 @@ mc_sim=function(imc) {
 #print(labargs$spa[[1]])
    #set.seed(seeds[imc])
    #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", imc))
+   labargs=get("labargs", envir=.GlobalEnv)
    for (item in c("nb_f", "measurements", "case_i", "dirw", "baseshort", "nb_exp")) {
       assign(item, labargs[[item]])
    }
@@ -1345,20 +1347,23 @@ mc_sim=function(imc) {
    gc() # for big problems we run easily out of memory
    return(res)
 }
-cl_worker=function(imc) {
+cl_worker=function(funth=NULL, argth=NULL) {
+   if ("labargs" %in% names(argth))
+      labargs=argth$labargs
    tryCatch({
 #cat("cl_worker imc=", imc, "\tmem=", sum(memuse()), "\n", sep="")
 #print(ls(labargs$spa[[1]]))
-      if (is.null(labargs$spa[[1]]$a)) {
-         labargs$spa=sparse2spa(labargs$spa)
+      #if (is.null(labargs$spa[[1]]$a)) {
+      #   labargs$spa=sparse2spa(labargs$spa)
 #print(labargs$spa[[1]])
-      }
+      #}
 #print(labargs$spa[[1]]$a)
-      mc_sim(imc)
+#browser()
+      do.call(funth, argth)
 #cat("i=", i, "\tmem=", sum(memuse()), "\n", sep="")
    },
    error=function(e) {
-      #traceback()
+      traceback()
       print(e)
       stop(e)
    })
