@@ -174,6 +174,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    
 #browser()   
    # from labargs to local vars
+   #cat("labargs=", format(labargs), "\n")
    for (item in ls(labargs)) {
       assign(item, get(item, env=labargs))
    }
@@ -276,6 +277,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
                amd=am
                amd$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spa[[iw]]$iadiag]
                asp=Rmumps$new(amd)
+               #asp$set_icntl(3, 7)
+               #asp$set_keep(40, 1)
                return(asp@.xData[[".pointer"]])
             })
             names(ali_w[[iw]])=dtru
@@ -291,6 +294,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
                   amd=am
                   amd$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spa[[iw]]$iadiag]
                   asp=Rmumps$new(amd)
+                  #asp$set_keep(40, 1)
                   return(asp@.xData[[".pointer"]])
                }))
                names(ali_w[[iw]])=c(nm_tmp, dt_add)
@@ -459,51 +463,51 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       jx_f$xsimf[[iexp]]=xsimf
    }
    names(jx_f$usm)=names(jx_f$usmf)=names(jx_f$xsim)=names(jx_f$xsimf)=nm$nm_exp
-   return(list(usm=jx_f$usm, x=jx_f$xsim, lf=lf))
+   return(list(usm=jx_f$usm, x=jx_f$xsim, dux_dp=jx_f$dux_dp, lf=lf, df_dffp=jx_f$df_dffp))
 }
 
 param2fl_usm_rich=function(param, cjac, labargs) {
    # Richardson extrapolation to get order 2 in ODE solve
-   res1=param2fl_usm_eul2(param, cjac, labargs)
    if (labargs$time_order=="2") {
-      # find usimvec with step h/2
-      if (is.null(labargs$jx_f2)) {
-         labargs$jx_f2=new.env()
-      }
-      nm1=c("tifull", "tifull2", "jx_f", "jx_f2", "nb_f", "nb_exp") # names to save for orders 1 and 2
-      for (item in nm1) {
-         assign(item, get(item, env=labargs))
-      }
       # solve with step=h/2
-      labargs$tifull=tifull2
-      labargs$jx_f=jx_f2
-      labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
-      labargs$nb_f$tifu=nb_f$tifu2
-      res2=param2fl_usm_eul2(param, cjac, labargs)
-      # restore labargs for order=1
-      for (item in nm1) {
-         assign(item, get(item), envir=labargs)
+      if (!is.null(labargs$cl) && is.null(.GlobalEnv$mc_iter)) {
+         # do in parallel only out off MC iterations
+         clusterExport(labargs$cl, c("param", "cjac"), envir=environment())
+#print(labargs$cl[[1]])
+#lila=parLapply(labargs$cl, c("labargs", "labargs"), function(nm) format(labargs))
+#cat("lila=\n")
+#print(lila)
+#clusterEvalQ(labargs$cl, {cat("usm idth=", idth, "\n"); print(labargs)})
+         res=clusterEvalQ(labargs$cl, if (idw < 3) param2fl_usm_eul2(param, cjac, if (idw == 1) labargs else labargs$labargs2))
+         #res=parLapply(labargs$cl, seq(2), function(ith) {cat ("parlap ith=", ith, "\n"); print (labargs); cl_worker(funth=param2fl_usm_eul2, argth=list(param=param, cjac=cjac, labargs=if (ith == 1) labargs else labargs$labargs2))})
+      } else {
+         # do sequentially
+         res=lapply(seq(2), function(i) param2fl_usm_eul2(param, cjac, if (i == 1) labargs else labargs$labargs2))
       }
-      #labargs$tifull=tifull
-      #labargs$nb_f=nb_f
-      #labargs$jx_f2=labargs$jx_f
-      #labargs$jx_f=jx_f
-      #labargs$nb_f$ipf2ircumo=nb_f$ipf2ircumo
-      #labargs$nb_f$tifu=nb_f$tifu
+      res1=res[[1]]
+      if (!is.null(res1$err) && res1$err) {
+         return(list(err=1, mes=res1$mes))
+      }
+      res2=res[[2]]
       if (!is.null(res2$err) && res2$err) {
          return(list(err=1, mes=res2$mes))
       }
       # Richardson interpolation
-      for (iexp in seq_len(nb_exp)) {
-         jx_f$usm[[iexp]]=2*jx_f2$usm[[iexp]]-jx_f$usm[[iexp]]
-         jx_f$xsim[[iexp]]=2*jx_f2$xsim[[iexp]]-jx_f$xsim[[iexp]]
+      jx_f=labargs$jx_f
+      for (iexp in seq_len(labargs$nb_exp)) {
+         jx_f$usm[[iexp]]=2*res2$usm[[iexp]]-res1$usm[[iexp]]
+         jx_f$xsim[[iexp]]=2*res2$x[[iexp]]-res1$x[[iexp]]
          if (cjac) {
-            jx_f$dux_dp[[iexp]]=2*jx_f2$dux_dp[[iexp]]-jx_f$dux_dp[[iexp]]
+            jx_f$dux_dp[[iexp]]=2*res2$dux_dp[[iexp]]-res1$dux_dp[[iexp]]
             #jx_f$dux_dp=labargs$jx_f$dux_dp
          }
-         res1$usm=jx_f$usm
-         res1$x=jx_f$xsim
       }
+      res1$usm=jx_f$usm
+      res1$x=jx_f$xsim
+      res1$dux_dp=jx_f$dux_dp
+      jx_f$df_dffp=res1$df_dffp
+   } else {
+      res1=param2fl_usm_eul2(param, cjac, labargs)
    }
    return(res1)
 }
