@@ -587,6 +587,16 @@ tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
 #}
 labargs[["nm"]]=labargs[["nm_list"]]
 
+# prepare labargs2 if time_order includes 2
+if (case_i && (time_order == "2" || time_order == "1,2")) {
+   labargs2=as.environment(as.list(labargs))
+   labargs2$tifull=tifull2
+   labargs2$jx_f=new.env()
+   labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
+   labargs2$nb_f$tifu=nb_f$tifu2
+   labargs[["labargs2"]]=labargs2
+}
+
 # formated output in kvh file
 fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
 """)
@@ -597,28 +607,34 @@ control_ftbl=list(%(ctrl_ftbl)s)
 })
     f.write(r"""
 retcode=numeric(nseries)
-if (sensitive == "mc") {
+cl_type="PSOCK"
+cl=NULL
+if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
    if (np > 1L) {
       # prepare cluster
-      cl_type="PSOCK"
       nodes=np
 
       # prepare cluster
-      cl=makeCluster(nodes, cl_type) #, outfile="")
+      cl=makeCluster(nodes, cl_type) #, outfile="cl.log")
+#cat("make cluster=")
+#print(cl[[1]])
+      labargs[["cl"]]=cl
+      nodes=length(cl)
       if (TIMEIT) {
          cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
-      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "method", "sln", "labargs", "dirx", "emu", "%stm%"))
+      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "method", "sln", "labargs", "dirx", "emu", "%stm%", "case_i", "time_order"))
       if (TIMEIT) {
          cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
       clusterEvalQ(cl, {
+         #idth=myinfo$id
          suppressPackageStartupMessages(library(nnls))
-         suppressPackageStartupMessages(library(slam)); # for quick sparse matrices
+         suppressPackageStartupMessages(library(slam)) # for quick sparse matrices
          suppressPackageStartupMessages(library(Rcpp))
          suppressPackageStartupMessages(library(RcppArmadillo))
          suppressPackageStartupMessages(library(rmumps))
-         suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
+         suppressPackageStartupMessages(library(arrApply)) # for fast apply() on arrays
          # define matprod for simple_triplet_matrix
          #`%%stm%%` = slam::matprod_simple_triplet_matrix
          #so=.Platform$dynlib.ext
@@ -634,8 +650,21 @@ if (sensitive == "mc") {
          source(file.path(dirx, "nlsic.R"))
          source(file.path(dirx, "opt_cumo_tools.R"))
          source(file.path(dirx, "opt_icumo_tools.R"))
+         labargs$spa=sparse2spa(labargs$spa)
+         if (case_i && (time_order == "2" || time_order == "1,2")) {
+            labargs$labargs2$spa=labargs$spa
+         }
+#cat("evalQ idth=", idth, "\n")
+#print(labargs)
+#print(labargs$labargs2)
+#print(labargs$spa)
+#print(labargs$labargs2$spa)
       })
       clusterSetRNGStream(cl)
+      # set worker id
+      idw=parLapply(cl, seq_along(cl), function(i) assign("idw", i, envir=.GlobalEnv))
+   } else {
+      labargs$cl=NULL
    }
 }
 for (irun in seq_len(nseries)) {
@@ -1290,11 +1319,16 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       }
       # Monte-Carlo simulation in parallel way (if asked and possible)
       if (np > 1L) {
-         clusterExport(cl, c("param", "refsim", "runsuf"))
-         clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL) # to rebuild sparse matrices on cores
-         mc_res=parLapplyLB(cl, seq_len(nmc), cl_worker)
+         spli=splitIndices(nmc, nodes);
+         clusterExport(cl, c("param", "refsim", "runsuf", "spli"))
+         #clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL) # to rebuild sparse matrices on cores ## now, they are build once, at the cluster init
+         cl_res=clusterEvalQ(cl, {mc_iter=TRUE; mc_res=lapply(spli[[idw]], mc_sim); rm(mc_iter); mc_res})
+         mc_res=vector(nmc, mode="list")
+         for (i in seq(nodes))
+            mc_res[spli[[i]]]=cl_res[[i]]
+         #mc_res=parLapplyLB(cl, seq_len(nmc), function(imc) cl_worker(funth=mc_sim, argth=list(imc)))
       } else {
-         mc_res=lapply(seq_len(nmc), cl_worker)
+         mc_res=lapply(seq_len(nmc), function(imc) cl_worker(funth=mc_sim, argth=list(imc)))
       }
       free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
@@ -1331,7 +1365,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          cost_mc=cost_mc[-ifa]
       }
       if (nmc_real <= 1) {
-         cat("No sufficient monter-carlo samples were succesfully calculated to do some statistics.", "\\n", sep="", file=fcerr)
+         cat("No sufficient Monter-Carlo samples were successfully calculated to do any statistics.", "\\n", sep="", file=fcerr)
          retcode[irun]=1
          break
       }
@@ -1570,8 +1604,10 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       close(fnode)
    }
 }
-if (sensitive == "mc" && np > 1)
+if (!is.null(cl)) {
    stopCluster(cl)
+   labargs$cl=cl=NULL
+}
 
 pres=rbind(cost=costres, pres)
 fco=file(file.path(dirw, sprintf("%s.pres.csv", baseshort)), open="w")
