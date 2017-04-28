@@ -752,6 +752,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       spAbr$a_fxx=list()
    }   
    if (is.null(spAbr$a_fxx[[nm_a_fx]])) {
+#cat("build", nm_a_fx, "\n", file=fclog)
       l=list()
       l$nco=nco
       if (emu) {
@@ -797,7 +798,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       i=as.integer((iu1-1)%%nar)+1L
       j=as.integer((iu1-1)%/%nar)+1L
       l$b_f=simple_triplet_matrix(i=i, j=j, v=rep(1, length(i)), nrow=nar, ncol=nb_fwrv)
-      # cach ind and pos for (b_f-a_fx)
+      # cache ind and pos for (b_f-a_fx)
       l$bma_pos=if (l$b_f$nrow*l$b_f$ncol < 2251799813685248 && l$a_fx$nrow*l$a_fx$ncol < 2251799813685248) match(l$a_fx$i+l$a_fx$j*l$a_fx$nrow, l$b_f$i+l$b_f$j*l$b_f$nrow, nomatch=0L) else match_ij(l$a_fx$i, l$a_fx$j, l$b_f$i, l$b_f$j)
       l$bma_ind=which(l$bma_pos == 0L)
       
@@ -857,11 +858,11 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       if (nprodx >= 1) {
          prodx=incu[c(ind_bx[,3+emu+seq_len(nprodx)]),]
          dim(prodx)=c(nrow(ind_bx), nprodx, nco)
-         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v=(-fwrv[ind_bx[,"indf"]]*arrApply(prodx, 2, "prod"))[spAbr$a_fxx[[nm_a_fx]]$ob_x]
+         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v[]=(-fwrv[ind_bx[,"indf"]]*arrApply(prodx, 2, "prod"))[spAbr$a_fxx[[nm_a_fx]]$ob_x]
       } else {
-         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v=(-fwrv[ind_bx[,"indf"]])[spAbr$a_fxx[[nm_a_fx]]$ob_x]
+         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v[]=(-fwrv[ind_bx[,"indf"]])[spAbr$a_fxx[[nm_a_fx]]$ob_x]
       }
-      spAbr$a_fxx[[nm_a_fx]]$b_x$v=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_xmat)
+      spAbr$a_fxx[[nm_a_fx]]$b_x$v[]=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_xmat)
       b_x=spAbr$a_fxx[[nm_a_fx]]$b_x
    } else {
       b_x=simple_triplet_zero_matrix(nrow=nb_xw*nco, ncol=nb$nbc_x[w])
