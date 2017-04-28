@@ -311,6 +311,9 @@ source(file.path(dirx, "libs.R"))
 source(file.path(dirx, "tools_ssg.R"))
 source(file.path(dirx, "nlsic.R"))
 source(file.path(dirx, "kvh.R"))
+#loadcmp(file.path(dirx, "tools_ssg.Rc"))
+#loadcmp(file.path(dirx, "nlsic.Rc"))
+#loadcmp(file.path(dirx, "kvh.Rc"))
 
 # default options
 version=FALSE
@@ -447,6 +450,8 @@ opts=commandArgs()
 
 # get some cumomer tools
 source(file.path(dirx, "opt_cumo_tools.R"))
+#loadcmp(file.path(dirx, "opt_cumo_tools.Rc"))
+
 lab_resid=cumo_resid
 lab_sim=param2fl_x
 jx_f=new.env()
@@ -461,6 +466,7 @@ jx_f=new.env()
     if case_i:
         f.write("""
 source(file.path(dirx, "opt_icumo_tools.R"))
+#loadcmp(file.path(dirx, "opt_icumo_tools.Rc"))
 
 lab_resid=icumo_resid
 lab_sim=param2fl_usm_rich
