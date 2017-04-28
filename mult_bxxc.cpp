@@ -91,7 +91,7 @@ void mult_bxxc(NumericVector a, List b, NumericVector c) {
 }
 
 // [[Rcpp::export]]
-void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<XPtr<Rmumps>> ali, cube s, ivec& ilua) {
+void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<S4> ali, cube s, ivec& ilua) {
    // solve an ode system by implicite euler scheme
    // The system is defgined as M*dx/dt=a*x+s where M is a diagonal
    // matrix given by its diagonal vector M (which has a form of matrix for
@@ -121,6 +121,11 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<XPtr<Rmumps>> ali, cube s, iv
       stop("dim(s)[3] != length(invdt)");
    if (ilua.size() != nti)
       stop("length(ilua) != length(invdt)");
+   // prepare pointers to Rmumps
+   vector<Rmumps*> alip(ali.size());
+   for (int i=0; i<ali.size(); i++)
+      alip[i]=as<XPtr<Rmumps>>(as<Environment>(ali[i].slot(".xData"))[".pointer"]);
+   
    // prepare starting s
    for (unsigned int i=0; i < nti; i++) {
 //Rcout << "i=" << i << std::endl;
@@ -135,7 +140,7 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<XPtr<Rmumps>> ali, cube s, iv
 //Rcout << "s3" << std::endl;
       //XPtr<Rmumps> ptr(as<XPtr<Rmumps>>(ali(ilua[i]-1)));
 //Rcout << "s4" << std::endl;
-      ali[ilua[i]-1]->solveptr(s.begin_slice(i), nxrow, nxcol);
+      alip[ilua[i]-1]->solveptr(s.begin_slice(i), nxrow, nxcol);
 //Rcout << "s5" << std::endl;
    }
 }
@@ -229,33 +234,57 @@ NumericVector crossprod_st(List x, NumericVector y_) {
 }
 */
 // [[Rcpp::export]]
-void bop(NumericVector& dst, const uvec& b, const string& sop, NumericVector& src) {
+void bop(NumericVector& dst, const IntegerVector& mv, const string& sop, NumericVector& src) {
    // bop=bloc operation in place
    // src array is added (if sop=="+=") to dst[...]
    // or any other manipulation is made according to sop parameter
    // Both arrays are supposed to be of type 'double'
    // The operation is done 'in place' without new memory allocation for dst
    // src is reshaped and possibly replicated to fit the designated block of dst.
-   // b is a 1 or 3 component vector describing the block: 1-margin number of dst, 2-offset, 3-length
-   // if only the margin is present than offest is 0 and length is the total length of this margin
+   // mv can be:
+   //  - a 1 or 3 component vector describing the block: 1-margin number of dst, 2-offset, 3-length
+   //    if only the margin is present than offest is 0 and length is the total length of this margin
+   //  - a matrix of indexes. Its column number must be equal to the length(dim(dst)))
+   //    each row of this matrix is a multidimensional index in dst array.
    // sop is one off: "=" (copy src to dst[]), "+=", "-=", "*=", "/="
    
    // layaout arrays as cubes
-   uvec did, dis; // array dimensions
+   uvec did, dis, dimv; // array dimensions
    uvec dfi(3), dla(3), dlen; // destination first and last indexes by margin, and lengths
    uvec cdid(3), cdis(3); // cube dimensions
-   if (b.size() != 3 && b.size() != 1)
-      stop("Block vector b must be of length 1 or 3 (not "+to_string(b.size())+")");
+   bool indmat=mv.hasAttribute("dim");
+   uvec b;
+   
    if (dst.hasAttribute("dim")) {
       did=as<uvec>(dst.attr("dim"));
    } else {
       did=uvec(1).fill(dst.size());
    }
+   if (indmat) {
+      // proceed index matrix
+      dimv=as<uvec>(mv.attr("dim"));
+      if (dimv.size() != 2)
+         stop("Parameter mv must be a matrix, i.e. length(dim(mv))==2. We got "+to_string(dimv.size()));
+      if (dimv[1] != did.size())
+         stop("Column number in index matrix mv ("+to_string(dimv[1])+") must be equal to length(dim(dst)) ("+to_string(did.size())+")");
+      // prepare index vector
+      umat  mvu=as<umat>(mv);
+      mvu-=1; // go to 0 based indexes
+      uvec iv=mvu.col(0)+sum(mvu.tail_cols(mvu.n_cols-1).each_row() % cumprod(did.head(did.size()-1)).t(), 1);
+//print(wrap(iv));
+      vec vdst=vec(dst.begin(), dst.size(), false);
+      vec vsrc=vec(src.begin(), src.size(), false);
+      vdst(iv)=vsrc;
+      return;
+   }
+   b=as<uvec>(mv);
+   if (b.size() != 3 && b.size() != 1)
+      stop("Block vector b must be of length 1 or 3 (not "+to_string(b.size())+")");
    unsigned int margin=b[0]-1, ioff, len;
    ioff=b.size()==3 ? b[1] : 0;
    len=b.size()==3 ? b[2] : did[margin];
    // if 0-length operation, leave now and do nothing
-   if (len == 0)
+   if (len == 0 || prod(did) == 0)
       return;
    if (b[0] < 1 || b[0] > did.size()) {
       stop("Margin value ("+to_string(b[0])+") is invalid. Must be in [1, length(dim(dst)]");
@@ -358,13 +387,18 @@ void resize(SEXP& x_, uvec& di) {
    // write new dimension vector while keeping the old memory
    // new memory cannot be greater than the very first allocation
    RObject x=as<RObject>(x_);
-   if (!x.inherits("resizable"))
-      stop("Cannot resize an object which is not of 'resisable' class");
+   //Rcout << "len=" << LENGTH(x_) << endl;
+   //Rcout << "tlen=" << TRUELENGTH(x_) << endl;
+   if (!IS_GROWABLE(x_)) {
+      SET_GROWABLE_BIT(x_);
+      SET_TRUELENGTH(x_, XLENGTH(x_));
+   }
    //Rcout << "n=" << XLENGTH(x_) << endl;
-   unsigned int si=as<unsigned int>(x.attr("size")), pdi=prod(di);
-   SETLENGTH(x_, pdi);
-   if (si < pdi)
-      stop("Space in x ("+to_string(si)+") is not sufficient for new one ("+to_string(pdi)+")");
+   unsigned int pdi=prod(di);
+   if (TRUELENGTH(x_) >= pdi)
+      SETLENGTH(x_, pdi);
+   else
+      stop("Space in x ("+to_string(TRUELENGTH(x_))+") is not sufficient for new one ("+to_string(pdi)+")");
    x.attr("dim")=di;
 }
 // [[Rcpp::export]]
