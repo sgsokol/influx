@@ -143,8 +143,9 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
    if (is.null(l$sx[[nm_sx]])) {
       li=list()
       li$nco=nco
-      li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
-         v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
+      #li$sxmat=simple_sparse_array(i=cbind(rep(l$bmat$i, nco), rep(l$bmat$j, nco), rep(seq_len(nco), each=length(l$bmat$i))),
+      #   v=rep(l$bmat$v, nco), dim=c(l$bmat$nrow, l$bmat$ncol, nco))
+      li$sxmat=simple_triplet_matrix(i=rep(l$bmat$i, nco), j=l$bmat$j+rep(seq(0, nco-1), each=length(l$bmat$i))*l$bmat$ncol, v=rep(l$bmat$v, nco), nrow=l$bmat$nrow, ncol=l$bmat$ncol*nco)
       li$s=simple_triplet_matrix(i=rep(l$b$i, nco), j=l$b$j+emuw*rep(seq_len(nco)-1, each=length(l$b$i)), v=rep(l$b$v, nco), nrow=l$b$nrow, ncol=l$b$ncol*nco)
       l$sx[[nm_sx]]=li
    }
@@ -154,7 +155,8 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
    prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
    dim(prodx)=c(nrow(ind_b), nprodx, nco)
    l$sx[[nm_sx]]$sxmat$v[]=fwrv[ind_b[,"indf"]]*arrApply(prodx, 2, "prod")
-   l$sx[[nm_sx]]$s$v[]=arrApply(as.array(l$sx[[nm_sx]]$sxmat), 1, "sum")
+   #l$sx[[nm_sx]]$s$v[]=arrApply(as.array(l$sx[[nm_sx]]$sxmat), 1, "sum")
+   l$sx[[nm_sx]]$s$v[]=slam::col_sums(l$sx[[nm_sx]]$sxmat)
    s=l$sx[[nm_sx]]$s
    return(s)
 }
@@ -178,6 +180,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    for (item in ls(labargs)) {
       assign(item, get(item, env=labargs))
    }
+   if (is.null(labargs$getx))
+      getx=FALSE
    nb_w=length(spa)
    nb_ti=nb_f$ti
    nb_tifu=nb_f$tifu
@@ -209,8 +213,35 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       jx_f$df_dffp=df_dffp(param, lf$flnx, nb_f, nm_list)
    }
    Alit=lapply(seq_len(nb_w), function(iw) -fwrv2Abr(fwrv, spa[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A$triplet())
-   # prepare place for (diag(vm)/dt-a)^-1
-   ali_w=list()
+   dtru=unique(unlist(lapply(seq_len(nb_exp), function(iexp) as.character(round(diff(tifull[[iexp]]), 6)))))
+   # prepare place for (diag(vm)/dt-a)^-1 common to all iexp
+   if (is.null(labargs$ali_w)) {
+      ali_w=list()
+      for (iw in seq_len(nb_w)) {
+         nb_c=spa[[iw]]$nb_c
+         emuw=ifelse(emu, iw, 1L)
+         vmw=vm[nbc_cumos[iw]+seq_len(nb_c)]
+         vmw=rep(vmw, emuw)
+         redim(vmw, c(nb_c, emuw))
+         ali_w[[iw]]=lapply(dtru, function(dtu) {
+            dti=1./as.double(dtu)
+            a=Alit[[iw]]
+            #a$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+a$v[spa[[iw]]$iadiag]
+            asp=Rmumps$new(a) # just a place-holder
+            asp$set_icntl(3, 7) # 2=amf, 3=scotch, 4=pord, 5=metis
+            #asp$set_icntl(400, 14) # increase by 400% working space
+            #if (packageVersion("rmumps") >= "5.1.1-1")
+            #   asp$set_keep(40, 1) # undocumented feature of mumps (cf. their mail on mumps-user group from 12/04/2017)
+            return(asp)
+         })
+         names(ali_w[[iw]])=dtru
+      }
+   }
+   ntico_max=max(sapply(seq_len(nb_exp), function(iexp) nb_tifu[[iexp]]-1L))
+   nb_row_max=max(sapply(seq_len(nb_w), function(iw) {emuw=ifelse(emu, iw, 1L); spa[[iw]]$nb_c*emuw}))
+   sfpw=double(nb_row_max*ntico_max*nb_poolf)
+   xpfw=double(nb_row_max*(nb_ff+nb_poolf)*ntico_max)
+   xpf1=double(nb_row_max*(nb_ff+nb_poolf))
    for (iexp in seq_len(nb_exp)) {
       if (nb_ti[iexp] < 2) {
          return(list(err=1, mes="Number of time points is less than 2"))
@@ -256,7 +287,6 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       }
       # prepare data for iadt array
       dtr=as.character(round(dt, 6L))
-      dtru=unique(dtr)
       # just update already inversed matricies from previous iexp
       for (iw in seq_len(nb_w)) {
          emuw=ifelse(emu, iw, 1L)
@@ -271,34 +301,15 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          vmw=rep(vmw, emuw)
          redim(vmw, c(nb_c, emuw))
          # prepare (diag(vm)/dt-a)^-1
-         am=Alit[[iw]]
          if (iexp == 1) {
-            ali_w[[iw]]=lapply(invdt[pmatch(dtru, dtr)], function(dti) {
-               amd=am
-               amd$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spa[[iw]]$iadiag]
-               asp=Rmumps$new(amd)
-               #asp$set_icntl(3, 7)
-               #asp$set_keep(40, 1)
-               return(asp@.xData[[".pointer"]])
+            ali_w[[iw]][]=lapply(names(ali_w[[iw]]), function(dtu) {
+               dti=1./as.double(dtu)
+               asp=ali_w[[iw]][[dtu]]
+               av=Alit[[iw]]$v
+               av[spa[[iw]]$iadiag]=vmw[,1L]*dti+av[spa[[iw]]$iadiag]
+               asp$set_mat_data(av)
+               return(asp)
             })
-            names(ali_w[[iw]])=dtru
-         } else {
-            dt_add=setdiff(dtru, names(ali_w[[iw]]))
-            dt_rm=setdiff(names(ali_w[[iw]]), dtru)
-            if (length(dt_rm)) {
-               ali_w[[iw]][dt_rm]=NULL
-            }
-            if (length(dt_add)) {
-               nm_tmp=names(ali_w[[iw]])
-               ali_w[[iw]]=append(ali_w[[iw]], lapply(invdt[pmatch(dt_add, dtr)], function(dti) {
-                  amd=am
-                  amd$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+am$v[spa[[iw]]$iadiag]
-                  asp=Rmumps$new(amd)
-                  #asp$set_keep(40, 1)
-                  return(asp@.xData[[".pointer"]])
-               }))
-               names(ali_w[[iw]])=c(nm_tmp, dt_add)
-            }
          }
          ilua=pmatch(dtr, names(ali_w[[iw]]), dup=T)
          if (emu) {
@@ -308,7 +319,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
          }
          # source terms
-         st=as.matrix(fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu))
+         st=fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu)
+         st=as.matrix(st)
          # calculate labeling for all time points
          xw1=x1[inrow]
          redim(xw1, c(nb_c, emuw))
@@ -340,12 +352,15 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             # rhs for all time points on this weight
             # parts before b_x%*%...
             #Rprof(file="fx2jr.Rprof", append=TRUE)
-            xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
-            dim(xpfw)=c(nb_row, nb_ff+nb_poolf, ntico)
-            xpf1=double(nb_c*emuw*(nb_ff+nb_poolf))
-            dim(xpf1)=c(nb_c, emuw*(nb_ff+nb_poolf))
-            sfpw=double(nb_row*ntico*nb_poolf)
-            dim(sfpw)=c(nb_c, emuw, ntico, nb_poolf)
+            #xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
+            resize(xpfw, c(nb_row, nb_ff+nb_poolf, ntico))
+            bop(xpfw, 1, "=", 0.)
+            #xpf1=double(nb_c*emuw*(nb_ff+nb_poolf))
+            resize(xpf1, c(nb_c, emuw*(nb_ff+nb_poolf)))
+            #bop(xpf1, 1, "=", 0.) # xpf1 is always 0
+            #sfpw=double(nb_row*ntico*nb_poolf)
+            resize(sfpw, c(nb_c, emuw, ntico, nb_poolf))
+            bop(sfpw, 1, "=", 0.)
             sj=fx2jr(fwrv, spa[[iw]], nb_f, xsim)
             #Rprof(NULL)
             # ff part
@@ -364,7 +379,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
                #tmp=at%stm%xw2+c(st)
                #dim(tmp)=c(nb_c, emuw, ntico)
                #sfpw[i2x]=tmp[i2x[,-4L]]
-               sfpw[i2x]=xw2[i2x[,-4L]]
+               bop(sfpw, i2x, "=", xw2[i2x[,-4L,drop=FALSE]])
                #xpfw[,nb_ff+seq_len(nb_poolf),]=(if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0.) + aperm(sfpw, c(1L, 2L, 4L, 3L))
                if (nb_fgr > 0) {
                   bop(xpfw, c(2, nb_ff, nb_poolf), "+=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
@@ -415,16 +430,28 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       # get ti moments corresponding to measurements
       isel=itifu[tifull[[iexp]] %in% ti[[iexp]]][-1L]-1L
       ntise=length(isel)
-      xsimf=xsim[-seq_len(1L+nb_xi),, drop=FALSE] # full simulation (in time)
-      xsim=xsimf[,isel,drop=FALSE]
-      # usm
-      mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsimf else xsimf[nm$rcumo_in_cumo,,drop=FALSE])+memaone[[iexp]]
-      if (length(ipooled[[iexp]]) > 1L) {
-         usmf=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx)) # full simulated measurements (in time)
+      xsim=xsim[-seq_len(1L+nb_xi),, drop=FALSE]
+      if (getx) {
+         xsimf=xsim # full simulation (in time)
+         xsim=xsim[,isel,drop=FALSE]
+         # usm
+         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsimf else xsimf[nm$rcumo_in_cumo,,drop=FALSE])+memaone[[iexp]]
+         if (length(ipooled[[iexp]]) > 1L) {
+            usmf=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx)) # full simulated measurements (in time)
+         } else {
+            usmf=mx
+         }
+         usm=usmf[,isel,drop=FALSE]
       } else {
-         usmf=mx
+         # usm
+         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsim[,isel,drop=FALSE] else xsim[nm$rcumo_in_cumo,isel,drop=FALSE])+memaone[[iexp]]
+         if (length(ipooled[[iexp]]) > 1L) {
+            usm=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx))
+         } else {
+            usm=mx
+         }
       }
-      usm=usmf[,isel,drop=FALSE]
+      
       if (cjac) {
          #jx_f$xpf=xpf # for debugging only
          xpf=aperm(xpf[,,isel,drop=FALSE], c(1L, 3L, 2L))
@@ -458,17 +485,31 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       # store usefull information in global list jx_f
       jx_f$param=param
       jx_f$usm[[iexp]]=usm
-      jx_f$usmf[[iexp]]=usmf
-      jx_f$xsim[[iexp]]=xsim
-      jx_f$xsimf[[iexp]]=xsimf
+      if (getx) {
+         jx_f$usmf[[iexp]]=usmf
+         jx_f$xsim[[iexp]]=xsim
+         jx_f$xsimf[[iexp]]=xsimf
+      }
    }
-   names(jx_f$usm)=names(jx_f$usmf)=names(jx_f$xsim)=names(jx_f$xsimf)=nm$nm_exp
-   return(list(usm=jx_f$usm, x=jx_f$xsim, dux_dp=jx_f$dux_dp, lf=lf, df_dffp=jx_f$df_dffp))
+   if (is.null(labargs$ali_w))
+      labargs$ali_w=ali_w
+   if (getx) {
+      names(jx_f$usm)=names(jx_f$usmf)=names(jx_f$xsim)=names(jx_f$xsimf)=nm$nm_exp
+      res=list(usm=jx_f$usm, usmf=jx_f$usmf, x=jx_f$xsim, xf=jx_f$xsimf, dux_dp=jx_f$dux_dp, lf=lf, df_dffp=jx_f$df_dffp)
+   } else {
+      names(jx_f$usm)=nm$nm_exp
+      res=list(usm=jx_f$usm, dux_dp=jx_f$dux_dp, lf=lf, df_dffp=jx_f$df_dffp)
+   }
+   return(res)
 }
 
 param2fl_usm_rich=function(param, cjac, labargs) {
    # Richardson extrapolation to get order 2 in ODE solve
    if (labargs$time_order=="2") {
+      getx=FALSE
+      if (!is.null(labargs$getx))
+         getx=labargs$getx
+      labargs$labargs2$getx=getx
       # solve with step=h/2
       if (!is.null(labargs$cl) && is.null(.GlobalEnv$mc_iter)) {
          # do in parallel only out off MC iterations
@@ -478,6 +519,10 @@ param2fl_usm_rich=function(param, cjac, labargs) {
 #cat("lila=\n")
 #print(lila)
 #clusterEvalQ(labargs$cl, {cat("usm idth=", idth, "\n"); print(labargs)})
+         if (getx)
+            clusterEvalQ(labargs$cl, {labargs$labargs2$getx=labargs$getx=TRUE})
+         else
+            clusterEvalQ(labargs$cl, {labargs$labargs2$getx=labargs$getx=FALSE})
          res=clusterEvalQ(labargs$cl, if (idw < 3) param2fl_usm_eul2(param, cjac, if (idw == 1) labargs else labargs$labargs2))
          #res=parLapply(labargs$cl, seq(2), function(ith) {cat ("parlap ith=", ith, "\n"); print (labargs); cl_worker(funth=param2fl_usm_eul2, argth=list(param=param, cjac=cjac, labargs=if (ith == 1) labargs else labargs$labargs2))})
       } else {
@@ -496,16 +541,22 @@ param2fl_usm_rich=function(param, cjac, labargs) {
       jx_f=labargs$jx_f
       for (iexp in seq_len(labargs$nb_exp)) {
          jx_f$usm[[iexp]]=2*res2$usm[[iexp]]-res1$usm[[iexp]]
-         jx_f$xsim[[iexp]]=2*res2$x[[iexp]]-res1$x[[iexp]]
+         if (getx) {
+            jx_f$usmf[[iexp]]=2*res2$usmf[[iexp]][,seq.int(2, ncol(res2$usmf[[iexp]]), 2)]-res1$usmf[[iexp]]
+            jx_f$xsim[[iexp]]=2*res2$x[[iexp]]-res1$x[[iexp]]
+         }
          if (cjac) {
             jx_f$dux_dp[[iexp]]=2*res2$dux_dp[[iexp]]-res1$dux_dp[[iexp]]
             #jx_f$dux_dp=labargs$jx_f$dux_dp
          }
       }
       res1$usm[]=jx_f$usm
-      res1$x[]=jx_f$xsim
       res1$dux_dp[]=jx_f$dux_dp
       jx_f$df_dffp=res1$df_dffp
+      if (getx) {
+         res1$usmf[]=jx_f$usmf
+         res1$x[]=jx_f$xsim
+      }
    } else {
       res1=param2fl_usm_eul2(param, cjac, labargs)
    }
