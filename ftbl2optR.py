@@ -635,21 +635,16 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
          suppressPackageStartupMessages(library(RcppArmadillo))
          suppressPackageStartupMessages(library(rmumps))
          suppressPackageStartupMessages(library(arrApply)) # for fast apply() on arrays
-         # define matprod for simple_triplet_matrix
-         #`%%stm%%` = slam::matprod_simple_triplet_matrix
-         #so=.Platform$dynlib.ext
-         #fso=paste("mult_bxxc", so, sep="")
-         #fcpp="mult_bxxc.cpp"
-         ## define R functions from mult_bxxc.so
-         #multdll=dyn.load(file.path(dirx, fso))
-         #mult_bxxc <- Rcpp:::sourceCppFunction(function(a, b, c) {}, TRUE, multdll, 'sourceCpp_0_mult_bxxc')
-         #solve_ieu <- Rcpp:::sourceCppFunction(function(invdt, x0, M, ali, s, ilua) {}, TRUE, multdll, 'sourceCpp_0_solve_ieu')
-         #match_ij <- Rcpp:::sourceCppFunction(function(ix, jx, ti, tj) {}, TRUE, multdll, 'sourceCpp_0_match_ij')
-         #rm(multdll)
+         suppressPackageStartupMessages(library(compiler))
+         enableJIT(0)
          source(file.path(dirx, "tools_ssg.R"))
          source(file.path(dirx, "nlsic.R"))
          source(file.path(dirx, "opt_cumo_tools.R"))
          source(file.path(dirx, "opt_icumo_tools.R"))
+         #loadcmp(file.path(dirx, "tools_ssg.Rc"))
+         #loadcmp(file.path(dirx, "nlsic.Rc"))
+         #loadcmp(file.path(dirx, "opt_cumo_tools.Rc"))
+         #loadcmp(file.path(dirx, "opt_icumo_tools.Rc"))
          labargs$spa=sparse2spa(labargs$spa)
          if (case_i && (time_order == "2" || time_order == "1,2")) {
             labargs$labargs2$spa=labargs$spa
@@ -1274,6 +1269,8 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    dimnames(invj)=rev(dimnames(jx_f$udr_dp))
    obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
 
+   labargs$getx=TRUE
+   labargs$labargs2getx=TRUE
    if (fullsys) {
       nm_flist=nm_list
       nm_flist$rcumo=nm_cumo
@@ -1291,14 +1288,15 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       labargs$emu=F
       v=lab_sim(param, cjac=FALSE, labargs)
       labargs$emu=emu
-      x=v$x
+      x=if (case_i) v$xf else v$x
    } else {
       v=lab_sim(param, cjac=FALSE, labargs)
-      x=v$x
+      x=if (case_i) v$xf else v$x
    }
 
    # write some info in result kvh
-   obj2kvh(cumo2mass(x), "MID vector", fkvh)
+   mid=cumo2mass(x)
+   obj2kvh(mid, "MID vector", fkvh)
 
    fwrv=v$lf$fwrv
    fallnx=v$lf$fallnx
@@ -1323,7 +1321,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
          spli=splitIndices(nmc, nodes);
          clusterExport(cl, c("param", "refsim", "runsuf", "spli"))
          #clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL) # to rebuild sparse matrices on cores ## now, they are build once, at the cluster init
-         cl_res=clusterEvalQ(cl, {mc_iter=TRUE; mc_res=lapply(spli[[idw]], mc_sim); rm(mc_iter); mc_res})
+         cl_res=clusterEvalQ(cl, {mc_iter=TRUE; labargs$getx=FALSE; mc_res=lapply(spli[[idw]], mc_sim); rm(mc_iter); mc_res})
          mc_res=vector(nmc, mode="list")
          for (i in seq(nodes))
             mc_res[spli[[i]]]=cl_res[[i]]
