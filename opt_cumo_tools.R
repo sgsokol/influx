@@ -753,7 +753,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    }   
    if (is.null(spAbr$a_fxx[[nm_a_fx]])) {
 #cat("build", nm_a_fx, "\n", file=fclog)
-      l=list()
+      l=new.env()
       l$nco=nco
       if (emu) {
          ia=(ind_a[,"ir0"]+1L)+rep((seq_len(w)-1L)*nb_c, each=nro)
@@ -828,18 +828,19 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       spAbr$a_fxx[[nm_a_fx]]=l
    }
    x=incu[(1L+nb$xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=FALSE]
+   aux=spAbr$a_fxx[[nm_a_fx]]
    if (emu) {
       redim(x, c(nb_c, w, nco))
       tmp=x[ind_a[,"ic0"]+1L,,,drop=FALSE]
-      tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,,]=-tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,,]
+      tmp[aux$ineg,,]=-tmp[aux$ineg,,]
    } else {
       tmp=x[ind_a[,"ic0"]+1L,,drop=FALSE]
-      tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,]=-tmp[spAbr$a_fxx[[nm_a_fx]]$ineg,]
+      tmp[aux$ineg,]=-tmp[aux$ineg,]
    }
 #browser()
-   spAbr$a_fxx[[nm_a_fx]]$xmat$v[]=tmp[spAbr$a_fxx[[nm_a_fx]]$oa_x]
-   spAbr$a_fxx[[nm_a_fx]]$a_fx$v[]=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$xmat)
-   a_fx=spAbr$a_fxx[[nm_a_fx]]$a_fx
+   aux$xmat$v[]=tmp[aux$oa_x]
+   aux$a_fx$v[]=slam::col_sums(aux$xmat)
+   a_fx=aux$a_fx
    
    # prepare b_f
    # NB emu: b is shorter than xw by the last M+N vector which is added as (1-sum(lighter weights))
@@ -847,9 +848,9 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    nprodx=ncol(ind_b)-2-emu
    prodx=incu[c(ind_b[,2+emu+seq_len(nprodx)]),]
    dim(prodx)=c(nrow(ind_b), nprodx, nco)
-   spAbr$a_fxx[[nm_a_fx]]$b_fmat$v[]=-arrApply(prodx, 2, "prod")[spAbr$a_fxx[[nm_a_fx]]$ob_f]
-   spAbr$a_fxx[[nm_a_fx]]$b_f$v[]=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_fmat)
-   b_f=spAbr$a_fxx[[nm_a_fx]]$b_f
+   aux$b_fmat$v[]=-arrApply(prodx, 2, "prod")[aux$ob_f]
+   aux$b_f$v[]=slam::col_sums(aux$b_fmat)
+   b_f=aux$b_f
    
    # prepare b_x
    if (length(spAbr$ind_bx) > 0) {
@@ -858,17 +859,26 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       if (nprodx >= 1) {
          prodx=incu[c(ind_bx[,3+emu+seq_len(nprodx)]),]
          dim(prodx)=c(nrow(ind_bx), nprodx, nco)
-         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v[]=(-fwrv[ind_bx[,"indf"]]*arrApply(prodx, 2, "prod"))[spAbr$a_fxx[[nm_a_fx]]$ob_x]
+         aux$b_xmat$v[]=(-fwrv[ind_bx[,"indf"]]*arrApply(prodx, 2, "prod"))[aux$ob_x]
       } else {
-         spAbr$a_fxx[[nm_a_fx]]$b_xmat$v[]=(-fwrv[ind_bx[,"indf"]])[spAbr$a_fxx[[nm_a_fx]]$ob_x]
+         aux$b_xmat$v[]=(-fwrv[ind_bx[,"indf"]])[aux$ob_x]
       }
-      spAbr$a_fxx[[nm_a_fx]]$b_x$v[]=slam::col_sums(spAbr$a_fxx[[nm_a_fx]]$b_xmat)
-      b_x=spAbr$a_fxx[[nm_a_fx]]$b_x
+      aux$b_x$v[]=slam::col_sums(aux$b_xmat)
+      b_x=aux$b_x
    } else {
       b_x=simple_triplet_zero_matrix(nrow=nb_xw*nco, ncol=nb$nbc_x[w])
    }
 #browser()
-   return(list(j_rhsw=stm_pm(b_f, a_fx, "-", spAbr$a_fxx[[nm_a_fx]]$bma_pos, spAbr$a_fxx[[nm_a_fx]]$bma_ind), b_x=b_x))
+   j_rhsw=stm_pm(b_f, a_fx, "-", aux$bma_pos, aux$bma_ind)
+   if (is.null(aux$o_j)) {
+      o=order(j_rhsw$i+j_rhsw$nrow*j_rhsw$j)
+      aux$o_j=o
+   }
+   o=aux$o_j
+   j_rhsw$i[]=j_rhsw$i[o]
+   j_rhsw$j[]=j_rhsw$j[o]
+   j_rhsw$v[]=j_rhsw$v[o]
+   return(list(j_rhsw=j_rhsw, b_x=b_x))
 }
 
 put_inside=function(param, ui, ci) {
@@ -1007,6 +1017,10 @@ df_dffp=function(param, flnx, nb_f, nm_list) {
       res$v[i]=res$v[i]*nb_f$mu
    }
    dimnames(res)=list(nm_list$fwrv, names(param)[c(i_ffn, i_ffx, i_fgn, i_fgx)])
+   o=order(res$i+res$nrow*res$j)
+   res$i[]=res$i[o]
+   res$j[]=res$j[o]
+   res$v[]=res$v[o]
    return(res)
 }
 
