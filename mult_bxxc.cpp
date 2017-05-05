@@ -262,10 +262,7 @@ void bop(NumericVector& dst, const IntegerVector& mv, const string& sop, Numeric
    
    // layaout arrays as cubes
    uvec did, dis, dimv; // array dimensions
-   uvec dfi(3), dla(3), dlen; // destination first and last indexes by margin, and lengths
-   uvec cdid(3), cdis(3); // cube dimensions
    bool indmat=mv.hasAttribute("dim");
-   uvec b;
    
    if (dst.hasAttribute("dim")) {
       did=as<uvec>(dst.attr("dim"));
@@ -282,14 +279,17 @@ void bop(NumericVector& dst, const IntegerVector& mv, const string& sop, Numeric
       // prepare index vector
       umat  mvu=as<umat>(mv);
       mvu-=1; // go to 0 based indexes
-      uvec iv=mvu.col(0)+sum(mvu.tail_cols(mvu.n_cols-1).each_row() % cumprod(did.head(did.size()-1)).t(), 1);
 //print(wrap(iv));
       vec vdst=vec(dst.begin(), dst.size(), false);
       vec vsrc=vec(src.begin(), src.size(), false);
+#define iv mvu.col(0)+sum(mvu.tail_cols(mvu.n_cols-1).each_row() % cumprod(did.head(did.size()-1)).t(), 1)
       vdst(iv)=vsrc;
+#undef iv
       return;
    }
-   b=as<uvec>(mv);
+   uvec dfi(3), dla(3), dlen; // destination first and last indexes by margin, and lengths
+   uvec cdid(3), cdis(3); // cube dimensions
+   uvec b=as<uvec>(mv);
    if (b.size() != 3 && b.size() != 1)
       stop("Block vector b must be of length 1 or 3 (not "+to_string(b.size())+")");
    unsigned int margin=b[0]-1, ioff, len;
