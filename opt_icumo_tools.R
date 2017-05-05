@@ -239,9 +239,10 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    }
    ntico_max=max(sapply(seq_len(nb_exp), function(iexp) nb_tifu[[iexp]]-1L))
    nb_row_max=max(sapply(seq_len(nb_w), function(iw) {emuw=ifelse(emu, iw, 1L); spa[[iw]]$nb_c*emuw}))
-   sfpw=double(nb_row_max*ntico_max*nb_poolf)
+   xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico_max)
+   #sfpw=double(nb_row_max*ntico_max*nb_poolf)
    xpfw=double(nb_row_max*(nb_ff+nb_poolf)*ntico_max)
-   xpf1=double(nb_row_max*(nb_ff+nb_poolf))
+   #xpf1=double(nb_row_max*(nb_ff+nb_poolf))
    for (iexp in seq_len(nb_exp)) {
       if (nb_ti[iexp] < 2) {
          return(list(err=1, mes="Number of time points is less than 2"))
@@ -277,8 +278,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       dimnames(xsim)=list(names(x1), tifull[[iexp]][-1L])
       if (cjac) {
          #cat("param2fl_usm_eul2: recalculate jacobian\n")
-         xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
-         redim(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
+         #xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
+         #redim(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
+         resize(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
          if (length(ijpwef[[iexp]])) {
             dpwe=-pwe[[iexp]]*spwe
             dpwe[-ipwe[[iexp]]]=0.
@@ -353,38 +355,49 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             # parts before b_x%*%...
             #Rprof(file="fx2jr.Rprof", append=TRUE)
             #xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
-            resize(xpfw, c(nb_row, nb_ff+nb_poolf, ntico))
+            resize(xpfw, c(nb_c*emuw, nb_ff+nb_poolf, ntico))
             bop(xpfw, 1, "=", 0.)
             #xpf1=double(nb_c*emuw*(nb_ff+nb_poolf))
-            resize(xpf1, c(nb_c, emuw*(nb_ff+nb_poolf)))
+            #resize(xpf1, c(nb_c, emuw*(nb_ff+nb_poolf)))
             #bop(xpf1, 1, "=", 0.) # xpf1 is always 0
             #sfpw=double(nb_row*ntico*nb_poolf)
-            resize(sfpw, c(nb_c, emuw, ntico, nb_poolf))
-            bop(sfpw, 1, "=", 0.)
+            #resize(sfpw, c(nb_c, emuw, ntico, nb_poolf))
+            #bop(sfpw, 1, "=", 0.)
             sj=fx2jr(fwrv, spa[[iw]], nb_f, xsim)
             #Rprof(NULL)
             # ff part
             if (nb_ff+nb_fgr > 0) {
-               tmp=sj$j_rhsw%stm%jx_f$df_dffp
-               dim(tmp)=c(nb_row, ntico, nb_ff+nb_fgr)
-               #xpfw[,seq_len(nb_ff+nb_fgr),]=-aperm(tmp, c(1L, 3L, 2L))
-               bop(xpfw, c(2, 0, nb_ff+nb_fgr), "=", -aperm(tmp, c(1L, 3L, 2L)))
+               #tmp=sj$j_rhsw%stm%(-jx_f$df_dffp)
+               #redim(tmp, c(nb_row, ntico, nb_ff+nb_fgr))
+               ##xpfw[,seq_len(nb_ff+nb_fgr),]=-aperm(tmp, c(1L, 3L, 2L))
+               #bop(xpfw, c(3, 0, nb_ff+nb_fgr), "=", aperm(tmp, c(1L, 3L, 2L)))
+               jrhs_ff(sj$j_rhs, jx_f$df_dffp, xpfw)
+               #if (sum(xpfw[,seq(nb_ff+nb_fgr),]-aperm(tmp, c(1L, 3L, 2L))) > 1.e-14)
+               #   browser()
             }
             # poolf part
             if (nb_poolf > 0) {
+#browser()
                i2x=nb_f$ipf2ircumo[[iexp]][[iw]]
+               i2xf=nb_f$ipf2ircumo[[iexp]][[iw]]
+               #bop(i2xf, c(2,2,1), "+=", nb_ff)
+               i2xf[,3]=i2xf[,3]+nb_ff
                xw2=(cbind(x1[inrow], xsim[inrow, -ntico, drop=FALSE])-xsim[inrow, , drop=FALSE])%mrv%invdt
                redim(xw2, c(nb_c, emuw, ntico))
                #dim(xw2)=c(nb_c, emuw*ntico)
                #tmp=at%stm%xw2+c(st)
                #dim(tmp)=c(nb_c, emuw, ntico)
                #sfpw[i2x]=tmp[i2x[,-4L]]
-               bop(sfpw, i2x, "=", xw2[i2x[,-4L,drop=FALSE]])
+               #bop(sfpw, i2x, "=", xw2[i2x[,-4L,drop=FALSE]])
                #xpfw[,nb_ff+seq_len(nb_poolf),]=(if (nb_fgr > 0) xpfw[,nb_ff+seq_len(nb_poolf,)] else 0.) + aperm(sfpw, c(1L, 2L, 4L, 3L))
+               redim(xpfw, c(nb_c, emuw, nb_ff+nb_poolf, ntico))
                if (nb_fgr > 0) {
-                  bop(xpfw, c(2, nb_ff, nb_poolf), "+=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
+                  #bop(xpfw, c(2, nb_ff, nb_poolf), "+=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
+                  bop(xpfw, i2xf, "+=", xw2[i2x[,-3L,drop=FALSE]])
                } else {
-                  bop(xpfw, c(2, nb_ff, nb_poolf), "=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
+                  #bop(xpfw, c(2, nb_ff, nb_poolf), "=", aperm(sfpw, c(1L, 2L, 4L, 3L)))
+                  bop(xpfw, i2xf, "=", xw2[i2x[,-3L,drop=FALSE]])
+                  redim(xpfw, c(nb_row, nb_ff+nb_poolf, ntico))
                }
             }
             # add lighter xpf (b_x%*%...)
@@ -413,12 +426,12 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             vmw=rep(vmw, nb_ff+nb_poolf)
             redim(vmw, c(nb_c, emuw*(nb_ff+nb_poolf)))
             redim(xpfw, c(nb_c, emuw*(nb_ff+nb_poolf), ntico))
-            solve_ieu(invdt, xpf1, vmw, ali_w[[iw]], xpfw, ilua)
+            solve_ieu(invdt, NULL, vmw, ali_w[[iw]], xpfw, ilua)
             redim(xpfw, c(nb_c, emuw, nb_ff+nb_poolf, ntico))
             #xpfw[]=aperm(xpfw, c(1L, 2L, 4L, 3L))
 #browser()
             #xpf[imw,,]=xpfw
-            bop(xpf, c(1, nbc_x[iw], nb_row), "=", xpfw) 
+            bop(xpf, c(1, nbc_x[iw], nb_row), "=", xpfw)
             if (emu) {
                # treat the last weight
                #xpf[imwl,,]=-arrApply(xpfw, 2, "sum")
@@ -454,15 +467,16 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       
       if (cjac) {
          #jx_f$xpf=xpf # for debugging only
-         xpf=aperm(xpf[,,isel,drop=FALSE], c(1L, 3L, 2L))
-         redim(xpf, c(nbc_x[nb_w+1L], ntise*(nb_ff+nb_poolf)))
+         #xpf=aperm(xpf[,,isel,drop=FALSE], c(1L, 3L, 2L))
+         #redim(xpf, c(nbc_x[nb_w+1L], ntise*(nb_ff+nb_poolf)))
          # scale part of jacobian
          if (nb_f$nb_sc_tot != 0L) {
             stop_mes("nb_sc != 0L is not implemented as meaningless for dynamic labeling. Use --noscale option.", fcerr)
          }
-         dux_dp=measmat[[iexp]]%stm%xpf
-         redim(xpf, c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf)))
-         dimnames(xpf)=list(nm$x, ti[[iexp]][-1], nm$par)
+         #dux_dp=measmat[[iexp]]%stm%xpf
+         dux_dp=mm_xpf(measmat[[iexp]], xpf, isel)
+         #redim(xpf, c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf)))
+         #dimnames(xpf)=list(nm$x, ti[[iexp]][-1], nm$par)
          if (length(ipooled[[iexp]]) > 1L) {
             dux_dp=meas2sum[[iexp]]%stm%(pwe[[iexp]]*dux_dp) # resize
          }
@@ -479,7 +493,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          }
          dimnames(dux_dp)=list(nm$meas[[iexp]], ti[[iexp]][-1L], nm$par)
          jx_f$dux_dp[[iexp]]=dux_dp
-         jx_f$xpf[[iexp]]=xpf
+         #jx_f$xpf[[iexp]]=xpf
       }
       dimnames(usm)=list(nm$meas[[iexp]], ti[[iexp]][-1L])
       # store usefull information in global list jx_f
