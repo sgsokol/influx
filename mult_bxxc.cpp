@@ -91,7 +91,7 @@ void mult_bxxc(NumericVector a, List b, NumericVector c) {
 }
 
 // [[Rcpp::export]]
-void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<S4> ali, cube s, ivec& ilua) {
+void solve_ieu(vec& invdt, const SEXP& x0_, mat& M, ListOf<S4> ali, cube s, ivec& ilua) {
    // solve an ode system by implicite euler scheme
    // The system is defgined as M*dx/dt=a*x+s where M is a diagonal
    // matrix given by its diagonal vector M (which has a form of matrix for
@@ -106,8 +106,20 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<S4> ali, cube s, ivec& ilua) 
    // Calculations are done in-place so s is modified and contains the
    // solution on exit. The others parameters are not modified.
    // s_i can be a matrix or a vector(== 1-column matrix)
+   bool addx0=!Rf_isNull(x0_);
+//Rcout << "addx0=" << addx0 << std::endl;
+   mat x0;
+   unsigned int nxrow, nxcol;
+   if (addx0) {
+      x0=as<mat>(x0_);
+      nxrow=x0.n_rows;
+      nxcol=x0.n_cols;
+   } else {
+      nxrow=M.n_rows;
+      nxcol=M.n_cols;
+   }
    unsigned int nti=invdt.size();
-   unsigned int nxrow=x0.n_rows, nxcol=x0.n_cols;
+   
    // sanity control
    if (M.n_rows != nxrow)
       stop("nrow(M) != nrow(x0)");
@@ -129,9 +141,9 @@ void solve_ieu(vec& invdt, mat& x0, mat& M, ListOf<S4> ali, cube s, ivec& ilua) 
    // prepare starting s
    for (unsigned int i=0; i < nti; i++) {
 //Rcout << "i=" << i << std::endl;
-      if (i == 0)
+      if (i == 0 && addx0)
          s.slice(i)=s.slice(i)+(M%x0)*invdt[i];
-      else
+      else if (i > 0)
          s.slice(i)=s.slice(i)+(M%s.slice(i-1))*invdt[i];
 //Rcout << "s1 s_i=" << s.begin_slice(i) << std::endl;
 //Rcout << "s2, ilua_i=" << ilua[i] << std::endl;
@@ -443,4 +455,80 @@ NumericVector iv2v(IntegerVector& iv, NumericVector& v) {
    for (auto i=0; i < iv.size(); i++)
       res[iv[i]] += v[i];
    return res;
+}
+// [[Rcpp::export]]
+NumericVector mm_xpf(List x, NumericVector y_, IntegerVector lsel) {
+   // Dot product of simple triplet matrix x (m x n) (measurement matrix) and a dense array y (n x k x l).
+   // Only slices of y_ from lsel vector are used.
+   // Result array has dimensions (m x len(lsel) x k), i.e. it is permuted on the fly.
+   //Rcout << "here" << endl;
+   int m=x["nrow"], n=x["ncol"], k, l;
+   //print(x);
+   Dimension ydim(3);
+   //Rcout << "here 2" << endl;
+   if (y_.hasAttribute("dim")) {
+      ydim=y_.attr("dim");
+   } else {
+      stop("parameter y_ must be a 3D array");
+   }
+   k=ydim[1];
+   l=ydim[2];
+   if (n != ydim[0])
+      stop("ncol(x) != dim(y)[1]");
+   IntegerVector ix_=as<IntegerVector>(x["i"])-1, jx_=as<IntegerVector>(x["j"])-1;
+   lsel=lsel-1;
+   NumericVector vx_=as<NumericVector>(x["v"]);
+   int *ix=ix_.begin(), *jx=jx_.begin(), ly;
+   double *vx=vx_.begin(), *y=y_.begin();
+   NumericVector r_(m*k*lsel.size(), 0.);
+   r_.attr("dim") = Dimension(m, lsel.size(), k);
+   double *r=r_.begin();
+   //print(ix_);
+   //print(jx_);
+   //print(vx_);
+   for (int jy=0; jy < k; jy++) {
+      for (int ll=0; ll < lsel.size(); ll++, r+=m) {
+         ly=lsel[ll];
+         y=y_.begin()+n*(jy+k*ly);
+         for (int iv=0; iv < vx_.size(); iv++) {
+            r[ix[iv]]+=vx[iv]*y[jx[iv]];
+         }
+      }
+   }
+   return r_;
+}
+// [[Rcpp::export]]
+void jrhs_ff(List jrhs, List ff, NumericVector xpfw) {
+   // xpfw[...]-=jrhs%*%ff
+   // dim(xpfw)=nb_row, nb_ff+nb_fgr, ntico
+   // dim(jrhs%*%ff)=nb_row*ntico, nb_ff+nb_fgr
+   IntegerVector ir=as<IntegerVector>(jrhs["i"])-1;
+   IntegerVector jr=as<IntegerVector>(jrhs["j"])-1;
+   NumericVector vr=as<NumericVector>(jrhs["v"]);
+//Rcout << "*ir=" << ir.begin() << std::endl;
+   IntegerVector iff=as<IntegerVector>(ff["i"])-1;
+   IntegerVector jff=as<IntegerVector>(ff["j"])-1;
+   NumericVector vff=as<NumericVector>(ff["v"]);
+   int i, j, k;
+   int i1, i3;
+   Dimension dix=xpfw.attr("dim");
+   int nr=dix[0], nf=dix[1], nt=dix[2];
+   int ivr=0; 
+   for (int ivff=0; ivff < vff.size(); ivff++) {
+      k=jff[ivff];
+      if (ivff > 0 && jff[ivff-1] != k)
+         ivr=0; // column in ff has changed => restart r
+      for (; ivr < vr.size(); ivr++) {
+         j=jr[ivr];
+         if (j < iff[ivff])
+            continue; // find right column in r
+         else if (j > iff[ivff])
+            break; // move to the next sparse term in vff
+         i=ir[ivr];
+         i1=i%nr;
+         i3=i/nr;
+         //i2=k;
+         xpfw[i1+nr*(k+nf*i3)]-=vr[ivr]*vff[ivff];
+      }
+   }
 }
