@@ -268,7 +268,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             b_x=j_b_x$b_x
             if (iw > 1) {
                if (ba_x > 0) {
-                  j_rhsw=j_rhsw+b_x%stm%x_f[seq_len(ba_x),,drop=FALSE]
+                  bop(j_rhsw, 1, "+=", b_x%stm%x_f[seq_len(ba_x),,drop=FALSE])
                }
             }
             redim(j_rhsw, c(nb_c, emuw*(nb_ff+nb_fgr)))
@@ -278,16 +278,16 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                mes="Some obscure problem with label matrix.\n"
                return(list(x=NULL, fA=Ali[[iw]], err=1L, mes=mes))
             } else {
-               j_rhsw=tmp
+               bop(j_rhsw, 1, "=", tmp)
             }
             if (emu) {
-               redim(j_rhsw, c(nb_c, iw, nb_ff+nb_fgr))
-               x_f[ba_x+seq_len(iw*nb_c),]=j_rhsw
+               #redim(j_rhsw, c(nb_c, iw, nb_ff+nb_fgr))
+               bop(x_f, c(1, ba_x, iw*nb_c), "=", j_rhsw)
                # m+N component
                #x_f[ba_x+iw*nb_c+seq_len(nb_c),]= -apply(j_rhsw, c(1L,3L), sum)
-               x_f[ba_x+iw*nb_c+seq_len(nb_c),]=-arrApply(j_rhsw, 2, "sum")
+               bop(x_f, c(1, ba_x+iw*nb_c, nb_c), "=", -arrApply(j_rhsw, 2, "sum"))
             } else {
-               x_f[ba_x+seq_len(nb_c),]=j_rhsw
+               bop(x_f, c(1, ba_x, nb_c), "=", j_rhsw)
             }
          }
          ba_x=ba_x+nb_x[iw]
@@ -336,7 +336,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                mpf[]=meas2sum[[iexp]]%stm%dpw_dpf[[iexp]]
                # growth flux depending on free pools
                if (nb_fgr > 0L) {
-                  mpf=mpf+as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=FALSE])
+                  bop(mpf, 1, "+=", as.matrix(mffg[,nb_ff+seq_len(nb_fgr),drop=FALSE]))
                   mff=mffg[,seq_len(nb_ff)]
                } else {
                   mff=mffg
