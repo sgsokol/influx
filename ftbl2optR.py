@@ -446,8 +446,8 @@ for (iexp in seq_len(nb_exp)) {
       i=i[i[,1L]!=0L,,drop=FALSE]
       i2=i2[i2[,1L]!=0L,,drop=FALSE]
       # put the poolf column last
-      nb_f$ipf2ircumo[[iexp]][[iw]]=cbind(i[,-1L,drop=FALSE], i[,1L,drop=FALSE])
-      nb_f$ipf2ircumo2[[iexp]][[iw]]=cbind(i2[,-1L,drop=FALSE], i2[,1L,drop=FALSE])
+      nb_f$ipf2ircumo[[iexp]][[iw]]=i[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
+      nb_f$ipf2ircumo2[[iexp]][[iw]]=i2[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
    }
 }
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
@@ -553,6 +553,7 @@ crv_fg[,1L]=(nb_fwrv/2)+crv_fg[,1L]
 # store it in nb_f
 nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
    crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
+nb_f=as.environment(nb_f)
 
 nbc_x=c(0, cumsum(nb_x))
 nb_f$nbc_x=nbc_x
@@ -590,6 +591,7 @@ labargs[["nm"]]=labargs[["nm_list"]]
 # prepare labargs2 if time_order includes 2
 if (case_i && (time_order == "2" || time_order == "1,2")) {
    labargs2=as.environment(as.list(labargs))
+   labargs2$nb_f=as.environment(as.list(labargs$nb_f))
    labargs2$tifull=tifull2
    labargs2$jx_f=new.env()
    labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
@@ -612,7 +614,7 @@ cl=NULL
 if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
    if (np > 1L) {
       # prepare cluster
-      nodes=np
+      nodes=if (sensitive == "mc") np else 2
 
       # prepare cluster
       cl=makeCluster(nodes, cl_type) #, outfile="cl.log")
