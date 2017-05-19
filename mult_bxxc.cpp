@@ -91,16 +91,17 @@ void mult_bxxc(NumericVector a, List b, NumericVector c) {
 }
 
 // [[Rcpp::export]]
-void solve_ieu(vec& invdt, const SEXP& x0_, mat& M, ListOf<S4> ali, cube s, ivec& ilua) {
+void solve_ieu(vec& invdt, const SEXP& x0_, mat& M, ListOf<RObject> ali, cube s, ivec& ilua) {
    // solve an ode system by implicite euler scheme
-   // The system is defgined as M*dx/dt=a*x+s where M is a diagonal
+   // The system is defined as M*dx/dt=a*x+s where M is a diagonal
    // matrix given by its diagonal vector M (which has a form of matrix for
    // term-by-term multiplication with x0)
    // In discrete terms
    // (M/dt_i-a)*x_i=(M/dt_i)*x_(i-1)+s_i
    // The rmumps matrix (M/dt_i-a) is stored in list ali as XPtr<Rmumps>
+   // or a plain dense inverted matrix.
    // invdt is 1/dt
-   // x0 is the starting value at t0
+   // x0 is the starting value at t0 (may be NULL)
    // The source term is in array s, its last margin is time
    // The ilua[i] gives the list item number in ali for a given dt_i.
    // Calculations are done in-place so s is modified and contains the
@@ -118,7 +119,8 @@ void solve_ieu(vec& invdt, const SEXP& x0_, mat& M, ListOf<S4> ali, cube s, ivec
       nxrow=M.n_rows;
       nxcol=M.n_cols;
    }
-   unsigned int nti=invdt.size();
+   unsigned int nti=invdt.size(), iali;
+   NumericVector tmp;
    
    // sanity control
    if (M.n_rows != nxrow)
@@ -133,10 +135,20 @@ void solve_ieu(vec& invdt, const SEXP& x0_, mat& M, ListOf<S4> ali, cube s, ivec
       stop("dim(s)[3] != length(invdt)");
    if (ilua.size() != nti)
       stop("length(ilua) != length(invdt)");
-   // prepare pointers to Rmumps
+   // prepare pointers to Rmumps, matrix and a switch
    vector<Rmumps*> alip(ali.size());
-   for (int i=0; i<ali.size(); i++)
-      alip[i]=as<XPtr<Rmumps>>(as<Environment>(ali[i].slot(".xData"))[".pointer"]);
+   vector<mat> alim(ali.size());
+   vector<bool> alismu(ali.size());
+   
+   for (int i=0; i<ali.size(); i++) {
+      alismu[i]=ali[i].inherits("Rcpp_Rmumps");
+      if (alismu[i]) {
+         alip[i]=as<XPtr<Rmumps>>(as<Environment>(ali[i].slot(".xData"))[".pointer"]);
+      } else {
+         tmp=as<NumericVector>(ali[i]);
+         alim[i]=mat(tmp.begin(), nxrow, nxrow, false);
+      }
+   }
    
    // prepare starting s
    for (unsigned int i=0; i < nti; i++) {
@@ -152,7 +164,11 @@ void solve_ieu(vec& invdt, const SEXP& x0_, mat& M, ListOf<S4> ali, cube s, ivec
 //Rcout << "s3" << std::endl;
       //XPtr<Rmumps> ptr(as<XPtr<Rmumps>>(ali(ilua[i]-1)));
 //Rcout << "s4" << std::endl;
-      alip[ilua[i]-1]->solveptr(s.begin_slice(i), nxrow, nxcol);
+      iali=ilua[i]-1;
+      if (alismu[iali])
+         alip[iali]->solveptr(s.begin_slice(i), nxrow, nxcol);
+      else
+         s.slice(i)=alim[iali]*s.slice(i);
 //Rcout << "s5" << std::endl;
    }
 }
@@ -278,11 +294,13 @@ void bop(NumericVector& dst, const IntegerVector& mv, const string& sop, Numeric
          stop("Column number in index matrix mv ("+to_string(dimv[1])+") must be equal to length(dim(dst)) ("+to_string(did.size())+")");
       // prepare index vector
       umat  mvu=as<umat>(mv);
-      mvu-=1; // go to 0 based indexes
 //print(wrap(iv));
       vec vdst=vec(dst.begin(), dst.size(), false);
       vec vsrc=vec(src.begin(), src.size(), false);
-#define iv mvu.col(0)+sum(mvu.tail_cols(mvu.n_cols-1).each_row() % cumprod(did.head(did.size()-1)).t(), 1)
+      did.tail(did.size()-1)=cumprod(did.head(did.size()-1));
+      did(0)=1;
+      mvu=mvu-1;
+#define iv sum(mvu.each_row() % did.t(), 1)
       vdst(iv)=vsrc;
 #undef iv
       return;
@@ -301,10 +319,10 @@ void bop(NumericVector& dst, const IntegerVector& mv, const string& sop, Numeric
    if (b[0] < 1 || b[0] > did.size()) {
       stop("Margin value ("+to_string(b[0])+") is invalid. Must be in [1, length(dim(dst)]");
    }
-   if (ioff < 0 || ioff >= did[margin]) {
+   if (ioff >= did[margin]) {
       stop("Block offset ("+to_string(ioff)+") is invalid. Must be in [0, dim(dst)[b[0]]-1]");
    }
-   if (len < 0 || len > did[margin]) {
+   if (len > did[margin]) {
       stop("Block length ("+to_string(len)+") is invalid. Must be in [0, dim(dst)[b[0]]]");
    }
    // prepare cdst dimensions (cdid)
@@ -401,10 +419,12 @@ void resize(SEXP& x_, uvec& di) {
    RObject x=as<RObject>(x_);
    //Rcout << "len=" << LENGTH(x_) << endl;
    //Rcout << "tlen=" << TRUELENGTH(x_) << endl;
+#if R_Version(3, 4, 0) <= R_VERSION
    if (!IS_GROWABLE(x_)) {
       SET_GROWABLE_BIT(x_);
       SET_TRUELENGTH(x_, XLENGTH(x_));
    }
+#endif
    //Rcout << "n=" << XLENGTH(x_) << endl;
    unsigned int pdi=prod(di);
    if (TRUELENGTH(x_) >= pdi)
