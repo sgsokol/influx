@@ -281,7 +281,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
                bop(j_rhsw, 1, "=", tmp)
             }
             if (emu) {
-               #redim(j_rhsw, c(nb_c, iw, nb_ff+nb_fgr))
+               redim(j_rhsw, c(nb_c, iw, nb_ff+nb_fgr))
                bop(x_f, c(1, ba_x, iw*nb_c), "=", j_rhsw)
                # m+N component
                #x_f[ba_x+iw*nb_c+seq_len(nb_c),]= -apply(j_rhsw, c(1L,3L), sum)
