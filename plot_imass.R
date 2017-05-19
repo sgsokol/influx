@@ -60,8 +60,9 @@ for (iexp in seq_len(nb_exp)) {
       nmf=unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":"))
       for (metf in nmf) {
          i=grep(sprintf("m:%s:", metf), nm_sel, fix=T, v=T)
-         isim=pmatch(sapply(strsplit(i, ":", fixed=TRUE), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
-         plot_ti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=F], main=strsplit(metf, ":")[[1]][1], ylim=0:1)
+         #isim=pmatch(sapply(strsplit(i, ":", fixed=TRUE), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
+         isim=grep(sprintf("m:%s:", metf), rownames(usmf), fix=T, v=T)
+         plot_ti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=FALSE], main=strsplit(metf, ":")[[1]][1], ylim=0:1)
       }
    }
    # plot non measured metabs from mid
@@ -71,8 +72,8 @@ for (iexp in seq_len(nb_exp)) {
    nmp=sort(setdiff(nmmid, nmm))
    for (met in nmp) {
       i=grep(sprintf("^%s+", met), nm_sim, v=T)
-      isim=pmatch(i, nm_sim)
-      plot_ti(tifull[[iexp]][-1L], mid[[iexp]][isim,,drop=FALSE], NULL, main=met, ylim=0:1)
+      #isim=pmatch(i, nm_sim)
+      plot_ti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
    }
    dev.off()
 }
