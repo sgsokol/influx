@@ -307,10 +307,18 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             ali_w[[iw]][]=lapply(names(ali_w[[iw]]), function(dtu) {
                dti=1./as.double(dtu)
                asp=ali_w[[iw]][[dtu]]
+               if (!inherits(asp, "Rcpp_Rmumps"))
+                  asp=attr(asp, "asp")
                av=Alit[[iw]]$v
                av[spa[[iw]]$iadiag]=vmw[,1L]*dti+av[spa[[iw]]$iadiag]
                asp$set_mat_data(av)
-               return(asp)
+               if (cjac && nb_c < 65) {
+                  m=asp$inv()
+                  attr(m, "asp")=asp
+                  return(m)
+               } else {
+                  return(asp)
+               }
             })
          }
          ilua=pmatch(dtr, names(ali_w[[iw]]), dup=T)
