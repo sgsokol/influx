@@ -299,6 +299,7 @@ names(vecpoolm)=nm_poolm
 
 # inverse of variance for pool measurements
 poolmdev=c(%(poolmdev)s)
+names(poolmdev)=nm_poolm
 
 # simulated metabolite measurements are calculated as
 # measmatpool*poolall=>poolm
