@@ -27,7 +27,8 @@ plot_lab=function(x, m=NULL, dev=NULL, ...) {
    } else {
       nm_leg=paste("#", seq_len(n), sep="")
    }
-   bc=barplot(cbind(sim=x, meas=m), width=0.1, horiz=TRUE, xlab="Label fraction", ylim=c(0, 0.25), xlim=range(0, sum(x), sum(m)+dev)*1.1, asp=TRUE, col=co,
+   xlim=range(0, sum(x), sum(m)+dev)*1.1
+   bc=barplot(cbind(sim=x, meas=m), width=0.08*diff(xlim), horiz=TRUE, xlab="Label fraction", ylim=xlim*0.25, xlim=xlim, asp=TRUE, col=co,
       legend.text=nm_leg, args.legend=list(cex=0.75, horiz=TRUE), ...)
    if (!is.null(m) && !is.null(dev)) {
       cume=cumsum(m)
