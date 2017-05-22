@@ -3,6 +3,8 @@
 
 .. highlight:: bash
 
+.. _MetExplore: http://metexplore.toulouse.inra.fr/
+
 =============
 User's manual
 =============
@@ -154,12 +156,13 @@ This feature can be useful for preliminary simulations when there is no yet data
 
 Convention evolution
 ~~~~~~~~~~~~~~~~~~~~~
-Not only FTBL format evolved but also some conventions between its parts and content. Here is a complete list of them:
+Not only FTBL format evolved but also some conventions between its parts and content did so. Here is a complete list of them:
   - user must explicitly declare input-output fluxes as non reversible (set them as ``C`` with a value ``0`` in the section ``FLUX/XCH``) to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0 and have net flux equal to 0 while exchange flux non zero).
   - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections (even if this feature is maintained in v4.0 its interest has diminished since cofactors can now be directly introduced in ``NETWORK`` and ``NOTRACER_NETWORK`` sections);
   - in LABEL_INPUT section following conventions apply since v3.2:
       * *"the rest is unlabeled"*: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;
       * *"guess the lacking one"*: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.
+  - starting from v4.2, a particular comment tag ``//##`` is used to introduce a pathway name. The information on pathways can be useful for visualization on a partner web site MetExplore_ (cf. ``ftbl2metxml`` in _`Additional tools` section).
 
 Basic influx_si usage
 ---------------------
@@ -479,7 +482,8 @@ The script name is interpreted as a relative path to the directory where the ori
 
  > load("e_coli.RData")
  
-After that, all variables defined in influx_s at the end of the calculations will be available in the current interactive session.
+After that, all variables defined in influx_si at the end of the calculations will be available in the current interactive session.
+To be able to launch custom calculations on these variables, user has to do some preliminary actions. An example of such actions can be found in a file ``preamble.R`` which can be adapted for users's case.
 
 To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:
 
@@ -525,6 +529,8 @@ A full list of all available variable and functions can be obtained in an R sess
  > ls()
  
 This list of more than 400 items is too long to be fully described here. We hope that few items succinctly described in this section will be sufficient for basic custom treatments.
+
+An inspirations for your own custom treatments and/or plotting can be found in files ``plot_imass.R`` and ``plot_smeas.R`` that plot instationary and stationary data respectively in pdf files.
 
 Exclusive ``influx_i`` options
 ------------------------------
@@ -838,6 +844,8 @@ This long reaction illustrates several format features:
  - ``->`` separates two sides of reaction and indicates that this reaction is irreversible, i.e. its exchange flux is zero. It does not precludes about the sens of reaction. Here we consider that a reaction can be irreversible and have a negative net flux. If in addition, you wish to indicate that a reaction must operate only from left to right, i.e. to have a positive net flux, then use ``->>`` sign. To indicate a reversible reaction use ``<->`` and a reversible reaction with imposed positive net flux use ``<->>``.
  - ``ATP`` is an example of a cofactor, it does not have a carbon id string. It participates in mass balance but not in carbon balance equations.
  - ``2 NADPH`` is an example of a cofactor with a stoechiometric coefficient different from 1. Coefficients different from 1 are not allowed for metabolites participating in carbon exchanges in a given reaction. But if a reaction has no carbon exchanges, then all metabolites are allowed to have a coefficient different from 1 like for example in biomass reactions.
+ - ``#`` starts a comment that will be put in FTBL as is, except the first ``#`` hash sign that will be replaced by ``//`` (FTBL comment tag)
+ - ``###`` triple hash sign is used to introduce a pathway name. Respectively, ``//##`` will do the same in FTBL. Pathway name can be useful for ``ftbl2metxml.py`` script which prepare xml and txt files for visualization on a partner site MetExplore_.
  
 An example of a full featured metabolite network can be found in ``test/prl_exp/e_coli_anto.txt``.
 
@@ -947,6 +955,7 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 
 ffres2ftbl: import free fluxes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 This utility imports free flux values and metabolite concentrations (if any) from a result file _res.kvh and inject them into an FTBL file. Usage::
 
  $ ffres2ftbl.sh mynetwork_res.kvh [base.ftbl] > new.ftbl
@@ -955,11 +964,17 @@ If an optional argument ``base.ftbl`` is omitted, then the free flux values are 
 
 ftbl2kvh: check ftbl parsing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 This utility simply parses a ftbl file and write what was "understood" in a kvh file. No network analysis occurs here unlike in ``ftbl2netan`` utility. Usage::
 
  $ ftbl2kvh.py mynetwork[.ftbl] [> mynetwork.kvh]
 
 The output redirection is optional.
+
+ftbl2metxml: prepare MetExplore_ visualization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Convert an FTBL file to an xml file suitable for visualization on MetExplore_ site. If a result kvh file ``mynetwork_res.kvh`` is present, it will be parsed to extract flux values corresponding to the last ``influx_si`` run and put them in ``mynetwok_net.txt``, ``mynetwork_fwd.txt`` and ``mynetwork_rev.txt``. As their names indicate, they will contain net, forward and revers flux values respectively.
 
 IsoDesign: optimizing input label
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
