@@ -2,10 +2,10 @@
 Change Log for influx_si
 ========================
 
-2017-05-19 version 4.4
+2017-05-22 version 4.4
 ----------------------
 New features:
- - added plot_smeas.R file to be included in posttreat_R field in FTBL OPTIONS. It plots in a pdf file all stationary measurements vs their simulated counterparts.
+ - added plot_smeas.R file to be included in posttreat_R field in FTBL/OPTIONS. It plots all stationary measurements vs their simulated counterparts in a pdf file.
  - added preamble.R, an example of starting session when working with mynetwork.RData issued from save_all.R or save_minenv.R
  - R can be again of version 3.3+ (not necessarily 3.4+)
  - minor speedup in instationary simulations
