@@ -24,10 +24,10 @@ support for help. We don't provide support for installation.
 Dependencies
 ------------
 
-- R-3.3.0 (or higher, cf http://www.r-project.org/ or your system packaging solution) + the following packages. R of earlier versions starting from 3.0 can be also ok if you don't run Monte-Carlo simulations. But if you do, you had better upgrade R to at least v3.3.
+- R-3.3.0 (cf http://www.r-project.org/ or your system packaging solution) + the following packages.
   
   + nnls
-  + rmumps
+  + rmumps (5.0.1.12 or higher)
   + arrApply
   + slam
   + limSolve (optional, needed only for ``--lim`` option)
@@ -42,9 +42,10 @@ Dependencies
 
   If you are not an administrator of your R installation, you can execute the command above in your own session and install necessary packages in your own disk space. Other users will have to do the same in their respective sessions if they want to use ``influx_si``.
 
-- python 2.6 (or higher but not 3.0 or higher) and module
+- python 2.6 (or higher but not 3.0 or higher) and modules
 
   + numpy
+  + libsbml (optional, needed for ftbl2metxml.py)
 - cytoscape is optional (http://www.cytoscape.org).
   It can be used to visualize your networks
   by intermediate of ``ftbl2xgmml.py`` utility.
@@ -59,7 +60,7 @@ in other words, they should be executable from any directory.
 Compilation dependencies
 ------------------------
 
-Starting from version 3.0.0, some critical parts of code are written in C++ which will require a corresponding compiler installed on your system. It is strongly advised to use the same compiler that was used to compile your R software. You can find which one it was by checking the output of the following shell command ::
+Starting from version 3.0, some critical parts of code are written in C++ which will require a corresponding compiler installed on your system. It is strongly advised to use the same compiler that was used to compile your R software. You can find which one it was by checking the output of the following shell command ::
 
 $ R CMD config CXX
 
@@ -101,7 +102,7 @@ which is already in PATH. For example, as root you can do
 :: 
 
   $ cd /usr/local/bin
-  $ ln -s /path/to/dir/of/influx_s/{influx_s.py,influx_i.py,res2ftbl_meas.py,ftbl2cumoAb.py,ftbl2kvh.py,ftbl2netan.py,ftbl2xgmml.py,ff2ftbl.py,ffres2ftbl.py,txt2ftbl.py} .
+  $ ln -s /path/to/dir/of/influx_s/{influx_s.py,influx_i.py,res2ftbl_meas.py,ftbl2cumoAb.py,ftbl2kvh.py,ftbl2netan.py,ftbl2xgmml.py,ff2ftbl.py,ffres2ftbl.py,txt2ftbl.py,ftbl2metxml.py} .
 
 assuming that ``/usr/local/bin`` is already in the PATH.
 
@@ -109,7 +110,7 @@ First compilation
 -----------------
 To accomplish the installation, you have to run ``influx_s.py`` or ``influx_i.py`` for the first time as a user having write permissions to the installation directory. I.e. if you have installed ``influx_si`` as system administrator you have to make a first run also as a system administrator. This first run will compile a shared library ``mult_bxxc.so`` (a suffix ``.so`` can be different on your platform) needed for further ``influx_si`` executions. An example of a command to run is given in the next session "Test of installation".
 
-If in the future, for any reason (upgrading R version, changing the compiler, ...) you have to recompile the shared library, just remove the file ``mult_bxxc.so`` (or its equivalent if you are not on a Unix platform) and rerun ``influx_si`` on any FTBL file being a user with write permission on installation directory.
+If in the future, for any reason (upgrading R version, changing the compiler, ...) you have to recompile the shared library, just remove the file ``mult_bxxc.so`` (or its equivalent if you are not on a Linux platform) and rerun ``influx_si`` on any FTBL file being a user with write permission on installation directory.
 
 ********************
 Test of installation
@@ -137,7 +138,7 @@ output looking like:
  calcul  : 2016-07-29 12:06:04
  end     : 2016-07-29 12:06:08
 
-The meaning of this output is quit simple. First, an R code is  generated from FTBL file then it is executed till it ends. Time moments at which these three events occur are reported.
+The meaning of this output is quit simple. First, an R code is generated from FTBL file then it is executed till it ends. Time moments at which these three events occur are reported.
 
 At the very first execution, a compilation of auxiliary file ``mult_bxxc.cpp`` will occur which will modify the output in the following manner
 

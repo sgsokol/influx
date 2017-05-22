@@ -2,8 +2,38 @@
 Change Log for influx_si
 ========================
 
+2017-05-19 version 4.4
+----------------------
+New features:
+ - added plot_smeas.R file to be included in posttreat_R field in FTBL OPTIONS. It plots in a pdf file all stationary measurements vs their simulated counterparts.
+ - added preamble.R, an example of starting session when working with mynetwork.RData issued from save_all.R or save_minenv.R
+ - R can be again of version 3.3+ (not necessarily 3.4+)
+ - minor speedup in instationary simulations
+
+Bug fix:
+ - fixed names in dev vector of pool measurements
+
+2017-04-28 version 4.3
+----------------------
+New features:
+ - speed up of about 30-40% is achieved for instationary simulations with 2nd order time scheme (need upgrade R at least to 3.4.0).
+ - in plot_imass.R, each measured mass fragment is presented in a separate plot instead of regrouping all fragments for a given metabolite on the same plot.
+ - in plot_imass.R, non measured metabolites are plotted too now
+
+Bug fix:
+ - fixed Monte-Carlo iterations with --np=1
+ - added a mention of python-libsbml in installation procedure
+
+2017-03-30 version 4.2
+----------------------
+New features:
+ - added a script ftbl2metxml.py converting an ftbl to an xml file suitable for visualization on http://metexplore.toulouse.inra.fr . Additionally, it reads flux values from corresponding ..._res.kvh file (if available) and put them in files ..._net.txt, ..._fwd.txt and ..._rev.txt for later copy/pasting on the MetExplore site (suggested by Tony Palama, INSA, Toulouse, France)
+ - added comment tags '###' to txt network format (recognized by txt2ftbl.py and respectively '//##' tag in FTBL format recognized by all programs using FTBL format) to mark a new pathway. It allows ftbl2metxml.py to assign reactions to pathways and thus make a network graph more readable.
+Bug fix:
+ - a duly error message is added to signal a network without any label entry in a reduced cumomer network.
+
 2017-03-03 version 4.1
-------------------------
+----------------------
 New features:
  - added explicit error message when label transitions are missing for any reaction in NETWORK section
  - improved speed of labeling simulation in influx_i
@@ -66,8 +96,8 @@ Bug fixes:
  - fixed including mult_bxxc.so file in zip archive which prevented from proper compiling of this dynamic library
  - fixed an absence of C++11 flag on platforms where it is not a standard by default.
 
-2016-04-15 version 3.0.0
-------------------------
+2016-04-15 version 3.0
+----------------------
 New features:
  - influx_i.py is introduced for instationary label modeling
  - some critical calculations are written in C++ so some compilation is needed at first execution.
