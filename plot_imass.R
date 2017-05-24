@@ -10,10 +10,11 @@ plot_ti=function(ti, x, m=NULL, ...) {
       nb_curve=if (is.null(m)) nrow(x) else nrow(m)
       # strip the ftbl row number
       nm=sub(":[-0-9]+$", "", nm)
-      # make names look like Metab:frag+0 for m0 Metab:frag+1 for m1 etc.
-      if (length(strsplit(nm[1], ":", fixed=TRUE)[[1]]) > 1) {
-         nm=matrix(unlist(strsplit(nm, ":", fixed=TRUE)), byrow=T, ncol=4)[,c(2:4), drop=F]
-         nm=paste(paste(nm[,1L], nm[,2L], sep=":"), nm[,3L], sep="+")
+      # make names look like M_0, M_1 etc.
+      if (length((nms <- strsplit(nm, ":", fixed=TRUE))[[1]]) > 2) {
+         nm_leg=as.expression(sapply(nms, function(v) substitute(M[i], list(i=v[4]))))
+      } else {
+         nm_leg=as.expression(sapply(seq_len(nb_curve)-1, function(v) substitute(M[i], list(i=v))))
       }
    }
    # x and m may have different time moments
@@ -40,7 +41,7 @@ plot_ti=function(ti, x, m=NULL, ...) {
          }
       }
    }
-   legend("topright", legend=nm, lty=1:nb_curve, col=1:nb_curve, lwd=2, cex=0.75, bg=rgb(0.97,0.97,0.97, 0.75))
+   legend("topright", legend=nm_leg, lty=1:nb_curve, col=1:nb_curve, lwd=2, cex=0.75, bg=rgb(0.97,0.97,0.97, 0.75))
 }
 
 for (iexp in seq_len(nb_exp)) {
@@ -57,6 +58,8 @@ for (iexp in seq_len(nb_exp)) {
    nm_sel=sort(nm_sel)
    pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]))
    if (length(nm_sel) > 0) {
+      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+      text(0.5, 0.05, lab="MS measurements", cex=2)
       nmf=unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":"))
       for (metf in nmf) {
          i=grep(sprintf("m:%s:", metf), nm_sel, fix=T, v=T)
@@ -69,11 +72,29 @@ for (iexp in seq_len(nb_exp)) {
    nm_sim=rownames(mid[[iexp]])
    nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
    nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
+   if (emu) {
+      nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1)
+   }
    nmp=sort(setdiff(nmmid, nmm))
+   if (length(nmp)) {
+      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+      text(0.5, 0.05, lab="MS simulations", cex=2)
+   }
    for (met in nmp) {
-      i=grep(sprintf("^%s+", met), nm_sim, v=T)
-      #isim=pmatch(i, nm_sim)
-      plot_ti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
+      if (emu) {
+         i=grep(sprintf("^%s:", met), nm_sim, v=T)
+         # take fragments
+         fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
+         for (f in fr) {
+            i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=T)
+            fi=as.integer(f)
+            mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
+            plot_ti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=mainlab, ylim=0:1)
+         }
+      } else {
+         i=grep(sprintf("^%s\\+", met), nm_sim, v=T)
+         plot_ti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
+      }
    }
    dev.off()
 }
