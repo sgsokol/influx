@@ -198,8 +198,8 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       # prepare measurement pooling operations
       pwe[[iexp]][ipwe[[iexp]]]=pool[ip2ipwe[[iexp]]]
       spwe=tapply(pwe[[iexp]], pool_factor[[iexp]], sum)
-      spwe=1./as.numeric(spwe[nm$measmat[[iexp]]])
-      pwe[[iexp]]=pwe[[iexp]]*spwe
+      spwe=1./spwe[nm$measmat[[iexp]]]
+      pwe[[iexp]]=c(pwe[[iexp]]*spwe)
       # construct the system A*x=b from fluxes
       # and find x for every weight
       # if fj_rhs is not NULL, calculate jacobian x_f
@@ -298,9 +298,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       
       # calculate unreduced and unscaled measurements
       if (nrow(x) == ncol(measmat[[iexp]])) {
-         mx=measmat[[iexp]]%stm%x[, iexp]+memaone[[iexp]]
+         mx=(measmat[[iexp]]%stm%x[, iexp])[,1]+memaone[[iexp]]
       } else {
-         mx=measmat[[iexp]]%stm%x[nm$rcumo_in_cumo, iexp]+memaone[[iexp]]
+         mx=(measmat[[iexp]]%stm%x[nm$rcumo_in_cumo, iexp])[,1]+memaone[[iexp]]
       }
       # measurement vector before pool ponderation
 #browser()
@@ -350,9 +350,9 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             mpf=vsc*mpf
          }
          # store usefull information in global list jx_f
-         dux_dp[[iexp]][, seq_len(nb_ff)]=mff
-         dux_dp[[iexp]][, nb_ff+seq_len(nb_sc_tot)]=as.matrix(dur_dsc[[iexp]])
-         dux_dp[[iexp]][, nb_ff+nb_sc_tot+seq_len(nb_fgr)]=mpf
+         bop(dux_dp[[iexp]], c(2, 0, nb_ff), "=", mff)
+         bop(dux_dp[[iexp]], c(2, nb_ff, nb_sc_tot), "=", dur_dsc[[iexp]])
+         bop(dux_dp[[iexp]], c(2, nb_ff+nb_sc_tot, nb_f$nb_poolf), "=", mpf)
          jx_f$param=param
          jx_f$x_f[[iexp]]=x_f
          jx_f$dux_dp[[iexp]]=dux_dp[[iexp]]
@@ -1412,7 +1412,11 @@ stm_pm=function(e1, e2, pm=c("+", "-"), pos=if (e1$nrow*e1$ncol < 22517998136852
 # reorder indexes to accelerate sparse matrix construction
 sparse2spa=function(spa) {
    for (ispa in seq_along(spa)) {
-      l=spa[[ispa]]; l$l=l; with(l, {
+      l=spa[[ispa]];
+      if (l$nb_c == 0)
+         next
+      l$l=l;
+      with(l, {
 #browser();
       if (!is.matrix(ind_a))
          ind_a=t(ind_a)
