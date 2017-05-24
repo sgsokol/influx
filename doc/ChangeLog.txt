@@ -2,6 +2,16 @@
 Change Log for influx_si
 ========================
 
+2017-05-24 version 4.4.1
+----------------------
+New features:
+ - in plot_smeas.R and plot_imass.R few cosmetic improvements in plot titles and legends
+
+Bug fix:
+ - fixed non varying free pools in influx_s
+ - fixed cases where some cumomer (or EMU) weights can have no cumomers (EMU)
+ - fixed libs.R by including some files (impacted preamble.R)
+
 2017-05-22 version 4.4
 ----------------------
 New features:
