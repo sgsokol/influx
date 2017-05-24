@@ -86,7 +86,7 @@ nb_w=%(nb_w)d
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
         nb_maxfa=0; # how many fluxes in an off-diagonal term in a
-        nb_maxprod=max(len(li) for cu,rdi in b.iteritems() for fl,d in rdi.iteritems() for i,li in d.iteritems()); # how many cumomer fragments are fused in b
+        nb_maxprod=0 if ncumo == 0 else max(len(li) for cu,rdi in b.iteritems() for fl,d in rdi.iteritems() for i,li in d.iteritems()); # how many cumomer fragments are fused in b
         for irow in xrange(ncumo):
             cr=cumos[irow]
             row=A[cr]
@@ -305,15 +305,6 @@ source(file.path(dirx, "libs.R"))
 
 # define matprod for simple_triplet_matrix
 `%%stm%%` = slam::matprod_simple_triplet_matrix
-
-
-# get some common tools
-source(file.path(dirx, "tools_ssg.R"))
-source(file.path(dirx, "nlsic.R"))
-source(file.path(dirx, "kvh.R"))
-#loadcmp(file.path(dirx, "tools_ssg.Rc"))
-#loadcmp(file.path(dirx, "nlsic.Rc"))
-#loadcmp(file.path(dirx, "kvh.Rc"))
 
 # default options
 version=FALSE
@@ -1468,7 +1459,7 @@ for (iexp in seq_len(nb_exp)) {
    }
    pool_factor[[iexp]]=as.factor(nm_measmat[[iexp]])
    # free pool in principal pool weight
-   ipf_in_ppw[[iexp]]=pmatch(mets_in_res, names(nm_poolf), dup=T)
+   ipf_in_ppw[[iexp]]=apply(outer(mets_in_res, names(nm_poolf), "=="), 1, function(v) if(length(w <-which(v))) w else NA)
    ipf_in_ppw[[iexp]][is.na(ipf_in_ppw[[iexp]])]=0L
    dp_ones[[iexp]]=matrix(0., nb_measmat[[iexp]], nb_poolf)
    dp_ones[[iexp]][cbind(ipwe[[iexp]], ipf_in_ppw[[iexp]][ipwe[[iexp]]])]=1.
