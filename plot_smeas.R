@@ -3,12 +3,13 @@ plot_ms=function(x, m=NULL, dev=NULL, ...) {
    # x and m are supposed to have the same dimension and organization
    n=length(x)
    nm=names(x)
-   if (length((nms <- strsplit(nm, ":", fixed=TRUE))[[1]]) > 1) {
+   if (length((nms <- strsplit(nm, ":", fixed=TRUE))[[1]]) > 2) {
       nm_leg=as.expression(sapply(nms, function(v) substitute(M[i], list(i=v[4]))))
    } else {
       nm_leg=as.expression(sapply(seq_len(n)-1, function(v) substitute(M[i], list(i=v))))
    }
-   bc=barplot(cbind(sim=x, meas=m), width=0.1, horiz=TRUE, xlab="MS fraction", ylim=c(0, 0.25), xlim=c(-0.1, max(sum(x), 1.1)), asp=TRUE, col=co,
+   xlim=range(0, if (length(m)) m[1]-dev else 0, sum(x), sum(m)+dev)*1.1
+   bc=barplot(cbind(sim=x, meas=m), width=0.1*diff(xlim), horiz=TRUE, xlab="MS fraction", ylim=c(0, 0.25), xlim=xlim, asp=TRUE, col=co,
       legend.text=nm_leg, args.legend=list(cex=0.75, horiz=TRUE), ...)
    if (!is.null(m) && !is.null(dev)) {
       cume=cumsum(m)
@@ -60,7 +61,8 @@ plot_flux=function(x, m=NULL, dev=NULL, ...) {
    # plot FLUX_MEASUREMENTS
    # x and m are supposed to have the same dimension and organization
    n=length(x)
-   bc=barplot(cbind(sim=x, meas=m), width=0.1, horiz=TRUE, xlab="Flux value", ylim=c(0, 0.25), xlim=range(0, x, m-dev, m+dev)*1.1, col=co, ...)
+   xlim=range(0, x, m-dev, m+dev)*1.1
+   bc=barplot(cbind(sim=x, meas=m), width=0.05*diff(xlim), horiz=TRUE, xlab="Flux value", ylim=c(-0.08, 0.17), xlim=xlim, col=co, ...)
    if (!is.null(m) && !is.null(dev)) {
       cume=cumsum(m)
       segments(cume-dev, bc[2], cume+dev, bc[2])
@@ -71,7 +73,9 @@ plot_pool=function(x, m=NULL, dev=NULL, ...) {
    # plot METAB_MEASUREMENTS
    # x and m are supposed to have the same dimension and organization
    n=length(x)
-   bc=barplot(cbind(sim=x, meas=m), width=0.1, horiz=TRUE, xlab="Metabolite concentration", ylim=c(0, 0.25), xlim=range(x, m-dev, m+dev)*1.1, col=co, ...)
+   xlim=range(0, x, m-dev, m+dev)*1.1
+   w=0.1*diff(xlim)
+   bc=barplot(cbind(sim=x, meas=m), width=w, horiz=TRUE, xlab="Metabolite concentration", ylim=c(-0.08, 0.17)*20*w, xlim=xlim, col=co, ...)
    if (!is.null(m) && !is.null(dev)) {
       cume=cumsum(m)
       segments(cume-dev, bc[2], cume+dev, bc[2])
@@ -106,30 +110,56 @@ for (iexp in seq_len(nb_exp)) {
    sim=simlab[[iexp]]
    me=measurements$vec$labeled[[iexp]] # measured stationary ms data
 
-   # get unique fragment names
+   # get unique met-fragment names
    nm_sel=grep("^m:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
    pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]), width=8, height=6)
    if (length(nm_sel) > 0) {
       plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="MS measurements\n(error bars=±2*dev)", cex=2)
-      nmf=unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":"))
+      nmf=sort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":")))
       for (metf in nmf) {
          i=grep(sprintf("m:%s:", metf), nm_sel, fixed=TRUE, v=TRUE)
-         plot_ms(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=metf)
+         mf=strsplit(metf, ":")[[1]]
+         met=mf[1]
+         fr=mf[2]
+         metlen=clen[mets_in_res[i[1]]]
+         if (fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
+            mainlab=met
+         } else {
+            mask=rep("0", metlen)
+            mask[eval(parse(text=sub("~", ":", fr, fixed=TRUE)))]="1"
+            mainlab=sprintf("%s #%s", met, paste0(mask, collapse=""))
+         }
+         plot_ms(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
       }
    }
    # plot MS of non measured metabs
    nm_sim=rownames(mid)
    nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
    nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
+   if (emu) {
+      nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1)
+   }
    nmp=sort(setdiff(nmmid, nmm))
    if (length(nmp)) {
       plot(0:1, c(0,0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="MS simulations", cex=2)
    }
    for (met in nmp) {
-      i=grep(sprintf("^%s\\+", met), nm_sim, v=TRUE)
-      plot_ms(mid[i,iexp], NULL, NULL, main=met)
+      if (emu) {
+         i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
+         # take fragments
+         fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
+         for (f in fr) {
+            i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
+            fi=as.integer(f)
+            mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
+            plot_ms(mid[i,iexp], NULL, NULL, main=mainlab)
+         }
+      } else {
+         i=grep(sprintf("^%s\\+", met), nm_sim, v=TRUE)
+         plot_ms(mid[i,iexp], NULL, NULL, main=met)
+      }
    }
    # LABEL_MEASURMENTS
    nm_sel=grep("^l:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
