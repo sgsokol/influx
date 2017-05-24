@@ -1299,6 +1299,11 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # write some info in result kvh
    mid=cumo2mass(x)
+   if (case_i) {
+      mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])
+   } else if (length(mid)) {
+      mid=mid[sort(rownames(mid)),,drop=FALSE]
+   }
    obj2kvh(mid, "MID vector", fkvh)
 
    fwrv=v$lf$fwrv
