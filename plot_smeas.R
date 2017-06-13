@@ -62,7 +62,7 @@ plot_flux=function(x, m=NULL, dev=NULL, ...) {
    # x and m are supposed to have the same dimension and organization
    n=length(x)
    xlim=range(0, x, m-dev, m+dev)*1.1
-   bc=barplot(cbind(sim=x, meas=m), width=0.05*diff(xlim), horiz=TRUE, xlab="Flux value", ylim=c(-0.08, 0.17), xlim=xlim, col=co, ...)
+   bc=barplot(cbind(sim=x, meas=m), width=0.05*diff(xlim), horiz=TRUE, xlab="Flux value", ylim=c(-0.1, 0.2)*diff(xlim), xlim=xlim, col=co, ...)
    if (!is.null(m) && !is.null(dev)) {
       cume=cumsum(m)
       segments(cume-dev, bc[2], cume+dev, bc[2])
@@ -105,7 +105,9 @@ co=c(
 "#df926c",
 "#a84f5b"
 )
-
+if (is.null(.GlobalEnv$simlab)) {
+   stop_mes("Simulated data are not available. Plotting skipped", fcerr)
+}
 for (iexp in seq_len(nb_exp)) {
    sim=simlab[[iexp]]
    me=measurements$vec$labeled[[iexp]] # measured stationary ms data
@@ -122,7 +124,7 @@ for (iexp in seq_len(nb_exp)) {
          mf=strsplit(metf, ":")[[1]]
          met=mf[1]
          fr=mf[2]
-         metlen=clen[mets_in_res[i[1]]]
+         metlen=clen[mets_in_res[[iexp]][i[1]]]
          if (fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
             mainlab=met
          } else {
