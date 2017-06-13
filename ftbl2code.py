@@ -1428,6 +1428,7 @@ memaone[[%(iexp)d]]=c(%(memaone)s)
 })
     f.write(r"""
 pwe=ipwe=ip2ipwe=pool_factor=ijpwef=dp_ones=meas2sum=dpw_dpf=ipf_in_ppw=vector("list", nb_exp)
+mets_in_res=vector("list", nb_exp)
 for (iexp in seq_len(nb_exp)) {
    names(memaone[[iexp]])=nm_measmat[[iexp]]
 
@@ -1435,7 +1436,7 @@ for (iexp in seq_len(nb_exp)) {
    # prepare ipwe and ip2ipwe such that pwe[ipwe]=pool[ip2ipwe]
    # gives a good base for weight sum and normalization
    pwe[[iexp]]=double(nb_measmat[[iexp]])+1.
-   mets_in_res=sapply(nm_measmat[[iexp]], function(m) strsplit(m, ":")[[1L]][2L])
+   mets_in_res[[iexp]]=sapply(nm_measmat[[iexp]], function(m) strsplit(m, ":")[[1L]][2L])
    for (po in names(ipooled[[iexp]])) {
       if (po == "ishort") next
       nm_sum=strsplit(po, ":")[[1L]][2L]
@@ -1450,7 +1451,7 @@ for (iexp in seq_len(nb_exp)) {
          }
       }
       ip2ipwe[[iexp]]=c(ip2ipwe[[iexp]], pmatch(mets, names(nm_poolall)))
-      mets_in_res[irpo]=mets
+      mets_in_res[[iexp]][irpo]=mets
    }
    # order ijpwef for sparse matrix ordering
    if (!is.null(ijpwef[[iexp]])) {
@@ -1459,7 +1460,7 @@ for (iexp in seq_len(nb_exp)) {
    }
    pool_factor[[iexp]]=as.factor(nm_measmat[[iexp]])
    # free pool in principal pool weight
-   ipf_in_ppw[[iexp]]=apply(outer(mets_in_res, names(nm_poolf), "=="), 1, function(v) if(length(w <-which(v))) w else NA)
+   ipf_in_ppw[[iexp]]=apply(outer(mets_in_res[[iexp]], names(nm_poolf), "=="), 1, function(v) if(length(w <-which(v))) w else NA)
    ipf_in_ppw[[iexp]][is.na(ipf_in_ppw[[iexp]])]=0L
    dp_ones[[iexp]]=matrix(0., nb_measmat[[iexp]], nb_poolf)
    dp_ones[[iexp]][cbind(ipwe[[iexp]], ipf_in_ppw[[iexp]][ipwe[[iexp]]])]=1.
