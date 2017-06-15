@@ -57,6 +57,21 @@ in other words, they should be executable from any directory.
 
 .. warning:: As of this writing (September 17, 2014), an R package ``nnls`` distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the ``Path`` system variable has the R path ending by ``\bin\x64`` and not just by ``\bin``.
 
+.. note:: On some Python distributions (e.g. Anaconda) on Windows platform, association between ``.py`` files and Python interpreter is made in incomplete way: the file is executed but command line arguments are not passed to Python. To correct this, a user with administrator privileges has to edit register base with ``regedit``. The key ``HKEY_CLASSES_ROOT\py_auto_file\shell\open\command`` must be changed from
+  
+   .. code-block:: text
+   
+     "<path_to_your_python_dir>\python.exe" "%1"
+  
+   to
+   
+   .. code-block:: text
+   
+     "<path_to_your_python_dir>\python.exe" "%1" %*
+
+
+   It may happen (depending on your Windows version) that some other keys (related to Python too) have to be modified in similar way.
+
 Compilation dependencies
 ------------------------
 
