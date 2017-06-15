@@ -1452,7 +1452,7 @@ sparse2spa=function(spa) {
       } else {
          ind_b=ind_b[o,,drop=FALSE]
       }
-   #browser()
+#browser()
       iv0=iv0[o]
       lrep=lrepx=rle(iv0)
       lrepx$values=seq_along(lrep$values)
