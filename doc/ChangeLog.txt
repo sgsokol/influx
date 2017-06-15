@@ -2,8 +2,20 @@
 Change Log for influx_si
 ========================
 
+2017-06-15 version 4.4.2
+------------------------
+New features:
+ - added a new field "constrained net-xch01 fluxes" to the result kvh file
+ - ff2ftbl.py: instead of only free fluxes, all fluxes are read in kvh file. Thus in a modified FTBL, a partition on free/dependent/constrained fluxes can differ from those used in the kvh file.
+ - ff2ftbl.py: if kvh and ftbl files have the same prefix, only this prefix can be given as a unique command line argument
+
+Bug fix:
+ - ff2ftbl.py: fixed "end of line" bug on Windows platform
+ - plot_smeas.R: fixed metabolite names retrieving in parallel experiments
+ - plot_smeas.R: fixed disgraceful exit if simulation in influx_s failed
+
 2017-05-24 version 4.4.1
-----------------------
+------------------------
 New features:
  - in plot_smeas.R and plot_imass.R few cosmetic improvements in plot titles and legends
 
