@@ -44,7 +44,8 @@ constexpr unsigned int s2i(const char* str, int h = 0)
     return !str[h] ? 5381 : (s2i(str, h+1) * 33) ^ str[h];
 }
 
-char mes[512]={0};
+#define NMES 512
+char mes[NMES]={0};
 
 // [[Rcpp::export]]
 void mult_bxxc(NumericVector a, List b, NumericVector c) {
@@ -441,7 +442,7 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
    // matrices with the same pattern by calling iv2v()
    // i and j are supposed to be sorted in increasing order, column-wise (i runs first)
    if (ir.size() != jc.size()) {
-      int n=sprintf(mes, "Sizes of ir (%d) and jc (%d) must be equal", (int) ir.size(), (int) jc.size());
+      snprintf(mes, NMES, "Sizes of ir (%d) and jc (%d) must be equal", (int) ir.size(), (int) jc.size());
       stop(mes);
    }
    size_t n=ir.size(), last=0;
@@ -453,7 +454,7 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
    iv[0] = 0;
    iu[0]=ir[0];
    ju[0]=jc[0];
-   for (auto ii=1; ii < n; ii++) {
+   for (size_t ii=1; ii < n; ii++) {
       last += ir[ii] != ir[ii-1] || jc[ii] != jc[ii-1];
       iv[ii] = last;
       iu[last] = ir[ii];
@@ -468,7 +469,7 @@ List ij2ijv_i(IntegerVector& ir, IntegerVector& jc) {
 NumericVector iv2v(IntegerVector& iv, NumericVector& v) {
    // sum values in v according to possibly repeated indexes in iv
    if (iv.size() != v.size()) {
-      int n=sprintf(mes, "Sizes of iv (%d) and v (%d) must be equal", (int) iv.size(), (int) v.size());
+      snprintf(mes, NMES, "Sizes of iv (%d) and v (%d) must be equal", (int) iv.size(), (int) v.size());
       stop(mes);
    }
    NumericVector res(iv[iv.size()-1]+1);
@@ -482,7 +483,7 @@ NumericVector mm_xpf(List x, NumericVector y_, IntegerVector lsel) {
    // Only slices of y_ from lsel vector are used.
    // Result array has dimensions (m x len(lsel) x k), i.e. it is permuted on the fly.
    //Rcout << "here" << endl;
-   int m=x["nrow"], n=x["ncol"], k, l;
+   int m=x["nrow"], n=x["ncol"], k; //, l;
    //print(x);
    Dimension ydim(3);
    //Rcout << "here 2" << endl;
@@ -492,7 +493,7 @@ NumericVector mm_xpf(List x, NumericVector y_, IntegerVector lsel) {
       stop("parameter y_ must be a 3D array");
    }
    k=ydim[1];
-   l=ydim[2];
+   // l=ydim[2];
    if (n != ydim[0])
       stop("ncol(x) != dim(y)[1]");
    IntegerVector ix_=as<IntegerVector>(x["i"])-1, jx_=as<IntegerVector>(x["j"])-1;
@@ -532,7 +533,7 @@ void jrhs_ff(List jrhs, List ff, NumericVector xpfw) {
    int i, j, k;
    int i1, i3;
    Dimension dix=xpfw.attr("dim");
-   int nr=dix[0], nf=dix[1], nt=dix[2];
+   int nr=dix[0], nf=dix[1]; //, nt=dix[2];
    int ivr=0; 
    for (int ivff=0; ivff < vff.size(); ivff++) {
       k=jff[ivff];
