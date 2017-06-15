@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
 """
-This program gets free and dependent fluxes as well as free pool values from kvh file
-and put them in a ftbl file after rounding values to 9 digits
+This program gets all fluxes (free, dependent and constrained) as well as free pool values from kvh file
+and put them in a ftbl file for free/dependent fluxes and free pools. Values are rounded to 9 digits
 (default value but can be changed with -r option).
+
+The first input parameter must point to a valid _res.kvh file or to its prefix.
+If the second parameter (ftbl name) is omitted, it is derived from kvh file name.
 
 Names in kvh are like "f.n.FLX" or "f.x.FLX" or "pf:Glc6P"
 Names in ftbl are like "FLX" in corresponding NET or XCH section
@@ -15,7 +18,7 @@ edited flux or pool are lost.
 
 New content is sent to stdout
 
-usage: ./ff2ftbl.py [-h|--help] [-r 9] f.kvh f.ftbl > new_f.ftbl
+usage: ./ff2ftbl.py [-h|--help] [-r 9] f[_res.kvh] [f.ftbl] > new_f.ftbl
 or: cat f.kvh | ./ff2ftbl.py - f.ftbl > new_f.ftbl
 """
 import sys
@@ -47,21 +50,36 @@ for o,a in opts:
     else:
         assert False, "unhandled option"
 #aff("args", args);##
-if len(args) != 2:
-    usage("Expecting exactly two arguments. Got %d."%len(args))
+if len(args) < 1 or len(args) > 2:
+    usage("Expecting one or two arguments. Got %d."%len(args))
     exit(1)
 fkvh=args[0]
 if fkvh == "-":
-   # read from standart input
-   fkvh=sys.stdin
-ftbl=args[1]
+    if len(args) != 2:
+        raise Exception("If kvh is read from stdin, FTBL name must be given in the second parameter")
+    # read from standart input
+    fkvh=sys.stdin
+else:
+    if os.path.isfile(fkvh) and fkvh[-8:] == "_res.kvh":
+        fbase=fkvh[:-8]
+    else:
+        fbase=fkvh
+        fkvh+="_res.kvh"
+if (len(args) == 2):
+    ftbl=args[1]
+else:
+    ftbl=fbase+".ftbl"
 
-# get free fluxes from kvh
-ff=kvh.kvh_get_matrix(fkvh, ["optimization process information", "fitted parameters"])
-#ff=kvh.kvh_get_matrix(fkvh, ["s4"])
+# get free and dependent fluxes from kvh
+ff=kvh.kvh_get_matrix(fkvh, ["linear stats", "net-xch01 fluxes (sorted by name)"])
+# get constrained fluxes from kvh
+try:
+    ff+=kvh.kvh_get_matrix(fkvh, ["constrained net-xch01 fluxes"])
+except:
+    pass;
 
 # convert strings to floats and round it to nround digits (default 9)
-ff=dict((row[0], round(float(row[1]), nround)) for row in ff)
+ff=dict((row[0], round(float(row[1]), nround)) for row in ff[1:])
 
 #print("ff=", ff)
 # read ftbl in a list of lines
