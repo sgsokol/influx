@@ -1305,6 +1305,9 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       mid=mid[sort(rownames(mid)),,drop=FALSE]
    }
    obj2kvh(mid, "MID vector", fkvh)
+   
+   # constrained fluxes to kvh
+   obj2kvh(fallnx[nm_fc], "constrained net-xch01 fluxes", fkvh)
 
    fwrv=v$lf$fwrv
    fallnx=v$lf$fallnx
@@ -1501,7 +1504,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
    ibad=unique(unlist(ibad))
    if (length(ibad) > 0) {
       cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
-         paste(nm_par[ibad], collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fcerr)
+         paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fcerr)
    }
    # "square root" of covariance matrix (to preserve numerical positive definitness)
    rtcov=(svj$u)%*%(t(svj$v)/svj$d)
