@@ -1389,7 +1389,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       obj2kvh(median(cost_mc), "median", fkvh, indent)
       obj2kvh(sd(cost_mc), "sd", fkvh, indent)
       obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent)
-      obj2kvh(quantile(cost_mc, c(0.025, 0.975)), "ci", fkvh, indent)
+      obj2kvh(quantile(cost_mc, c(0.025, 0.95, 0.975)), "ci", fkvh, indent)
       
       # free parameters section in kvh
       cat("\\tStatistics\\n", file=fkvh)
