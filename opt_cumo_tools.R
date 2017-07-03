@@ -1304,14 +1304,11 @@ mc_sim=function(imc) {
    # random measurement generation
 #cat("simlab=\n")
 #print(head(as.double(refsim$simlab)))
-   if (nb_f$nb_meas) {
-      if (case_i) {
-         meas_mc=lapply(seq_len(nb_exp), function(iexp) refsim$usm[[iexp]]+rnorm(n=length(refsim$usm[[iexp]]))*measurements$dev$labeled[[iexp]])
-      } else {
-         meas_mc=lapply(seq_len(nb_exp), function(iexp) refsim$simlab[[iexp]]+rnorm(n=length(refsim$simlab[[iexp]]))*measurements$dev$labeled[[iexp]])
-      }
+   
+   if (case_i) {
+      meas_mc=lapply(seq_len(nb_exp), function(iexp) if (nb_f$nb_meas[iexp]) refsim$usm[[iexp]]+rnorm(n=length(refsim$usm[[iexp]]))*measurements$dev$labeled[[iexp]] else NULL)
    } else {
-      meas_mc=vector("list", nb_exp)
+      meas_mc=lapply(seq_len(nb_exp), function(iexp) if (nb_f$nb_meas[iexp]) refsim$simlab[[iexp]]+rnorm(n=length(refsim$simlab[[iexp]]))*measurements$dev$labeled[[iexp]] else NULL)
    }
 #cat("meas=\n")
 #print(head(meas_mc))
