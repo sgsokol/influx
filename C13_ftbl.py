@@ -124,6 +124,13 @@ defsec={
     "OPTIONS": set(),
     "METABOLITE_POOLS": set(),
 }
+# at least one of these fields required to be in prl_exp ftbls
+req_prl=(
+    "LABEL_INPUT",
+    "LABEL_MEASUREMENTS",
+    "PEAK_MEASUREMENTS",
+    "MASS_SPECTROMETRY"
+)
 def ftbl_parse(f):
     """ftbl_parse(f) -> dict
     read and parse .ftbl file. The only input parameter f is a stream pointer
@@ -142,14 +149,21 @@ def ftbl_parse(f):
         ftbl["name"]=f
         ftbl["base_name"]=os.path.basename(f)[:-5]
         ftbl["abs_path"]=os.path.abspath(f)
-        fc=codecs.open(f, "r", encoding="utf-8-sig")
+        fc=codecs.open(f, "r", encoding="utf-8")
         try:
-           lines=fc.readlines()
+            lines=fc.readlines()
+            fc.close()
         except:
-           fc.close()
-           fc=open(f, "r")
-           lines=fc.readlines()
-           fc.close()
+            fc.close()
+            try:
+                fc=codecs.open(f, "r", encoding="utf-16")
+                lines=fc.readlines()
+                fc.close()
+            except:
+                fc.close()
+                fc=open(f, "r")
+                lines=fc.readlines()
+                fc.close()
     else:
         Exception("parameter 'f' must be a string with FTBL file name")
     ftbl["pathway"]={}
@@ -1421,6 +1435,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             if not fn:
                 continue
             fp=ftbl_parse(os.path.join(dirw, fn))
+            # test the presence of at least one required field
+            if not any(f in fp for f in req_prl):
+                raise Exception("Not found label input and/or measurements in '%s'"%fn)
             netan["exp_names"].append(fp["base_name"])
             proc_label_input(fp, netan)
             proc_label_meas(fp, netan)
