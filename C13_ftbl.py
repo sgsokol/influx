@@ -149,7 +149,7 @@ def ftbl_parse(f):
         ftbl["name"]=f
         ftbl["base_name"]=os.path.basename(f)[:-5]
         ftbl["abs_path"]=os.path.abspath(f)
-        fc=codecs.open(f, "r", encoding="utf-8")
+        fc=codecs.open(f, "r", encoding="utf-32")
         try:
             lines=fc.readlines()
             fc.close()
@@ -161,9 +161,15 @@ def ftbl_parse(f):
                 fc.close()
             except:
                 fc.close()
-                fc=open(f, "r")
-                lines=fc.readlines()
-                fc.close()
+                try:
+                    fc=codecs.open(f, "r", encoding="utf-8-sig")
+                    lines=fc.readlines()
+                    fc.close()
+                except:
+                    fc.close()
+                    fc=open(f, "r")
+                    lines=fc.readlines()
+                    fc.close()
     else:
         Exception("parameter 'f' must be a string with FTBL file name")
     ftbl["pathway"]={}
