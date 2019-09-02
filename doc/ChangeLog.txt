@@ -2,6 +2,26 @@
 Change Log for influx_si
 ========================
 
+2019-07-19 version 4.4.4
+------------------------
+New features:
+ - none
+
+Bug fix (all bugs in this release are reported by Baudoin Delépine, INSA, Toulouse, France):
+ - fixed doc about R version (now 3.4.0 or higher) and rmumps (now 5.2.1-1 or higher)
+ - fixed use of `--sln` option
+ - added explicite error message if tmax is Inf (can happen if times grid could not be read from file indicated in file_labcin)
+
+2017-07-04 version 4.4.3
+------------------------
+New features:
+ - added 95% quantile in monte-carlo/cost/ci field in _res.kvh file. It makes possible to do a mono-tail chi2 test for goodness of fit
+ - added possibility for FTBL files to be encoded in UTF16 and UTF32 (based on case reported by Lucille Stuani, INSERM, Toulouse, France)
+ - added an explicit error message if no label information could be found in parallel experiment FTBL (reported idem)
+
+Bug fix:
+ - fixed a warning in Monte-Carlo iteration about multiple values in if() close (reported idem)
+
 2017-06-15 version 4.4.2
 ------------------------
 New features:

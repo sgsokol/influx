@@ -24,10 +24,10 @@ support for help. We don't provide support for installation.
 Dependencies
 ------------
 
-- R-3.3.0 (cf http://www.r-project.org/ or your system packaging solution) + the following packages.
+- R-3.4.0 or higher (cf http://www.r-project.org/ or your system packaging solution) + the following packages.
   
   + nnls
-  + rmumps (5.0.1.12 or higher)
+  + rmumps (5.2.1-3 or higher)
   + arrApply
   + slam
   + limSolve (optional, needed only for ``--lim`` option)
