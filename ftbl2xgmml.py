@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 r"""
 read a .ftbl file from a parameter and translate to .xgmml file.
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         sys.stderr.write(__doc__)
     try:
         opts,args=getopt.getopt(sys.argv[1:], "hf", ["help", "force"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         sys.stderr.write(str(err)+"\n")
         usage()
         sys.exit(1)
@@ -165,10 +165,10 @@ if __name__ == "__main__":
     nodes["reacs"].update((reac,
         {"label": reac, "id": i+1+mlen, "shape": ns["r"],
         "color": nc["r"]})
-        for (i, (reac, d)) in enumerate((reac, d) for (reac, d) in netan["sto_r_m"].iteritems() if len(d["left"]) > 1 or len(d["right"]) > 1))
+        for (i, (reac, d)) in enumerate((reac, d) for (reac, d) in netan["sto_r_m"].items() if len(d["left"]) > 1 or len(d["right"]) > 1))
     # easy id finders
-    metab2id=dict((m, d["id"]) for (m, d) in nodes["metabs"].iteritems())
-    reac2id=dict((r, d["id"]) for (r, d) in nodes["reacs"].iteritems())
+    metab2id=dict((m, d["id"]) for (m, d) in nodes["metabs"].items())
+    reac2id=dict((r, d["id"]) for (r, d) in nodes["reacs"].items())
     
     # node numbers: total, width, height (for grid layout)
     nb_node=len(nodes["metabs"])+len(nodes["reacs"])
@@ -176,10 +176,10 @@ if __name__ == "__main__":
     nb_w=math.ceil(math.sqrt(nb_node))
     nb_hh=nb_h/2
     nb_hw=nb_w/2
-    for (m, d) in nodes["metabs"].iteritems():
+    for (m, d) in nodes["metabs"].items():
         d["x"]=((d["id"]-1)%nb_w - nb_hw)*(n_w+e_l)
         d["y"]=(math.floor((d["id"]-1)/nb_h) - nb_hh)*(n_h+e_l)
-    for (m, d) in nodes["reacs"].iteritems():
+    for (m, d) in nodes["reacs"].items():
         d["x"]=((d["id"]-1)%nb_w - nb_hw)*(n_w+e_l)
         d["y"]=(math.floor((d["id"]-1)/nb_h) - nb_hh)*(n_h+e_l)
     
@@ -202,7 +202,7 @@ if __name__ == "__main__":
   </graphics>
 """%(short_ftbl, gr_h, gr_w))
     # write metab nodes
-    for (m, d) in nodes["metabs"].iteritems():
+    for (m, d) in nodes["metabs"].items():
         fout.write("""
 <node id="%(id)d" label="%(label)s" weight="1">
  <att type="string" name="node.shape" value="%(shape)s"/>
@@ -215,7 +215,7 @@ if __name__ == "__main__":
 </node>"""%d)
     # write reac nodes
     fout.write("\n")
-    for (r, d) in nodes["reacs"].iteritems():
+    for (r, d) in nodes["reacs"].items():
         fout.write("""
 <node id="%(id)d" label="%(label)s" weight="0">
  <att type="string" name="node.shape" value="%(shape)s"/>
@@ -230,7 +230,7 @@ if __name__ == "__main__":
 </node>"""%d)
     # write edges
     fout.write("\n\n")
-    for (r, d) in netan["sto_r_m"].iteritems():
+    for (r, d) in netan["sto_r_m"].items():
         # reversible or not?
         rnr="nr" if r in netan["notrev"] else "r"
         # forward flux is dependent, free or constrained?

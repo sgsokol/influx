@@ -110,7 +110,11 @@ icumo_cost=function(param, labargs, resl=icumo_resid(param, cjac=FALSE, labargs)
    if (!is.null(resl$err) && resl$err) {
       return(NULL)
    }
-   return(crossprod(resl$res))
+   if (any(ina <- is.na(resl$res))) {
+      return(crossprod(resl$res[!ina]))
+   } else {
+      return(crossprod(resl$res))
+   }
 }
 
 fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
@@ -486,6 +490,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #redim(xpf, c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf)))
          #dimnames(xpf)=list(nm$x, ti[[iexp]][-1], nm$par)
          if (length(ipooled[[iexp]]) > 1L) {
+            redim(dux_dp, c(dim(dux_dp)[1], ntise*(nb_ff+nb_poolf)))
             dux_dp=meas2sum[[iexp]]%stm%(pwe[[iexp]]*dux_dp) # resize
          }
          redim(dux_dp, c(nb_meas[iexp], ntise, nb_ff+nb_poolf))

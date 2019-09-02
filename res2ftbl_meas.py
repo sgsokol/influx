@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Parse _res.kvh file from stdin or from first parameter
 and write the measurment section of ftbl file in file(s) suffixed with '_simN.ftbl'
 Where N is an integer corresponding to parallel experiment number.
@@ -35,8 +35,8 @@ if __name__ == "__main__":
     }
     try:
         opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "DEBUG"])
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         usage()
         sys.exit(1)
     DEBUG=False
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     if not mlab:
         sys.exit(0)
     nb_exp=len(mlab)
-    for iexp in xrange(nb_exp):
+    for iexp in range(nb_exp):
         if not mlab[iexp]:
             continue
         f_ftbl=open("%s_sim%d.ftbl"%(bout, iexp+1), "w" if iexp else "a")

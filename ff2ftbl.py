@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 This program gets all fluxes (free, dependent and constrained) as well as free pool values from kvh file
@@ -33,7 +33,7 @@ def usage(mes=""):
 
 try:
     opts,args=getopt.getopt(sys.argv[1:], "hr", ["help"])
-except getopt.GetoptError, err:
+except getopt.GetoptError as err:
     #pass
     usage(str(err))
     sys.exit(1)
@@ -104,7 +104,7 @@ ipool=ipool[0] if ipool else None
 
 # main part
 # update values in ftbl
-for (fl, v) in ff.iteritems():
+for (fl, v) in ff.items():
     try:
         (fdc, nx, flu)=fl.split(".", 2)
     except:

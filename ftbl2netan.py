@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Parse ftbl file from stdin or from first parameter
 and write netan in kvh format on stdout
 usage: ftbl2netan.py network[.ftbl] [> network.netan]
@@ -13,8 +13,8 @@ if __name__ == "__main__":
 
     try:
         opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr", "fullsys"])
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         usage()
         sys.exit(1)
     emu=False

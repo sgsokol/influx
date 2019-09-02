@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Parse ftbl file from first parameter
 and write SBML in XML format on stdout
 usage: ftbl2metxml.py network[.ftbl] [> network.xml]
@@ -36,8 +36,8 @@ if __name__ == "__main__":
 
     try:
         opts,args=getopt.getopt(sys.argv[1:], "h", ["help"])
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         usage()
         sys.exit(1)
     for o,a in opts:
@@ -88,15 +88,15 @@ if __name__ == "__main__":
     # get dict of species: {mc: (metab, compart)}
     dmc=dict((mc, (m, c)) for mc in allmetabs for li in (mc.split("_"),) for (m,c) in ((("_".join(li[:len(li)-1]),li[len(li)-1]) if len(li) > 1 else (mc, "_def")),))
     # add id which can be different from mc if starts with a digit
-    dmc=dict((mc,(m,c,("_" if mc[0].isdigit() else "")+mc, ("_" if c[0].isdigit() else "")+c) ) for mc,(m,c) in dmc.iteritems())
-    for mc,(m,c,idm,idc) in dmc.iteritems():
+    dmc=dict((mc,(m,c,("_" if mc[0].isdigit() else "")+mc, ("_" if c[0].isdigit() else "")+c) ) for mc,(m,c) in dmc.items())
+    for mc,(m,c,idm,idc) in dmc.items():
         s=model.createSpecies()
         check(s, "create specie %s"%mc)
         check(s.setId(str(idm)), "set id specie %s"%idm)
         check(s.setCompartment(str(idc)), "set compartment %s for specie %s"%(idc, mc))
         check(s.setName(str(m)), "set name %s for specie %s"%(m, mc))
     # create reactions
-    for reac,di in netan["sto_r_m"].iteritems():
+    for reac,di in netan["sto_r_m"].items():
         r=model.createReaction()
         check(r, "create reaction %s"%r)
         check(r.setId(str(reac)), "set reaction id %s"%reac)
@@ -137,15 +137,15 @@ if __name__ == "__main__":
         sys.stderr.write("Warning: field 'linear stats/fwd-rev fluxes (sorted by name)' is not found in file '%s'. No flux value is written in txt files.\n"%fkvh)
         sys.exit(0)
     table=dkvh["linear stats"]["fwd-rev fluxes (sorted by name)"]
-    fwdfl=dict((fl[4:], v.split("\t")[0]) for fl,v in table.iteritems() if fl[:4] == "fwd.")
-    revfl=dict((fl[4:], v.split("\t")[0]) for fl,v in table.iteritems() if fl[:4] == "rev.")
+    fwdfl=dict((fl[4:], v.split("\t")[0]) for fl,v in table.items() if fl[:4] == "fwd.")
+    revfl=dict((fl[4:], v.split("\t")[0]) for fl,v in table.items() if fl[:4] == "rev.")
     f=open(fftbl[:-5]+"_net.txt", "w")
-    f.write("\n".join(fl+"\t"+str(float(v)-float(revfl[fl])) for fl,v in fwdfl.iteritems())+"\n")
+    f.write("\n".join(fl+"\t"+str(float(v)-float(revfl[fl])) for fl,v in fwdfl.items())+"\n")
     f.close()
     f=open(fftbl[:-5]+"_fwd.txt", "w")
-    f.write("\n".join("\t".join((fl,v)) for fl,v in fwdfl.iteritems())+"\n")
+    f.write("\n".join("\t".join((fl,v)) for fl,v in fwdfl.items())+"\n")
     f.close()
     f=open(fftbl[:-5]+"_rev.txt", "w")
-    f.write("\n".join("\t".join((fl,v)) for fl,v in revfl.iteritems())+"\n")
+    f.write("\n".join("\t".join((fl,v)) for fl,v in revfl.items())+"\n")
     f.close()
     sys.exit(0)

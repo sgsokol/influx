@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Parse ftbl file from first argument
 and write the resulting dictionary in kvh format on kvh file
 usage: ftbl2kvh.py network[.ftbl] [> network.kvh]
@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     try:
         opts,args=getopt.getopt(sys.argv[1:], "h", ["help"]);
-    except getopt.GetoptError, err:
-        print str(err);
+    except getopt.GetoptError as err:
+        print(str(err));
         usage();
         sys.exit(1);
     for o,a in opts:

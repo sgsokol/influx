@@ -138,8 +138,8 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             if rev:
                 es.update(ps)
                 ps.update(es)
-            m_left.update((m,clen) for m, clen in es.iteritems() if m not in m_left)
-            m_right.update((m,clen) for m, clen in ps.iteritems() if m not in m_right)
+            m_left.update((m,clen) for m, clen in es.items() if m not in m_left)
+            m_right.update((m,clen) for m, clen in ps.items() if m not in m_right)
             continue
         
         # get position and length of scrumbles then make twin reactions 1,2,... with equalities
@@ -153,7 +153,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         if loop:
             ire=0
             code+="\n"+" "*len(loop)+"lrs.append([[(c,m,(t[0] if (len(t) == 1) else t[ilr[isi][i]])) for (i, (c,m,t)) in enumerate(side)] for isi, side in enumerate(lr)])"
-            exec code in locals()
+            exec(code, locals())
         else:
             lrs=[[[(c,m,t[0]) for c,m,t in side] for side in lr]]
         for ilr, lr in enumerate(lrs):
@@ -171,8 +171,8 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             if rev:
                 es.update(ps)
                 ps.update(es)
-            m_left.update((m,clen) for m, clen in es.iteritems() if m not in m_left)
-            m_right.update((m,clen) for m, clen in ps.iteritems() if m not in m_right)
+            m_left.update((m,clen) for m, clen in es.items() if m not in m_left)
+            m_right.update((m,clen) for m, clen in ps.items() if m not in m_right)
             rgr=[] # reaction group (for possible long reactions)
             r=[(nm_r, rev, imposed_sens), [], []] # lace for elementary reaction (no more than 2 metabs on each side)
             fluxes.append((nm_r, rev, imposed_sens, "D" if ilr else "F"))
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         werr(__doc__)
     try:
         opts,args=getopt.getopt(sys.argv[1:], "h", ["help"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         werr(str(err)+"\n")
         usage()
         sys.exit(1)
@@ -273,15 +273,15 @@ if __name__ == "__main__":
     fl2i=dict((fl, i) for i, fl in enumerate(nm_flux))
     met2i=dict((m, i) for i, m in enumerate(nm_met))
     afl=np.zeros((len(nm_met)+len(eqs[0]), len(nm_flux)))
-    for fl, row in sto.iteritems():
-        for m, c in row.iteritems():
+    for fl, row in sto.items():
+        for m, c in row.items():
             if m not in met2i:
                 continue
             afl[met2i[m], fl2i[fl]]=c
     # store matrix for R reading
     fmat=open("sto_mat.txt", "w")
     fmat.write("\t".join(["row_col"]+nm_flux)+"\n")
-    for ir in xrange(len(nm_met)):
+    for ir in range(len(nm_met)):
         fmat.write(nm_met[ir]+"\t"+"\t".join(str(v) for v in afl[ir,:])+"\n")
     fmat.close()
     # add net equations

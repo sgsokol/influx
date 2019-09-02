@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Transform .ftbl file to human readable matrix A and right hand part b
 in full cumomer (default), reduced cumomer (option -r) or emu (option --emu) system A*x=b.
 
@@ -37,8 +37,8 @@ def get_net(r, dfc):
 # get arguments
 try:
     opts,args=getopt.getopt(sys.argv[1:], "hr", ["help", "clownr", "emu"])
-except getopt.GetoptError, err:
-    print str(err)
+except getopt.GetoptError as err:
+    print(str(err))
     usage()
     sys.exit(1)
 reduced=False
@@ -89,13 +89,13 @@ f.write("""
 Afl=np.array(netan["Afl"])
 # prepare dictionary with dependent, free, constraint and growth flux values
 # (dependent are added later)
-dfc_val=dict(("f.n."+f, v) for (f,v) in netan["flux_free"]["net"].iteritems())
-dfc_val.update(("f.x."+f, v) for (f,v) in netan["flux_free"]["xch"].iteritems())
-dfc_val.update(("c.n."+f, v) for (f,v) in netan["flux_constr"]["net"].iteritems())
-dfc_val.update(("c.x."+f, v) for (f,v) in netan["flux_constr"]["xch"].iteritems())
-dfc_val.update(("g.n."+f, v) for (f,v) in netan["flux_vgrowth"]["net"].iteritems())
+dfc_val=dict(("f.n."+f, v) for (f,v) in netan["flux_free"]["net"].items())
+dfc_val.update(("f.x."+f, v) for (f,v) in netan["flux_free"]["xch"].items())
+dfc_val.update(("c.n."+f, v) for (f,v) in netan["flux_constr"]["net"].items())
+dfc_val.update(("c.x."+f, v) for (f,v) in netan["flux_constr"]["xch"].items())
+dfc_val.update(("g.n."+f, v) for (f,v) in netan["flux_vgrowth"]["net"].items())
 bfl=np.array( [(sum(dfc_val.get(f, 1.)*v
-    for (f,v) in row.iteritems()) if row else 0.) for row in netan["bfl"]] )
+    for (f,v) in row.items()) if row else 0.) for row in netan["bfl"]] )
 # solve Afl*d=bfl
 try:
     d=np.linalg.solve(Afl, bfl)
@@ -117,7 +117,7 @@ f.write("""
 Flux values
 %(f)s
 """ % {
-"f": join("\n", sorted(f+"="+str(v) for (f,v) in dfc_val.iteritems()))
+"f": join("\n", sorted(f+"="+str(v) for (f,v) in dfc_val.items()))
 })
 
 # stoichiometric equations
@@ -125,7 +125,7 @@ f.write("""
 Stoichiometric equations:
 Metab:<tab>sum influxes=sum outfluxes
 """)
-for metab,lr in sorted(netan["sto_m_r"].iteritems()):
+for metab,lr in sorted(netan["sto_m_r"].items()):
     f.write("%s:\t"%metab)
     f.write("%(in)s=%(out)s\n"%{
     "in": "+".join((str(co)+"*" if co != 1. else "")+r for r,co in lr["right"]) or "<entering flux>",
@@ -161,7 +161,7 @@ for (ir,row) in enumerate(netan["Afl"]):
             "d.x."+netan["vflux"]["xch"][i-nb_fnet]) for (i,coef) in enumerate(row)
             if i >= nb_fnet),
         "b": join(" + ", ((str(coef) if abs(coef) != 1 else "" if coef == 1 else "-") +("*" if (abs(coef) != 1 and fl) else "")+str(fl)
-            for (fl,coef) in netan["bfl"][ir].iteritems()), a="0"),
+            for (fl,coef) in netan["bfl"][ir].items()), a="0"),
     })
 
 if invAfl != None:
@@ -180,22 +180,22 @@ if invAfl != None:
     fcv2i={"": 0}
     
     # free part
-    fcv2i.update(("f.n."+k, v+1) for k,v in netan["vflux_free"]["net2i"].iteritems())
-    fcv2i.update(("f.x."+k, v+nfn+1) for k,v in netan["vflux_free"]["xch2i"].iteritems())
+    fcv2i.update(("f.n."+k, v+1) for k,v in netan["vflux_free"]["net2i"].items())
+    fcv2i.update(("f.x."+k, v+nfn+1) for k,v in netan["vflux_free"]["xch2i"].items())
     
     # constrained part
-    fcv2i.update(("c.n."+k, v+nf+1) for k,v in netan["vflux_constr"]["net2i"].iteritems())
-    fcv2i.update(("c.x."+k, v+nf+ncn+1) for k,v in netan["vflux_constr"]["xch2i"].iteritems())
+    fcv2i.update(("c.n."+k, v+nf+1) for k,v in netan["vflux_constr"]["net2i"].items())
+    fcv2i.update(("c.x."+k, v+nf+ncn+1) for k,v in netan["vflux_constr"]["xch2i"].items())
 
     # growth part
-    fcv2i.update(("g.n."+k, v+nf+nc+1) for k,v in netan["vflux_growth"]["net2i"].iteritems())
+    fcv2i.update(("g.n."+k, v+nf+nc+1) for k,v in netan["vflux_growth"]["net2i"].items())
     
     # inverse: from index to name
-    fl,i=zip(*fcv2i.iteritems())
+    fl,i=list(zip(*iter(fcv2i.items())))
     i2fcv=np.array(fl)
     i2fcv[np.array(i)]=fl
     
-    i,j,v=[ np.array(i) for i in zip(*((i,fcv2i[f],v) for (i,row) in enumerate(netan["bfl"]) if row for (f,v) in row.iteritems())) ]
+    i,j,v=[ np.array(i) for i in zip(*((i,fcv2i[f],v) for (i,row) in enumerate(netan["bfl"]) if row for (f,v) in row.items())) ]
     
     f2bfl=np.zeros((Afl.shape[0], nf+nc+ng+1))
     f2bfl[i,j]=v
@@ -222,7 +222,7 @@ dep.flux=f(free.flux, constr.flux)
 # cumomer or emu balance equations
 #pdb.set_trace()
 measures={"label": {}, "mass": {}, "peak": {}}
-o_meas=measures.keys(); # ordered measure types
+o_meas=list(measures.keys()); # ordered measure types
 # calculate measure matrices (mapping cumomers to observations)
 f.write("""
 Measurements:
@@ -231,10 +231,10 @@ for meas in o_meas:
     measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas)
     # measure vector
     #aff(meas, measures[meas]);##
-    for iexp in xrange(len(measures[meas])):
+    for iexp in range(len(measures[meas])):
         f.write("%s:\n"%netan["exp_names"][iexp])
         f.write(meas+":\n"+join("\n", (row["scale"]+" "+str(i)+": "+
-            join(", ", row["coefs"].iteritems()) for (i,row) in
+            join(", ", iter(row["coefs"].items())) for (i,row) in
             enumerate(measures[meas][iexp]["mat"])))+"\n")
 
 Ab=C13_ftbl.rcumo_sys(netan, emu)

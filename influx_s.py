@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file.
 """
 import sys, os, datetime as dt, subprocess as subp, re
 from optparse import OptionParser
 from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
-from Queue import Queue # threaded parallel jobs
+from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
 
 #from pdb import set_trace
@@ -39,8 +39,9 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
 """
     #set_trace()
     f=ft[:-5]
-    flog=open(f+".log", "wb")
-    ferr=open(f+".err", "wb")
+    flog=open(f+".log", "w")
+    ferr=open(f+".err", "w")
+    #import pdb; pdb.set_trace()
     flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
 
     # code generation
@@ -59,7 +60,16 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             ferr.close()
             return(retcode);
         # parse commandArgs from the FTBL file
-        cmd=" ".join(re.findall("^\tcommandArgs\t(.*?)(?://.*)?$", open(ft, "rb").read(), re.MULTILINE))
+        #import pdb; pdb.set_trace()
+        inp=open(ft, "rb").read()
+        for co in ["utf-8", "latin9", "utf-16", "utf-32"]:
+            try:
+                inp=inp.decode(co)
+                break
+            except:
+                pass
+        inp=inp.encode("utf-8").decode("utf-8")
+        cmd=" ".join(re.findall("^\tcommandArgs\t(.*?)(?://.*)?$", inp, re.MULTILINE))
         (ftbl_opts, ftbl_args) = parser.parse_args(cmd.split())
         #print ("cmd_opts=", cmd_opts)
         #print ("ftbl_opts=", ftbl_opts)
@@ -67,21 +77,21 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             ferr.write("Warning: argument(s) '%s' from the field commandArgs of '%s' are ignored.\n"%(" ".join(ftbl_args), ft))
 
         # update ftbl_opts with cmd_opts with runtime options so rt options take precedence
-        ftbl_opts._update_loose(dict((k,v) for (k,v) in eval(str(cmd_opts)).iteritems() if not v is None))
+        ftbl_opts._update_loose(dict((k,v) for (k,v) in eval(str(cmd_opts)).items() if not v is None))
         cmd_opts=eval(str(ftbl_opts))
-        cmd_opts=dict((k,v) for k,v in cmd_opts.iteritems() if v is not None)
+        cmd_opts=dict((k,v) for k,v in cmd_opts.items() if v is not None)
         #print("cmd_opts=", cmd_opts)
 
         # generate the R code
         # leave python options as they are and put R options as arguments to --ropts
         #pdb.set_trace()
-        opt4py=["--"+kc for kc in pyoptnota.intersection(cmd_opts.keys())] + \
-            [item for kc in pyopta.intersection(cmd_opts.keys()) if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
+        opt4py=["--"+kc for kc in pyoptnota.intersection(list(cmd_opts.keys()))] + \
+            [item for kc in pyopta.intersection(list(cmd_opts.keys())) if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
             ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
-            if isinstance(v, type("")) else "T" if v is True else "F" \
-            if v is False else str(v)) for k,v in cmd_opts.iteritems() if k not in notropt) + '"'] + \
+            if isinstance(v, type("")) else "TRUE" if v is True else "FALSE" \
+            if v is False else str(v)) for k,v in cmd_opts.items() if k not in notropt) + '"'] + \
             (["--case_i"] if case_i else []) + [ft]
-        pycmd=["python", os.path.join(direx, "ftbl2optR.py")] + opt4py
+        pycmd=["python3", os.path.join(direx, "ftbl2optR.py")] + opt4py
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
         flog.write("executing: "+pycmd_s+"\n")
         r_generated=True
@@ -106,7 +116,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             qres.put(f+".R") # one or many R files in // will be launched outside
         else:
             # we are done, end up all writings
-            flog=open(f+".log", "ab")
+            flog=open(f+".log", "a")
             s="end     : "+now_s()+"\n"
             flog.write(s)
             sys.stdout.write(fshort+s)
@@ -125,6 +135,8 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
 me=os.path.realpath(sys.argv[0])
 # my exec dir
 direx=os.path.dirname(me)
+if (direx.endswith("py3")):
+    direx=os.path.split(direx)[0]
 direx="." if not direx else direx
 me=os.path.basename(sys.argv[0])
 if me[:8]=="influx_i":
@@ -136,7 +148,7 @@ else:
 My basename must start with 'influx_s' or 'influx_i' instead of '%s'."""%me[:8])
 
 # my version
-version=file(os.path.join(direx, "influx_version.txt"), "r").read().strip()
+version=open(os.path.join(direx, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
 pyopta=set(("tblimit",))
@@ -261,13 +273,13 @@ if len(args) < 1:
     parser.error("At least one FTBL_file expected in argument")
 dict_opts=eval(str(opts))
 
-print(" ".join('"'+v+'"' for v in sys.argv))
+print((" ".join('"'+v+'"' for v in sys.argv)))
 #print("cpu=", cpu_count())
 np=dict_opts.get("np")
 avaco=cpu_count()
-if np > 0 and np < 1:
+if np and np > 0 and np < 1:
     np=int(round(np*avaco))
-elif np > 1:
+elif np and np > 1:
     np=int(round(np))
 else:
     np=avaco
@@ -311,7 +323,7 @@ retcode=max(rcodes)
 if len(rfiles) > 1:
     # write file parallel.R and launch it
     # //calcul on cluster
-    fpar=open("parallel.R", "wb")
+    fpar=open("parallel.R", "w")
     fpar.write("""
     suppressPackageStartupMessages(library(parallel))
     suppressPackageStartupMessages(library(Rcpp))
@@ -323,12 +335,12 @@ if len(rfiles) > 1:
        nm_ferr=sprintf("%%s.err", f)
        fshort=basename(f)
        now=Sys.time()
-       flog=file(nm_flog, "ab")
+       flog=file(nm_flog, "a")
        cat("calcul  : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
        close(flog)
        source(fR)
        now=Sys.time()
-       flog=file(nm_flog, "ab")
+       flog=file(nm_flog, "a")
        cat("end     : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
        if (file.info(nm_ferr)$size > 0) {
            cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
@@ -355,9 +367,9 @@ if len(rfiles) > 1:
     s="//calcul: "+now_s()+"\n"
     sys.stdout.write(s)
     if os.name=="nt":
-        retcode=subp.call(rcmd, stdin=open(fpar.name, "rb"), shell=True)
+        retcode=subp.call(rcmd, stdin=open(fpar.name, "r"), shell=True)
     else:
-        retcode=subp.call(rcmd.split(), stdin=open(fpar.name, "rb"))
+        retcode=subp.call(rcmd.split(), stdin=open(fpar.name, "r"))
     # end up writing
     for fR in rfiles:
         f=fR[:-2]
@@ -371,18 +383,18 @@ elif len(rfiles)==1:
     # execute only one R code
     f=rfiles[0][:-2]
     rcmd="R --vanilla --slave"
-    flog=open(f+".log", "ab")
+    flog=open(f+".log", "a")
     flog.write("executing: "+rcmd+" < "+f+".R\n")
     s="calcul  : "+now_s()+"\n"
     flog.write(s)
     flog.close()
     sys.stdout.write(s)
     if os.name=="nt":
-        retcode=subp.call(rcmd, stdin=open(f+".R", "rb"), shell=True)
+        retcode=subp.call(rcmd, stdin=open(f+".R", "r"), shell=True)
     else:
-        retcode=subp.call(rcmd.split(), stdin=open(f+".R", "rb"))
+        retcode=subp.call(rcmd.split(), stdin=open(f+".R", "r"))
     s="end     : "+now_s()+"\n"
-    flog=open(f+".log", "ab")
+    flog=open(f+".log", "a")
     flog.write(s)
     sys.stdout.write(s)
     if os.path.getsize(f+".err") > 0:

@@ -237,7 +237,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
          if (inherits(xw, "try-error")) {
 #browser()
             rerr=attr(xw, "condition")
-            if (length(grep("rmumps: info[1]=-10,", rerr$message, fixed=TRUE))) {
+            if (length(grep("rmumps:.*info\\[1\\]=-10,", rerr$message, fixed=FALSE))) {
                # find 0 rows if any
                l=spa[[iw]]
                ag=aggregate(abs(lf$fwrv[l$ind_a[,"indf"]]), list(l$ind_a[,"ir0"]), sum)
@@ -607,7 +607,10 @@ cumo2iso=function(x) {
 }
 cumo_gradj=function(param, labargs) {
    # calculate gradient of cost function for cumomer minimization probleme
-   grad=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
+   if (any(ina <- is.na(jx_f$res)))
+      grad=2*as.numeric(crossprod(jx_f$res[!ina], jx_f$jacobian[!ina,,drop=FALSE]))
+   else
+      grad=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
    return(grad)
 }
 

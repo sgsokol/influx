@@ -6,7 +6,6 @@ Restrictions:
   ":" - it's a separator in measure id
   "+" - in measurements it can be metab1+metab2+...
 """
-
 # 2008-01-22 sokol: ftbl_parse(f)
 # 2008-01-25 sokol: ftbl_netan(ftbl)
 # 2008-01-30 sokol: sto_r_m is added to the result of ftbl_netan()
@@ -86,6 +85,14 @@ import re
 import copy
 import os
 import sys
+from codecs import BOM_UTF8, BOM_UTF16_BE, BOM_UTF16_LE, BOM_UTF32_BE, BOM_UTF32_LE
+BOMS = (
+    (BOM_UTF8, "UTF-8"),
+    (BOM_UTF32_BE, "UTF-32-BE"),
+    (BOM_UTF32_LE, "UTF-32-LE"),
+    (BOM_UTF16_BE, "UTF-16-BE"),
+    (BOM_UTF16_LE, "UTF-16-LE"),
+)
 
 werr=sys.stderr.write
 wout=sys.stdout.write
@@ -143,35 +150,50 @@ def ftbl_parse(f):
     ftbl={};    # main dictionary to be returned
     
     #print("f=", f)
-    if isstr(f):
-        if f[-5:].lower() != ".ftbl":
-            f=f+".ftbl"
-        ftbl["name"]=f
-        ftbl["base_name"]=os.path.basename(f)[:-5]
-        ftbl["abs_path"]=os.path.abspath(f)
-        fc=codecs.open(f, "r", encoding="utf-32")
-        try:
-            lines=fc.readlines()
-            fc.close()
-        except:
-            fc.close()
-            try:
-                fc=codecs.open(f, "r", encoding="utf-16")
-                lines=fc.readlines()
-                fc.close()
-            except:
-                fc.close()
-                try:
-                    fc=codecs.open(f, "r", encoding="utf-8-sig")
-                    lines=fc.readlines()
-                    fc.close()
-                except:
-                    fc.close()
-                    fc=open(f, "r")
-                    lines=fc.readlines()
-                    fc.close()
-    else:
+    if not isstr(f):
         Exception("parameter 'f' must be a string with FTBL file name")
+    if f[-5:].lower() != ".ftbl":
+        f=f+".ftbl"
+    ftbl["name"]=f
+    ftbl["base_name"]=os.path.basename(f)[:-5]
+    ftbl["abs_path"]=os.path.abspath(f)
+    fc=open(f, "rb")
+    raw=fc.read()
+    fc.close()
+    co=[encoding for bom, encoding in BOMS if raw.startswith(bom)]
+    if len(co):
+        inp=raw.decode(co[0])
+    else:
+        for co in ["utf-8", "latin9", "utf-16", "utf-32"]:
+            try:
+                inp="".join(c for c in raw.decode(co) if c != '\x00')
+                break;
+            except UnicodeDecodeError:
+                pass
+    #import pdb; pdb.set_trace()
+    inp=inp.encode("utf-8").decode("utf-8-sig")
+    lines=inp.splitlines()
+    # fc=codecs.open(f, "r", encoding="utf-32")
+    # try:
+        # lines=fc.readlines()
+        # fc.close()
+    # except:
+        # fc.close()
+        # try:
+            # fc=codecs.open(f, "r", encoding="utf-16")
+            # lines=fc.readlines()
+            # fc.close()
+        # except:
+            # fc.close()
+            # try:
+                # fc=codecs.open(f, "r", encoding="utf-8-sig")
+                # lines=fc.readlines()
+                # fc.close()
+            # except:
+                # fc.close()
+                # fc=open(f, "r")
+                # lines=fc.readlines()
+                # fc.close()
     ftbl["pathway"]={}
     
     #print f;##
@@ -185,11 +207,14 @@ def ftbl_parse(f):
     irow=0
     dic={}
     pathway=""
+    #import pdb; pdb.set_trace()
     for l in lines:
         irow+=1
         #print "raw l="+l;##
         # strip out \r
         l=l.replace("\r", "")
+        if len(l) == 0:
+            continue
         #print "-ctrl-r l="+l;##
         # strip out double quots
         if l[0] == '"': l=l[1:];    # very begining
@@ -219,6 +244,7 @@ def ftbl_parse(f):
             sec_name=flds[0]
             subsec_name=""
             if not sec_name in defsec:
+                #import pdb; pdb.set_trace()
                 raise Exception("FTBL: Illegal section name '%s' (%s: %d)"%(sec_name, ftbl["name"], irow))
             # prepare storage
             ftbl[sec_name]=[]
@@ -297,7 +323,7 @@ def ftbl_parse(f):
                         raise Exception("In the reaction '%s', metabolites are misaligned with carbon transitions (%s: %d)."%(fl_name, ftbl["name"], irow))
                 ftbl["TRANS"].append(dic)
                 continue
-            for i in xrange(len(col_names)):
+            for i in range(len(col_names)):
                 # classic data
                 if len(data) > len(col_names):
                     raise Exception("FTBL: data have more columns (%d) than column names (%d) (%s: %d)"%(len(data), len(col_names), ftbl["name"], irow))
@@ -326,7 +352,7 @@ def ftbl_parse(f):
     if "NETWORK" not in ftbl:
         return ftbl
     # prepare translator reac -> pathway
-    ftbl["reac2path"]=dict((reac,path) for path,li in ftbl["pathway"].iteritems() for reac in li)
+    ftbl["reac2path"]=dict((reac,path) for path,li in ftbl["pathway"].items() for reac in li)
     # assemble reactions with the same name in one
     # long_reac={reac: {"left": [(minp1, 1), (minp2, 1), ...], "right": [(mout1, 1), (mout2, 1), ...]}
     # and carbon transitions
@@ -503,7 +529,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     if not netw:
         raise Exception("No long_reac section in the ftbl parameter")
     row_to_del=[]
-    for (reac, row) in netw.iteritems():
+    for (reac, row) in netw.items():
         #print "reac="+reac;#
         # corresponding carbon transition row
         crow=ftbl["long_trans"][reac]
@@ -529,7 +555,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
         # Carbon length and transitions
         netan["carbotrans"][reac]={"left": [], "right": []}
-        for (m, carb, lr) in [(row[lr][i][0], crow[lr][i], lr) for lr in ("left", "right") for i in xrange(len(row[lr]))]:
+        for (m, carb, lr) in [(row[lr][i][0], crow[lr][i], lr) for lr in ("left", "right") for i in range(len(row[lr]))]:
                 #print "m="+str(m), "; carb="+str(carb);##
             if carb[0] != "#":
                 raise Exception("In carbon string '%s' for metabolite '%s' a starting '#' is missing. (%s: %s)"%(carb, m, ftbl["name"], row["irow"]))
@@ -557,16 +583,16 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             if len(uni[lr]) != len(lets[lr]):
                 # find repeated letters
                 di=dict((l,lets[lr].count(l)) for l in uni[lr])
-                for (l,c) in di.iteritems():
+                for (l,c) in di.items():
                     if c > 1:
                         raise Exception("Character '%s' is present %s on the %s side of carbon transition in reaction '%s' (%s: %s)"%(l, ntimes(c), lr, reac, ftbl["name"], row["irow"]))
         # check for perfect mapping
         lmr=uni["left"]-uni["right"]
         if lmr:
-            raise Exception("Letter(s) '%s' are present on the left but not on the right hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(lmr), reac, ftbl["name"], row["irow"]))
+            raise Exception("Letter(s) '%s' are present on the left but not on the right hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(sorted(lmr)), reac, ftbl["name"], row["irow"]))
         rml=uni["right"]-uni["left"]
         if rml:
-            raise Exception("Letter(s) '%s' are present on the right but not on the left hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(lmr), reac, ftbl["name"], row["irow"]))
+            raise Exception("Letter(s) '%s' are present on the right but not on the left hand side in carbon transitions for reaction '%s' (%s: %s)"%(", ".join(sorted(lmr)), reac, ftbl["name"], row["irow"]))
 
         # stocheometric matrix in dictionnary form
         # sto_r_m[reac]['left'|'right']=[(metab, coef)] and
@@ -662,7 +688,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     if netan["opt"].get("include_growth_flux"):
         if not netan["opt"].get("mu"):
             raise Exception("Parameter include_growth_flux is set to True but the growth parameter mu is absent or zero in OPTIONS section")
-        for (m,si) in netan["met_pools"].iteritems():
+        for (m,si) in netan["met_pools"].items():
             mgr=m+"_gr"
             reac=mgr
             if reac in netan["reac"]:
@@ -693,7 +719,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # unknown metabolite
         raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
 
-    if netan["met_pools"] and me=="ftbl2labprop.py":
+    if netan["met_pools"] and me=="ftbl2labprop.py3":
         # all internal metabs must be also in met_pools section
         mdif=netan["metabint"].difference(netan["met_pools"])
         if len(mdif) :
@@ -740,7 +766,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 eval(row["VALUE"]),
                 dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
-    netan["eqflux"]=set(f for row in netan["flux_equal"]["net"] for f in row[1].keys()) | set(f for row in netan["flux_equal"]["xch"] for f in row[1].keys())
+    netan["eqflux"]=set(f for row in netan["flux_equal"]["net"] for f in [*row[1].keys()]) | set(f for row in netan["flux_equal"]["xch"] for f in [*row[1].keys()])
     eqflux=netan["eqflux"]
     # metab EQAULITIES
     netan["metab_equal"]=list()
@@ -755,7 +781,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (%s: %s)."%(m, ftbl["name"], row["irow"]))
             nb_neg+=netan["met_pools"][m]<0
         if nb_neg==0:
-            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(dicf.keys()), ftbl["name"], row["irow"]))
+            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(list(dicf.keys())), ftbl["name"], row["irow"]))
         netan["metab_equal"].append((
                 eval(row["VALUE"]),
                 dicf,
@@ -954,7 +980,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (%s: %s)."%(row["COMP"], ftbl["name"], row["irow"]))
         dicf=formula2dict(row["FORMULA"])
-        fl=dicf.keys()[0]
+        fl=list(dicf.keys())[0]
         if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
             wout("Warning: Inequalities: in NET section, the formula '"+
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+"' involves a constrained flux\n"+
@@ -993,7 +1019,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 raise Exception("Metabolite `%s` is not declared in METABOLITE_POOLS section (%s: %s)."%(m, ftbl["name"], row["irow"]))
             nb_neg+=netan["met_pools"][m]<0
         if nb_neg==0:
-            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(dicf.keys()), ftbl["name"], row["irow"]))
+            raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(list(dicf.keys())), ftbl["name"], row["irow"]))
         netan["metab_inequal"].append((
                 eval(row["VALUE"]),
                 row["COMP"],
@@ -1027,7 +1053,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     res=netan["flux_m_r"]
     # res[metab]["in"]=list(fwd.flux|rev.flux)
     # res[metab]["out"]=list(fwd.flux|rev.flux)
-    for metab,lr in netan["sto_m_r"].iteritems():
+    for metab,lr in netan["sto_m_r"].items():
         # lr is dico with 'left' and 'right' entries
         #print "fwd metab="+str(metab);##
         if not metab in res:
@@ -1050,7 +1076,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # metabolite network
     res=netan["metab_netw"]
     # left part or reaction points to right part
-    for reac,parts in netan["formula"].iteritems():
+    for reac,parts in netan["formula"].items():
         for metab,_ in parts["left"]:
             if not metab in res:
                 res[metab]=set()
@@ -1068,15 +1094,15 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # the dimensions of various weights in b are not the same
     # too short metabolites are dropped when going to higher weights.
     res=netan["cumo_sys"]
-    res["A"]=[{} for i in xrange(Cmax)]
-    res["b"]=[{} for i in xrange(Cmax)]
+    res["A"]=[{} for i in range(Cmax)]
+    res["b"]=[{} for i in range(Cmax)]
     try:
         # run through all reactions and update bilan of involved cumomers
-        for (reac,lrdict) in netan["carbotrans"].iteritems() if fullsys else []:
+        for (reac,lrdict) in iter(netan["carbotrans"].items()) if fullsys else []:
             # run through metabs
             ## aff("lrdict", lrdict);#
             for (imetab,lr,metab,cstr) in ((imetab,lr,metab,cstr)
-                    for (lr,lst) in lrdict.iteritems()
+                    for (lr,lst) in lrdict.items()
                     for (imetab,(metab,cstr)) in enumerate(lst)):
                 # if output metab then influx is set to 1
                 # so its cumomer distribution is directly
@@ -1093,7 +1119,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 if (fwd_rev=="fwd." or reac not in netan["flux_inout"]):
                     # add this out-flux
                     # run through all cumomers of metab
-                    for icumo in xrange(1,1<<Clen):
+                    for icumo in range(1,1<<Clen):
                         cumo=metab+":"+str(icumo)
                         w=sumbit(icumo)
                         #print "w,i,clen,metab=", w, icumo,Clen,metab;##
@@ -1114,7 +1140,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 # add this in-flux
                 for (in_i,(in_metab, in_cstr)) in enumerate(lrdict[in_lr]):
                     # run through all cumomers of metab
-                    for icumo in xrange(1,1<<Clen):
+                    for icumo in range(1,1<<Clen):
                         cumo=metab+":"+str(icumo)
                         w=sumbit(icumo)
                         # get in_cumo
@@ -1161,7 +1187,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     except Exception as inst:
         werr(": ".join(inst)+"\n")
     # ordered cumomer lists
-    for w in xrange(1,netan["Cmax"]+1):
+    for w in range(1,netan["Cmax"]+1):
         # weight 1 equations have all metabolites
         ##aff("A "+str(w), netan["cumo_sys"]["A"][w-1]);#
         ##aff("b "+str(w), netan["cumo_sys"]["b"][w-1]);#
@@ -1197,8 +1223,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
 
     # ordered free flux lists
-    netan["vflux_free"]["net"]=netan["flux_free"]["net"].keys()
-    netan["vflux_free"]["xch"]=netan["flux_free"]["xch"].keys()
+    netan["vflux_free"]["net"]=list(netan["flux_free"]["net"].keys())
+    netan["vflux_free"]["xch"]=list(netan["flux_free"]["xch"].keys())
 
     # order
     netan["vflux_free"]["net"].sort()
@@ -1210,8 +1236,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
 
     # ordered constrained flux lists
-    netan["vflux_constr"]["net"]=netan["flux_constr"]["net"].keys()
-    netan["vflux_constr"]["xch"]=netan["flux_constr"]["xch"].keys()
+    netan["vflux_constr"]["net"]=list(netan["flux_constr"]["net"].keys())
+    netan["vflux_constr"]["xch"]=list(netan["flux_constr"]["xch"].keys())
 
     # order
     netan["vflux_constr"]["net"].sort()
@@ -1223,7 +1249,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
 
     # ordered measured flux lists
-    netan["vflux_meas"]["net"]=netan["flux_measured"].keys()
+    netan["vflux_meas"]["net"]=list(netan["flux_measured"].keys())
 
     # order
     netan["vflux_meas"]["net"].sort()
@@ -1232,8 +1258,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     netan["vflux_meas"]["net2i"]=dict((fl,i) for (i,fl) in enumerate(netan["vflux_meas"]["net"]))
 
     # ordered variable growth fluxes
-    netan["vflux_growth"]["net"]=netan["flux_vgrowth"]["net"].keys()
-    netan["vflux_growth"]["xch"]=netan["flux_vgrowth"]["xch"].keys()
+    netan["vflux_growth"]["net"]=list(netan["flux_vgrowth"]["net"].keys())
+    netan["vflux_growth"]["xch"]=list(netan["flux_vgrowth"]["xch"].keys())
 
     # order
     netan["vflux_growth"]["net"].sort()
@@ -1311,8 +1337,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         
     # ordered metabolite pools
     netan["vpool"]={
-        "free": [m for (m,v) in netan["met_pools"].iteritems() if v < 0.],
-        "constrained": [m for (m,v) in netan["met_pools"].iteritems() if v >= 0.],
+        "free": [m for (m,v) in netan["met_pools"].items() if v < 0.],
+        "constrained": [m for (m,v) in netan["met_pools"].items() if v >= 0.],
     }
     netan["vpool"]["free"].sort()
     netan["vpool"]["constrained"].sort()
@@ -1344,7 +1370,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     
     # stocheometric part
     res=netan["Afl"]
-    for (metab,lr) in netan["sto_m_r"].iteritems():
+    for (metab,lr) in netan["sto_m_r"].items():
         if metab in netan["input"] or metab in netan["output"]:
             continue
         # calculate coefs (repeated fluxes)
@@ -1353,10 +1379,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         _=[coefs[rea].append(-co) for rea,co in lr["left"]]
         # 'right' part produces metab
         _=[coefs[rea].append(co) for rea,co in lr["right"]]
-        coefs=dict((rea, sum(li)) for rea,li in coefs.iteritems())
+        coefs=dict((rea, sum(li)) for rea,li in coefs.items())
         deps=set(coefs.keys()).intersection(netan["vflux"]["net"])
         if not deps:
-            raise Exception("A balance on metabolite '%s' does not contain any dependent flux.\nAt least one of the following net fluxes %s\nmust be declared dependent in the FLUX/NET section (put letter 'D' in the column 'FCD' for some flux)."%(metab, coefs.keys()))
+            raise Exception("A balance on metabolite '%s' does not contain any dependent flux.\nAt least one of the following net fluxes %s\nmust be declared dependent in the FLUX/NET section (put letter 'D' in the column 'FCD' for some flux)."%(metab, list(coefs.keys())))
         qry=[coefs.get(fl,0) for fl in netan["vflux"]["net"]]
         qry.extend([0]*len(netan["vflux"]["xch"]))
         mqry=-np.array(qry)
@@ -1457,7 +1483,7 @@ def enum_path(starts, netw, outs, visited=set()):
     already visited metabolite. Returns a list of metabolite pathways.
     Each pathways is an ordered list."""
     res=[]
-    if (len(visited) == len(netw.keys())):
+    if (len(visited) == len(list(netw.keys()))):
         # no more metabolites 
         return res
     for start in starts:
@@ -1522,7 +1548,7 @@ def src_ind(substrate, product, iprod):
     isubstr=0
     substrate=substrate[::-1]
     product=product[::-1]
-    for nb in xrange(len(product)):
+    for nb in range(len(product)):
         if (movbit & iprod):
             # algo: if the current bit is set in product search for its origin
             # and set the corresponding bit in substrate
@@ -1656,12 +1682,12 @@ def cumo_iw(w,nlen):
        raise Exception("CumoLengthNegative")
     if w == 1:
         movbit=1
-        for i in xrange(nlen):
+        for i in range(nlen):
             yield movbit
             movbit<<=1
     else:
         movbit=1<<(w-1)
-        for i in xrange(nlen-w+1):
+        for i in range(nlen-w+1):
             for subi in cumo_iw(w-1,w+i-1):
                 yield movbit+subi
             movbit<<=1
@@ -1674,10 +1700,10 @@ def iso2cumo(netan, strin, in_cumo, icumo, in_metab):
     n=len(netan["iso_input"])
     if len(netan[strin]) != n:
         # init cumo_input list of dicts
-        netan[strin]=[{} for i in xrange(n)]
-    for ili in xrange(len(netan["iso_input"])):
+        netan[strin]=[{} for i in range(n)]
+    for ili in range(len(netan["iso_input"])):
         d=netan["iso_input"][ili][in_metab]
-        netan[strin][ili][in_cumo]=sum(val for (iso, val) in d.iteritems() if sumbit(iso&icumo) == w)
+        netan[strin][ili][in_cumo]=sum(val for (iso, val) in d.items() if sumbit(iso&icumo) == w)
 
 def iso2emu(netan, inmetab, mask, mpi, e):
     """calculate emu fraction from isotopomer dict iso_input.
@@ -1688,10 +1714,10 @@ def iso2emu(netan, inmetab, mask, mpi, e):
     n=len(netan["iso_input"])
     if len(netan["emu_input"]) != n:
         # init emu_input list of dicts
-        netan["emu_input"]=[{} for i in xrange(n)]
-    for ili in xrange(n):
+        netan["emu_input"]=[{} for i in range(n)]
+    for ili in range(n):
         d=netan["iso_input"][ili][inmetab]
-        netan["emu_input"][ili][e]=sum([val for (frag, val) in d.iteritems() if sumbit(frag&mask) == mpi])
+        netan["emu_input"][ili][e]=sum([val for (frag, val) in d.items() if sumbit(frag&mask) == mpi])
 
 def formula2dict(f, pterm=re.compile(r'\W*([+-])\W*'), pflux=re.compile(r'(?P<coef>\d+\.?\d*|^)?\s*\*?\s*(?P<var>[a-zA-Z_[\]()][\w\. -\[\]]*)\W*')):
     """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
@@ -1702,7 +1728,7 @@ def formula2dict(f, pterm=re.compile(r'\W*([+-])\W*'), pflux=re.compile(r'(?P<co
     l=(i for i in pterm.split(str(f)))
     for term in l:
         try:
-            next_sign=l.next()
+            next_sign=next(l)
             next_sign=-1 if next_sign == "-" else 1
         except StopIteration:
             next_sign=0
@@ -1766,16 +1792,16 @@ def label_meas2matrix_vec_dev(netan):
     # bcumo is like #1xx01 (0,1 and x are allowed)
     # their sum have to be transformed in cumomer linear combination
     nexp=len(netan["iso_input"])
-    mli=range(nexp)
-    for ili in xrange(nexp):
+    mli=list(range(nexp))
+    for ili in range(nexp):
         mat=[]
         vec=[]
         dev=[]
         pooled=[]
         ids=[]
         imrow=-1
-        for (metabs,groups) in netan["label_meas"][ili].iteritems():
-            for (group,rows) in groups.iteritems():
+        for (metabs,groups) in netan["label_meas"][ili].items():
+            for (group,rows) in groups.items():
                 for row in rows:
                     vec.append(row["val"])
                     dev.append(row["dev"])
@@ -1789,7 +1815,7 @@ def label_meas2matrix_vec_dev(netan):
                         for icumo in decomp["-"]:
                             res.setdefault(icumo,0)
                             res[icumo]-=1
-                    emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
+                    emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.items())
                     if len(row["pooled"]) > 1:
                         # init index list
                         pooled.append([row["id"]])
@@ -1815,22 +1841,22 @@ def mass_meas2matrix_vec_dev(netan):
     # mass[metab][frag_mask][weight]={val:x, dev:y}
     # weight has to be transformed in cumomer linear combination
     nexp=len(netan["iso_input"])
-    mli=range(nexp)
-    for ili in xrange(nexp):
+    mli=list(range(nexp))
+    for ili in range(nexp):
         mat=[]
         vec=[]
         dev=[]
         pooled=[]
         ids=[]
         imrow=-1
-        for (m_id,frag_masks) in netan["mass_meas"][ili].iteritems():
+        for (m_id,frag_masks) in netan["mass_meas"][ili].items():
             #print "mass matx calc for ", metab;##
             (l, metabs, frag, m_irow)=m_id.split(":")
-            for (fmask,weights) in frag_masks.iteritems():
+            for (fmask,weights) in frag_masks.items():
                 onepos=[b_no for (b_no,b) in iternumbit(fmask) if b]
                 nmask=sumbit(fmask)
     #            aff("weights for met,fmask "+", ".join((metab,strbit(fmask))), weights);##
-                for (weight,row) in weights.iteritems():
+                for (weight,row) in weights.items():
                     vec.append(row["val"])
                     dev.append(row["dev"])
                     ids.append(row["id"])
@@ -1844,7 +1870,7 @@ def mass_meas2matrix_vec_dev(netan):
                     fmask01=setcharbit(str0,"1",fmask)
                     # for a given weight construct bcumo sum: #x10x+#x01x+...
                     bcumos=["#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
-                            for iw in xrange(1<<nmask) if sumbit(iw)==weight]
+                            for iw in range(1<<nmask) if sumbit(iw)==weight]
     #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
                     res={}
                     for cumostr in bcumos:
@@ -1888,26 +1914,27 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
     # c_no+peak_type have to be transformed in cumomer linear combination
     # c_no is 1-based and left (just after # sign) started.
     nexp=len(netan["iso_input"])
-    mli=range(nexp)
-    for ili in xrange(nexp):
+    mli=list(range(nexp))
+    for ili in range(nexp):
         mat=[]
         vec=[]
         dev=[]
         pooled=[]
         ids=[]
         imrow=-1
-        for (metabs,irows) in netan["peak_meas"][0].iteritems():
+        for (metabs,irows) in netan["peak_meas"][0].items():
             #print "peak matx calc for ", metab;##
-            metabl=irows.values()[0].values()[0]["pooled"]
+            #import pdb; pdb.set_trace()
+            metabl=[*[*irows.values()][0].values()][0]["pooled"]
             #print(metabl)
             #metabl=metabl["pooled"]
             
             metab0=metabl[0]
             n=netan["Clen"][metab0]
             strx="#"+"x"*n
-            for (irow,peaks) in irows.iteritems():
+            for (irow,peaks) in irows.items():
                 # pmask0x put 0 on three targeted carbons and leave x elsewhere
-                c_no=peaks.values()[0]["c_no"]
+                c_no=[*peaks.values()][0]["c_no"]
                 pmask0x=setcharbit(strx,"0",1<<(n-c_no))
                 if c_no > 1:
                     # add left neighbour
@@ -1916,7 +1943,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                     # add right neighbour
                     pmask0x=setcharbit(pmask0x,"0",1<<(n-c_no-1))
     #            aff("peaks for met,c_no,pmask0x="+", ".join((metab,str(c_no),pmask0x)), peaks);##
-                for (peak,row) in peaks.iteritems():
+                for (peak,row) in peaks.items():
                     vec.append(row["val"])
                     dev.append(row["dev"])
                     ids.append(row["id"])
@@ -1946,7 +1973,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                         for icumo in decomp["-"]:
                             res.setdefault(icumo,0)
                             res[icumo]-=1
-                    emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.iteritems())
+                    emuco=dict((str(ic)+"+"+str(sumbit(ic)), c) for (ic, c) in res.items())
                     if len(row["pooled"]) > 1:
                         # init index list
                         pooled.append([row["id"]])
@@ -1971,11 +1998,11 @@ def bcumo_decomp(bcumo):
     an integer whose binary form indicates 1's positions in a cumomer."""
     
     # take zero positions
-    zpos=[ i for i in xrange(len(bcumo)-1) if bcumo[-i-1]=="0" ]
+    zpos=[ i for i in range(len(bcumo)-1) if bcumo[-i-1]=="0" ]
     
     # basic 1's cumomer mask
     icumo_base=0
-    for i in xrange(len(bcumo)-1):
+    for i in range(len(bcumo)-1):
         if bcumo[-i-1]=="1":
             icumo_base|=1<<i
     
@@ -1983,7 +2010,7 @@ def bcumo_decomp(bcumo):
     # cumomers
     res={"+": [], "-": []}
     nz=len(zpos)
-    for zmask in xrange(1<<nz):
+    for zmask in range(1<<nz):
         # odd or even bit number?
         sign="-" if sumbit(zmask)%2 else "+"
         
@@ -2063,7 +2090,7 @@ def aglom(na,ta,loop):
                 #print "elim row "+hi+str(na[hi].keys());##
                 #print "influenced rows "+str(ta[hi].keys());##
                 # update na rows influenced by hi
-                for ii in ta[hi].keys():
+                for ii in [*ta[hi].keys()]:
                     #print "\nold row "+ii+str(na[ii].keys());##
                     na[ii].update(na[hi])
                     del(na[ii][hi])
@@ -2084,7 +2111,7 @@ def aglom(na,ta,loop):
                 return(found)
 def lowtri(A):
     """Try low triangular ordering of matrix A entries"""
-    unsrt=A.keys()
+    unsrt=[*A.keys()]
     srt=list()
     # first get inputs (no influences on them)
     srt=[k for k in unsrt if len(A[k])==1]
@@ -2094,7 +2121,7 @@ def lowtri(A):
     while unsrt:
         for k in list(unsrt):
             srt.extend(set(A[k].keys()).difference(set(srt)))
-            for i in A[k].keys():
+            for i in [*A[k].keys()]:
                 try:
                     unsrt.remove(i)
                 except:
@@ -2148,7 +2175,7 @@ def rcumo_sys(netan, emu=False):
     n=len(netan["iso_input"])
     if len(netan["rcumo_input"]) != n:
         # init rcumo_input list of dicts
-        netan["rcumo_input"]=[{} for i in xrange(n)]
+        netan["rcumo_input"]=[{} for i in range(n)]
     
     # get cumomers involved in measurements
     meas_cumos=set()
@@ -2157,13 +2184,13 @@ def rcumo_sys(netan, emu=False):
             for item in measures[meas]:
                 for row in item["mat"]:
                     metab=row["metab"]
-                    meas_cumos.update(metab+":"+i.split("+")[0] for i in row["emuco"].keys() if i[-2:]!="+0")
+                    meas_cumos.update(metab+":"+i.split("+")[0] for i in [*row["emuco"].keys()] if i[-2:]!="+0")
     else:
         for meas in measures:
             for item in measures[meas]:
                 for row in item["mat"]:
                     metab=row["metab"]
-                    meas_cumos.update(metab+":"+str(icumo) for icumo in row["coefs"].keys() if icumo != 0)
+                    meas_cumos.update(metab+":"+str(icumo) for icumo in [*row["coefs"].keys()] if icumo != 0)
     # make list of observed weights
     weights=set(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos)
     if not weights:
@@ -2173,13 +2200,13 @@ def rcumo_sys(netan, emu=False):
         return {"A": [], "b": []}
     
     maxw=max(weights)
-    weights=range(1,maxw+1)
+    weights=list(range(1,maxw+1))
     weights.reverse()
     
     # cumomers to visit are stored in lists by weights
     to_visit=dict((w,[]) for w in weights)
-    A=[{} for i in xrange(maxw)]; # store matrices by weight
-    b=[{} for i in xrange(maxw)]; # store rhs by weight
+    A=[{} for i in range(maxw)]; # store matrices by weight
+    b=[{} for i in range(maxw)]; # store rhs by weight
     used=set()
 
     # initialize to_visit, we'll stop when it's empty
@@ -2223,7 +2250,7 @@ def rcumo_sys(netan, emu=False):
                     if inmetab in netan["input"]:
                         if emu:
                             # tuple emu (mask, m+i, string)
-                            for mask, mpi, e in ((inicumo, i, incumo+"+"+str(i)) for i in xrange(inw+1)):
+                            for mask, mpi, e in ((inicumo, i, incumo+"+"+str(i)) for i in range(inw+1)):
                                 iso2emu(netan, inmetab, mask, mpi, e)
                         if not netan["rcumo_input"] or incumo not in netan["rcumo_input"][0]:
                             iso2cumo(netan, "rcumo_input", incumo, inicumo, inmetab)
@@ -2259,21 +2286,21 @@ def rcumo_sys(netan, emu=False):
                 if cumo in b[w-1]:
                     A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]})
                     #print("adding b:", cumo, b[w-1][cumo].keys());##
-                    A[w-1][cumo][cumo]+=b[w-1][cumo].keys()
+                    A[w-1][cumo][cumo]+=[*b[w-1][cumo].keys()]
     #aff("to_v", to_visit);##
     # make ordered list for reduced cumomer set
-    netan["vrcumo"]=[a.keys() for a in A]
+    netan["vrcumo"]=[[*a.keys()] for a in A]
     netan["rcumo2i0"]=dict((cumo,i) for (i, cumo) in enumerate(valval(netan["vrcumo"])))
     #print("A=", A)
     netan["rcumo_sys"]={"A": A, "b": b}
     # make order list for emu_input
     if emu:
-        netan["vemu_input"]=netan["emu_input"][0].keys()
+        netan["vemu_input"]=[*netan["emu_input"][0].keys()]
         # make order list for internal emus
         netan["vemu"]=copy.deepcopy(netan["vrcumo"])
-        for w in xrange(len(netan["vemu"])):
+        for w in range(len(netan["vemu"])):
             l=netan["vemu"][w]
-            netan["vemu"][w]=[m+"+"+str(i) for i in xrange(w+2) for m in l]
+            netan["vemu"][w]=[m+"+"+str(i) for i in range(w+2) for m in l]
         netan["emu2i0"]=dict((emu,i) for (i, emu) in enumerate(valval(netan["vemu"])))
     return netan["rcumo_sys"]
 
@@ -2341,7 +2368,7 @@ def t_iso2m(n):
     # isotopomer number
     ni=2**n
     return np.array(
-        [[1. if sumbit(ii)==im else 0 for ii in xrange(ni)] for im in xrange(n+1)]
+        [[1. if sumbit(ii)==im else 0 for ii in range(ni)] for im in range(n+1)]
     )
 
 def t_iso2cumo(n):
@@ -2366,7 +2393,7 @@ def t_iso2pos(n):
     return numpy array of size (n,2**n)
     """
     m=t_iso2cumo(n)
-    return m[[1<<i for i in xrange(n)],:]
+    return m[[1<<i for i in range(n)],:]
 
 def conv_mid(x,y):
     """conv_mid(x,y)->z
@@ -2376,7 +2403,7 @@ def conv_mid(x,y):
     nx=len(x)
     ny=len(y)
     z=np.zeros(nx+ny-1)
-    for i in xrange(ny):
+    for i in range(ny):
         z[i:i+nx]+=x*y[i]
     return(z)
 
@@ -2391,7 +2418,7 @@ def ms_frag_gath(netan):
         for m_id in di:
             for mask in di[m_id]:
                 # just the first weight item is sufficient
-                item=di[m_id][mask].values()[0]
+                item=[*di[m_id][mask].values()][0]
                 to_visit.update(met+":"+str(mask) for met in item["pooled"])
     while to_visit:
         for frag in list(to_visit):
@@ -2460,7 +2487,7 @@ def proc_label_input(ftbl, netan):
         # complete absent inputs by their values from the first ftbl
         for m in set(netan["iso_input"][0])-set(res):
             res[m]=netan["iso_input"][0][m];
-    zeroc=set(m for m,n in netan["Clen"].iteritems() if n == 0)
+    zeroc=set(m for m,n in netan["Clen"].items() if n == 0)
     lmi=set(res.keys())-set(netan["input"]) # label input - input
     iml=set(netan["input"])-zeroc-set(res.keys()) # input - label input
     if lmi:
@@ -2651,7 +2678,7 @@ def proc_mass_meas(ftbl, netan):
         #print row;##
         metabs=row["META_NAME"] or metabs
         if row["META_NAME"]:
-            irow=row["irow"]
+            irow=int(row["irow"])
         # metabs can be metab1[+metab2[+...]]
         metabl=metabs.split("+")
         if (len(metabl) > 1):
@@ -2699,7 +2726,7 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
                         (start,end)=item.split("~")
                         #print "start,end=%s,%s" % (start,end);##
                         try:
-                            for i in xrange(int(start),int(end)+1):
+                            for i in range(int(start),int(end)+1):
                                 if i > clen0:
                                     raise Exception("End of interval '"+item+"' is higher than metabolite '"+metab0+"' length "+str(clen0)+" (%s: %d)"%(ftbl["name"], irow))
                                 mask|=1<<(clen0-i)

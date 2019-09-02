@@ -18,7 +18,7 @@ Copyright 2016, INRA
 v 0.1 2016-02-24
 v 0.2 2016-03-04 added solve_ieu(), margins of c are permuted (ntico is last now)
 */
-
+#define RCPP_ARMADILLO_RETURN_COLVEC_AS_VECTOR
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
 using namespace arma;

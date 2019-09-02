@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """Module for translation of .ftbl file to R code"""
 
@@ -22,6 +22,8 @@ from itertools import groupby
 me=os.path.abspath(os.path.realpath(sys.argv[0]))
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
+if (dirx.endswith("py3")):
+    dirx=os.path.split(dirx)[0]
 
 from tools_ssg import *
 import C13_ftbl
@@ -86,8 +88,8 @@ nb_w=%(nb_w)d
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
         nb_maxfa=0; # how many fluxes in an off-diagonal term in a
-        nb_maxprod=0 if ncumo == 0 else max(len(li) for cu,rdi in b.iteritems() for fl,d in rdi.iteritems() for i,li in d.iteritems()); # how many cumomer fragments are fused in b
-        for irow in xrange(ncumo):
+        nb_maxprod=0 if ncumo == 0 else max(len(li) for cu,rdi in b.items() for fl,d in rdi.items() for i,li in d.items()); # how many cumomer fragments are fused in b
+        for irow in range(ncumo):
             cr=cumos[irow]
             row=A[cr]
             # atuple is list of (icumo, list(fluxes))
@@ -100,8 +102,8 @@ nb_w=%(nb_w)d
             # btuple is list of [iflux, [icumo1, icumo2, icumo_i,...]]
             if cr in b:
                 btuple=[[fwrv2i[fl], [incu2i_b1[v] for v in l]+[1]*(nb_maxprod-len(l))]
-                    for (fl, d) in b[cr].iteritems()
-                    for (i,l) in d.iteritems()]
+                    for (fl, d) in b[cr].items()
+                    for (i,l) in d.items()]
                 #nb_maxfb=max(nb_maxfb, len(btuple))
             else:
                 btuple=[]
@@ -450,7 +452,7 @@ jx_f=new.env()
     "dirw": escape(os.path.abspath(os.path.dirname(f.name)), '\\"'),
     "dirx": escape(dirx, '\\"'),
     "case_i": "T" if case_i else "F",
-    "vernum": file(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
+    "vernum": open(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
     "org": escape(os.path.basename(f.name[:-2]), '"'),
     "ropts": ropts,
 })
@@ -478,8 +480,8 @@ nb_f=list()
     netan2R_fl(netan, org, f)
     d=netan2R_rcumo(netan, org, f, emu)
     res.update(d)
-    rc_keys=netan["rcumo_input"][0].keys()
-    emu_keys=netan["emu_input"][0].keys() if emu else []
+    rc_keys=list(netan["rcumo_input"][0].keys())
+    emu_keys=list(netan["emu_input"][0].keys()) if emu else []
     f.write("""
 nb_exp=%(nb_exp)d
 nm_exp=c(%(nm_exp)s)
@@ -602,9 +604,9 @@ if (emu) {
     "moutp": len(netan["output"]),
     "mintra": len(netan["metabs"])-len(netan["input"])-len(netan["output"]),
     "meas_f": len(netan["vflux_meas"]["net"]),
-    "meas_m": sum(len(netan["measures"]["mass"][ili]["vec"]) for ili in xrange(nexp)),
-    "meas_p": sum(len(netan["measures"]["peak"][ili]["vec"]) for ili in xrange(nexp)),
-    "meas_l": sum(len(netan["measures"]["label"][ili]["vec"]) for ili in xrange(nexp)),
+    "meas_m": sum(len(netan["measures"]["mass"][ili]["vec"]) for ili in range(nexp)),
+    "meas_p": sum(len(netan["measures"]["peak"][ili]["vec"]) for ili in range(nexp)),
+    "meas_l": sum(len(netan["measures"]["label"][ili]["vec"]) for ili in range(nexp)),
     "meas_pool": len(netan["metab_measured"]),
     "eqe": len(netan["flux_equal"]["net"])+len(netan["flux_equal"]["xch"]),
     "eqi": len(netan["flux_inequal"]["net"])+len(netan["flux_inequal"]["xch"]),
@@ -632,17 +634,17 @@ def netan2R_fl(netan, org, f):
     nb_fcn=len(netan['flux_constr']['net'])
     nb_fcx=len(netan['flux_constr']['xch'])
     ffn2iprm=dict(("f.n."+f,(i+1))
-        for (f,i) in netan['vflux_free']['net2i'].iteritems())
+        for (f,i) in netan['vflux_free']['net2i'].items())
     ffx2iprm=dict(("f.x."+f,(i+1+nb_ffn))
-        for (f,i) in netan['vflux_free']['xch2i'].iteritems())
+        for (f,i) in netan['vflux_free']['xch2i'].items())
 
     # prepare fwrv2i
-    fwrv2i=dict((f,i+1) for (f,i) in netan["vflux_fwrv"]["fwrv2i"].iteritems())
+    fwrv2i=dict((f,i+1) for (f,i) in netan["vflux_fwrv"]["fwrv2i"].items())
     nb_fwrv=len(netan["vflux_fwrv"]["fwrv2i"])
 
     # make tuple for complete flux vector d,f,c
     # (name,"d|f|c|g","n|x")
-    tfallnx=zip(
+    tfallnx=list(zip(
             netan["vflux"]["net"]+
             netan["vflux_free"]["net"]+
             netan["vflux_constr"]["net"]+
@@ -669,7 +671,7 @@ def netan2R_fl(netan, org, f):
             ["x"]*len(netan["vflux_free"]["xch"])+
             ["x"]*len(netan["vflux_constr"]["xch"])+
             ["x"]*len(netan["vflux_growth"]["net"]),
-            )
+            ))
     netan["f2dfcg_nx_f"]={
        "net": dict((fl, t+".n."+fl) for (fl,t,nx) in tfallnx if nx=="n"),
        "xch": dict((fl, t+".x."+fl) for (fl,t,nx) in tfallnx if nx=="x"),
@@ -682,7 +684,7 @@ if (TIMEIT) {
 """)
     # auxiliary dict for edge-flux coupling
     f2edge=dict()
-    for (fl,lr) in netan["sto_r_m"].iteritems():
+    for (fl,lr) in netan["sto_r_m"].items():
         if len(lr["left"])==1 and len(lr["right"])==1:
            f2edge[fl]=[lr["left"][0][0]+" ("+fl+") "+lr["right"][0][0]]
         else:
@@ -765,10 +767,10 @@ if (nb_fl) {
     "fln": join(", ", (netan["flux_dep"]["net"][k] for k in netan["vflux"]["net"])),
     "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
     "flx": join(", ", (netan["flux_dep"]["xch"][k] for k in netan["vflux"]["xch"])),
-    "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.iteritems() for e in l)),
-    "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.iteritems() for e in l)),
-    "clen": join(",", netan["Clen"].values()),
-    "nm_metab": join(",", netan["Clen"].keys(), '"', '"'),
+    "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.items() for e in l)),
+    "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.items() for e in l)),
+    "clen": join(",", list(netan["Clen"].values())),
+    "nm_metab": join(",", list(netan["Clen"].keys()), '"', '"'),
     "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
     "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"'),
     "poolc": join(", ", (netan["met_pools"][m] for m in netan["vpool"]["constrained"])),
@@ -899,27 +901,27 @@ colnames(g2bfl)=nm_fgr
             continue
         # split terms in flux types
         row["cnst"]=item.get("")
-        row["f"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="f.")
-        row["c"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="c.")
-        row["g"]=dict((k,v) for (k,v) in item.iteritems() if k[0:2]=="g.")
+        row["f"]=dict((k,v) for (k,v) in item.items() if k[0:2]=="f.")
+        row["c"]=dict((k,v) for (k,v) in item.items() if k[0:2]=="c.")
+        row["g"]=dict((k,v) for (k,v) in item.items() if k[0:2]=="g.")
         f.write("\n")
         if row["f"]:
             f.write("p2bfl[%(i)d, pmatch(c(%(if)s), nm_par)]=c(%(rowf)s);\n"%\
                 {"i": i+1,
-                "if": join(", ", row["f"].keys(), p='"', s='"'),
-                "rowf": join(", ", row["f"].values()),
+                "if": join(", ", list(row["f"].keys()), p='"', s='"'),
+                "rowf": join(", ", list(row["f"].values())),
                 })
         if row["c"]:
             f.write("c2bfl[%(i)d, pmatch(c(%(ic)s), nm_fc)]=c(%(rowc)s);\n"%\
                 {"i": i+1,
-                "ic": join(", ", row["c"].keys(), p='"', s='"'),
-                "rowc": join(", ", row["c"].values()),
+                "ic": join(", ", list(row["c"].keys()), p='"', s='"'),
+                "rowc": join(", ", list(row["c"].values())),
                 })
         if row["g"]:
             f.write("g2bfl[%(i)d, pmatch(c(%(ig)s), nm_fgr)]=c(%(rowg)s);\n"%\
                 {"i": i+1,
-                "ig": join(", ", row["g"].keys(), p='"', s='"'),
-                "rowg": join(", ", row["g"].values()),
+                "ig": join(", ", list(row["g"].keys()), p='"', s='"'),
+                "rowg": join(", ", list(row["g"].values())),
                 })
         if row["cnst"]:
             f.write("cnst2bfl[%(i)d]=%(rowcnst)s;\n"%{"i": i+1, "rowcnst": row["cnst"],})
@@ -1188,13 +1190,13 @@ def netan2R_meas(netan, org, f, emu=False):
     scale=[{"label": {}, "mass": {}, "peak": {}} for i in range(nexp)] # for unique scale names
     nrow=[{"label": {}, "mass": {}, "peak": {}} for i in range(nexp)] # for counting scale names
     o_sc=[{"label": {}, "mass": {}, "peak": {}} for i in range(nexp)] # for ordered unique scale names
-    o_meas=measures.keys(); # ordered measure types
+    o_meas=list(measures.keys()); # ordered measure types
     o_meas.sort()
 
     ir2isc=[{"label": [], "mass": [], "peak": []} for i in range(nexp)] # for mapping measure rows indexes on scale index
     # we want to use it in python like isc[ili][meas]=ir2isc[ili][meas][ir]
     for meas in o_meas:
-        for ili in xrange(nexp):
+        for ili in range(nexp):
             # get unique scaling factors
             # and count rows in each group
             # row["scale"] is "metab;group" (metab name may be fake here)
@@ -1202,11 +1204,11 @@ def netan2R_meas(netan, org, f, emu=False):
                 scale[ili][meas][row["scale"]]=0.
                 nrow[ili][meas][row["scale"]]=nrow[ili][meas].get(row["scale"],0.)+1
             # remove groups having only one measure in them
-            for (k,n) in list(nrow[ili][meas].iteritems()):
+            for (k,n) in list(nrow[ili][meas].items()):
                 if n<2:
                     del(scale[ili][meas][k])
             # order scaling factor
-            o_sc[ili][meas]=scale[ili][meas].keys()
+            o_sc[ili][meas]=list(scale[ili][meas].keys())
             o_sc[ili][meas].sort()
             # map a measure rows (card:n) on corresponding scaling factor (card:1)
             # if a row has not scale factor it is scaled with factor 1
@@ -1229,7 +1231,7 @@ if (!noscale) {
    # make place for scaling factors
    nb_sc=vector("integer", %d)
 """%nexp)
-    for ili in xrange(nexp):
+    for ili in range(nexp):
         f.write("# experiment: %d\n"%(ili+1))
         for meas in o_meas:
             if not o_sc[ili][meas]:
@@ -1257,7 +1259,7 @@ if (!noscale) {
    ir2isc=vector("list", %d)
 """%nexp)
     base_isc=2+len(netan["flux_free"]["net"])+len(netan["flux_free"]["xch"])
-    for ili in xrange(nexp):
+    for ili in range(nexp):
         for meas in o_meas:
             if not ir2isc[ili][meas]:
                 continue
@@ -1267,7 +1269,7 @@ if (!noscale) {
 """ % {
         "iexp": ili+1,
         "meas": meas,
-        "ir2isc": join(", ", ((str(ir2isc[ili][meas][ir]+base_isc) if ir2isc[ili][meas][ir]>=0 else 1) for ir in xrange(len(ir2isc[ili][meas]))))
+        "ir2isc": join(", ", ((str(ir2isc[ili][meas][ir]+base_isc) if ir2isc[ili][meas][ir]>=0 else 1) for ir in range(len(ir2isc[ili][meas]))))
         })
             base_isc=base_isc+len(scale[ili][meas])
 
@@ -1300,18 +1302,18 @@ nm_list$par=nm_par
 # are all regrouped in the memaone.
 nm_measmat=nm_meas=nb_meas=nb_measmat=measmat=memaone=measvec=measdev=ipooled=vector("list", %d)
 """%nexp)
-    for ili in xrange(nexp):
+    for ili in range(nexp):
         meas_cumos={}
         for meas in o_meas:
             for row in measures[meas][ili]["mat"]:
                 metab=row["metab"]
                 if emu:
-                    meas_cumos.update((metab+":"+i, "") for i in row["emuco"].keys())
+                    meas_cumos.update((metab+":"+i, "") for i in list(row["emuco"].keys()))
                 else:
-                    meas_cumos.update((metab+":"+str(icumo), "") for icumo in row["coefs"].keys() if icumo != 0)
+                    meas_cumos.update((metab+":"+str(icumo), "") for icumo in list(row["coefs"].keys()) if icumo != 0)
 
         # order involved cumomers (emu)
-        o_mcumos=meas_cumos.keys()
+        o_mcumos=list(meas_cumos.keys())
         o_mcumos.sort()
         imcumo2i=dict((cumo, i) for (i, cumo) in enumerate(o_mcumos))
         nb_mcumo=len(o_mcumos)
@@ -1352,7 +1354,7 @@ nb_f$nb_meas=nb_meas
 """)
 
     # get coeffs in the order above with their corresponding indices from total cumomer vector
-    for ili in xrange(nexp):
+    for ili in range(nexp):
         base_pooled=0
         for meas in o_meas:
             if not measures[meas][ili]["mat"]:
@@ -1399,7 +1401,7 @@ if (!noscale) {
     lab2i0=netan["emu2i0" if emu else "rcumo2i0"]
     onelab="0+0" if emu else 0
     fcoef="emuco" if emu else "coefs"
-    for ili in xrange(nexp):
+    for ili in range(nexp):
         f.write("""
 ind_mema=matrix(c(
 """)
@@ -1413,7 +1415,7 @@ ind_mema=matrix(c(
                 f.write("""%(iricval)s,
 """%{
     "iricval": join(", ", valval((i, lab2i0[metab+":"+str(k)]+1, v)
-        for (k, v) in row[fcoef].iteritems() if k != onelab))
+        for (k, v) in row[fcoef].items() if k != onelab))
 })
 
         f.write(r"""
@@ -1523,11 +1525,11 @@ def netan2R_rcumo(netan, org, f, emu=False):
     # for the rest items to prune
     if "vrcumo" not in netan:
         netan["vrcumo"]=copy.deepcopy(netan["vcumo"])
-        for i in xrange(len(netan["vrcumo"]),len(rAb["A"]),-1):
+        for i in range(len(netan["vrcumo"]),len(rAb["A"]),-1):
             # delete extra weight systems
             del(netan["vrcumo"][i-1])
         for (iw,cumol) in enumerate(netan["vrcumo"]):
-            for i in xrange(len(cumol), 0, -1):
+            for i in range(len(cumol), 0, -1):
                 i-=1
                 if cumol[i] not in rAb["A"][iw]:
                     #print "prune", i, cumol[i];##
@@ -1539,7 +1541,7 @@ def netan2R_rcumo(netan, org, f, emu=False):
     emus=list(valval(netan.get("vemu", [])))
     emu2i=dict((c,i+1) for (i,c) in enumerate(emus))
     # composit cumomer vector incu=c(1,xi,xc)
-    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["rcumo_input"][0].keys()+rcumos))
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(list(netan["rcumo_input"][0].keys())+rcumos))
     # write code for reduced cumomer systems
     #netan2Abcumo_f(rAb["A"], rAb["b"],
     #    netan["vrcumo"], netan["input"], ff, netan["fwrv2i"], incu2i_b1, "fwrv2rAbcumo")
@@ -1592,7 +1594,7 @@ def netan2R_cumo(netan, org, f):
     cumos=list(valval(netan["vcumo"]))
     cumo2i=dict((c,i+1) for (i,c) in enumerate(cumos))
     # composite cumomer vector
-    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(netan["cumo_input"][0].keys()+cumos))
+    incu2i_b1=dict((c,i+2) for (i,c) in enumerate(list(netan["cumo_input"][0].keys())+cumos))
 
     netan2Abcumo_spr("spAbr_f", netan["cumo_sys"]["A"], netan["cumo_sys"]["b"],
         netan["vcumo"], netan["input"], f, netan["fwrv2i"], incu2i_b1)
@@ -1645,11 +1647,11 @@ dimnames(mi)=list(nm_i, nm_fallnx)
    "nb_ineq": nb_ineq,
    "nm_in": join(", ", (join("", (ineq[0], ineq[1], join("+",
         ((str(fa)+"*" if fa != 1. else "")+fl
-        for (fl,fa) in ineq[2].iteritems()))))
+        for (fl,fa) in ineq[2].items()))))
         for ineq in netan["flux_inequal"]["net"]), p='"n:', s='"'),
    "nm_ix": join(", ", (join("", (ineq[0], ineq[1], join("+",
         ((str(fa)+"*" if fa != 1. else "")+fl
-        for (fl,fa) in ineq[2].iteritems()))))
+        for (fl,fa) in ineq[2].items()))))
         for ineq in netan["flux_inequal"]["xch"]), p='"x:', s='"'),
 })
     
@@ -1661,8 +1663,8 @@ li[%(i)s]=%(sign)s%(li)g
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", ineq[2].keys(), p='"', s='"'),
-    "coef": join(", ", ineq[2].values()),
+    "f": join(", ", list(ineq[2].keys()), p='"', s='"'),
+    "coef": join(", ", list(ineq[2].values())),
     "li": ineq[0],
     })
     for (i, ineq) in enumerate(netan["flux_inequal"]["xch"]):
@@ -1673,8 +1675,8 @@ li[%(i)s]=%(sign)s%(li)g
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": len(netan["flux_inequal"]["net"])+i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", ineq[2].keys(), p='"', s='"'),
-    "coef": join(", ", ineq[2].values()),
+    "f": join(", ", list(ineq[2].keys()), p='"', s='"'),
+    "coef": join(", ", list(ineq[2].values())),
     "li": ineq[0],
     })
 
@@ -1843,7 +1845,7 @@ uip_ind=c(
     for (i, (rhs, comp, d, name)) in enumerate(netan["metab_inequal"]):
         si=-1. if comp == ">=" or comp == "=>" else 1.
         rhs*=si
-        for (m, coef) in d.iteritems():
+        for (m, coef) in d.items():
             # ind4 (str): irow, metab, coef, rhs, name
             coef*=si
             if netan["met_pools"][m] > 0:
@@ -1947,7 +1949,7 @@ ep_ind=c(
 })
     st=""
     for (i, (rhs, d, name)) in enumerate(netan["metab_equal"]):
-        for (m, coef) in d.iteritems():
+        for (m, coef) in d.items():
             # ind4 (str): irow, metab, coef, rhs, name
             if netan["met_pools"][m] > 0:
                 rhs-=netan["met_pools"][m]*coef
