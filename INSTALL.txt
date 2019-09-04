@@ -1,0 +1,1 @@
+cf doc/html/install.html or doc/influx_s.pdf

@@ -1,0 +1,23 @@
+# 2019-09-03 sokol@insa-toulouse.fr
+
+# install cvs2git from sources in /usr/local/src
+# edit cvs2git.options based on cvs2git-example.options
+cd /home/sokol/sysbio/dev/ftbl2sys
+cvs2git --options=cvs2git.options
+mkdir influx.git
+cd influx.git
+git init --bare
+
+git fast-import --export-marks=../cvs2git-tmp/git-marks.dat < ../cvs2git-tmp/git-blob.dat
+git fast-import --import-marks=../cvs2git-tmp/git-marks.dat < ../cvs2git-tmp/git-dump.dat
+
+# check
+gitk --all # OK
+/usr/local/src/cvs2svn-2.5.0/contrib/git-move-refs.py
+
+# create a valid local git repo
+cd ..
+git clone ftbl2sys/influx.git # create a new dir influx/ with a valid .git inside
+mv influx/.git ftbl2dev/.git
+rm -rf influx/
+cd ftbl2dev
