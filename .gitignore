@@ -7,7 +7,9 @@ snipets/*
 *.Rhistory
 *.pyc
 *.pdf
-cases/*
+test_cases/cases/*
+test_cases/*.log*
+test_cases/*.err*
 doc/_build/*
 influx_i-2012/*
 *.bck
