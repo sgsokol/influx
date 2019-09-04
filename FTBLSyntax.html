@@ -1,1 +1,4855 @@
-/home/sokol/sysbio/soft/13CFlux_2005/Documentation/FTBLSyntax.html
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=iso-8859-1">
+	<TITLE>No Title</TITLE>
+	<META NAME="GENERATOR" CONTENT="StarOffice/5.2 (Win32)">
+	<META NAME="AUTHOR" CONTENT="root ">
+	<META NAME="CREATED" CONTENT="19990810;11301600">
+	<META NAME="CHANGEDBY" CONTENT="Michael M&ouml;llney">
+	<META NAME="CHANGED" CONTENT="20000929;63200">
+	<META NAME="DESCRIPTION" CONTENT="No Title">
+	<META NAME="KEYWORDS" CONTENT="syntax">
+	<META NAME="resource-type" CONTENT="document">
+	<META NAME="distribution" CONTENT="global">
+	<STYLE>
+	<!--
+		H4 { border: none; padding: 0cm }
+		H3 { border: none; padding: 0cm }
+		H2 { border: none; padding: 0cm }
+		DD { margin-left: 1cm }
+		TT { font-family: "courier", serif }
+		CODE { font-family: "courier", serif }
+	-->
+	</STYLE>
+</HEAD>
+<BODY>
+<H1>FTBL-Data</H1>
+<H2>Introduction</H2>
+<P>The Carbon-Flux-Labeling-Toolkit is used to simulate the
+distribution of <SUP>13</SUP>C-labeled substrate in a
+micro-biological organism. The tool therefore needs some information
+about the network of reactions in the organism. The simulation is
+mostly used, to get some knowledge about the reaction (flux) rates in
+that organism. For this it is possible to fit simulated labeling
+patterns to labels that are measured in experiments.<BR>To give the
+user of this tool a convenient way to build a model for reactions
+(label-transitions) and measurements (label-distribution) a
+file-format was created.<BR>A file using this format is called a
+FTBL-File (an abbreviation for Flux-TaBLe-File). As the name says,
+it's a file using a tabular scheme and so it seems best to use a
+spreadsheet application like StarCalc or Excel to edit such a file.</P>
+<P>The following text is a description of the syntactical and
+structural format of such a file.</P>
+<H2>Contents and structure of  FTBL files</H2>
+<H3>Block Structure</H3>
+<P>Generally spoken, the data in a FTBL-File is oriented in blocks. A
+<EM><B><SPAN STYLE="font-style: normal">block</SPAN></B></EM> can
+contain either <EM><B><SPAN STYLE="font-style: normal">subblocks</SPAN></B></EM><B><SPAN STYLE="font-style: normal">
+or data</SPAN></B>. This <B>hierarchical structure</B> of blocks and
+subblocks give the creator of the file a good oversight of the
+information that is given and makes it easy for the simulation-tool
+to parse this information. A typical block-scheme is shown in the
+following table below.</P>
+<TABLE WIDTH=554 BORDER=3 BORDERCOLOR="#4c4c4c" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=79>
+	<COL WIDTH=110>
+	<COL WIDTH=110>
+	<COL WIDTH=110>
+	<COL WIDTH=110>
+	<TR>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>Block header 1</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 1</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 2</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 3</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 4</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+	</TR>
+</TABLE>
+<TABLE WIDTH=554 BORDER=1 BORDERCOLOR="#4c4c4c" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=81>
+	<COL WIDTH=110>
+	<COL WIDTH=110>
+	<COL WIDTH=110>
+	<COL WIDTH=112>
+	<TR>
+		<TD WIDTH=81>
+			<P ALIGN=CENTER>Block header 2</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=112>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=81>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 1</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 2</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>column header 3</P>
+		</TD>
+		<TD WIDTH=112>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=81>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=112>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=81>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=112>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=81>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=112>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=81>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=110>
+			<P ALIGN=CENTER>x</P>
+		</TD>
+		<TD WIDTH=112>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<P>As you can see, a block is some kind of rectangular data made of
+columns and rows. It can be typed by an editor but best with some
+kind of spreadsheet-software.</P>
+<P>Each (sub-)block starts with a keyword called <B>block header</B>.
+The fields under the block header must be empty until the next block
+on the same level of hierarchy starts. This is the only way to
+separate blocks from subsequent blocks in the same level. So a new
+subblock starts in the next column (<EM><SPAN STYLE="font-style: normal">and
+possibly in the next row)</SPAN></EM> as it is shown at the table
+above.</P>
+<DIV ID="Kommentar_1">
+	<P>(!!! ACHTUNG: Es stimmt nicht, da&szlig; ein SUBBLOCK in der
+	n&auml;chsten Zeile starten mu&szlig;. Siehe Beispiel MS-Data. Wir
+	sollten es aber auf jeden Fall erm&ouml;glichen. D.h. ein Subblock
+	wird nachdem er erkannt wurde erst mal von Leerzeilen befreit. Es
+	sind also &Auml;nderungen n&ouml;tig, die das Erkennen von
+	Subbl&ouml;cken angeht.!!!)</P>
+</DIV>
+<P>A <B>data block</B> is written in tabular form. Each data table
+starts with a row naming the information that can be found in the
+columns of data below that row. Such a special rows (subblock) is
+called <B>header block</B>. The order of the column headers and the
+column header itself must not be changed. In this way the contents of
+each row is unambiguously specified.</P>
+<H3><BR>FTBLData syntax and structure</H3>
+<P>In a FTBLData file following block <SPAN STYLE="text-decoration: none">headers
+must</SPAN> exist:</P>
+<UL>
+	<LI><P STYLE="margin-bottom: 0cm">[NETWORK]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[FLUXES]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[EQUALITIES]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[INEQUALITIES]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[FLUX_MEASUREMENTS]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[LABEL_INPUT]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[LABEL_MEASUREMENT]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[PEAK_MEASUREMENT]</P>
+	<LI><P STYLE="margin-bottom: 0cm">[MASS_SPECTROMETRY]</P>
+	<LI><P>[OPTIONS]</P>
+</UL>
+<P>Each block with the affiliated block header must occur exactly
+once. The order in wich these blocks appear is free.</P>
+<H4>NETWORK</H4>
+<P>The NETWORK subblock contains one header-block and some subblocks
+called <EM><B><SPAN STYLE="font-style: normal">reactions</SPAN></B></EM>.
+These reactions describe the  flux network of the carbon-atoms and
+therefore the reactions are also called <EM><B><SPAN STYLE="font-style: normal">fluxes</SPAN></B></EM>.</P>
+<H5>Structure</H5>
+<P>An reaction-block has two data rows. The first row names the flux
+and some <EM><B><SPAN STYLE="font-style: normal">metabolites</SPAN></B></EM>.
+The second row - the <EM><B><SPAN STYLE="font-style: normal">atom
+entries</SPAN></B></EM> - is a indexing system for the transition of
+carbon-atoms from one metabolite to another by this reaction.</P>
+<TABLE WIDTH=486 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=103>
+	<COL WIDTH=78>
+	<COL WIDTH=76>
+	<COL WIDTH=98>
+	<COL WIDTH=100>
+	<TR>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>FLUX_NAME</P>
+		</TD>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>EDUCT_1</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>EDUCT_2</P>
+		</TD>
+		<TD WIDTH=98>
+			<P ALIGN=LEFT>PRODUCT_1</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT>PRODUCT_2</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>f1</P>
+		</TD>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>m1</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=98>
+			<P ALIGN=LEFT>m2</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>#ABCDEF</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=98>
+			<P ALIGN=LEFT>#ABCDEF</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>f2</P>
+		</TD>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>m3</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>m4</P>
+		</TD>
+		<TD WIDTH=98>
+			<P ALIGN=LEFT>m5</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT>m6</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>#ABCDEF</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>#abc</P>
+		</TD>
+		<TD WIDTH=98>
+			<P ALIGN=LEFT>#ABbcEF</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT>#DCa</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>Due to technical reasons of the simulation software a reaction
+can only have a maximum of <B>two educts</B> and <B>two products</B>.
+Reactions having more educts or products must be formulated using
+<B><SPAN STYLE="font-style: normal">intermediate-</SPAN></B><EM><B><SPAN STYLE="font-style: normal">metabolites<!-- Genauer erklären mit Link
+---- root, 07.09.99, 22:56 ----
+ --></SPAN></B></EM>.<BR>The
+atom entry must be placed exactly under the related metabolite entry
+(e.g. in the flux f1 the related atom entry of the metabolite m1 is
+#ABCDEF. Or in flux f2 the atom entry of m5 is #ABbcEF). In the row
+of atom entries the entry of FLUX_NAME must be empty.</P>
+<H5>Syntax</H5>
+<P>The flux names, the educt and product names in the first row of
+each flux have to match the regular expression [a-zA-Z][a-zA-Z_0-9]*,
+the atom entries in the following row must match #[a-zA-Z0-9]+ .</P>
+<H5>Consistency</H5>
+<P>Flux-names must not be unique in NETWORK. Input- and output-fluxes
+must have only one educt and one product. An atom-entries must
+correspond in educts and product and the transposition must be clear.
+That means and index 'A' in an educt can only be used in an product
+once again.</P>
+<P STYLE="margin-bottom: 0cm">The way the reaction is noted
+determines some flux terms. Because bidirectional reaction should be
+simulated it's not that fix, what's an educt or product for a
+reaction. It must be distinguished between forward and backward
+reactions/fluxes.<BR>A forward flux tells something about the rate
+with which the reaction reacts from educts to products. The backward
+flux rates the opposite reaction from products to educts. Forward-
+and backward-fluxes can only have positive values.<BR>An other view
+on reaction rates is described by net- and exchange fluxes. A
+net-flux quantifies the net reaction rate for a flux. So if a
+net-flux is negative is means that a reaction transports more
+molecules from product to educt than from educt to product. The
+exchange-flux holds the rate with which the reaction transforms educt
+to products and to educts again.<BR>Having an exchange-flux unequal
+zero means that reactions in both directions take place. Having an
+exchange-flux being zero declares an unidirectional flux.<BR>Both
+forward/backward-values and net/exchange-values can be transformed in
+each other.</P>
+<H4>EQUALITIES</H4>
+<H5>Structure</H5>
+<P>In this block dependencies between fluxes can be set. Like the
+FLUXES block the equalities are divided in two groups - in net and
+exchange fluxes.</P>
+<TABLE WIDTH=320 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=39>
+	<COL WIDTH=61>
+	<COL WIDTH=92>
+	<COL WIDTH=102>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT>NET</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>FORMULA</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>0.5</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>2 f3+f7-4 f8</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>0.0</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>f4-5 f2</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT>// f4 = 5*f2</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT>XCH</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>FORMULA</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>0.001</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>f6-f3</P>
+		</TD>
+		<TD WIDTH=102>
+			<P ALIGN=LEFT>// f6 = f3</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>In FORMULA a linear combination of parametriced fluxes is
+given. The fluxes must be determined by the simulation that the
+formula must result in VALUE. See comments in the example.</P>
+<H5>Syntax</H5>
+<P>VALUE entry must be a floating-point number. In FORMULA a linear
+combination<!-- Was ist eine linear combination
+---- root, 08.09.99, 00:21 ----
+ -->
+of fluxes must be given.</P>
+<H5>Consistency</H5>
+<P>All fluxes used in FORMULA must be defined in NETWORK. 
+</P>
+<H4>FLUXES 
+</H4>
+<P>The relations between the fluxes given in the NETWORK block and
+the additional equality-constraints given in the EQUALITIES block
+most of the time don't determine all fluxes of the network. In this
+FLUXES block the missing determining fluxes have to be given.<BR>It's
+not seldom that there is a great freedom in the way these missing
+fluxes can be chosen to determine the flux-network. There are
+independent and dependent fluxes. By choosing and setting independent
+fluxes the dependent fluxes can be calculated.<BR>This block list:</P>
+<UL>
+	<LI><P STYLE="margin-bottom: 0cm">Independent Fluxes:</P>
+	<UL>
+		<LI><P STYLE="margin-bottom: 0cm">Free fluxes can varied by an
+		optimization to best fit measured labels and measured flux-rates. 
+		</P>
+		<LI><P STYLE="margin-bottom: 0cm">Constrained fluxes are set by the
+		user to fix values. These flux-rated aren't varied by an
+		optimization. 
+		</P>
+	</UL>
+	<LI><P>Dependent fluxes: These can't be chosen. They are calculated
+	by the values of free and constrained fluxes and the conditions of
+	the stochiometric and equality information. 
+	</P>
+</UL>
+<P>The dependent fluxes needn't be listed but an interactive tool
+that supports the choosing of independent fluxes will be developed.
+It will be possible to switch dependent to independent fluxes. So
+this block should list all fluxes declared in the NETWORK block.</P>
+<H5>Structure</H5>
+<P>The block FLUXES contains two subblocks - NET and XCH - as shown
+below.</P>
+<TABLE WIDTH=435 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=39>
+	<COL WIDTH=53>
+	<COL WIDTH=37>
+	<COL WIDTH=95>
+	<COL WIDTH=61>
+	<COL WIDTH=52>
+	<COL WIDTH=55>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT>NET</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>NAME</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>FCD</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>VALUE(F/C)</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>LOW(F)</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT>INC(F)</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>UP(F)</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>f2</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>F</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>0.5</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>0.0</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT>0.1</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>1.0</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>f3</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>D</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>f7</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>C</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>0.2</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT>XCH</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>NAME</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>FCD</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>VALUE(F/C)</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>LOW(F)</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT>INC(F)</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>UP(F)</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>f4</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>F</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>0.3</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>f5</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>C</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>0.83</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=53>
+			<P ALIGN=LEFT>f6</P>
+		</TD>
+		<TD WIDTH=37>
+			<P ALIGN=LEFT>F</P>
+		</TD>
+		<TD WIDTH=95>
+			<P ALIGN=LEFT>0.24</P>
+		</TD>
+		<TD WIDTH=61>
+			<P ALIGN=LEFT>0</P>
+		</TD>
+		<TD WIDTH=52>
+			<P ALIGN=LEFT>#10</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>1</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>In each subblock you have a table with following columns: NAME
+gives the flux-name, FCD tells if the flux is free,constrained or
+dependent. If the flux is free or constrained a value for the flux
+must be given in VALUE(F/C). If the flux is free you can give an
+interval that is stepped through by some algorithms. (Not in use
+right now.) All flux values are given in net- and xch[0,1]-rates.</P>
+<H5>Syntax</H5>
+<P>For each text in NAME a flux must be given. In column FCD it must
+be specified either a flux is free (F), dependent (D), or constrained
+(C). The entries of VALUE(...) must be floating-point numbers. LOW(F)
+and UP(F) must be floating-point numbers. In INC(F) the step size as
+a floating-point can be given or the number of steps in between LOW
+and UP as an integer with an preceding '#'.<!-- Im Beispiel Bild erklären --></P>
+<H5>Consistency</H5>
+<P>Fluxes used in NAME must be defined in NETWORK. The Value in UP(F)
+must be greater than in LOW(F). INC(F) must have a positive value.</P>
+<H4>INEQUALITIES</H4>
+<H5>Structure</H5>
+<P>Using inequalities further restriction for the fluxes can be
+formulated. In this block the fluxes are differentiated in net and
+exchange fluxes, too.</P>
+<TABLE WIDTH=421 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=120>
+	<COL WIDTH=57>
+	<COL WIDTH=65>
+	<COL WIDTH=55>
+	<COL WIDTH=92>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT>INEQUALITIES</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT>NET</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>COMP</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>FORMULA</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT>0</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>&lt;=</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>f3</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT>0.5</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>&gt;=</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>f3</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT>XCH</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>COMP</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>FORMULA</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT>0.2</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>&lt;=</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>f5+2 f7</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=120>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=57>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=65>
+			<P ALIGN=LEFT>0.7</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>&gt;=</P>
+		</TD>
+		<TD WIDTH=92>
+			<P ALIGN=LEFT>f6</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>In both tables - NET for the net fluxes and XCH for the
+exchange fluxes - flux values are set, which must not be exceeded by
+a flux or a linear combination of fluxes. In VALUE this boundary is
+set. In COMP the type of comparison is given - less equal or greater
+equal - and in FORMULA a flux or a linear combination of these
+fluxes. It is not possible to formulate inequalities mixing net- and
+xch-fluxes. All flux values are given in net- and xch[0,1]-rates.</P>
+<H5>Syntax</H5>
+<P>VALUE entry must be a floating-point number. The entry of COMP
+must be either &gt;= or &lt;=. In FORMULA a linear combination of
+fluxes must be given.</P>
+<H5>Consistency</H5>
+<P>All fluxes used in FORMULA must be defined in NETWORK.</P>
+<H4>FLUX_MEASUREMENTS</H4>
+<H5>Structure</H5>
+<P>For some net-fluxes measurement data exists. This data is
+specified in this block.</P>
+<TABLE WIDTH=512 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=185>
+	<COL WIDTH=101>
+	<COL WIDTH=101>
+	<COL WIDTH=100>
+	<TR>
+		<TD WIDTH=185>
+			<P ALIGN=LEFT>FLUX_MEASUREMENTS</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=185>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT>FLUX_NAME</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT>DEVIATION</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=185>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT>f1</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT>1</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT>0.001</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=185>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT>f5</P>
+		</TD>
+		<TD WIDTH=101>
+			<P ALIGN=LEFT>0.043</P>
+		</TD>
+		<TD WIDTH=100>
+			<P ALIGN=LEFT>0.02</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>In column FLUX_NAME the flux name is entered, which has
+measured data. In the column VALUE the measurement is set. The
+standard deviation of this measurement must be given in the next
+column.</P>
+<H5>Syntax</H5>
+<P>In FLUX_NAME the name of a flux must be given. The entries of
+VALUE and DEVIATION must be floating-point numbers.</P>
+<H5>Consistency</H5>
+<P>Fluxes used in FLUX_NAME must be defined in NETWORK.</P>
+<H4>LABEL_INPUT</H4>
+<H5>Structure</H5>
+<P>At this place the input metabolites are specified.</P>
+<TABLE WIDTH=402 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=110>
+	<COL WIDTH=105>
+	<COL WIDTH=107>
+	<COL WIDTH=55>
+	<TR>
+		<TD WIDTH=110>
+			<P ALIGN=LEFT>LABEL_INPUT</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=107>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=110>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT>META_NAME</P>
+		</TD>
+		<TD WIDTH=107>
+			<P ALIGN=LEFT>ISOTOPOMER</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=110>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT>m1</P>
+		</TD>
+		<TD WIDTH=107>
+			<P ALIGN=LEFT>#100000</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.99</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=110>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=107>
+			<P ALIGN=LEFT>#111111</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.01</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=110>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT>m7</P>
+		</TD>
+		<TD WIDTH=107>
+			<P ALIGN=LEFT>#11000</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>1.0</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>The column META_NAME contains the metabolite name for which
+the isotopomer settings should be specified. In the next column the
+isotopomers of this metabolite are listed. The VALUE column contains
+the fraction of this isotopomer in the substrate.<!-- Im Beispiel einen Kommentar
+---- root, 07.10.99, 09:26 ----
+ --></P>
+<H5>Syntax</H5>
+<P>In META_NAME a metabolite name must be specified. The entry of
+ISOTOPOMER must match the regular expression #(01)+ and VALUE must be
+floating-point number.</P>
+<H5>Consistency</H5>
+<P>Metabolites used in META_NAME must be defined in NETWORK first.
+The length of an ISOTOPOMER entry must be equal with the number of
+atoms of the metabolite specified in META_NAME plus the sign #. E.g.
+m1 has six C-atoms. Then the entry of ISOTOPOMER must have the length
+seven - first the sign # and then for each atom one 0 or 1.</P>
+<H4>LABEL_MEASUREMENTS</H4>
+<H5>Structure</H5>
+<P>In this structure the label measurements are placed.</P>
+<TABLE WIDTH=781 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=193>
+	<COL WIDTH=105>
+	<COL WIDTH=104>
+	<COL WIDTH=55>
+	<COL WIDTH=91>
+	<COL WIDTH=195>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT>LABEL_MEASUREMENTS</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT>META_NAME</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>CUM_GROUP</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>DEVIATION</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>CUM_CONSTRAINTS</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT>m5</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>Group1</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.1255</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.01</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#x1xx01+#x11xxx</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.1255</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.01</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#xxxx11+#xx1xxx</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>Group2</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.1255</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.01</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#xx1x01+#xx11xx</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.1255</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.01</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#1xxx11+#1xxx10+#1xxx01</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT>m10</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>Group1</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.3</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.008</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#x01</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.3</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.008</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#x10</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=193>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=105>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=55>
+			<P ALIGN=LEFT>0.3</P>
+		</TD>
+		<TD WIDTH=91>
+			<P ALIGN=LEFT>0.008</P>
+		</TD>
+		<TD WIDTH=195>
+			<P ALIGN=LEFT>#x11</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>META_NAME contains the metabolite name for which the label
+measurements are known. In CUM_GROUP the label measurements could be
+separated in measurement groups. All Measurements in a group are
+scaled with a single factor to best fit the simulated cumomers with
+the measured value. In the following columns the values and the
+standard deviations of the measurements are given. The entries of
+CUM_CONSTRAINTS are sums of cumomers.<!-- Kann das keine LinearKombination sein?
+---- root, 07.10.99, 09:30 ----
+ --></P>
+<H5>Syntax</H5>
+<P>In META_NAME a metabolite must be entered. CUM_GROUP can have one
+entry for each group. VALUE and DEVIATION must be floating-point
+numbers. The CUM_CONSTRAINTS expressions must match the regular
+expression #[01x]+(\+#[01x]+)*.<!-- Keine linear kombination?
+---- root, 07.10.99, 09:32 ----
+ --></P>
+<H5>Consistency</H5>
+<P>Metabolites used in META_NAME must be defined in NETWORK. As
+described above the CUM_CONSTRAINTS are build of cumomer
+specifications. The length of each cumomer specification must be
+equal with number of atoms of the metabolite specified in META_NAME
+plus the sign #. E.g. m10 has two C-atoms. Then the cumomers in
+CUM_CONSTRAINTS must have the length three - first the sign # and
+then for each atom one x, 0 or 1.</P>
+<H4>PEAK_MEASUREMENTS</H4>
+<H5>Structure</H5>
+<P>This block contains the <SUP>13</SUP>C-NMR peak measurements.</P>
+<TABLE WIDTH=831 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=192>
+	<COL WIDTH=103>
+	<COL WIDTH=76>
+	<COL WIDTH=74>
+	<COL WIDTH=87>
+	<COL WIDTH=87>
+	<COL WIDTH=88>
+	<COL WIDTH=74>
+	<TR>
+		<TD WIDTH=192>
+			<H4 ALIGN=LEFT><SPAN STYLE="background: transparent">PEAK_MEASUREMENTS</SPAN></H4>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>META_NAME</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>PEAK_NO</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>VALUE_S</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>VALUE_D-</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>VALUE_D+</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT>VALUE_DD</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>VALUE_T</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>m5</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>2</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.2</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>0.23</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>0.03</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>1</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.11</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>m6</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>2</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.132</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>0.25</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.221</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT>m8</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>3</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.31</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>0.27</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>-</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT>-</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>2</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.14</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>0.15</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT>0.14</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT>-</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=192>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=103>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>1</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>0.1</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<TABLE WIDTH=531 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=111>
+	<COL WIDTH=125>
+	<COL WIDTH=126>
+	<COL WIDTH=143>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER>DEVIATION_S</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER>DEVIATION_D-</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER>DEVIATION_D+</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER>DEVIATION_DD/T</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111 SDVAL="1" SDNUM="1031;">
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER>0.02</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER>0.003</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER>0.003</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER>0.002</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER>0.002</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER>0.021</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=111>
+			<P ALIGN=CENTER>0.01</P>
+		</TD>
+		<TD WIDTH=125>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=126>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=143>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<P>In the first column META_NAME the metabolites are entered, which
+have peak measurement data. In the next column the peak number have
+to be insert. The peak number is the index of the carbon atom which
+produced the peak in NMR. The index is fixed by the entries in the
+NETWORK-block. The following columns contains the values their
+standard deviations of the peak measurements: VALUE_S is the column
+for singulett measurements, VALUE_D- for doublett measurements
+produced by the neighbor with the index one less then the peak
+number, VALUE_D+ for doublett measurements produced by the neighbor
+with index on greater than the peak number, VALUE_DD for double
+doublett measurements and VALUE_T for triplett measurements.
+DEVIATION_S contains the standard deviations of the singulett
+measurements, DEVIATION_D-/D these of the Value_D- doublett
+measurements, DEVIATION_D+ of the VALUE_D+ doublett measurements and
+DEVIATION_DD/T either of the double doublett or triplett measurements
+- depending on what measurement is given. All deviations field beside
+DEVIATION_S may be left empty. In this case their values are taken
+from the value in DEVIATION_S.</P>
+<H5>Syntax</H5>
+<P>In META_NAME a metabolite must be given. PEAK_NO entry must be an
+integer number. All other fields may either contain floating point
+numbers or may be empty (see Consistency)</P>
+<H5>Consistency</H5>
+<P>Fluxes used in NAME must be defined in NETWORK. PEAK_NO must be
+positive and less or equal with number of atoms of this metabolite.
+In the following table the permitted combinations of VALUE_* entries
+are listed:</P>
+<TABLE WIDTH=655 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=73>
+	<COL WIDTH=86>
+	<COL WIDTH=87>
+	<COL WIDTH=88>
+	<COL WIDTH=74>
+	<COL WIDTH=209>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER>VALUE_S</P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER>VALUE_D-</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER>VALUE_D+</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER>VALUE_DD</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER>VALUE_T</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER>Comment</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER>Only one singulett was mesured</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><SPAN STYLE="background: #ff00ff"></SPAN></P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER>Only  - this can be for the carbon atom at an end
+			of an carbon-string</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER>S and D- could be measured, D+ and DD couuld not
+			be measured</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER>S and D+ were the only peaks that can 
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER>-</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=73>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=86>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=87>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=88>
+			<P ALIGN=CENTER><EM>x</EM></P>
+		</TD>
+		<TD WIDTH=74>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+		<TD WIDTH=209>
+			<P ALIGN=CENTER><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P>In this table <EM>x</EM> is a variable for a given peak
+measurement.</P>
+<H4>MASS_SPECTROMETRY</H4>
+<H5>Structure</H5>
+<P>In this block the mass spectrometry data is specified.</P>
+<TABLE WIDTH=662 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=180>
+	<COL WIDTH=104>
+	<COL WIDTH=96>
+	<COL WIDTH=71>
+	<COL WIDTH=79>
+	<COL WIDTH=94>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT>MASS_SPECTROMETRY</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=94>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>META_NAME</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT>FRAGMENT</P>
+		</TD>
+		<TD WIDTH=71>
+			<P ALIGN=LEFT>WEIGHT</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=LEFT>VALUE</P>
+		</TD>
+		<TD WIDTH=94>
+			<P ALIGN=LEFT>DEVIATION</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>m5</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT>1,4~6</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="0" SDNUM="1031;">
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.01</P>
+		</TD>
+		<TD WIDTH=94 SDVAL="2" SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="1" SDNUM="1031;">
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.12</P>
+		</TD>
+		<TD WIDTH=94 SDVAL="2" SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.002</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="2" SDNUM="1031;">
+			<P ALIGN=CENTER>2</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.03</P>
+		</TD>
+		<TD WIDTH=94 SDVAL="2" SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.004</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="3" SDNUM="1031;">
+			<P ALIGN=CENTER>3</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.01</P>
+		</TD>
+		<TD WIDTH=94 SDVAL="2" SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.002</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="4" SDNUM="1031;">
+			<P ALIGN=CENTER>4</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.07</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT>1,2</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="0" SDNUM="1031;">
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.1</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.003</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="1" SDNUM="1031;">
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.15</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.003</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="2" SDNUM="1031;">
+			<P ALIGN=CENTER>2</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.07</P>
+		</TD>
+		<TD WIDTH=94 SDVAL="2" SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.002</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT>m9</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT>1,2,4~6</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="0" SDNUM="1031;">
+			<P ALIGN=CENTER>0</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.21</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.0011</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="1" SDNUM="1031;">
+			<P ALIGN=CENTER>1</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.23</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.0024</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71 SDVAL="2" SDNUM="1031;">
+			<P ALIGN=CENTER>2</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.12</P>
+		</TD>
+		<TD WIDTH=94 SDVAL="1" SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.01</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71>
+			<P ALIGN=CENTER>3</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.1</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71>
+			<P ALIGN=CENTER>4</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.1</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=180>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=104>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=96>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+		<TD WIDTH=71>
+			<P ALIGN=CENTER>5</P>
+		</TD>
+		<TD WIDTH=79>
+			<P ALIGN=CENTER>0.34</P>
+		</TD>
+		<TD WIDTH=94 SDNUM="1031;0;@">
+			<P ALIGN=CENTER>0.001</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR>The first column META_NAME contains these metabolites for
+which the mass spectrometry data should be specified. In column
+FRACTION  the fraction of the molecule that is measured is given. The
+column WEIGHT tells the relative weight to the unlabeled fraction. In
+the next two columns the value and the standard deviation of the
+measurement must be insert.</P>
+<H5>Syntax</H5>
+<P>In META_NAME a metabolite must be given. The expression of
+FRACTION must match the regular expression
+([0-9]|([0-9]~[0-9]))(,([0-9]|([0-9]~[0-9])))*. WEIGHT must be an
+integer number, VALUE and DEVIATION entries are floating-point
+numbers.</P>
+<H5>Consistency</H5>
+<P>META_NAME must be declared in the NETWORK section. FRACTION entry
+must not contain a value greater than number of atoms of this
+metabolite. The number of weights must not be greater than number of
+atoms in FRACTION entry.</P>
+<H4>OPTIONS</H4>
+<H2>Error and warning messages</H2>
+<P>Before using a FTBLData file with the simulation or optimization
+program it will be automatically checked by a FTBL check program.
+This check program searches for syntax and consistency errors, which
+may occure in the FTBL file. Each error and warning message has a fix
+structure:</P>
+<P ALIGN=CENTER><CODE>error_number:block_name:line_in_block:column_in_block:ErrorText</CODE></P>
+<P>In the next sections all possible errors are listed.</P>
+<H2>Localization of error and warning messages</H2>
+<TABLE WIDTH=100% BORDER=1 BORDERCOLOR="#000000" CELLPADDING=4 CELLSPACING=0>
+	<COL WIDTH=40*>
+	<COL WIDTH=82*>
+	<COL WIDTH=134*>
+	<THEAD>
+		<TR VALIGN=TOP>
+			<TD WIDTH=16%>
+				<P>Err_Part</P>
+			</TD>
+			<TD WIDTH=32%>
+				<P>example</P>
+			</TD>
+			<TD WIDTH=52%>
+				<P>description</P>
+			</TD>
+		</TR>
+	</THEAD>
+	<TBODY>
+		<TR VALIGN=TOP>
+			<TD WIDTH=16%>
+				<P>block_name</P>
+			</TD>
+			<TD WIDTH=32%>
+				<P>MASS_SPECTROMETRY</P>
+			</TD>
+			<TD WIDTH=52%>
+				<P>Block</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=16%>
+				<P>line_in_block</P>
+			</TD>
+			<TD WIDTH=32%>
+				<P>META_NAME=m8&gt;FRACTION=1,2</P>
+			</TD>
+			<TD WIDTH=52%>
+				<P>Line in block</P>
+			</TD>
+		</TR>
+		<TR VALIGN=TOP>
+			<TD WIDTH=16%>
+				<P>column_in_block</P>
+			</TD>
+			<TD WIDTH=32%>
+				<P>????</P>
+			</TD>
+			<TD WIDTH=52%>
+				<P>Column in found row</P>
+			</TD>
+		</TR>
+	</TBODY>
+</TABLE>
+<H2>Tables of syntax and consistency messages</H2>
+<P>The following subsections give an overview about these possible
+happened errors. Further the errors are separated by the main blocks.
+The syntax error messages have the code SYN_####, the consistency
+errors CON_####, where #### is an error number.</P>
+<P>In the following tables of error messages <EM>metabolite</EM> are
+metabolite and <EM>flux</EM> are flux variables.</P>
+<H3>Syntax errors</H3>
+<P>The following table lists all syntax errors could be find and
+returned by the FTBL check program:</P>
+<TABLE WIDTH=677 BORDER=1 BORDERCOLOR="#000000" CELLPADDING=3 CELLSPACING=0>
+	<COL WIDTH=77>
+	<COL WIDTH=541>
+	<COL WIDTH=39>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Error messages</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0001</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block NETWORK can not be found</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0002</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block FLUXES can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0003</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block INEQUALITIES can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0004</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block EQUALITIES can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0005</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block LABEL_INPUT can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0006</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block FLUX_MEASUREMENTS can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0007</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block LABEL_MEASUREMENTS can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0008</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block PEAK_MEASUREMENTS can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0009</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block MASS_SPECTROMETRY can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0010</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block OPTIONS can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=77>
+			<P ALIGN=LEFT>SYN_0011</P>
+		</TD>
+		<TD WIDTH=541 VALIGN=TOP>
+			<P ALIGN=LEFT>Block PROJECT can not be found.</P>
+		</TD>
+		<TD WIDTH=39>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>NETWORK</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0101</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0102</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Flux name is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0103</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux <EM>flux</EM> does not match the regular
+			expression [a-zA-Z][a-zA-Z_0-9]*.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0104</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux <EM>flux</EM> must have an EDUCT_1 and a
+			PRODUCT_1.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0105</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The metabolite <EM>metabolite</EM> does not match
+			the regular expression [a-zA-Z][a-zA-Z_0-9]*.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0106</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Atom entry of metabolite <EM>metabolite</EM> in flux
+			<EM>flux</EM> is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0107</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Atom entry of metabolite <EM>metabolite</EM> in flux
+			<EM>flux</EM> does not match the regular expression #[a-zA-Z0-9]+.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0107</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>FLUXES</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0201</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0202</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>In NAME the flux name is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0203</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The entry of FCD must be F, C or D.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0204</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The entry of FCD must be either F, C or D.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0205</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0206</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>LOW must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0207</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>INC must be a floating-point number or have to match
+			the regular expression #[0-9]+.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0208</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>UP must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0209</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>NET-block is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0210</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>XCH-block is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0211</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Block NET is empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0212</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Block XCH is empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0213</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT><EM>Blockname</EM> is not a valid block.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0214</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0215</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Experimental Design WEIGHT must be a floating-point
+			number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>EQUALITIES</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0301</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0302</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0303</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>FORMULA must be a linear combination of fluxes.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0304</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>NET-block is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0305</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>XCH-block is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0306</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>NET:::Block NET is empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0307</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>XCH:::Block XCH is empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0308</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT><EM>Block</EM> is not a valid block.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0309</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>INEQUALITIES</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0401</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0402</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0403</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The entry of COMP must be either &gt;= or &lt;=.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0404</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>FORMULA must be a linear combination of fluxes.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0405</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>NET-block is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0406</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>XCH-block is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0407</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>NET:::Block NET is empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0408</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>XCH:::Block XCH is empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0409</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT><EM>Block</EM> is not a valid block.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0410</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>FLUX_MEASUREMENTS</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0501</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0502</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>In FLUX_NAME a flux name must be given.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0503</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0504</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0505</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>LABEL_INPUT</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0601</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0602</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>In META_NAME a metabolite name must be given.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0603</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The expression of ISOTOPOMER <EM>isotopomer</EM>
+			must match the regular expression #[01]+.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0604</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0605</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>LABEL_MEASUREMENTS</H4>
+<TABLE WIDTH=423 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=78>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>SYN_0701</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>SYN_0702</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>In META_NAME a metabolite name must be given.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>SYN_0703</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>SYN_0704</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>SYN_0705</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The expression of CUM_CONSTRAINTS must match the
+			regular expression #[01x]+(+#[01x]+)*.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=78>
+			<P ALIGN=LEFT>SYN_0706</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>PEAK_MEASUREMENTS</H4>
+<TABLE WIDTH=419 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0801</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0802</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>In META_NAME a metabolite name must be given.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0803</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>PEAK_NO must be an integer number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0804</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE_S must be a floating-point number, - or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0805</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE_D- must be a floating-point number, - or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0806</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE_D+ must be a floating-point number, - or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0807</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE_DD must be a floating-point number, - or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0808</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE_T must be a floating-point number, - or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0809</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION_S must be a floating-point number or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0810</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION_D- must be a floating-point number or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0811</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION_D+ must be a floating-point number or must
+			be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0812</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION_DD/T must be a floating-point number or
+			must be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0813</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4>MASS_SPECTROMETRY</H4>
+<TABLE WIDTH=439 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=302>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0901</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0902</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>In META_NAME a metabolite name must be given.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0903</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>FRACTION must match the regular expression
+			([0-9]|([0-9]~[0-9]))(,([0-9]|([0-9]~[0-9])))*.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0904</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>WEIGHT must be an integer number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0905</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>VALUE must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0906</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>DEVIATION must be a floating-point number.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_0907</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4>OPTIONS</H4>
+<TABLE WIDTH=439 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=74>
+	<COL WIDTH=302>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_1101</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>Column header is missing or incorrect.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=74>
+			<P ALIGN=LEFT>SYN_1102</P>
+		</TD>
+		<TD WIDTH=302 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry is not declared as a comment.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+</TABLE>
+<H3>Consistency errors</H3>
+<P>The next table shows all consistency errors:</P>
+<H4>NETWORK</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0101</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Flux name is missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0102</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. Each flux must have an
+			EDUCT_1 and a PRODUCT_1.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0103</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. Atom entry of %%% is
+			missing.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0104</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. The atom entry of %%%
+			must be #[a-zA-Z1-9]+.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0105</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. Atom number of %%% is
+			incorrect, because equal named metabolites must have the same
+			number of atoms.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0106</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. Flux name %%% exists
+			allready. Duplicate flux names are not allowed.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0107</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. %%% is an input
+			metabolite. An input flux must not have an EDUCT_2 or a PRODUCT_2.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0108</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. The expression of flux
+			entry must be [a-zA-Z][a-zA-Z_0-9]*</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0109</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. The metabolite entry %%%
+			must be [a-zA-Z][a-zA-Z_0-9]*</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0110</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. %%% is an output
+			metabolite. An output flux must not have an EDUCT_2 or a
+			PRODUCT_2.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0111</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. The sum of educt atoms
+			and the sum of product atoms must be equal.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0112</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. The atom entry of %%%
+			contains two or more equal named atoms.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0113</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error occured in flux %%%. An input flux must not be
+			an output flux.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>INEQUALITIES</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error messages</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0201</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% does not occure in NETWORK, but all
+			fluxes used in Formula must be defined in NETWORK first.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0202</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The entry of FORMULA must not have been empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0203</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The entry of COMP must be &gt;= or &lt;=.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4>FLUXES</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error messages</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0301</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% was not defined in NETWORK. Fluxes used
+			in NAME must be defined in NETWORK first.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0302</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of FCD must be F, C or D</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0303</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The entry of FCD must be F, if LOW, INC and UP is
+			given.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0304</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of NAME must not be empty..</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0305</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Experimental Design Weight must hold
+			0&lt;=ED_WEIGHT&lt;=1.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>FLUX_MEASUREMENTS</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0401</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% was not defined in NETWORK. Fluxes used
+			in NAME must be defined in NETWORK first.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0402</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of FLUX_NAME must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4>LABEL_INPUT</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0501</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% was not defined in NETWORK as an input
+			metabolite.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0502</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Length of isotopomer must be equal with number of
+			atoms of this metabolite.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0503</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The expression of isotopomer entry must be #(01)+</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0504</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Value must be in [0,1].</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0505</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of META_NAME must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0506</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of ISOTOPOMER must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0507</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Sum over VALUES must be equal 1.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0508</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>All input metabolites must have a setting.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4>LABEL_MEASUREMENTS</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0601</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% was not defined in NETWORK. Fluxes used
+			in NAME must be defined in NETWORK first.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0602</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Length of cumomer must be equal with number of atoms
+			of this metabolite.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0603</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The expression of cumomer entry must be #(01x)+</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0604</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Value must be in [0,1].</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0605</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of META_NAME must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0606</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of CUM_CONSTRAINTS must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4>PEAK_MEASUREMENTS</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0701</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% was not defined in NETWORK. Fluxes used
+			in NAME must be defined in NETWORK first.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0702</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>PEAK_NO must be less or equal with number of atoms
+			of this metabolite.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0703</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Combination of VALUE_* entries is not permitted.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0704</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of META_NAME must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<P><BR><BR>
+</P>
+<H4>MASS_SPECTROMETRY</H4>
+<TABLE WIDTH=421 BORDER=1 CELLPADDING=3 CELLSPACING=3>
+	<COL WIDTH=76>
+	<COL WIDTH=282>
+	<COL WIDTH=31>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>Error code</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Error message</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>Link</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0801</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The flux %%% was not defined in NETWORK. Fluxes used
+			in NAME must be defined in NETWORK first.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0802</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>FRACTION entry must not contain a value being
+			greater than number of atoms of this metabolite.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0803</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of WEIGHT must not be greater than number of
+			atoms in FRACTION entry.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT>&nbsp;</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0804</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>Entry of META_NAME must not be empty.</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+	<TR>
+		<TD WIDTH=76>
+			<P ALIGN=LEFT>CON_0805</P>
+		</TD>
+		<TD WIDTH=282 VALIGN=TOP>
+			<P ALIGN=LEFT>The expression of fraction entry must be
+			([0-9]|([0-9]~[0-9]))(,([0-9]|([0-9]~[0-9])))*</P>
+		</TD>
+		<TD WIDTH=31>
+			<P ALIGN=LEFT><BR>
+			</P>
+		</TD>
+	</TR>
+</TABLE>
+<H4><BR><BR>
+</H4>
+<H2>Glossary 
+</H2>
+<DL>
+	<DT><STRONG>metabolite</STRONG></DT><DD>
+	what to say here?</DD><DT>
+	<STRONG>input-metabolite</STRONG> 
+	</DT><DD>
+	A metabolite that is an educt of an <A HREF="#input-flux"><EM><B><SPAN STYLE="text-decoration: none"><SPAN STYLE="font-style: normal">input-flu</SPAN></SPAN></B></EM><B><SPAN STYLE="text-decoration: none"><SPAN STYLE="font-style: normal">x</SPAN></SPAN></B></A>.
+	As such it is called an <EM><SPAN STYLE="font-weight: medium"><SPAN STYLE="font-style: normal">extra-cellular</SPAN></SPAN></EM>
+	metabolite. It is a feeding metabolite and it is exactly know with
+	which labeling it is fed. No reaction produces this metabolite, it
+	can only be an educt for an <A HREF="#input-flux"><B><SPAN STYLE="text-decoration: none">input-flux</SPAN></B></A>.</DD><DT>
+	<STRONG>output-metabolite</STRONG></DT><DD>
+	A metabolite that is an product of an <EM>output-flu</EM>x. As such
+	it is called an <EM>extra-cellular</EM> metabolite. It is put out by
+	the network. No reaction uses it as a educt, it can only be a
+	product to an <EM>output-flux</EM>.</DD><DT>
+	<B><SPAN STYLE="font-style: normal">Intermediate-</SPAN></B><EM><B><SPAN STYLE="font-style: normal">metabolites</SPAN></B></EM></DT><DD>
+	<EM><SPAN STYLE="font-weight: medium"><SPAN STYLE="font-style: normal">Metabolites
+	that are used to formulate reactions using more than two educts or
+	products. </SPAN></SPAN></EM>
+	</DD><DT>
+	<STRONG>flux</STRONG></DT><DD>
+	A context dependent word. It can be a synonym for <EM>reaction.</EM>
+	Sometimes it's used as abbreviation for flux-rate.</DD><DT>
+	<STRONG>reaction</STRONG></DT><DD>
+	Converts metabolites to other metabolites and thereby transits
+	carbon-atoms.</DD><DT>
+	<A NAME="input-flux"></A><STRONG>input-flux</STRONG></DT><DD>
+	A reaction that has only one input-metabolite as input and only one
+	product metabolite.</DD><DT>
+	<STRONG>output-flux</STRONG> 
+	</DT><DD>
+	A reaction that has only one inner-metabolite as educt and only one
+	product that has to be an <EM>output-metabolite</EM>.</DD><DT>
+	<STRONG>net-flux-rate</STRONG> 
+	</DT><DD>
+	Denoting the net-production-rate of a flux building
+	product-metabolites out of educt-metabolites. This can be positive
+	or negative, depending on the way the flux is defined.</DD><DT>
+	<STRONG>exchange-flux-rate</STRONG> 
+	</DT><DD>
+	Denoting the rate a reaction is building an equal amount of products
+	(out of educts) and educts (out of products) per time-frame. A
+	uni-directional flux has an exchange-rate of zero. A bi-directional
+	flux has an exchange-rate greater than zero.</DD><DT>
+	<STRONG>extra-cellular</STRONG> 
+	</DT><DD>
+	A metabolite is called extra-cellular if it is not intracellular.
+	Cellular should be translated to 'at the border of the network'.</DD><DT>
+	<STRONG>atom-entry</STRONG> 
+	</DT><DD STYLE="margin-bottom: 0.5cm">
+	is an index that helps to note the transition of an
+	carbon-atom-position in an educt-metabolite to a position in a
+	product-metabolite.</DD></DL>
+<H1>
+About this document ...</H1>
+<P>This document was generated using the <A HREF="http://www-dsed.llnl.gov/files/programs/unix/latex2html/manual/"><STRONG>LaTeX</STRONG>2<TT>HTML</TT></A>
+translator Version 98.1p1 release (March 2nd, 1998)</P>
+<P>Copyright &copy; 1993, 1994, 1995, 1996, 1997, Nicos Drakos
+(http://cbl.leeds.ac.uk/nikos/personal.html), Computer Based Learning
+Unit, University of Leeds.</P>
+<P>The command line arguments were: <BR><STRONG>latex2html</STRONG>
+<TT>-split 0 syntax.tex</TT>.</P>
+<P STYLE="margin-bottom: 0cm">The translation was initiated by root
+on 1999-08-09</P>
+<HR>
+</BODY>
+</HTML>
