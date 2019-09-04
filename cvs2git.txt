@@ -19,5 +19,7 @@ gitk --all # OK
 cd ..
 git clone ftbl2sys/influx.git # create a new dir influx/ with a valid .git inside
 mv influx/.git ftbl2dev/.git
-rm -rf influx/
+#rm -rf influx/
 cd ftbl2dev
+git branch --unset-upstream # to stop tracking of ../influx/.git
+

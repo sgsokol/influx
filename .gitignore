@@ -1,5 +1,6 @@
 ftbl/*
 test/*
+snipets/*
 *.log
 *.err
 *.RData
@@ -16,3 +17,10 @@ matrid/*
 *.o
 *.Rc
 py2/*
+doc/*.aux
+doc/*.dvi
+doc/*.out
+doc/*.tex
+doc/spellTmp
+icons/*
+
