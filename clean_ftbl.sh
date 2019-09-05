@@ -12,6 +12,6 @@ for d in $dirs; do
    for f in *.ftbl; do
       #echo fb="${f/.ftbl/}"
       fb="${f/.ftbl/}"
-      rm -f "$fb"{.R,.err,.log,.pres.csv,.RData,_res.kvh,_ires.kvh,.netan,.sif,.xgmml,_netan.kvh} *.$fb.attrs {edge,node}.*.$fb
+      rm -f "$fb"{.R,.err,.log,.pres.csv,.RData,_res.kvh,_ires.kvh,.netan,.sif,.xgmml,_netan.kvh} *.$fb.attrs {edge,node}.*.$fb "$fb".mc*.err
    done )
 done

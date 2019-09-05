@@ -13,9 +13,12 @@ Different tests are separated by a string "---<date>, <number>:<name>\n"
 Usage: case_tests.py [options] cases_influx_s.tab
 """
 
-import sys, os, datetime as dt, subprocess as subp, re, platform
+import sys, os, subprocess as subp, re, platform
 from time import time, asctime
-from optparse import OptionParser
+#from optparse import OptionParser
+import argparse as ap
+import threading as th
+from multiprocessing import cpu_count
 
 def plural_s(n):
     return "s" if n > 1 else ""
@@ -26,26 +29,28 @@ def setvar(k, v):
 me=os.path.basename(sys.argv[0])
 ondos=platform.system() == "Windows"
 # create a parser for command line options
-parser = OptionParser(usage="usage: %prog [options] tabulated_file.txt",
-    description=__doc__,
-    version="%prog 1.1")
-parser.add_option(
+parser = ap.ArgumentParser(usage="usage: %(prog)s [options] tabulated_file.txt",
+    description=__doc__)
+parser.add_argument(
 "--itest",
        help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Negative values counts from the end of case list. E.g. '-1' indicates the last test case. Default: '' (empty, i.e. all provided tests are passed)")
-parser.add_option(
+parser.add_argument(
 "--nmtest",
        help="Names of tests to be executed. Format: 'name1,name2' (a coma separated list) -- use tests who's names are name1'  and 'name2' (cf. the first column of tab file); 'name1:name2' (a begin:end interval) -- use the tests located in tab file between 'name1' and 'name2';  'name1:name2,name3,name4:name5' -- a mix of both formats is allowed. 'name1:' means from the test 'name1' to the end. ':name2' means from the first to the test 'name2'. In a coma separated list, each entry is tested literally against test names, in case of fail, the entries are tried as regular expressions. E.g. a name 'err.*' will fit all test names started with 'err'. Default: '' (empty, i.e. all provided tests are passed). Options --itest and --nmtest are complementary, i.e. a union of both test collections is passed")
-parser.add_option(
-"-n", "--dry", action="store_true",
+parser.add_argument(
+"--ncore", type=float, default=0.,
+       help="core number to use in parallel testing. Default 0 i.e. all available cores. A fractional number between 0 and 1 indicate a fraction of available cores to use.")
+parser.add_argument(
+"-n", "--dry", action="store_true", default=False,
        help="Dry run: show output as if all tests were OK. None of shell command is excecuted")
+parser.add_argument(
+"fcases", 
+       help="The file name of test cases")
 
 # parse commande line
-(opts, args) = parser.parse_args()
-if len(args) != 1:
-    parser.print_help()
-    parser.error("The file name of test cases must be given as the first and unique argument.")
-fcases=args[0]
-
+args = parser.parse_args()
+for k,v in args.__dict__.items():
+    globals()[k]=v
 # read cases and store them
 tests=[]
 for line in open(fcases, "r"):
@@ -59,9 +64,6 @@ nms=dict((li.split("\t")[0],i+1) for i,li in enumerate(tests))
 
 # now that we know how many tests there are and their names, proceed itest and nmtest
 nb_te=len(tests)
-itest=opts.itest or []
-nmtest=opts.nmtest
-dry=opts.dry
 if itest:
     ili=itest.split(",")
     itest=[]
@@ -104,10 +106,17 @@ if nmtest:
             if i < 0:
                 raise Exception("Case name '%s' not found in tab file"%item)
             itest.append((i))
-itest=set(itest)
+itest=sorted(set(itest))
 if not itest:
     itest=list(range(1, nb_te+1))
 
+# prepare threading framework
+ncavail = cpu_count()
+if ncore == 0. or ncore > ncavail:
+    ncore = ncavail
+elif ncore > 0. and ncore < 1.:
+    ncore = ncavail*ncore
+ncore = round(ncore)
 # run tests
 fd_log=open("case_tests.log", "w")
 fd_err=open("case_tests.err", "w")
@@ -144,7 +153,7 @@ for line in tests:
     
     t0=time()
     #devnull=open(os.devnull, "w")
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
     if not dry:
         if ondos:
