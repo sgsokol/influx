@@ -13,7 +13,9 @@ Different tests are separated by a string "---<date>, <number>:<name>\n"
 Usage: case_tests.py [options] cases_influx_s.tab
 """
 
-import sys, os, subprocess as subp, re, platform
+import sys, os, subprocess as subp, re, platform, tempfile
+from shutil import copyfileobj
+from glob import glob
 from time import time, asctime
 #from optparse import OptionParser
 import argparse as ap
@@ -71,10 +73,10 @@ if itest:
         item=item.strip()
         match=re.match("(\d*):(\d*)", item)
         if match:
-            beg=match.group(1) or 1
+            beg=int(match.group(1)) or 1
             if beg < 0:
                 beg=nb_te-beg+1
-            end=match.group(2) or nb_te
+            end=int(match.group(2)) or nb_te
             if end < 0:
                 end=nb_te-end+1
             itest+=list(range(int(beg), int(end)+1))
@@ -109,6 +111,11 @@ if nmtest:
 itest=sorted(set(itest))
 if not itest:
     itest=list(range(1, nb_te+1))
+ndig=max(itest)
+
+# prepare tempdir
+# stdout of i-th case will go to <tempdir>/case<i>/out.txt, stderr to .../err.txt
+tempdir=tempfile.TemporaryDirectory()
 
 # prepare threading framework
 ncavail = cpu_count()
@@ -117,9 +124,8 @@ if ncore == 0. or ncore > ncavail:
 elif ncore > 0. and ncore < 1.:
     ncore = ncavail*ncore
 ncore = round(ncore)
+
 # run tests
-fd_log=open("case_tests.log", "w")
-fd_err=open("case_tests.err", "w")
 t00=time()
 icase=0
 nb_ok=0
@@ -128,40 +134,46 @@ for line in tests:
     icase+=1
     if icase not in itest:
         continue
-    fields=line.split("\t")
-    if len(fields) not in (3, 4):
-        raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))
-    if len(fields) == 3:
-        fields.append("")
-    (nm_t, retcode, cmd, testcmd)=(item.strip() for item in fields)
-    if not nm_t:
-        nm_t="row %s:%d"%(fcases, icase)
-    if not retcode:
-        raise Exception("%s: the return code (second column) for tested command must not be empty. Give at least True (no error) of False (error) (%s: %d)"%(me, fcases, icase))
-    if not cmd:
-        raise Exception("%s: the command to execute (third column) must not be empty (%s: %d)"%(me, fcases, icase))
-    testcmd=testcmd.strip()
-    # prepare path in cmd if we are in dos
-    if ondos:
-        cmd=cmd.replace("/", os.path.sep)
-    # make tests
-    #print cmd
-    fd_log.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
-    fd_err.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
-    fd_log.flush()
-    fd_err.flush()
-    
-    t0=time()
-    #devnull=open(os.devnull, "w")
-    #import pdb; pdb.set_trace()
-    print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
-    if not dry:
+    fd_out=open(os.path.join(tempdir.name, ("out%%0%dd.txt"%ndig)%icase), "w")
+    fd_err=open(os.path.join(tempdir.name, ("err%%0%dd.txt"%ndig)%icase), "w")
+    try: # capture excpetion to log them in err.txt
+        fields=line.split("\t")
+        if len(fields) not in (3, 4):
+            raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))
+        if len(fields) == 3:
+            fields.append("")
+        (nm_t, retcode, cmd, testcmd)=(item.strip() for item in fields)
+        if not nm_t:
+            nm_t="row %s:%d"%(fcases, icase)
+        if not retcode:
+            raise Exception("%s: the return code (second column) for tested command must not be empty. Give at least True (no error) of False (error) (%s: %d)"%(me, fcases, icase))
+        if not cmd:
+            raise Exception("%s: the command to execute (third column) must not be empty (%s: %d)"%(me, fcases, icase))
+        testcmd=testcmd.strip()
+        # prepare path in cmd if we are in dos
         if ondos:
-            p=subp.call(cmd, stdout=fd_log, stderr=fd_err, shell=True)
-        else:
-            p=subp.call(cmd.split(), stdout=fd_log, stderr=fd_err)
+            cmd=cmd.replace("/", os.path.sep)
+        # make tests
+        #print cmd
+        fd_out.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
+        fd_err.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
+        fd_out.flush()
+        fd_err.flush()
+        
+        t0=time()
+        #devnull=open(os.devnull, "w")
+        #import pdb; pdb.set_trace()
+        print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
+        if not dry:
+            if ondos:
+                p=subp.call(cmd, stdout=fd_out, stderr=fd_err, shell=True)
+            else:
+                p=subp.call(cmd.split(), stdout=fd_out, stderr=fd_err)
+    except Exception as e:
+        fd_err.write("%s\n"%str(e))
     #print p
-    ok=dry or (retcode.title()=="True" and p==0) or (retcode.title()=="False" and p!=0) or (retcode.title() not in ("True", "False") and int(retcode)==p)
+    retcode_ok=dry or (retcode.title()=="True" and p==0) or (retcode.title()=="False" and p!=0) or (retcode.title() not in ("True", "False") and int(retcode)==p)
+    ok=dry or retcode_ok
     addmes=""
     if ok and testcmd and not dry:
         res=[(eval(item), item) for item in testcmd.split(";") if item.strip()]
@@ -170,6 +182,8 @@ for line in tests:
         if nb_fail:
             addmes=" Failed condition%s: %s."%(plural_s(nb_fail), "; ".join(item for (t, item) in res if not t))
             ok=False
+    elif not retcode_ok:
+        addmes=" Unexpected code returned by program: '%s' (expected '%s')"%(retcode.title(), p)
     t1=time()
     if ok:
         print("OK for test %d '%s' (%.2f s)"%(icase, nm_t, t1-t0))
@@ -177,11 +191,17 @@ for line in tests:
     else:
         print("=> Test %d '%s' failed! (%.2f s)%s"%(icase, nm_t, t1-t0, addmes))
         li_ko.append((icase, nm_t))
-
-fd_log.close()
-fd_err.close()
+    fd_out.close()
+    fd_err.close()
+# gather all out's and err's test.out and test.err
+for ftype in ["out", "err"]:
+    with open("test."+ftype, "wb") as ofd:
+        for f in sorted(glob(os.path.join(tempdir.name, "%s*.txt"%ftype))):
+            with open(f, "rb") as fd:
+                copyfileobj(fd, ofd)
+tempdir.cleanup()
 
 nb_ko=len(li_ko)
-print("---\nIn total, %d/%d test%s failed%s. (%.2f s)"%(nb_ko, nb_ok+nb_ko, plural_s(nb_ko), " ("+", ".join(nm_t for i,nm_t in li_ko)+" ["+",".join(str(i) for i,nm_t in li_ko)+"])" if nb_ko else "", time()-t00))
+print("---\nIn total, run %d test%s of which %d failed%s. (%.2f s)"%(nb_ok+nb_ko, plural_s(nb_ko), nb_ko, " ("+", ".join(nm_t for i,nm_t in li_ko)+" ["+",".join(str(i) for i,nm_t in li_ko)+"])" if nb_ko else "", time()-t00))
 
 sys.exit(nb_ko)
