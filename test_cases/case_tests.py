@@ -111,7 +111,7 @@ if nmtest:
 itest=sorted(set(itest))
 if not itest:
     itest=list(range(1, nb_te+1))
-ndig=max(itest)
+ndig=len(str(itest[:-1]))
 
 # prepare tempdir
 # stdout of i-th case will go to <tempdir>/case<i>/out.txt, stderr to .../err.txt
@@ -123,7 +123,7 @@ if ncore == 0. or ncore > ncavail:
     ncore = ncavail
 elif ncore > 0. and ncore < 1.:
     ncore = ncavail*ncore
-ncore = round(ncore)
+ncore = min(round(ncore), len(itest))
 
 # run tests
 t00=time()
