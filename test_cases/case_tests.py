@@ -13,20 +13,105 @@ Different tests are separated by a string "---<date>, <number>:<name>\n"
 Usage: case_tests.py [options] cases_influx_s.tab
 """
 
-import sys, os, subprocess as subp, re, platform, tempfile
+import sys, os, subprocess as subp, re, platform, tempfile, copy
 from shutil import copyfileobj
 from glob import glob
 from time import time, asctime
-#from optparse import OptionParser
 import argparse as ap
-import threading as th
+import threading
 from multiprocessing import cpu_count
+from queue import Queue
+
+import random # for debug only
 
 def plural_s(n):
     return "s" if n > 1 else ""
 def setvar(k, v):
     globals()[k]=v
     return(None)
+def worker(ith):
+    while True:
+        item = q.get()
+        if item is None:
+            break
+        li_res[ith].append(li_f[ith](ith, *item))
+        q.task_done()
+class Do_case():
+    def __call__(self, ith, icase, line):
+        if icase not in itest:
+            return None
+        fd_out=open(os.path.join(tempdir.name, ("out%%0%dd.txt"%ndig)%icase), "w")
+        fd_err=open(os.path.join(tempdir.name, ("err%%0%dd.txt"%ndig)%icase), "w")
+        ok=None
+        t0=time()
+        try: # capture excpetion to log them in err.txt
+            #import pdb; pdb.set_trace()
+            fields=line.split("\t")
+            if len(fields) == 3:
+                fields.append("")
+            (nm_t, retcode, cmd, testcmd)=(item.strip() for item in fields[:4])
+            if not nm_t:
+                nm_t="row %s:%d"%(fcases, icase)
+            if len(fields) != 4:
+                raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))
+            if not retcode:
+                raise Exception("%s: the return code (second column) for tested command must not be empty. Give at least True (no error) of False (error) (%s: %d)"%(me, fcases, icase))
+            if not cmd:
+                raise Exception("%s: the command to execute (third column) must not be empty (%s: %d)"%(me, fcases, icase))
+            testcmd=testcmd.strip()
+            # prepare path in cmd if we are in dos
+            if ondos:
+                cmd=cmd.replace("/", os.path.sep)
+            # make tests
+            #print cmd
+            fd_out.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
+            fd_err.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
+            fd_out.flush()
+            fd_err.flush()
+            
+            #devnull=open(os.devnull, "w")
+            #import pdb; pdb.set_trace()
+            if ncore > 1:
+                print('%d:%s:th%d running "%s" ...'%(icase, nm_t, ith, cmd))
+            else:
+                print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
+            if not dry:
+                p = subp.run(cmd.split(), stdout=fd_out, stderr=fd_err).returncode
+            else:
+                p = None
+        except Exception as e:
+            mes="%s\n"%str(e)
+            sys.stderr.write(mes)
+            fd_err.write(mes)
+            ok = False
+            p = None
+        if ok is None:
+            retcode_ok = dry or (retcode.title()=="True" and p==0) or (retcode.title()=="False" and p!=0) or (retcode.title() not in ("True", "False") and int(retcode)==p)
+        else:
+            retcode_ok = False
+        ok = ok is None and (dry or retcode_ok) # init ok, can be modified by condition tests
+        addmes = ""
+        if not ok:
+            addmes = "Exception was raised (cf. test_case.err)"
+        elif ok and testcmd and not dry:
+            lock.acquire() # globals() can be modified in checks via varset()
+            res = [(eval(item), item) for item in testcmd.split(";") if item.strip()]
+            lock.release()
+            #print res
+            nb_fail = sum(not t for (t, item) in res)
+            if nb_fail:
+                addmes = " Failed condition%s: %s."%(plural_s(nb_fail), "; ".join(item for (t, item) in res if not t))
+                ok = False
+        elif not retcode_ok:
+            addmes = " Unexpected code returned by program: '%s' (expected '%s')"%(retcode.title(), p)
+        t1=time()
+        if ok:
+            res = "OK for test %d '%s' (%.2f s)"%(icase, nm_t, t1-t0)
+        else:
+            res = "=> Test %d '%s' failed! (%.2f s)%s"%(icase, nm_t, t1-t0, addmes)
+        fd_out.close()
+        fd_err.close()
+        return (icase, nm_t, ok, res)
 
 me=os.path.basename(sys.argv[0])
 ondos=platform.system() == "Windows"
@@ -108,10 +193,11 @@ if nmtest:
             if i < 0:
                 raise Exception("Case name '%s' not found in tab file"%item)
             itest.append((i))
-itest=sorted(set(itest))
-if not itest:
+if itest:
+    itest=sorted(set(itest))
+else:
     itest=list(range(1, nb_te+1))
-ndig=len(str(itest[:-1]))
+ndig=len(str(itest[-1]))
 
 # prepare tempdir
 # stdout of i-th case will go to <tempdir>/case<i>/out.txt, stderr to .../err.txt
@@ -124,75 +210,31 @@ if ncore == 0. or ncore > ncavail:
 elif ncore > 0. and ncore < 1.:
     ncore = ncavail*ncore
 ncore = min(round(ncore), len(itest))
+lock=threading.Lock()
+li_f=[Do_case() for i in range(ncore)]
+q=Queue()
+ths=[]
+for i in range(ncore):
+    t = threading.Thread(target=worker, args=(i,))
+    t.start()
+    ths.append(t)
+# fill q
+[q.put((i+1,l)) for i,l in enumerate(tests)]
 
 # run tests
 t00=time()
-icase=0
-nb_ok=0
-li_ko=[] # list of failed test: (icase, name)
-for line in tests:
-    icase+=1
-    if icase not in itest:
-        continue
-    fd_out=open(os.path.join(tempdir.name, ("out%%0%dd.txt"%ndig)%icase), "w")
-    fd_err=open(os.path.join(tempdir.name, ("err%%0%dd.txt"%ndig)%icase), "w")
-    try: # capture excpetion to log them in err.txt
-        fields=line.split("\t")
-        if len(fields) not in (3, 4):
-            raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))
-        if len(fields) == 3:
-            fields.append("")
-        (nm_t, retcode, cmd, testcmd)=(item.strip() for item in fields)
-        if not nm_t:
-            nm_t="row %s:%d"%(fcases, icase)
-        if not retcode:
-            raise Exception("%s: the return code (second column) for tested command must not be empty. Give at least True (no error) of False (error) (%s: %d)"%(me, fcases, icase))
-        if not cmd:
-            raise Exception("%s: the command to execute (third column) must not be empty (%s: %d)"%(me, fcases, icase))
-        testcmd=testcmd.strip()
-        # prepare path in cmd if we are in dos
-        if ondos:
-            cmd=cmd.replace("/", os.path.sep)
-        # make tests
-        #print cmd
-        fd_out.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
-        fd_err.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
-        fd_out.flush()
-        fd_err.flush()
-        
-        t0=time()
-        #devnull=open(os.devnull, "w")
-        #import pdb; pdb.set_trace()
-        print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
-        if not dry:
-            if ondos:
-                p=subp.call(cmd, stdout=fd_out, stderr=fd_err, shell=True)
-            else:
-                p=subp.call(cmd.split(), stdout=fd_out, stderr=fd_err)
-    except Exception as e:
-        fd_err.write("%s\n"%str(e))
-    #print p
-    retcode_ok=dry or (retcode.title()=="True" and p==0) or (retcode.title()=="False" and p!=0) or (retcode.title() not in ("True", "False") and int(retcode)==p)
-    ok=dry or retcode_ok
-    addmes=""
-    if ok and testcmd and not dry:
-        res=[(eval(item), item) for item in testcmd.split(";") if item.strip()]
-        #print res
-        nb_fail=sum(not t for (t, item) in res)
-        if nb_fail:
-            addmes=" Failed condition%s: %s."%(plural_s(nb_fail), "; ".join(item for (t, item) in res if not t))
-            ok=False
-    elif not retcode_ok:
-        addmes=" Unexpected code returned by program: '%s' (expected '%s')"%(retcode.title(), p)
-    t1=time()
-    if ok:
-        print("OK for test %d '%s' (%.2f s)"%(icase, nm_t, t1-t0))
-        nb_ok+=1
-    else:
-        print("=> Test %d '%s' failed! (%.2f s)%s"%(icase, nm_t, t1-t0, addmes))
-        li_ko.append((icase, nm_t))
-    fd_out.close()
-    fd_err.close()
+li_res=[[] for i in range(ncore)] # list of results (icase, nm_t, ok, res)
+q.join() # block until all tasks are done
+
+#for (icase, line) in enumerate(tests):
+#    ith = icase%ncore
+#    res = do_case(icase, line)
+#    li_res[ith].append(res)
+# stop workers
+for t in ths:
+    q.put(None)
+for t in ths:
+    t.join()
 # gather all out's and err's test.out and test.err
 for ftype in ["out", "err"]:
     with open("test."+ftype, "wb") as ofd:
@@ -201,7 +243,9 @@ for ftype in ["out", "err"]:
                 copyfileobj(fd, ofd)
 tempdir.cleanup()
 
-nb_ko=len(li_ko)
+nb_ok=sum(res[2] for res_th in li_res for res in res_th if res)
+nb_ko=sum(not res[2] for res_th in li_res for res in res_th if res)
+li_ko=[res[:2] for res_th in li_res for res in res_th if res and not res[2]]
 print("---\nIn total, run %d test%s of which %d failed%s. (%.2f s)"%(nb_ok+nb_ko, plural_s(nb_ko), nb_ko, " ("+", ".join(nm_t for i,nm_t in li_ko)+" ["+",".join(str(i) for i,nm_t in li_ko)+"])" if nb_ko else "", time()-t00))
 
 sys.exit(nb_ko)
