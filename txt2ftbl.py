@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 r"""
 read a .txt file from a parameter and translate to NETWORK and FLUXES section of .ftbl file.
