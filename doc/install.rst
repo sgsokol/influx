@@ -8,8 +8,9 @@
 Installation
 ============
 
-To use the software ``influx_si``, you'll need some
-dependencies listed bellow. The software was developed on Linux
+To use the software ``influx_si``, you'll need some dependencies listed bellow. They will be tried to installe automatically. If automatic procedure fails, you'll have to solve the underlying problem and rerun ``Rscript install.R`` from ``influx_si`` directory.
+
+The software was developed on Linux
 but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.
 If you are not used to install system wide environments
 like R or Python, ask your local computer
@@ -31,12 +32,12 @@ Dependencies
   + arrApply
   + slam
   + limSolve (optional, needed only for ``--lim`` option)
+  + devtools
+  + mult_bxxc (from github)
 
-  To install R modules, as administrator do in R
+  To re-install R packages (if automatic install fails or some packages were renewed or for whatever other reason), as administrator do in ``influx_si`` directory:
 
-  .. code-block:: rconsole
-
-     > install.packages(c("nnls", "rmumps", "arrApply", "slam", "limSolve"), dep=TRUE)
+  $ Rscript install.R
  
   (you can adapt the package list according to your needs by removing optional packages)
 

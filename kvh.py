@@ -83,10 +83,11 @@ def kvh2tlist(fp, lev=[0], indent=[0]):
             return tlist;
 
 def kvh_read_key(fp):
-    """
-    Read a string from the current position till the first unescaped
-    \t, \n or the end of stream fp.
-    Return tuple (key, sep). sep=None at the end of the stream"""
+    """Read a string from the current position till the first unescaped \t, \n or the end of stream fp.
+
+:returns: tuple (key, sep), sep=None at the end of the stream
+
+"""
     #pdb.set_trace();##
     key="";
     while True:

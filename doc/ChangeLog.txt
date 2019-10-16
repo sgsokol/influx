@@ -2,15 +2,17 @@
 Change Log for influx_si
 ========================
 
-2019-07-19 version 4.4.4
-------------------------
+2019-10-25 version 5.0
+----------------------
 New features:
- - none
+ - converted to Python 3
+ - packaged with python distutils and Conda package management system. Now installation can be made as simple as ``pip install influx_si`` or ``conda install influx_si``. Internet cnnection is required for both methods.
+ - auxiliary C++ routines are placed in multbxxc R packages. So, no more compilation is needed at first execution of ``influx_si``.
 
 Bug fix (all bugs in this release are reported by Baudoin Delépine, INSA, Toulouse, France):
- - fixed doc about R version (now 3.4.0 or higher) and rmumps (now 5.2.1-1 or higher)
+ - fixed doc about R version (now 3.4.0 or higher) and rmumps (now 5.2.1-3 or higher)
  - fixed use of `--sln` option
- - added explicite error message if tmax is Inf (can happen if times grid could not be read from file indicated in file_labcin)
+ - added explicite error message if ``tmax`` is Inf (can happen if time grid could not be read from file indicated in ``file_labcin`` ftbl field)
 
 2017-07-04 version 4.4.3
 ------------------------

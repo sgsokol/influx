@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
+SPHINXBUILD   = sphinx-build-3
 PAPER         =
 BUILDDIR      = _build
 
@@ -128,3 +128,9 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+ChangeLog.pdf: ChangeLog.txt
+	rst2latex ChangeLog.txt > ChangeLog.tex && pdflatex ChangeLog.tex;
+
+doc_influx: html latexpdf ChangeLog.pdf
+	cp -rp _build/latex/influx_si.pdf _build/html .

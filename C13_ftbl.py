@@ -3,8 +3,12 @@
 
 Restrictions:
  - metabolite name cannot have
-  ":" - it's a separator in measure id
-  "+" - in measurements it can be metab1+metab2+...
+   
+   ":"
+     it's a separator in measure id
+   "+"
+     in measurements it can be metab1+metab2+...
+  
 """
 # 2008-01-22 sokol: ftbl_parse(f)
 # 2008-01-25 sokol: ftbl_netan(ftbl)

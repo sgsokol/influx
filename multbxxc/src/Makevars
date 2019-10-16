@@ -1,0 +1,5 @@
+CXX_STD = CXX11
+RMUMPS_PATH = `"$(R_HOME)"/bin/Rscript -e "library(rmumps); cat(system.file('libs',  package='rmumps', mustWork=TRUE))"`
+SO = `"$(R_HOME)"/bin$(R_ARCH_BIN)/Rscript -e "cat(.Platform[['dynlib.ext']])"`
+
+PKG_LIBS = "$(RMUMPS_PATH)"$(R_ARCH)/rmumps$(SO) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

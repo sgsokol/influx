@@ -173,20 +173,20 @@ if (nb_c > 0) {
 
 def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     r"""Write R code for initialization of all variables before
-    cumomer system resolution by khi2 minimization.
-    Args:
-     netan: a collection of parsed ftbl information
-     f: R code output pointer
-     fullsys (logical): write a code for the full or only reduced cumomer system
-     emu (logical): write equations in EMU framework or cumomer (default)
-     ropts: list of items "param=value" to be written as is in R file.
-    Return:
-     a dictionnary with some python variables:
-        * "measures": measures,
-        * "o_mcumos": o_mcumos,
-        * "cumo2i": cumo2i,
-        * ...
-    """
+cumomer system resolution by khi2 minimization.
+:param netan: a collection of parsed ftbl information
+:param f: R code output pointer
+:param fullsys (logical): write a code for the full or only reduced cumomer system
+:param emu (logical): write equations in EMU framework or cumomer (default)
+:param ropts: list of items "param=value" to be written as is in R file.
+
+:returns: a dictionnary with some python variables:
+    * "measures": measures,
+    * "o_mcumos": o_mcumos,
+    * "cumo2i": cumo2i,
+    * ...
+    
+"""
     # Important python variables:
     # Collections:
     #    netan - (dict) ftbl structured content

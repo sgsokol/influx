@@ -30,14 +30,14 @@ Important python variables:
 Collections:
    * netan - (dict) ftbl structured content
    * tfallnx - (3-tuple[reac,["d"|"f"|"c"], ["net"|"xch"]] list)- total flux
-    collection
+     collection
    * measures - (dict) exp data
    * rAb - (list) reduced linear systems A*x_cumo=b (a system by weight)
    * scale - unique scale names
    * nrow - counts scale names
    * o_sc - ordered scale names
    * o_meas - ordered measurement types
-   
+
 File names (str):
    * n_ftbl (descriptor f_ftbl)
    * n_R (R code) (f)
@@ -1644,11 +1644,15 @@ if (TIMEIT) {
 postlist=strsplit("%(postlist)s", " *; *")[[1]]
 for (post in postlist) {
    fpostR=file.path(dirw, post)
-   if (!isTRUE(file.info(fpostR)$isdir)) {
-      if (file.exists(fpostR)) {
+   if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
+      source(fpostR)
+   } else {
+      # not found in 'dirw', try 'dirx'
+      fpostR=file.path(dirx, post)
+      if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
          source(fpostR)
       } else {
-         cat(sprintf("Posttreatment R file '%%s' does not exist. Ignored.\\n", fpostR), file=fcerr)
+         cat(sprintf("Posttreatment R file '%%s' does not exist in ftbl directory neither in influx_si one. Ignored.\\n", post), file=fcerr)
       }
    }
 }

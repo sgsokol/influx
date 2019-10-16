@@ -2,8 +2,8 @@
 Introduction
 ============
 
-``influx_s`` and ``influx_i`` are programs designed for flux and metabolite concentration estimation based on labeling data using 13C isotopes. The former works with stationary data while the latter
-is able to simulate instationary labeling. Both work in metabolically stationary context. The whole project is referred as ``influx_si``. Note also that the term ``influx_si`` is used in contexts where ``influx_s`` and ``influx_i`` are interchangeable.
+``influx_s`` and ``influx_i`` are programs designed for flux and metabolite concentration estimation based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, ... is also possible). ``influx_s`` works with stationary data while the ``influx_i``
+is able to simulate instationary labeling (hence the ``_i`` in the name). Both work in metabolically stationary context. The whole project is referred as ``influx_si``. Note also that the term ``influx_si`` is used in contexts where ``influx_s`` and ``influx_i`` are interchangeable.
 
 ``influx_si``
 -------------
@@ -76,7 +76,7 @@ Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks
 As ``influx_i`` capitalizes on ``influx_s`` development and shares a big part of code, ``influx_i`` presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for ``influx_s``. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
 Some of the advantages of ``influx_i`` over the concurrent software coping with instationary labeling data are:
 
- - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in less then 25s and the most important optimization part takes as low as 17s);
+ - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in 20s while the most important optimization part takes as low as 10s);
  - parallel experiment treatment;
  - available choice between first and second order time schemes for ODE (ordinary differential equations) resolution;
  - unconditional stability during ODE solving.
@@ -94,8 +94,8 @@ Licensing
 
 The original version of ``influx_si`` software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.
 
-The software is licensed under the Educational Community License, Version
-2.0 (the "License"); you may not use this software and documentation except in compliance with the License.
+The software is licensed under the GNU Public License, Version
+2.0 or higher at your conveniece (the "License"); you may not use this software and documentation except in compliance with the License.
 
 If you publish results obtained with ``influx_s`` you have to cite the original paper in Bioinformatics 2012 (cf. above). A paper describing ``influx_i`` is yet to publish.
 
@@ -103,7 +103,7 @@ If you re-distribute ``influx_si`` alone or included in other software packages,
 
 You may obtain a copy of the License :doc:`here <license>` or at
 
-http://www.opensource.org/licenses/ECL-2.0
+https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
 Unless required by applicable law or agreed to in writing, software distributed
 under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
@@ -115,4 +115,4 @@ Software and documentation author:
 
   Serguei SOKOL, INRA, France <sokol [at] insa-toulouse.fr>
 
-Copyright 2012-2016, INRA, France
+Copyright 2011-2019, INRA, France

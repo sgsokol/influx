@@ -23,17 +23,17 @@ build_mult_bxxc=function(dirx) {
    }
 }
 # build compiled code
-build_mult_bxxc(dirx)
+#build_mult_bxxc(dirx)
 #browser()
 so=.Platform$dynlib.ext
-fso=paste("mult_bxxc", so, sep="")
-# define R functions from mult_bxxc.so
-multdll=dyn.load(file.path(dirx, fso))
-sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE))[,1]
-for (rsy in sy) {
-   eval(parse(text=rsy))
-}
-rm(multdll)
+#fso=paste("mult_bxxc", so, sep="")
+## define R functions from mult_bxxc.so
+#multdll=dyn.load(file.path(dirx, fso))
+#sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE))[,1]
+#for (rsy in sy) {
+#   eval(parse(text=rsy))
+#}
+#rm(multdll)
 
 dfcg2fallnx=function(nb_f, flnx, param, fc, fg) {
    # produce complete flux (net,xch)*(dep,free,constr,growth) vector

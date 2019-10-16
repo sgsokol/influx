@@ -9,7 +9,8 @@ suppressPackageStartupMessages(library(Rcpp))
 suppressPackageStartupMessages(library(RcppArmadillo))
 suppressPackageStartupMessages(library(rmumps))
 suppressPackageStartupMessages(library(arrApply)); # for fast apply() on arrays
-#suppressPackageStartupMessages(library(compiler)); # for fast apply() on arrays
+suppressPackageStartupMessages(library(multbxxc))); # auxiliary C++ routines
+#suppressPackageStartupMessages(library(compiler));
 compiler::enableJIT(0)
 #suppressPackageStartupMessages(library(Rdsm)); # for shared memory on cluster
 # get some common tools
