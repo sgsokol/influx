@@ -1,4 +1,0 @@
-import(rmumps)
-useDynLib(multbxxc, .registration=TRUE)
-exportPattern("^[[:alpha:]]+")
-importFrom(Rcpp, evalCpp)
