@@ -76,7 +76,7 @@ Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks
 As ``influx_i`` capitalizes on ``influx_s`` development and shares a big part of code, ``influx_i`` presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for ``influx_s``. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
 Some of the advantages of ``influx_i`` over the concurrent software coping with instationary labeling data are:
 
- - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in 20s while the most important optimization part takes as low as 10s);
+ - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in 17s while the most important part devoted to optimization takes as low as 10s);
  - parallel experiment treatment;
  - available choice between first and second order time schemes for ODE (ordinary differential equations) resolution;
  - unconditional stability during ODE solving.

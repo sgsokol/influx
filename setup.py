@@ -3,7 +3,7 @@ from distutils.core import setup
 
 with open("README.rst", 'r') as f:
     long_description = f.read()
-with open("influx_version.txt", 'r') as f:
+with open("influx_si/influx_version.txt", 'r') as f:
     version = f.read().rstrip()
 
 setup(
@@ -20,17 +20,17 @@ setup(
    package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/e_coli.ftbl', 'test/e_coli_i.ftbl', 'test/e_coli_msen.txt', 'test/ok/*', 'doc/html/*', 'doc/*.pdf', 'doc/*.html']},
    requires=['scipy', 'kvh'],
    scripts=[
-      'bin/ff2ftbl.py',
-      'bin/res2ftbl_meas.py',
-      'bin/ftbl2code.py',
-      'bin/ftbl2cumoAb.py',
-      'bin/ftbl2kvh.py',
-      'bin/ftbl2metxml.py',
-      'bin/ftbl2netan.py',
-      'bin/ftbl2optR.py',
-      'bin/ftbl2xgmml.py',
-      'bin/influx_s.py',
-      'bin/influx_i.py'
+      'influx_si/bin/ff2ftbl.py',
+      'influx_si/bin/res2ftbl_meas.py',
+      'influx_si/bin/ftbl2code.py',
+      'influx_si/bin/ftbl2cumoAb.py',
+      'influx_si/bin/ftbl2kvh.py',
+      'influx_si/bin/ftbl2metxml.py',
+      'influx_si/bin/ftbl2netan.py',
+      'influx_si/bin/ftbl2optR.py',
+      'influx_si/bin/ftbl2xgmml.py',
+      'influx_si/bin/influx_s.py',
+      'influx_si/bin/influx_i.py'
    ],
    classifiers=[
       'Environment :: Console',

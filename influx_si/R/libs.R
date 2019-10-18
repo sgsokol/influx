@@ -14,9 +14,9 @@ suppressPackageStartupMessages(library(multbxxc)); # auxiliary C++ routines
 compiler::enableJIT(0)
 #suppressPackageStartupMessages(library(Rdsm)); # for shared memory on cluster
 # get some common tools
-source(file.path(dirx, "tools_ssg.R"))
-source(file.path(dirx, "nlsic.R"))
-source(file.path(dirx, "kvh.R"))
-#loadcmp(file.path(dirx, "tools_ssg.Rc"))
-#loadcmp(file.path(dirx, "nlsic.Rc"))
-#loadcmp(file.path(dirx, "kvh.Rc"))
+source(file.path(dirr, "tools_ssg.R"))
+source(file.path(dirr, "nlsic.R"))
+source(file.path(dirr, "kvh.R"))
+#loadcmp(file.path(dirr, "tools_ssg.Rc"))
+#loadcmp(file.path(dirr, "nlsic.Rc"))
+#loadcmp(file.path(dirr, "kvh.Rc"))

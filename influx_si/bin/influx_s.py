@@ -7,6 +7,7 @@ from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
 from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
+import influx_si
 
 #from pdb import set_trace
 
@@ -138,6 +139,10 @@ direx=os.path.dirname(me)
 if (direx.endswith("py3")):
     direx=os.path.split(direx)[0]
 direx="." if not direx else direx
+
+# my install dir
+dirinst=os.path.dirname(os.path.realpath(influx_si.__file__))
+
 me=os.path.basename(sys.argv[0])
 if me[:8]=="influx_i":
     case_i=True
@@ -148,7 +153,7 @@ else:
 My basename must start with 'influx_s' or 'influx_i' instead of '%s'."""%me[:8])
 
 # my version
-version=open(os.path.join(direx, "influx_version.txt"), "r").read().strip()
+version=open(os.path.join(dirinst, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
 pyopta=set(("tblimit",))
@@ -359,7 +364,7 @@ if len(rfiles) > 1:
 """%{
         "np": min(np, len(rfiles)),
         "flist": ", ".join('"'+f+'"' for f in rfiles),
-        "dirx": direx
+        "dirx": dirinst
     })
     fpar.close()
     # execute R code on cluster

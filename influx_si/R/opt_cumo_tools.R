@@ -6,20 +6,20 @@ if (length(find("TIMEIT")) && TIMEIT && !inherits(tmp, "try-error")) {
 build_mult_bxxc=function(dirx) {
    fcpp="mult_bxxc.cpp"
    fso=paste("mult_bxxc", .Platform$dynlib.ext, sep="")
-   if (!file.exists(file.path(dirx, "mult_bxxc.txt")) || !file.exists(file.path(dirx, fso)) ||
-      file.mtime(file.path(dirx, fso)) < file.mtime(file.path(dirx, fcpp))) {
+   if (!file.exists(file.path(dirr, "mult_bxxc.txt")) || !file.exists(file.path(dirr, fso)) ||
+      file.mtime(file.path(dirr, fso)) < file.mtime(file.path(dirr, fcpp))) {
       # freshly compile the code (==first use or .so is outdated)
       frmu=file.path(system.file(package="rmumps"), "libs", .Platform$r_arch, paste("rmumps", .Platform$dynlib.ext, sep=""))
       Sys.setenv(PKG_LIBS=sprintf('"%s"', frmu))
       Sys.setenv(PKG_CXXFLAGS="-std=c++11 -fopenmp") # ‑mveclibabi=svml
-      tes=capture.output(sourceCpp(file.path(dirx, "mult_bxxc.cpp"), verbose=TRUE))
+      tes=capture.output(sourceCpp(file.path(dirr, "mult_bxxc.cpp"), verbose=TRUE))
       dl_str=grep("dyn.load", tes, value=TRUE)
       ftmp=sub(".*'(.*)'.*", "\\1", dl_str)
       dl_inf=sub("^(.*) <- dyn.load\\(.*$", "\\1", dl_str)
       fu_li=sub("// ", "", grep("// ", tes, value=TRUE))
-      file.copy(ftmp, file.path(dirx, fso), overwrite = TRUE, copy.date=TRUE)
+      file.copy(ftmp, file.path(dirr, fso), overwrite = TRUE, copy.date=TRUE)
       sy=sapply(fu_li, function(it) {s=grep(paste(it, " <- ", sep=""), tes, value=TRUE, fixed=TRUE); sub(dl_inf, "multdll", s)})
-      write.table(sy, file=file.path(dirx, "mult_bxxc.txt"), col.names=FALSE, row.names=FALSE)
+      write.table(sy, file=file.path(dirr, "mult_bxxc.txt"), col.names=FALSE, row.names=FALSE)
    }
 }
 # build compiled code
@@ -28,8 +28,8 @@ build_mult_bxxc=function(dirx) {
 so=.Platform$dynlib.ext
 #fso=paste("mult_bxxc", so, sep="")
 ## define R functions from mult_bxxc.so
-#multdll=dyn.load(file.path(dirx, fso))
-#sy=as.matrix(read.table(file=file.path(dirx, "mult_bxxc.txt"), header=FALSE))[,1]
+#multdll=dyn.load(file.path(dirr, fso))
+#sy=as.matrix(read.table(file=file.path(dirr, "mult_bxxc.txt"), header=FALSE))[,1]
 #for (rsy in sy) {
 #   eval(parse(text=rsy))
 #}

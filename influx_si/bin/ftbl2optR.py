@@ -111,11 +111,14 @@ if __name__ == "__main__":
     import copy
     import getopt
     import math
+    import influx_si
     #import pdb
 
     me=os.path.realpath(sys.argv[0])
     dirx=os.path.dirname(me)
-    sys.path.append(os.path.dirname(me))
+    sys.path.append(dirx)
+    dirinst=os.path.dirname(os.path.realpath(influx_si.__file__))
+    sys.path.append(dirinst)
     me=os.path.basename(me)
 
     from tools_ssg import *
@@ -579,7 +582,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirx", "dirw", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
 """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
@@ -632,7 +635,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
       if (TIMEIT) {
          cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
-      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "method", "sln", "labargs", "dirx", "emu", "%stm%", "case_i", "time_order"))
+      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "method", "sln", "labargs", "dirr", "emu", "%stm%", "case_i", "time_order"))
       if (TIMEIT) {
          cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
@@ -644,16 +647,16 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
          suppressPackageStartupMessages(library(RcppArmadillo))
          suppressPackageStartupMessages(library(rmumps))
          suppressPackageStartupMessages(library(arrApply)) # for fast apply() on arrays
-         suppressPackageStartupMessages(library(compiler))
-         enableJIT(0)
-         source(file.path(dirx, "tools_ssg.R"))
-         source(file.path(dirx, "nlsic.R"))
-         source(file.path(dirx, "opt_cumo_tools.R"))
-         source(file.path(dirx, "opt_icumo_tools.R"))
-         #loadcmp(file.path(dirx, "tools_ssg.Rc"))
-         #loadcmp(file.path(dirx, "nlsic.Rc"))
-         #loadcmp(file.path(dirx, "opt_cumo_tools.Rc"))
-         #loadcmp(file.path(dirx, "opt_icumo_tools.Rc"))
+         suppressPackageStartupMessages(library(multbxxc))
+         compiler::enableJIT(0)
+         source(file.path(dirr, "tools_ssg.R"))
+         source(file.path(dirr, "nlsic.R"))
+         source(file.path(dirr, "opt_cumo_tools.R"))
+         source(file.path(dirr, "opt_icumo_tools.R"))
+         #loadcmp(file.path(dirr, "tools_ssg.Rc"))
+         #loadcmp(file.path(dirr, "nlsic.Rc"))
+         #loadcmp(file.path(dirr, "opt_cumo_tools.Rc"))
+         #loadcmp(file.path(dirr, "opt_icumo_tools.Rc"))
          labargs$spa=sparse2spa(labargs$spa)
          if (case_i && (time_order == "2" || time_order == "1,2")) {
             labargs$labargs2$spa=labargs$spa
@@ -1647,8 +1650,8 @@ for (post in postlist) {
    if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
       source(fpostR)
    } else {
-      # not found in 'dirw', try 'dirx'
-      fpostR=file.path(dirx, post)
+      # not found in 'dirw', try 'dirr'
+      fpostR=file.path(dirr, post)
       if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
          source(fpostR)
       } else {

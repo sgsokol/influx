@@ -25,8 +25,13 @@ sys.path.append(dirx)
 if (dirx.endswith("py3")):
     dirx=os.path.split(dirx)[0]
 
+import influx_si
+dirr=os.path.join(os.path.dirname(os.path.realpath(influx_si.__file__)), "R")
+sys.path.append(os.path.join(dirr, ".."))
+
 from tools_ssg import *
 import C13_ftbl
+
 
 def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
     """
@@ -286,8 +291,8 @@ cumomer system resolution by khi2 minimization.
 # working dir
 dirw="%(dirw)s"
 
-# exectubale dir (where influx_s.py lives)
-dirx="%(dirx)s"
+# installation dir (where influx_si/R/*.R live)
+dirr="%(dirr)s"
 # short base name of the FTBL (withount '.ftbl')
 baseshort="%(org)s"
 
@@ -303,7 +308,7 @@ if (length(find("bitwAnd"))==0L) {
    suppressPackageStartupMessages(library(bitops))
    bitwAnd=bitAnd
 }
-source(file.path(dirx, "libs.R"))
+source(file.path(dirr, "libs.R"))
 
 # define matprod for simple_triplet_matrix
 `%%stm%%` = slam::matprod_simple_triplet_matrix
@@ -442,24 +447,24 @@ opts=commandArgs()
 # end command line argument proceeding
 
 # get some cumomer tools
-source(file.path(dirx, "opt_cumo_tools.R"))
-#loadcmp(file.path(dirx, "opt_cumo_tools.Rc"))
+source(file.path(dirr, "opt_cumo_tools.R"))
+#loadcmp(file.path(dirr, "opt_cumo_tools.Rc"))
 
 lab_resid=cumo_resid
 lab_sim=param2fl_x
 jx_f=new.env()
 """%{
     "dirw": escape(os.path.abspath(os.path.dirname(f.name)), '\\"'),
-    "dirx": escape(dirx, '\\"'),
+    "dirr": escape(dirr, '\\"'),
     "case_i": "T" if case_i else "F",
-    "vernum": open(os.path.join(dirx, "influx_version.txt"), "r").read().strip(),
+    "vernum": open(os.path.join(dirr, "..", "influx_version.txt"), "r").read().strip(),
     "org": escape(os.path.basename(f.name[:-2]), '"'),
     "ropts": ropts,
 })
     if case_i:
         f.write("""
-source(file.path(dirx, "opt_icumo_tools.R"))
-#loadcmp(file.path(dirx, "opt_icumo_tools.Rc"))
+source(file.path(dirr, "opt_icumo_tools.R"))
+#loadcmp(file.path(dirr, "opt_icumo_tools.Rc"))
 
 lab_resid=icumo_resid
 lab_sim=param2fl_usm_rich
