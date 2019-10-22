@@ -92,14 +92,11 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             if isinstance(v, type("")) else "TRUE" if v is True else "FALSE" \
             if v is False else str(v)) for k,v in cmd_opts.items() if k not in notropt) + '"'] + \
             (["--case_i"] if case_i else []) + [ft]
-        pycmd=["python3", os.path.join(direx, "ftbl2optR.py")] + opt4py
+        pycmd=[os.path.join(direx, "ftbl2optR.py")] + opt4py
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
         flog.write("executing: "+pycmd_s+"\n")
         r_generated=True
-        if os.name=="nt":
-            retcode=subp.call(pycmd_s, stdout=flog, stderr=ferr, shell=True)
-        else:
-            retcode=subp.call(pycmd, stdout=flog, stderr=ferr)
+        retcode=subp.run(pycmd, stdout=flog, stderr=ferr)
         if retcode:
             r_generated=False
         #if os.path.getsize(ferr.name) > 0:
@@ -254,6 +251,15 @@ if case_i:
        help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to start solving the ODE with the first order scheme then continues with the order 2.")
 
 parser.add_option(
+"--copy_doc", action="store_true",
+    help="copy documentation directory in the current directory and exit. If ./doc exists, its content is silently owerriten.")
+parser.add_option(
+"--copy_test", action="store_true",
+    help="copy test directory in the current directory and exit. If ./test exists, its content is silently owerriten.")
+parser.add_option(
+"--install_rdep", action="store_true",
+    help="install R dependencies and exit.")
+parser.add_option(
 "--TIMEIT", action="store_true",
     help="developer option: measure cpu time or not")
 parser.add_option(
@@ -272,11 +278,32 @@ args=[l for f in lglob for l in f]
 #print ("opts=", opts)
 #print ("args=", args)
 # make args unique
+dict_opts=eval(str(opts))
 args=set(args)
+do_exit=False
+if dict_opts["copy_doc"]:
+    do_exit=True
+    from distutils.dir_util import copy_tree
+    dsrc=os.path.join(dirinst, "doc")
+    ddst=os.path.realpath(os.path.join(".", "doc"))
+    print("Copy '%(dsrc)s' to '%(ddst)s'"%{"dsrc": dsrc, "ddst": ddst})
+    copy_tree(dsrc, ddst, verbose=1)
+if dict_opts["copy_test"]:
+    do_exit=True
+    from distutils.dir_util import copy_tree
+    dsrc=os.path.join(dirinst, "test")
+    ddst=os.path.realpath(os.path.join(".", "test"))
+    print("Copy '%(dsrc)s' to '%(ddst)s'"%{"dsrc": dsrc, "ddst": ddst})
+    copy_tree(dsrc, ddst, verbose=1)
+if dict_opts["install_rdep"]:
+    do_exit=True
+    subp.run(["Rscript", os.path.join(dirinst, "R", "upd_deps.R")])
+if do_exit:
+    sys.exit(0)
+
 if len(args) < 1:
     parser.print_help()
     parser.error("At least one FTBL_file expected in argument")
-dict_opts=eval(str(opts))
 
 print((" ".join('"'+v+'"' for v in sys.argv)))
 #print("cpu=", cpu_count())

@@ -8,13 +8,39 @@
 Installation
 ============
 
-To use the software ``influx_si``, you'll need some dependencies listed bellow. They will be tried to installe automatically. If automatic procedure fails, you'll have to solve the underlying problem and rerun ``Rscript install.R`` from ``influx_si`` directory.
-
 The software was developed on Linux
 but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.
 If you are not used to install system wide environments
 like R or Python, ask your local computer
 support for help. We don't provide support for installation.
+
+Installation with ``conda``
+---------------------------
+If you have Anaconda or Miniconda installed on your system, installation of ``influx_si`` resumes to:
+
+  $ conda install influx_si
+  
+It installs ``influx_si`` itself as well as all needed dependencies both in Python and in R.
+  
+Installation with ``pip``
+-------------------------
+Python can have a tool called ``pip`` which manages pure python packages. If it is not present on your sustem, you'll have to install it first to contnue with this method. If you have multiple Pyhton versions installed on your system (e.g. Python2 and Python3) you'll have to use ``pip3`` to install the software in the Python3 univers.
+
+This method will install only Python part of ``influx_si``. You'll have to finish installation of R dependencies by hand.
+
+  $ pip3 install influx_si
+  
+or
+
+  $ pip3 install --user influx_si
+  
+if you wish to install ``influx_si`` not system-wide but only in your own userspace.
+
+To use the software ``influx_si``, you'll need some R dependencies listed bellow. You can try to install tem by:
+
+  $ influx_s.py --install_rdep
+
+If this procedure fails, you'll have to solve the underlying problem identified from its error messages and rerun the command again.
 
 .. note:: The code examples here after are given for Unix shell environment.
  On windows, in DOS environment the syntax is often similar and in
@@ -22,8 +48,8 @@ support for help. We don't provide support for installation.
  to the Unix's one.
 
 
-Dependencies
-------------
+R dependencies
+--------------
 
 - R-3.4.0 or higher (cf http://www.r-project.org/ or your system packaging solution) + the following packages.
   
