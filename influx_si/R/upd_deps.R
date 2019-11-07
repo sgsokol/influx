@@ -6,7 +6,7 @@ pinst=rownames(installed.packages())
 # install lacking packages
 plack=setdiff(preq, pinst)
 if (length(plack))
-   install.packages(plack)
+   install.packages(plack, repos="https://cloud.r-project.org/")
 # update already present
 pold=setdiff(preq, plack)
 if (length(pold))
