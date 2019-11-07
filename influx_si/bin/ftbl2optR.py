@@ -1621,7 +1621,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
 
    # write node.log2pool property
    if (length(poolall)> 0) {
-      fnode=file(file.path(dirw, sprintf("edge.xchflux.%s%s.attrs", baseshort,  runsuf)), "w")
+      fnode=file(file.path(dirw, sprintf("node.log2pool.%s%s.attrs", baseshort,  runsuf)), "w")
       cat("log2pool (class=Double)\\n", sep="", file=fnode)
       nm_node=substring(names(poolall), 4)
       cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)

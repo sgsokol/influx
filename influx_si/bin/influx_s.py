@@ -96,11 +96,9 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
         flog.write("executing: "+pycmd_s+"\n")
         r_generated=True
-        retcode=subp.run(pycmd, stdout=flog, stderr=ferr)
-        if retcode:
+        retcode=subp.run(pycmd, stdout=flog, stderr=ferr).returncode
+        if retcode != 0:
             r_generated=False
-        #if os.path.getsize(ferr.name) > 0:
-        if retcode:
             s="=>Check "+ferr.name+"\n"
             sys.stdout.write(s)
             flog.write(s)
