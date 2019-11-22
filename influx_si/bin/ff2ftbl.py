@@ -27,6 +27,7 @@ import getopt
 import re
 from math import exp
 
+import influx_si
 import kvh
 def usage(mes=""):
     sys.stderr.write(os.linesep.join([mes, __doc__]))

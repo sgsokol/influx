@@ -13,7 +13,7 @@ Different tests are separated by a string "---<date>, <number>:<name>\n"
 Usage: case_tests.py [options] cases_influx_s.tab
 """
 
-import sys, os, subprocess as subp, re, platform, tempfile, copy
+import sys, os, subprocess as subp, re, platform, tempfile
 from shutil import copyfileobj
 from glob import glob
 from time import time, asctime
@@ -24,6 +24,18 @@ from queue import Queue
 
 import random # for debug only
 
+def eval_item(item, fd):
+    """eval python code in item and return its results.
+    In case of exception, return None
+    """
+    try:
+        res=eval(item)
+    except Exception as e:
+        mes="%s\n\tin code: %s\n"%(str(e), item)
+        sys.stderr.write(mes)
+        fd.write(mes)
+        res=None
+    return res
 def plural_s(n):
     return "s" if n > 1 else ""
 def setvar(k, v):
@@ -69,13 +81,14 @@ def do_case(ith, icase, line):
         fd_err.flush()
         
         #devnull=open(os.devnull, "w")
-        #import pdb; pdb.set_trace()
+        #if cmd == "echo yes > tmp_case2.txt":
+        #    import pdb; pdb.set_trace()
         if ncore > 1:
             print('%d:th%d:%s running "%s" ...'%(icase, ith, nm_t, cmd))
         else:
             print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
         if not dry:
-            p = subp.run(cmd.split(), stdout=fd_out, stderr=fd_err).returncode
+            p = subp.run(cmd, shell=True, stdout=fd_out, stderr=fd_err).returncode
             if ncore > 1:
                 print('done %d:th%d:%s (%.2f s)'%(icase, ith, nm_t, time()-t0))
         else:
@@ -92,11 +105,11 @@ def do_case(ith, icase, line):
         retcode_ok = False
     ok = ok is None and (dry or retcode_ok) # init ok, can be modified by condition tests
     addmes = ""
-    if not ok:
-        addmes = "Exception was raised (cf. test_case.err)"
+    if not ok and p == None:
+        addmes = " Exception was raised (cf. test_case.err)"
     elif ok and testcmd and not dry:
         with lock: # globals() can be modified in checks via varset()
-            res = [(eval(item), item) for item in testcmd.split(";") if item.strip()]
+            res = [(eval_item(item, fd_err), item) for item in testcmd.split(";") if item.strip()]
         #print res
         nb_fail = sum(not t for (t, item) in res)
         if nb_fail:
@@ -106,9 +119,9 @@ def do_case(ith, icase, line):
         addmes = " Unexpected code returned by program: '%s' (expected '%s')"%(retcode.title(), p)
     t1=time()
     if ok:
-        res = "OK for test %d '%s' (%.2f s)"%(icase, nm_t, t1-t0)
+        res = "OK for test %d '%s' (%.2f s)\n"%(icase, nm_t, t1-t0)
     else:
-        res = "=> Test %d '%s' failed! (%.2f s)%s"%(icase, nm_t, t1-t0, addmes)
+        res = "=> Test %d '%s' failed! (%.2f s)%s\n"%(icase, nm_t, t1-t0, addmes)
     fd_out.write(res)
     fd_out.close()
     fd_err.close()

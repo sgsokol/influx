@@ -1,0 +1,7 @@
+# case name<tab>	return code for test succes(True, False or integer)<tab>	shell command to run<tab>	[optional python commands (must evaluate to true to mean succesful test)]
+simple yes test	True	echo yes > tmp_case.txt	"yes"==open("tmp_case.txt", "r").read().strip(); None==os.remove("tmp_case.txt")
+yes test to fail	True	echo yes > tmp_case2.txt	"yeZ"==open("tmp_case2.txt", "r").read().strip(); None==os.remove("tmp_case.txt")
+simple no test	False	exit 1
+test_to_fail	True	exit 1
+test_int_return	10	exit 10
+test_int_return_to_fail	10	exit 11

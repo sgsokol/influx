@@ -5,6 +5,7 @@ usage: ftbl2kvh.py network[.ftbl] [> network.kvh]
 """
 if __name__ == "__main__":
     import sys, os, getopt, stat;
+    import influx_si;
     import tools_ssg;
     import C13_ftbl;
     def usage():

@@ -20,7 +20,7 @@ import getopt
 import numpy as np
 from fractions import Fraction as Frac
 
-sys.path.append('/home/sokol/dev/python')
+import influx_si
 from tools_ssg import *
 import C13_ftbl
 

@@ -28,6 +28,7 @@ if __name__ == "__main__":
     from libsbml import *
 
     sys.tracebacklimit=None
+    import influx_si
     import tools_ssg
     import C13_ftbl
     import kvh

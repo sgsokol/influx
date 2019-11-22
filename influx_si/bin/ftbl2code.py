@@ -27,7 +27,6 @@ if (dirx.endswith("py3")):
 
 import influx_si
 dirr=os.path.join(os.path.dirname(os.path.realpath(influx_si.__file__)), "R")
-sys.path.append(os.path.join(dirr, ".."))
 
 from tools_ssg import *
 import C13_ftbl

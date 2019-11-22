@@ -117,8 +117,6 @@ if __name__ == "__main__":
     me=os.path.realpath(sys.argv[0])
     dirx=os.path.dirname(me)
     sys.path.append(dirx)
-    dirinst=os.path.dirname(os.path.realpath(influx_si.__file__))
-    sys.path.append(dirinst)
     me=os.path.basename(me)
 
     from tools_ssg import *

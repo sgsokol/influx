@@ -9,11 +9,13 @@ usage: res2ftbl_meas.py [network_res[.kvh]] # produce network_simN.ftbl where N 
 """
 if __name__ == "__main__":
     import sys, os, getopt
+    import re
+    import datetime as dt
+    
+    import influx_si
     import tools_ssg
     import kvh
     #import pprint # for debuging only
-    import re
-    import datetime as dt
     def usage():
         print(__doc__)
     me="res2ftbl_meas"

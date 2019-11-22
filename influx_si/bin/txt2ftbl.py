@@ -219,6 +219,7 @@ if __name__ == "__main__":
     import datetime as dt
     from scipy import linalg, diag
 
+    import influx_si
     from tools_ssg import *
 
     werr=sys.stderr.write
