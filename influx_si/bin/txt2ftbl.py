@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-r"""
+"""
 read a .txt file from a parameter and translate to NETWORK and FLUXES section of .ftbl file.
 The generated FTBL file can be then edited by hand to be added
 other sections (MEASUREMENTS and so on)
@@ -25,6 +25,7 @@ Copyright 2015, INRA, France
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
 License: Gnu Public License (GPL) v3 http://www.gnu.org/licenses/gpl.html
 """
+
 import re
 def txt_parse(fname, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$")):
@@ -72,7 +73,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     open_here=False
     if isstr(fname):
         open_here=True
-        fc=file(fname, "rb")
+        fc=open(fname, "r")
     else:
     	fc=fname
     m_left={} # metab sources
@@ -239,24 +240,30 @@ if __name__ == "__main__":
         if o in ("-h", "--help"):
             usage()
             sys.exit()
-    if len(args) != 1:
+    if len(args) > 1:
         werr("Expecting exactly one txt file name\n")
         usage()
         exit(1)
-    base=args[0]
-    if base[-4:]==".txt":
-        base=base[:-4]
-    path_txt=base+".txt"
-    #-->
-    
-    # what kind of output we have?
-    mode=os.fstat(1).st_mode
-    fout=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(path_txt[:-3]+"ftbl", "w")
+    elif len(args) == 0:
+        # read on stdin
+        path_txt=sys.stdin
+        fout=sys.stdout
+        base="network"
+    else:
+        base=args[0]
+        if base[-4:]==".txt":
+            base=base[:-4]
+        path_txt=base+".txt"
+        #-->
+        
+        # what kind of output we have?
+        mode=os.fstat(1).st_mode
+        fout=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(path_txt[:-3]+"ftbl", "w")
 
-    # define where to read and write
-    # input file is an argument
-    fdir=os.path.dirname(base) or "."
-    base=os.path.basename(base)
+        # define where to read and write
+        # input file is an argument
+        fdir=os.path.dirname(base) or "."
+        base=os.path.basename(base)
 
     # Parse .txt file
     try:
@@ -265,6 +272,7 @@ if __name__ == "__main__":
         werr(str(inst)+"\n")
         raise
     # build afl matrix: each row is a balance on an internal metabolite, each column is a flux values
+    nb_flux=len(sto)
     nm_flux=sorted(sto.keys())
     m_l=set(m_left.keys())
     m_r=set(m_right.keys())
@@ -290,14 +298,17 @@ if __name__ == "__main__":
         fls=eq[1].split(" - ")
         afl[len(nm_met)+i, fl2i[fls[0]]]=1.
         afl[len(nm_met)+i, fl2i[fls[1]]]=-1.
-    # qr(afl)
-    q,r,p=linalg.qr(afl, pivoting=True)
-    d=diag(r)
-    if d[0] == 0.:
-        raise Exception("Stoechiometrix matrix is 0")
-    rank=sum(abs(d/d[0]) > 1.e-10)
-    # free fluxes are the last in pivots
-    ff=set(nm_flux[i] for i in p[rank:])
+    if nb_flux > 1:
+        # qr(afl)
+        q,r,p=linalg.qr(afl, pivoting=True)
+        d=diag(r)
+        if d[0] == 0.:
+            raise Exception("Stoechiometrix matrix is 0")
+        rank=sum(abs(d/d[0]) > 1.e-10)
+        # free fluxes are the last in pivots
+        ff=set(nm_flux[i] for i in p[rank:])
+    else:
+        ff=[]
     # write header
     fout.write(
 """PROJECT

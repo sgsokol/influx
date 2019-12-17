@@ -40,3 +40,5 @@ icons/*
 __pycache__/*
 mult_bxxc.txt
 tmp/*
+build/*
+dist/*

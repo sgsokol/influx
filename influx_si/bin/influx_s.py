@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file.
 """
+import influx_si
+
 import sys, os, datetime as dt, subprocess as subp, re
 from optparse import OptionParser
 from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
 from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
-import influx_si
 
 #from pdb import set_trace
 
@@ -389,7 +390,7 @@ if len(rfiles) > 1:
 """%{
         "np": min(np, len(rfiles)),
         "flist": ", ".join('"'+f+'"' for f in rfiles),
-        "dirx": dirinst
+        "dirx": os.path.join(dirinst, "R")
     })
     fpar.close()
     # execute R code on cluster
