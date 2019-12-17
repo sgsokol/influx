@@ -41,3 +41,4 @@ mult_bxxc.txt
 tmp/*
 build/*
 dist/*
+howto_release.txt
