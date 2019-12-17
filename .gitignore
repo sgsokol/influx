@@ -21,12 +21,11 @@ influx_si.egg-info/*
 influx_si/doc/_build/*
 influx_si/doc/_static/*
 influx_si/doc/_static/*
-influx_si/doc/html/*
 influx_si/test.old/*
 influx_i-2012/*
 *.bck
 *~
-matrid/*
+matrid/*_
 *.so
 *.o
 *.Rc

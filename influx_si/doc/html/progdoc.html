@@ -1,0 +1,1140 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="How to …" href="howto.html" />
+    <link rel="prev" title="User’s manual" href="manual.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="howto.html" title="How to …"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="manual.html" title="User’s manual"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="programmer-s-documentation-for-influx-s">
+<span id="progdoc"></span><h1>Programmer’s documentation for influx_s<a class="headerlink" href="#programmer-s-documentation-for-influx-s" title="Permalink to this headline">¶</a></h1>
+<p>In this chapter, Application Programming Interface (API) docs are collected. It can be helpful for programmers desiring to extend some features of <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> or to fix some bugs. This chapter can be safely skipped by users aiming at simple usage of <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> for biological research.</p>
+<div class="section" id="module-C13_ftbl">
+<span id="c13-ftbl"></span><h2>C13_ftbl<a class="headerlink" href="#module-C13_ftbl" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Parse .ftbl</li>
+<li>Analyse ftbl</li>
+</ul>
+<dl class="docutils">
+<dt>Restrictions:</dt>
+<dd><ul class="first last">
+<li><p class="first">metabolite name cannot have</p>
+<dl class="docutils">
+<dt>“:”</dt>
+<dd><p class="first last">it’s a separator in measure id</p>
+</dd>
+<dt>“+”</dt>
+<dd><p class="first last">in measurements it can be metab1+metab2+…</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="function">
+<dt id="C13_ftbl.aglom">
+<code class="descclassname">C13_ftbl.</code><code class="descname">aglom</code><span class="sig-paren">(</span><em>na</em>, <em>ta</em>, <em>loop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#aglom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.aglom" title="Permalink to this definition">¶</a></dt>
+<dd><p>new matrix A (na), transpose A (ta) are used to
+aglomerate neigbour mutually influencing nodes in a supernode.
+Aglomerated noeds are put in the loop dictionnary.
+Return False if no nodes were aglomerated.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.aglom_loop1">
+<code class="descclassname">C13_ftbl.</code><code class="descname">aglom_loop1</code><span class="sig-paren">(</span><em>A</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#aglom_loop1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.aglom_loop1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Agglomerate nodes of A if they are mutually influence each other
+i.e.they are in a loop of length 1.
+Return a new dictionary of influence where entries are those of A aglomerated
+and glued “by” tab symbol</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.allprods">
+<code class="descclassname">C13_ftbl.</code><code class="descname">allprods</code><span class="sig-paren">(</span><em>srcs</em>, <em>prods</em>, <em>isos</em>, <em>metab</em>, <em>isostr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#allprods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.allprods" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a set of tuples (cmetab, cisostr, vmetab, visostr)
+where cmetab and cisostr describe a contex metabolite
+which combined with metab+isostr produced vmetab+visostr.
+if metab is alone on its reaction part cmetab and cisostr are set to
+an empty string (“”).
+The set covers all combination of
+metab+isostr and its co-substrates which
+produce isotopes having at least one labeled carbon from
+metab+isostr.
+Co-substrate isotops are
+in a dictionary isos[cmetab]=list(cisotopes).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.bcumo_decomp">
+<code class="descclassname">C13_ftbl.</code><code class="descname">bcumo_decomp</code><span class="sig-paren">(</span><em>bcumo</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#bcumo_decomp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.bcumo_decomp" title="Permalink to this definition">¶</a></dt>
+<dd><p>bcumo is a string of the form #[01x]+. It has to be decomposed
+in the linear combination of cumomers #[1x]+. The coefficients
+of this linear combination are 1 or -1. So it can be represented as
+sum(cumos_positive)-sum(cumos_negative). The result of this function
+is a dictionary {“+”: list of icumos, “-“: list of icumos}. icumo is
+an integer whose binary form indicates 1’s positions in a cumomer.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.conv_mid">
+<code class="descclassname">C13_ftbl.</code><code class="descname">conv_mid</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span> &#x2192; z<a class="reference internal" href="_modules/C13_ftbl.html#conv_mid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.conv_mid" title="Permalink to this definition">¶</a></dt>
+<dd><p>convolute two mid vectors (numpy arrays)
+and return the result as numpy array.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.cumo_infl">
+<code class="descclassname">C13_ftbl.</code><code class="descname">cumo_infl</code><span class="sig-paren">(</span><em>netan</em>, <em>cumo)-&gt;list(tuple(in_cumo</em>, <em>fl</em>, <em>imetab</em>, <em>iin_metab)</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#cumo_infl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.cumo_infl" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the list of tuples (in_cumo, fl, imetab, iin_metab):
+input cumomer, flux (fwd.fl or rev.fl), index of metab and index of in_metab
+generating cumo. cumo is in format “metab:icumo”.
+Condenstation reaction will give the same flux and icumo but various
+iin_metab.
+Convergent point will give multiple fluxes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.cumo_iw">
+<code class="descclassname">C13_ftbl.</code><code class="descname">cumo_iw</code><span class="sig-paren">(</span><em>w</em>, <em>nlen</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#cumo_iw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.cumo_iw" title="Permalink to this definition">¶</a></dt>
+<dd><p>iterator for a given cumomer weight w in the carbon length nlen</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.cumo_path">
+<code class="descclassname">C13_ftbl.</code><code class="descname">cumo_path</code><span class="sig-paren">(</span><em>starts</em>, <em>A</em>, <em>visited={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#cumo_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.cumo_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enumerate cumomers along reaction pathways.
+Algo: start from an input, follow chemical pathways till no more
+neighbours or till only visited metabolite rest in network.
+Return a list of cumomer pathways.
+Each pathways is an ordered list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.dom_cmp">
+<code class="descclassname">C13_ftbl.</code><code class="descname">dom_cmp</code><span class="sig-paren">(</span><em>A</em>, <em>i</em>, <em>j</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#dom_cmp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.dom_cmp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares influances of i-th and j-th lements of A.
+Returns 0 if i and j are mutually influenced, 1 if i in A[j]
+(i influences j) , -1 if otherwise</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.enum_path">
+<code class="descclassname">C13_ftbl.</code><code class="descname">enum_path</code><span class="sig-paren">(</span><em>starts</em>, <em>netw</em>, <em>outs</em>, <em>visited={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#enum_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.enum_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enumerate metabilites along to reaction pathways.
+Algo: start from an input, follow chemical pathways till an output or
+already visited metabolite. Returns a list of metabolite pathways.
+Each pathways is an ordered list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.formula2dict">
+<code class="descclassname">C13_ftbl.</code><code class="descname">formula2dict</code><span class="sig-paren">(</span><em>f</em>, <em>pterm=re.compile('\\W*([+-])\\W*')</em>, <em>pflux=re.compile('(?P&lt;coef&gt;\\d+\\.?\\d*|^)?\\s*\\*?\\s*(?P&lt;var&gt;[a-zA-Z_[\\]()][\\w\\. -\\[\\]]*)\\W*')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#formula2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.formula2dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
+positive number and f_i is a string starting by non-digit and not white
+character (# is allowed). Output is a dict f_i:[+-]a_i</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.frag_prod">
+<code class="descclassname">C13_ftbl.</code><code class="descname">frag_prod</code><span class="sig-paren">(</span><em>metab</em>, <em>frag</em>, <em>s</em>, <em>cmetab</em>, <em>cfrag</em>, <em>cs</em>, <em>prods</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#frag_prod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.frag_prod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get fragments from labeled substrates</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.ftbl_netan">
+<code class="descclassname">C13_ftbl.</code><code class="descname">ftbl_netan</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em>, <em>emu_framework=False</em>, <em>fullsys=False</em>, <em>case_i=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#ftbl_netan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.ftbl_netan" title="Permalink to this definition">¶</a></dt>
+<dd><p>analyse ftbl dictionary to find</p>
+<blockquote>
+<div><ul class="simple">
+<li>network inputs (input)</li>
+<li>network outputs (output)</li>
+<li>substrates (subs)</li>
+<li>products (prods)</li>
+<li>metabolites (metabs)</li>
+<li>reactions (reacs)</li>
+<li>not reversible reactions (subset of reacs) (notrev)
+all above items are in named sets</li>
+<li>stocheometric matrix (sto_r_m)</li>
+<li>stocheometric matrix (sto_m_r)</li>
+<li>fwd-rev flux matrix (flux_m_r)</li>
+<li>cumomer balances (cumo_m_r_m)</li>
+<li>carbon length (Clen)</li>
+<li>reaction formula (formula)</li>
+<li>metabolite network (metab_netw)</li>
+<li>carbon transitions (carbotrans)</li>
+<li>free fluxes (flux_free)</li>
+<li>constrained fluxes (flux_constr)</li>
+<li>measured fluxes (flux_measured)</li>
+<li>variable growth fluxes (flux_vgrowth)</li>
+<li>input isotopomers (iso_input)</li>
+<li>input cumomers (cumo_input)</li>
+<li>input reduced cumomers (rcumo_input)</li>
+<li>flux inequalities (flux_ineqal)</li>
+<li>flux equalities (flux_eqal)</li>
+<li>label measurements, H1 (label_meas)</li>
+<li>peak measurements, C13 (peak_meas)</li>
+<li>mass measurements (mass_meas)</li>
+<li>cumomer ordered lists (vcumo)</li>
+<li>unknown fluxes ordered lists (vflux)</li>
+<li>linear problem on fluxes (Afl, bfl)</li>
+<li>free fluxes ordered lists (vflux_free)</li>
+<li>fw-rv fluxes ordered lists (vflux_fwrv)</li>
+<li>row names ordered lists for Afl (vrowAfl)</li>
+<li>in-out fluxes (flux_in, flux_out)</li>
+<li>measured concentrations (metab_measured)</li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.ftbl_parse">
+<code class="descclassname">C13_ftbl.</code><code class="descname">ftbl_parse</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span> &#x2192; dict<a class="reference internal" href="_modules/C13_ftbl.html#ftbl_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.ftbl_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>read and parse .ftbl file. The only input parameter f is a stream pointer
+with read permission or a file name.
+This function parses the input and returns a dictionnary
+with items corresponding to sections in .ftbl. One section is added.
+“TRANS” correponds to carbon transitions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.infl">
+<code class="descclassname">C13_ftbl.</code><code class="descname">infl</code><span class="sig-paren">(</span><em>metab</em>, <em>netan)-&gt;set(fluxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#infl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.infl" title="Permalink to this definition">¶</a></dt>
+<dd><p>List incoming fluxes for this metabolite (fwd.reac, rev.reac, …)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.iso2cumo">
+<code class="descclassname">C13_ftbl.</code><code class="descname">iso2cumo</code><span class="sig-paren">(</span><em>netan</em>, <em>strin</em>, <em>in_cumo</em>, <em>icumo</em>, <em>in_metab</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#iso2cumo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.iso2cumo" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate cumomer fraction from isotopomer ones</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.iso2emu">
+<code class="descclassname">C13_ftbl.</code><code class="descname">iso2emu</code><span class="sig-paren">(</span><em>netan</em>, <em>inmetab</em>, <em>mask</em>, <em>mpi</em>, <em>e</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#iso2emu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.iso2emu" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate emu fraction from isotopomer dict iso_input.
+The fraction corresponds to a fragment defined by a mask and the mass component mpi.
+Return a real number in [0; 1] interval.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.label_meas2matrix_vec_dev">
+<code class="descclassname">C13_ftbl.</code><code class="descname">label_meas2matrix_vec_dev</code><span class="sig-paren">(</span><em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#label_meas2matrix_vec_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.label_meas2matrix_vec_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>use netan[“label_meas”] list to construct a corresponding list of
+measure matrix matx_lab
+such that scale_diag*metab_pool_diag*matx_lab*(cumos_vector,1) corresponds to label_measurements_vector.
+matx_lab is defined as
+list of dict{“scale”:scale_name, “coefs”:dict{icumo:coef}, “metab”: metabolite, “poolid”: metabolite pool id if pooled}
+where coef is a contribution of cumo in linear combination for given measure.
+scale_name is of the form “metabs;group”. Group number is to group
+measurements of the same measurement set.
+poolid is the index of pool list in pooled where each list regroups
+0-based indexes rows in returned matrix for what has to be pooled together.
+vec is a list of measurements (values in .ftbl)
+dev is a list of deviations.
+Elements in matx_lab, vec and dev are ordered in the same way.
+The returned result is a dict (mat,vec,dev)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.labprods">
+<code class="descclassname">C13_ftbl.</code><code class="descname">labprods</code><span class="sig-paren">(</span><em>prods</em>, <em>metab</em>, <em>isostr</em>, <em>strs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#labprods"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.labprods" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a set of tuples (vmetab,visostr) which receive at least
+one labeled carbon from (metab, isostr)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.lowtri">
+<code class="descclassname">C13_ftbl.</code><code class="descname">lowtri</code><span class="sig-paren">(</span><em>A</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#lowtri"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.lowtri" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try low triangular ordering of matrix A entries</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.mass_meas2matrix_vec_dev">
+<code class="descclassname">C13_ftbl.</code><code class="descname">mass_meas2matrix_vec_dev</code><span class="sig-paren">(</span><em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#mass_meas2matrix_vec_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.mass_meas2matrix_vec_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>use netan[“mass_meas”] list to construct a corresponding list of
+measure matrix matx_mass
+such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.
+matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()
+Elements in matx_mass, vec and dev are ordered in the same way.
+scale name is defined as “metab;fragment_mask”
+The returned result is a dict (mat,vec,dev)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.mat2graph">
+<code class="descclassname">C13_ftbl.</code><code class="descname">mat2graph</code><span class="sig-paren">(</span><em>A</em>, <em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#mat2graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.mat2graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>write digraph file on file pointer fp representing
+links in matrix A given as bi-level dictionnary. A key of
+first level (row index) is influenced by keys of second level
+(column indicies).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.mat2pbm">
+<code class="descclassname">C13_ftbl.</code><code class="descname">mat2pbm</code><span class="sig-paren">(</span><em>A</em>, <em>v</em>, <em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#mat2pbm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.mat2pbm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write an image map of non-zero entries of matrix A to file pointer fp.
+Matrix A is a dictionnary, v is a list ordering keys of A.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.mecoparse">
+<code class="descclassname">C13_ftbl.</code><code class="descname">mecoparse</code><span class="sig-paren">(</span><em>terms</em>, <em>pmeco=re.compile('\\s*((?P&lt;coef&gt;\\d+\\.?\\d*|^)\\s*\\*\\s*)?(?P&lt;metab&gt;[^*+ ]*)\\s*$')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#mecoparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.mecoparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a string term from a list (or a sing string) of chemical equation entries.
+The general form of each term is ‘coef*metab’.
+coef (if present) must be separated from metab by ‘*’ and be convertible to float.
+metab can start with a number (e.g. ‘6PG’) so the presence of ‘*’ is mandatory to
+separate coef from metab.If coef is absent, it is considered to be 1. 
+Return a list of (or a single for str) tuples (metab (str), coef (real)).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.ms_frag_gath">
+<code class="descclassname">C13_ftbl.</code><code class="descname">ms_frag_gath</code><span class="sig-paren">(</span><em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#ms_frag_gath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.ms_frag_gath" title="Permalink to this definition">¶</a></dt>
+<dd><p>gather metabolite fragments necessary to obtain a given set of data
+observed in MS measurements.
+The fragment mask is encoded in the same way as cumomers, Met:7 &lt;=&gt; Met#(0)111</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.ntimes">
+<code class="descclassname">C13_ftbl.</code><code class="descname">ntimes</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#ntimes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.ntimes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return charcater string ‘once’ for n=1, ‘twice’ for n=2 and ‘n times’ for other n</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.peak_meas2matrix_vec_dev">
+<code class="descclassname">C13_ftbl.</code><code class="descname">peak_meas2matrix_vec_dev</code><span class="sig-paren">(</span><em>netan</em>, <em>dmask={'D+': 3</em>, <em>'D-': 6</em>, <em>'DD': 7</em>, <em>'S': 2</em>, <em>'T': 7}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#peak_meas2matrix_vec_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.peak_meas2matrix_vec_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>use netan[“peak_meas”] list to construct a corresponding list of
+measure matrix matx_peak
+such that scale_diag*matx_peak*cumos_vector corresponds to
+peak_measures_vector.
+dmask is a dictionary with 3 carbon labeling pattern mask for
+various peak types. The middle bit corresponds to the targeted carbon,
+lower bit corresponds to the next neighbour (D+) and higher bit
+corresponds to previous carbon (D-).
+matx_peak is defined as matx_lab in label_meas2matrix_vec_dev()
+Elements in matx_peak, vec and dev are ordered in the same way.
+scale name is defined as “metab;c_no;irow”
+The returned result is a dict (mat,vec,dev)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.proc_kinopt">
+<code class="descclassname">C13_ftbl.</code><code class="descname">proc_kinopt</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_kinopt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_kinopt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.proc_label_input">
+<code class="descclassname">C13_ftbl.</code><code class="descname">proc_label_input</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_label_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_label_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed LABEL_INPUT section in ftbl and add result to the list netan[“iso_input”]
+List item is a dict {}metab;{isotop_int_index:fraction}}</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.proc_label_meas">
+<code class="descclassname">C13_ftbl.</code><code class="descname">proc_label_meas</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_label_meas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_label_meas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed LABEL_MEASUREMENT section of ftbl file, add the result to a list of dicts</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.proc_mass_meas">
+<code class="descclassname">C13_ftbl.</code><code class="descname">proc_mass_meas</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_mass_meas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_mass_meas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.proc_peak_meas">
+<code class="descclassname">C13_ftbl.</code><code class="descname">proc_peak_meas</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_peak_meas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_peak_meas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.prod">
+<code class="descclassname">C13_ftbl.</code><code class="descname">prod</code><span class="sig-paren">(</span><em>metab</em>, <em>iso</em>, <em>s</em>, <em>cmetab</em>, <em>ciso</em>, <em>cs</em>, <em>prods)-&gt;set(</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#prod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.prod" title="Permalink to this definition">¶</a></dt>
+<dd><p>get isotops from labeled substrates</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.rcumo_sys">
+<code class="descclassname">C13_ftbl.</code><code class="descname">rcumo_sys</code><span class="sig-paren">(</span><em>netan</em>, <em>emu=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#rcumo_sys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.rcumo_sys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate reduced cumomers or EMU systems A*x=b
+we start with observed cumomers (emus) of max weight
+and we include only needed involved cumomers (emus)
+A list of cumomer (emu) lists (by weight) is stored
+in netan[“vrcumo”] (netan[“vemu”])</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.src_ind">
+<code class="descclassname">C13_ftbl.</code><code class="descname">src_ind</code><span class="sig-paren">(</span><em>substrate</em>, <em>product</em>, <em>iprod</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#src_ind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.src_ind" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given substrate and product carbon strings (e.g. “abc”, “ab”)
+calculate substrate index corresponding to product index.
+Return None if no source found.
+Return 0 if iprod==0 and intersection of product and substrate strings
+is not empty</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.t_iso2cumo">
+<code class="descclassname">C13_ftbl.</code><code class="descname">t_iso2cumo</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#t_iso2cumo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.t_iso2cumo" title="Permalink to this definition">¶</a></dt>
+<dd><p>t_iso2cumo(n) return transition matrix from isotopomers fractions to cumomer vector
+n - carbon number
+return numpy array of size (2**n,2**n)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.t_iso2m">
+<code class="descclassname">C13_ftbl.</code><code class="descname">t_iso2m</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#t_iso2m"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.t_iso2m" title="Permalink to this definition">¶</a></dt>
+<dd><p>t_iso2m(n) return transition matrix from isotopomers fractions to MID vector
+n - carbon number
+return numpy array of size (n+1,2**n)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.t_iso2pos">
+<code class="descclassname">C13_ftbl.</code><code class="descname">t_iso2pos</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#t_iso2pos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.t_iso2pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>t_iso2pos(n) return transition matrix from isotopomers fractions to positional
+labelling vector (cumomers of weight 1)
+n - carbon number
+return numpy array of size (n,2**n)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.topo_order">
+<code class="descclassname">C13_ftbl.</code><code class="descname">topo_order</code><span class="sig-paren">(</span><em>A</em>, <em>tA</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#topo_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.topo_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to sort keys of A in topological order. tA is just a transpose of A</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.transpose">
+<code class="descclassname">C13_ftbl.</code><code class="descname">transpose</code><span class="sig-paren">(</span><em>A</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transpose a matrix defined as a dict.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.werr">
+<code class="descclassname">C13_ftbl.</code><code class="descname">werr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#C13_ftbl.werr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write string to stream.
+Returns the number of characters written (which is always equal to
+the length of the string).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="C13_ftbl.wout">
+<code class="descclassname">C13_ftbl.</code><code class="descname">wout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#C13_ftbl.wout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write string to stream.
+Returns the number of characters written (which is always equal to
+the length of the string).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ftbl2code">
+<span id="ftbl2code"></span><h2>ftbl2code<a class="headerlink" href="#module-ftbl2code" title="Permalink to this headline">¶</a></h2>
+<p>Module for translation of .ftbl file to R code</p>
+<dl class="function">
+<dt id="ftbl2code.netan2Abcumo_spr">
+<code class="descclassname">ftbl2code.</code><code class="descname">netan2Abcumo_spr</code><span class="sig-paren">(</span><em>varname</em>, <em>Al</em>, <em>bl</em>, <em>vcumol</em>, <em>minput</em>, <em>f</em>, <em>fwrv2i</em>, <em>incu2i_b1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2Abcumo_spr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2Abcumo_spr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform cumomer linear sytems collection (from ftbl file)
+to a R code calculating sparse matrix A and vector b
+in A*x+b=0 for a given weight of fragment iw (index in resulting list)
+Flux vector fl of all fwd. and rev. fluxes are known at R runtime.</p>
+<p>Resulting code is a list sprAb indexed by cumomer weight
+(cf. generated R comments for details on sprAb)
+cumomer vector incu=c(1, xi, xl), xi - input cumomers, xl - lighter cumomers.</p>
+<p>incu2i_b1 gives i in incu from cumomer name. i=1 corresponds to the constant 1.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ftbl2code.netan2R_cumo">
+<code class="descclassname">ftbl2code.</code><code class="descname">netan2R_cumo</code><span class="sig-paren">(</span><em>netan</em>, <em>org</em>, <em>f</em><span class="sig-paren">)</span> &#x2192; dict<a class="reference internal" href="_modules/ftbl2code.html#netan2R_cumo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2R_cumo" title="Permalink to this definition">¶</a></dt>
+<dd><p>generate data structures for full cumomer matrices</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ftbl2code.netan2R_fl">
+<code class="descclassname">ftbl2code.</code><code class="descname">netan2R_fl</code><span class="sig-paren">(</span><em>netan</em>, <em>org</em>, <em>f</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2R_fl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2R_fl" title="Permalink to this definition">¶</a></dt>
+<dd><p>generate R code for flux and pool part
+for more details cf. netan2Rinit()</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ftbl2code.netan2R_ineq">
+<code class="descclassname">ftbl2code.</code><code class="descname">netan2R_ineq</code><span class="sig-paren">(</span><em>netan</em>, <em>org</em>, <em>f</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2R_ineq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2R_ineq" title="Permalink to this definition">¶</a></dt>
+<dd><p>generate inequality code</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ftbl2code.netan2R_meas">
+<code class="descclassname">ftbl2code.</code><code class="descname">netan2R_meas</code><span class="sig-paren">(</span><em>netan</em>, <em>org</em>, <em>f</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2R_meas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2R_meas" title="Permalink to this definition">¶</a></dt>
+<dd><p>generate code for measure treatment</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ftbl2code.netan2Rinit">
+<code class="descclassname">ftbl2code.</code><code class="descname">netan2Rinit</code><span class="sig-paren">(</span><em>netan</em>, <em>org</em>, <em>f</em>, <em>fullsys</em>, <em>emu=False</em>, <em>ropts=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2Rinit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2Rinit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write R code for initialization of all variables before
+cumomer system resolution by khi2 minimization.
+:param netan: a collection of parsed ftbl information
+:param f: R code output pointer
+:param fullsys (logical): write a code for the full or only reduced cumomer system
+:param emu (logical): write equations in EMU framework or cumomer (default)
+:param ropts: list of items “param=value” to be written as is in R file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dictionnary with some python variables:
+* “measures”: measures,
+* “o_mcumos”: o_mcumos,
+* “cumo2i”: cumo2i,
+* …</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ftbl2netan">
+<span id="ftbl2netan"></span><h2>ftbl2netan<a class="headerlink" href="#module-ftbl2netan" title="Permalink to this headline">¶</a></h2>
+<p>Parse ftbl file from stdin or from first parameter
+and write netan in kvh format on stdout
+usage: ftbl2netan.py network[.ftbl] [&gt; network.netan]</p>
+</div>
+<div class="section" id="module-ftbl2optR">
+<span id="ftbl2optr"></span><h2>ftbl2optR<a class="headerlink" href="#module-ftbl2optR" title="Permalink to this headline">¶</a></h2>
+<p>Transform an ftbl to R code which will solve an optimization of flux analysis
+problem <span class="math notranslate nohighlight">\(\arg \min_{\Theta} S\)</span>, where <span class="math notranslate nohighlight">\(S=||\mathrm{Predicted}-\mathrm{Observed}||^{2}_{\Sigma}\)</span>
+and <span class="math notranslate nohighlight">\(\Theta\)</span> is a vector of parameters to fit: free fluxes (net+xch), scaling parameters and metabolite concentrations
+pools.
+Two variants of R code can be generated: “s” and “i” for stationary and isotopically
+nonstationary labeling.
+Predicted vector is obtained from cumomer or emu vector x (calculated from
+free fluxes and divided in chunks according to the cumo weight) by
+multiplying it by the measurement matrices, weighted by metabolite
+pools (in case of pooling) and scale factor (for stationary case only),
+boths coming from ftbl file. Observed values vector xo is extracted from ftbl
+file for “s” case and from special text file for “i” case.
+It is composed of flux, label measurements and metabolite pools.
+<span class="math notranslate nohighlight">\(\Sigma^2\)</span>, covariance diagonal matrices sigma[flux|mass|label|peak|metab.pool]
+is orginated from the ftbl file.</p>
+<p>usage: ./ftbl2optR.py [opts] organism
+where organism is the ftbl informative part of file name
+(before .ftbl), e.g. organism.ftbl
+after execution a file organism.R will be created.
+If it already exists, it will be silently overwritten.
+The system Afl*flnx=bfl is created from the ftbl file.</p>
+<dl class="docutils">
+<dt>Important python variables:</dt>
+<dd><ul class="first last simple">
+<li>case_i - if True, the case is “i” otherwise it is the “s” case</li>
+</ul>
+</dd>
+<dt>Collections:</dt>
+<dd><ul class="first last simple">
+<li>netan - (dict) ftbl structured content</li>
+<li>tfallnx - (3-tuple[reac,[“d”|”f”|”c”], [“net”|”xch”]] list)- total flux
+collection</li>
+<li>measures - (dict) exp data</li>
+<li>rAb - (list) reduced linear systems A*x_cumo=b (a system by weight)</li>
+<li>scale - unique scale names</li>
+<li>nrow - counts scale names</li>
+<li>o_sc - ordered scale names</li>
+<li>o_meas - ordered measurement types</li>
+</ul>
+</dd>
+<dt>File names (str):</dt>
+<dd><ul class="first last simple">
+<li>n_ftbl (descriptor f_ftbl)</li>
+<li>n_R (R code) (f)</li>
+<li>n_fort (fortran code) (ff)</li>
+</ul>
+</dd>
+<dt>Counts:</dt>
+<dd><ul class="first last simple">
+<li>nb_fln, nb_flx, nb_fl (dependent fluxes: net, xch, total), nb_ffn, nb_ffx (free fluxes)</li>
+</ul>
+</dd>
+<dt>Index translators:</dt>
+<dd><ul class="first last simple">
+<li>fwrv2i - flux names to index in R:fwrv</li>
+<li>cumo2i - cumomer names to index in R:x</li>
+<li>ir2isc - mapping measurement rows indexes on scale index isc[meas]=ir2isc[meas][ir]</li>
+</ul>
+</dd>
+<dt>Vector names:</dt>
+<dd><ul class="first last simple">
+<li>cumos (list) - names of R:x</li>
+<li>o_mcumos - cumomers involved in measurements</li>
+</ul>
+</dd>
+</dl>
+<p>Important R variables:</p>
+<dl class="docutils">
+<dt>Scalars:</dt>
+<dd><ul class="first last simple">
+<li>nb_w, nb_cumos, nb_fln, nb_flx, nb_fl (dependent or unknown fluxes),</li>
+<li>nb_ffn, nb_ffx, nb_ff (free fluxes),</li>
+<li>nb_fcn, nb_fcx, nb_fc (constrained fluxes),</li>
+<li>nb_ineq, nb_param, nb_fmn</li>
+</ul>
+</dd>
+<dt>Name vectors:</dt>
+<dd><ul class="first last simple">
+<li>nm_cumo, nm_fwrv, nm_fallnx, nm_fln, nm_flx, nm_fl, nm_par,</li>
+<li>nm_ffn, nm_ffx,</li>
+<li>nm_fcn, nm_fcx,</li>
+<li>nm_mcumo, nm_fmn</li>
+</ul>
+</dd>
+<dt>Numeric vectors:</dt>
+<dd><ul class="first last simple">
+<li>fwrv - all fluxes (fwd+rev)</li>
+<li>x - all cumomers (weight1+weight2+…)</li>
+<li>param - free flux net, free flux xch, scale label, scale mass, scale peak, metabolite concentrations</li>
+<li>fcn, fcx, fc - constrained fluxes</li>
+<li>bp - helps to construct the rhs of flux system</li>
+<li>xi -cumomer input vector</li>
+<li>fallnx - complete flux vector (constr+net+xch)</li>
+<li>bc - helps to construct fallnx</li>
+<li>li - inequality vector (mi%*%fallnx&gt;=li)</li>
+<li>ir2isc - measure row to scale vector replicator</li>
+<li>ci - inequalities for param use (ui%*%param-ci&gt;=0)</li>
+<li>measvec - measurement vector</li>
+<li>fmn - measured net fluxes</li>
+</ul>
+</dd>
+<dt>Matrices:</dt>
+<dd><ul class="first last simple">
+<li>Afl, qrAfl, invAfl,</li>
+<li>p2bfl - helps to construct the rhs of flux system</li>
+<li>mf, md - help to construct fallnx</li>
+<li>mi - inequality matrix (ftbl content)</li>
+<li>ui - inequality matrix (ready for param use)</li>
+<li>measmat - for measmat*x+memaone=vec of simulated not-yet-scaled measurements</li>
+</ul>
+</dd>
+<dt>Functions:</dt>
+<dd><ul class="first last simple">
+<li>lab_sim - translate param to flux and cumomer vector (initial approximation)</li>
+<li>cumo_cost - cost function (khi2)</li>
+<li>cumo_gradj - implicit derivative gradient</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="module-ftbl2xgmml">
+<span id="ftbl2xgmml"></span><h2>ftbl2xgmml<a class="headerlink" href="#module-ftbl2xgmml" title="Permalink to this headline">¶</a></h2>
+<p>read a .ftbl file from a parameter and translate to .xgmml file.
+The generated xgmml file can be then imported into Cytoscape
+(www.cytoscape.org).
+Reactions involving two substrates or two products are represented
+by an additional almost invisible node while one-to-one reactions
+are just edges.
+Node and edge attributes are written in respective xml attributes.
+Compatibility: cytoscape v2.8.3 and v3.0</p>
+<p>usage: ftbl2xgmml.py [-h|–help] mynetwork.ftbl [&gt; mynetwork.xgmml]</p>
+<p>OPTIONS
+-h, –help print this message and exit</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">param:</th><td class="field-body">mynetwork the base of an ftbl file (mynetwork.ftbl)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">returns:</th><td class="field-body">mynetwork.xgmml – file of the network definition suitable for cytoscape</td>
+</tr>
+</tbody>
+</table>
+<p>Copyright 2014, INRA, France
+Author: Serguei Sokol (sokol at insa-toulouse dot fr)
+License: Gnu Public License (GPL) v3 <a class="reference external" href="http://www.gnu.org/licenses/gpl.html">http://www.gnu.org/licenses/gpl.html</a></p>
+</div>
+<div class="section" id="module-kvh">
+<span id="kvh"></span><h2>kvh<a class="headerlink" href="#module-kvh" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="kvh.dict2kvh">
+<code class="descclassname">kvh.</code><code class="descname">dict2kvh</code><span class="sig-paren">(</span><em>d</em>, <em>fp=sys.stdout</em>, <em>indent=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#dict2kvh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.dict2kvh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a nested dictionary on the stream fp (stdout by default).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.escape">
+<code class="descclassname">kvh.</code><code class="descname">escape</code><span class="sig-paren">(</span><em>s</em>, <em>spch=&quot;|&amp;;&lt;&gt;()$`\&quot;' tn*?[#~=%&quot;</em>, <em>ech=&quot;\&quot;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#escape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.escape" title="Permalink to this definition">¶</a></dt>
+<dd><p>escape special characters in s. The special characters are listed in spch.
+Escaping is done by putting an ech string before them.
+Default spch and ech corresponds to quoting Shell arguments
+in accordance with
+<a class="reference external" href="http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html">http://www.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html</a>
+Example: os.system(“ls %s” % escape(file_name_with_all_meta_chars_but_newline));
+.. note:</p>
+<ol class="arabic simple">
+<li>Escaped &lt;newline&gt; is removed by a shell if not put in a single-quotted string (‘ ‘)</li>
+<li>A single-quote character even escaped cannot appear in a single-quotted string</li>
+</ol>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh2dict">
+<code class="descclassname">kvh.</code><code class="descname">kvh2dict</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a kvh file from fp pointer then translate its tlist
+structure to a returned hierarchical dictionnary.
+Repeated keys at the same level of a dictionnary are
+silently overwritten</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh2obj">
+<code class="descclassname">kvh.</code><code class="descname">kvh2obj</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a kvh file from fp pointer then translate its tlist
+structure to a returned object hierarchy.
+Repeated fields at the same level of an object are
+silently overwritten</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh2tlist">
+<code class="descclassname">kvh.</code><code class="descname">kvh2tlist</code><span class="sig-paren">(</span><em>fp, lev=[0], indent=[0]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2tlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2tlist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a kvh file from fp stream descriptor
+and organize its content in list of tuples [(k1,v1), (k2,[(k2.1, v2.1)])]
+If fp is a string, it is used in open() operator</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh_get_matrix">
+<code class="descclassname">kvh.</code><code class="descname">kvh_get_matrix</code><span class="sig-paren">(</span><em>fp</em>, <em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_get_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_get_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get matrix or vector whose key suite is in a list keys from a kvh file given in fp
+(file pointer of file name). For big kvh files, this function can be much faster
+than kvh2tlist()+kvh_getv_by_k()
+Return a matrix which is a list of lists (rows). The first item in each row is the
+row name. In case of matrix (i.e. “row_col” is present in kvh file), the very first row contain column names.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh_getv_by_k">
+<code class="descclassname">kvh.</code><code class="descname">kvh_getv_by_k</code><span class="sig-paren">(</span><em>kvt</em>, <em>kl</em><span class="sig-paren">)</span> &#x2192; None|String|kvh tlist<a class="reference internal" href="_modules/kvh.html#kvh_getv_by_k"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_getv_by_k" title="Permalink to this definition">¶</a></dt>
+<dd><p>get value from kvt (kvh tlist) according to the key hierarchy
+defined in the list of keys kl. Return None if no key is found</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh_read_key">
+<code class="descclassname">kvh.</code><code class="descname">kvh_read_key</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_read_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_read_key" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Read a string from the current position till the first unescaped        , </dt>
+<dd>or the end of stream fp.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">tuple (key, sep), sep=None at the end of the stream</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh_read_val">
+<code class="descclassname">kvh.</code><code class="descname">kvh_read_val</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_read_val"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_read_val" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Read a string from current position till the first unescaped</div></blockquote>
+<dl class="docutils">
+<dt>or the end of file.</dt>
+<dd>Return the read string.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh_tlist2dict">
+<code class="descclassname">kvh.</code><code class="descname">kvh_tlist2dict</code><span class="sig-paren">(</span><em>tlist</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_tlist2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_tlist2dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translate a tlist structure read from a kvh file to
+a hierarchical dictionnary. Repeated keys at the same level
+of a dictionnary are silently overwritten</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.kvh_tlist2obj">
+<code class="descclassname">kvh.</code><code class="descname">kvh_tlist2obj</code><span class="sig-paren">(</span><em>tlist</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_tlist2obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_tlist2obj" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translate a tlist structure read from a kvh file to
+a hierarchical dictionnary. Repeated keys at the same level
+of a dictionnary are silently overwritten</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kvh.tlist2kvh">
+<code class="descclassname">kvh.</code><code class="descname">tlist2kvh</code><span class="sig-paren">(</span><em>d</em>, <em>fp=sys.stdout</em>, <em>indent=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#tlist2kvh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.tlist2kvh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a (hierarchichal) list of 2-tuples on the stream fp (stdout by default).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tools_ssg">
+<span id="tools-ssg"></span><h2>tools_ssg<a class="headerlink" href="#module-tools_ssg" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tools_ssg.aff">
+<code class="descclassname">tools_ssg.</code><code class="descname">aff</code><span class="sig-paren">(</span><em>name</em>, <em>obj</em>, <em>ident=0</em>, <em>f=&lt;_io.TextIOWrapper name='&lt;stdout&gt;' mode='w' encoding='UTF-8'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#aff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.aff" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>print formatted object:</dt>
+<dd>name=obj</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.arr2pbm">
+<code class="descclassname">tools_ssg.</code><code class="descname">arr2pbm</code><span class="sig-paren">(</span><em>A</em>, <em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#arr2pbm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.arr2pbm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write an image map of non-zero entries of matrix A to file pointer fp. Matrix A is an array</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.asort">
+<code class="descclassname">tools_ssg.</code><code class="descname">asort</code><span class="sig-paren">(</span><em>d</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#asort"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.asort" title="Permalink to this definition">¶</a></dt>
+<dd><p>sorts a dictionnary by value preserving key=value association the result is a list of tuples (key,value)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.cumsum">
+<code class="descclassname">tools_ssg.</code><code class="descname">cumsum</code><span class="sig-paren">(</span><em>l</em>, <em>tot=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#cumsum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.cumsum" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">an iterable of the length len(l)+1 with cumulated sum of items in l. First element in cumsum is equal to initial value of tot. Result depends on the meaning of “+” operator for l items and of tot type.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span><span class="n">tot</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">))</span>
+<span class="go">[&#39;&#39;, &#39;a&#39;, &#39;ab&#39;, &#39;abc&#39;]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">cumsum</span><span class="p">(</span><span class="n">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">)))</span>
+<span class="go">[0, 1, 3, 6, 10]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.expandbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">expandbit</code><span class="sig-paren">(</span><em>i</em>, <em>pos</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#expandbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.expandbit" title="Permalink to this definition">¶</a></dt>
+<dd><p>copy bits set to 1 in i to the result position given in the list pos. length of pos must be greater or equal to bitlength of i</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.icumo2iiso">
+<code class="descclassname">tools_ssg.</code><code class="descname">icumo2iiso</code><span class="sig-paren">(</span><em>icumo</em>, <em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#icumo2iiso"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.icumo2iiso" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">iterator on isotopomers composing a given icumo. size is carbon number</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.isstr">
+<code class="descclassname">tools_ssg.</code><code class="descname">isstr</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#isstr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.isstr" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if the argument is a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.iterbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">iterbit</code><span class="sig-paren">(</span><em>i</em>, <em>size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#iterbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.iterbit" title="Permalink to this definition">¶</a></dt>
+<dd><p>iterator on bits in integer starting from 0-position. The iterator stops at highest non-zero bit</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.iternumbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">iternumbit</code><span class="sig-paren">(</span><em>i</em>, <em>size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#iternumbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.iternumbit" title="Permalink to this definition">¶</a></dt>
+<dd><p>iterator on bits and its number in integer starting from 0-position. The iterator yields tuples (n,bit). If optional size is zero then it stops at highest non-zero bit. If not, it will stop at bit number size-1.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.join">
+<code class="descclassname">tools_ssg.</code><code class="descname">join</code><span class="sig-paren">(</span><em>c</em>, <em>l</em>, <em>p=''</em>, <em>s=''</em>, <em>a=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.joint">
+<code class="descclassname">tools_ssg.</code><code class="descname">joint</code><span class="sig-paren">(</span><em>c</em>, <em>l</em>, <em>p=''</em>, <em>s=''</em>, <em>a=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#joint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.joint" title="Permalink to this definition">¶</a></dt>
+<dd><p>join “true” items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.list2count">
+<code class="descclassname">tools_ssg.</code><code class="descname">list2count</code><span class="sig-paren">(</span><em>l</em>, <em>incr=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#list2count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.list2count" title="Permalink to this definition">¶</a></dt>
+<dd><p>count values in a (short) list l incrementing the counter by optional incr.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dictionary {item:count}</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.read_table">
+<code class="descclassname">tools_ssg.</code><code class="descname">read_table</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span> &#x2192; dict(mat, col_names) read a plain text file f in a numpy mat. If some columns are not numerical, they are replaced by np.nan. If header=True, number of column names in the first row after skip must be the same as the number of values in each following row.<a class="reference internal" href="_modules/tools_ssg.html#read_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.read_table" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.reverse">
+<code class="descclassname">tools_ssg.</code><code class="descname">reverse</code><span class="sig-paren">(</span><em>it</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#reverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.reverse" title="Permalink to this definition">¶</a></dt>
+<dd><p>reverse order of an iterable</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.rstrbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">rstrbit</code><span class="sig-paren">(</span><em>i</em>, <em>size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#rstrbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.rstrbit" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">the integer as reversed string binary representation. The lowest bit is on the left side</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.setbit32">
+<code class="descclassname">tools_ssg.</code><code class="descname">setbit32</code><span class="sig-paren">(</span><em>i</em>, <em>nb</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#setbit32"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.setbit32" title="Permalink to this definition">¶</a></dt>
+<dd><p>set a bit number nb (0 based) in an integer i</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.setcharbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">setcharbit</code><span class="sig-paren">(</span><em>s</em>, <em>ch</em>, <em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#setcharbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.setcharbit" title="Permalink to this definition">¶</a></dt>
+<dd><p>set character ch in a string s everywhere a corresponding bit of i is set</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.ssign">
+<code class="descclassname">tools_ssg.</code><code class="descname">ssign</code><span class="sig-paren">(</span><em>i</em>, <em>sp='+'</em>, <em>sm='-'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#ssign"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.ssign" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a string of i sign: sp (i&gt;=0) or sm (i&lt;0).</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.strbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">strbit</code><span class="sig-paren">(</span><em>i</em>, <em>size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#strbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.strbit" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">the lowest part of integer as string binary representation</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.strbit2int">
+<code class="descclassname">tools_ssg.</code><code class="descname">strbit2int</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#strbit2int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.strbit2int" title="Permalink to this definition">¶</a></dt>
+<dd><p>translate a string of 0’s and 1’s interpreted as bits to an integer all characters different from 0,1 are silently ignored</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.strbit32">
+<code class="descclassname">tools_ssg.</code><code class="descname">strbit32</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#strbit32"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.strbit32" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a string of 0-1s (in chunk of 4) in an 32 bit integer</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.sumbit">
+<code class="descclassname">tools_ssg.</code><code class="descname">sumbit</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#sumbit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.sumbit" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">sum of bits in an integer</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.trd">
+<code class="descclassname">tools_ssg.</code><code class="descname">trd</code><span class="sig-paren">(</span><em>l</em>, <em>d</em>, <em>p=''</em>, <em>s=''</em>, <em>a=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#trd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.trd" title="Permalink to this definition">¶</a></dt>
+<dd><p>translate items in an iterable l by a dictionary d, prefixing translated items by optional p and suffixing them by optional s. If an item is not found in the dictionnary alternative string a is used. If a==None, the item is left unchanged. No prefix or suffix are applied in both case.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">iterator</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.ulong">
+<code class="descclassname">tools_ssg.</code><code class="descname">ulong</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span> &#x2192; workarounded ulong<a class="reference internal" href="_modules/tools_ssg.html#ulong"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.ulong" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.valval">
+<code class="descclassname">tools_ssg.</code><code class="descname">valval</code><span class="sig-paren">(</span><em>o</em>, <em>keepNone=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#valval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.valval" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">an iterator over values of values, i.e. collapsing values of fisrt two nested lists in one list, for example.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tools_ssg.wxlay2py">
+<code class="descclassname">tools_ssg.</code><code class="descname">wxlay2py</code><span class="sig-paren">(</span><em>kvt, parent=[None]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#wxlay2py"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.wxlay2py" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a string with python code generating wxWindow widget layout described in kvh tlist sturcture</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Programmer’s documentation for influx_s</a><ul>
+<li><a class="reference internal" href="#module-C13_ftbl">C13_ftbl</a></li>
+<li><a class="reference internal" href="#module-ftbl2code">ftbl2code</a></li>
+<li><a class="reference internal" href="#module-ftbl2netan">ftbl2netan</a></li>
+<li><a class="reference internal" href="#module-ftbl2optR">ftbl2optR</a></li>
+<li><a class="reference internal" href="#module-ftbl2xgmml">ftbl2xgmml</a></li>
+<li><a class="reference internal" href="#module-kvh">kvh</a></li>
+<li><a class="reference internal" href="#module-tools_ssg">tools_ssg</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="manual.html"
+                        title="previous chapter">User’s manual</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="howto.html"
+                        title="next chapter">How to …</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/progdoc.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="howto.html" title="How to …"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="manual.html" title="User’s manual"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2012-2019, INRA.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+    </div>
+  </body>
+</html>

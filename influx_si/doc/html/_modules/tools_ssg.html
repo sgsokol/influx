@@ -1,0 +1,356 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>tools_ssg &#8212; influx_si 5.0 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tools_ssg</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">kvh</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">letters</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span>
+
+<div class="viewcode-block" id="aff"><a class="viewcode-back" href="../progdoc.html#tools_ssg.aff">[docs]</a><span class="k">def</span> <span class="nf">aff</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">ident</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    print formatted object:</span>
+<span class="sd">     name=obj</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">saveout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">=</span><span class="n">f</span>
+    <span class="n">to</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">to</span> <span class="o">==</span> <span class="nb">type</span><span class="p">({}):</span>
+        <span class="c1"># dictionary case</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="o">*</span><span class="n">ident</span><span class="o">+</span><span class="s1">&#39;+&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; #&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="n">aff</span><span class="p">(</span><span class="s1">&#39;{&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;}&#39;</span><span class="p">,</span> <span class="n">obj</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">ident</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">to</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(()):</span>
+        <span class="c1"># tuple case</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="o">*</span><span class="n">ident</span><span class="o">+</span><span class="s1">&#39;+&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; #&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="n">aff</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="n">obj</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ident</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">to</span> <span class="o">==</span> <span class="nb">type</span><span class="p">([]):</span>
+        <span class="c1"># list case</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="o">*</span><span class="n">ident</span><span class="o">+</span><span class="s1">&#39;+&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; #&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="n">aff</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="n">obj</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ident</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="o">*</span><span class="n">ident</span><span class="o">+</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">))</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">=</span><span class="n">saveout</span></div>
+
+<div class="viewcode-block" id="asort"><a class="viewcode-back" href="../progdoc.html#tools_ssg.asort">[docs]</a><span class="k">def</span> <span class="nf">asort</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;sorts a dictionnary by value preserving key=value association the result is a list of tuples (key,value)&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span> <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="iterbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.iterbit">[docs]</a><span class="k">def</span> <span class="nf">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;iterator on bits in integer starting from 0-position. The iterator stops at highest non-zero bit&quot;&quot;&quot;</span>
+    <span class="n">i</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">moveb</span><span class="o">=</span><span class="mi">1</span>
+    <span class="n">b_no</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">moveb</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="ow">and</span> <span class="n">size</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">b_no</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="p">(</span><span class="n">moveb</span><span class="o">&amp;</span><span class="n">i</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">moveb</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
+        <span class="n">b_no</span><span class="o">+=</span><span class="mi">1</span></div>
+
+<div class="viewcode-block" id="iternumbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.iternumbit">[docs]</a><span class="k">def</span> <span class="nf">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;iterator on bits and its number in integer starting from 0-position. The iterator yields tuples (n,bit). If optional size is zero then it stops at highest non-zero bit. If not, it will stop at bit number size-1.&quot;&quot;&quot;</span>
+    <span class="n">i</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">moveb</span><span class="o">=</span><span class="mi">1</span>
+    <span class="n">b_no</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">moveb</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="ow">and</span> <span class="n">size</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">b_no</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="p">(</span><span class="n">b_no</span><span class="p">,</span> <span class="mi">1</span> <span class="k">if</span> <span class="p">(</span><span class="n">moveb</span><span class="o">&amp;</span><span class="n">i</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">moveb</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
+        <span class="n">b_no</span><span class="o">+=</span><span class="mi">1</span></div>
+
+<div class="viewcode-block" id="sumbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.sumbit">[docs]</a><span class="k">def</span> <span class="nf">sumbit</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: sum of bits in an integer&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="strbit32"><a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit32">[docs]</a><span class="k">def</span> <span class="nf">strbit32</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: a string of 0-1s (in chunk of 4) in an 32 bit integer&quot;&quot;&quot;</span>
+    <span class="n">i</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">moveb</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">31</span>
+    <span class="n">res</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
+        <span class="n">res</span><span class="o">+=</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">moveb</span><span class="o">&amp;</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">res</span><span class="o">+=</span><span class="s1">&#39; &#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">4</span> <span class="ow">and</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">31</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">moveb</span><span class="o">&gt;&gt;=</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+<div class="viewcode-block" id="strbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit">[docs]</a><span class="k">def</span> <span class="nf">strbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: the lowest part of integer as string binary representation&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="s1">&#39;0&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="p">)</span> <span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+<div class="viewcode-block" id="rstrbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.rstrbit">[docs]</a><span class="k">def</span> <span class="nf">rstrbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: the integer as reversed string binary representation. The lowest bit is on the left side&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="s1">&#39;0&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="p">)</span> <span class="p">)</span></div>
+
+<div class="viewcode-block" id="setbit32"><a class="viewcode-back" href="../progdoc.html#tools_ssg.setbit32">[docs]</a><span class="k">def</span> <span class="nf">setbit32</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">nb</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;set a bit number nb (0 based) in an integer i&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">nb</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nb</span> <span class="o">&gt;</span> <span class="mi">31</span><span class="p">):</span>
+       <span class="k">return</span> <span class="n">i</span><span class="p">;</span> <span class="c1"># do nothing to i</span>
+    <span class="n">i</span><span class="o">|=</span><span class="p">(</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">nb</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="valval"><a class="viewcode-back" href="../progdoc.html#tools_ssg.valval">[docs]</a><span class="k">def</span> <span class="nf">valval</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">keepNone</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: an iterator over values of values, i.e. collapsing values of fisrt two nested lists in one list, for example.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">o</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="n">o</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">i1</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">i1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">i2</span> <span class="ow">in</span> <span class="n">i1</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">keepNone</span><span class="p">:</span>
+                            <span class="k">yield</span> <span class="n">i2</span>
+                        <span class="k">elif</span> <span class="n">i2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="k">yield</span> <span class="n">i2</span>
+                            
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">keepNone</span><span class="p">:</span>
+                        <span class="k">yield</span> <span class="n">i1</span>
+                    <span class="k">elif</span> <span class="n">i1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="k">yield</span> <span class="n">i1</span></div>
+
+<div class="viewcode-block" id="join"><a class="viewcode-back" href="../progdoc.html#tools_ssg.join">[docs]</a><span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional&quot;&quot;&quot;</span>
+    <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span> <span class="ow">or</span> <span class="n">a</span></div>
+<div class="viewcode-block" id="joint"><a class="viewcode-back" href="../progdoc.html#tools_ssg.joint">[docs]</a><span class="k">def</span> <span class="nf">joint</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join &quot;true&quot; items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional&quot;&quot;&quot;</span>
+    <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span> <span class="k">if</span> <span class="n">i</span><span class="p">)</span> <span class="ow">or</span> <span class="n">a</span></div>
+
+<div class="viewcode-block" id="list2count"><a class="viewcode-back" href="../progdoc.html#tools_ssg.list2count">[docs]</a><span class="k">def</span> <span class="nf">list2count</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">incr</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;count values in a (short) list l incrementing the counter by optional incr.</span>
+<span class="sd">    </span>
+<span class="sd">    :returns: a dictionary {item:count}&quot;&quot;&quot;</span>
+    <span class="n">dico</span><span class="o">=</span><span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">l</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">incr</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">dico</span></div>
+
+<div class="viewcode-block" id="strbit2int"><a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit2int">[docs]</a><span class="k">def</span> <span class="nf">strbit2int</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;translate a string of 0&#39;s and 1&#39;s interpreted as bits to an integer all characters different from 0,1 are silently ignored&quot;&quot;&quot;</span>
+    <span class="n">res</span><span class="o">=</span><span class="mi">0</span>
+    <span class="n">movb</span><span class="o">=</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">==</span><span class="s1">&#39;1&#39;</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">+=</span><span class="n">movb</span>
+        <span class="k">elif</span> <span class="n">c</span><span class="o">!=</span><span class="s1">&#39;0&#39;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">movb</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="setcharbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.setcharbit">[docs]</a><span class="k">def</span> <span class="nf">setcharbit</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">ch</span><span class="p">,</span><span class="n">i</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;set character ch in a string s everywhere a corresponding bit of i is set&quot;&quot;&quot;</span>
+    <span class="n">res</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">ch</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="n">b_no</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">b_no</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+    <span class="c1">#print &#39;in:&#39;, s, ch, strbit(i)</span>
+    <span class="c1">#print &#39;r&#39;, res</span>
+    <span class="n">res</span><span class="o">=</span><span class="n">s</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)]</span><span class="o">+</span><span class="n">res</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1">#print &#39;final&#39;, res</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="expandbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.expandbit">[docs]</a><span class="k">def</span> <span class="nf">expandbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">pos</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;copy bits set to 1 in i to the result position given in the list pos. length of pos must be greater or equal to bitlength of i&quot;&quot;&quot;</span>
+    <span class="c1">#print i, pos;##</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">b</span><span class="o">&lt;&lt;</span><span class="n">pos</span><span class="p">[</span><span class="n">b_no</span><span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">b_no</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="isstr"><a class="viewcode-back" href="../progdoc.html#tools_ssg.isstr">[docs]</a><span class="k">def</span> <span class="nf">isstr</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: True if the argument is a string&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="trd"><a class="viewcode-back" href="../progdoc.html#tools_ssg.trd">[docs]</a><span class="k">def</span> <span class="nf">trd</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;translate items in an iterable l by a dictionary d, prefixing translated items by optional p and suffixing them by optional s. If an item is not found in the dictionnary alternative string a is used. If a==None, the item is left unchanged. No prefix or suffix are applied in both case.</span>
+
+<span class="sd">    :returns: iterator&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">+</span><span class="n">s</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">else</span> <span class="n">i</span> <span class="k">if</span> <span class="n">a</span><span class="o">==</span><span class="kc">None</span> <span class="k">else</span> <span class="n">a</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span></div>
+<div class="viewcode-block" id="icumo2iiso"><a class="viewcode-back" href="../progdoc.html#tools_ssg.icumo2iiso">[docs]</a><span class="k">def</span> <span class="nf">icumo2iiso</span><span class="p">(</span><span class="n">icumo</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: iterator on isotopomers composing a given icumo. size is carbon number&quot;&quot;&quot;</span>
+    <span class="n">nzero</span><span class="o">=</span><span class="n">size</span><span class="o">-</span><span class="n">sumbit</span><span class="p">(</span><span class="n">icumo</span><span class="p">)</span>
+    <span class="n">zpos</span><span class="o">=</span><span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iternumbit</span><span class="p">(</span><span class="n">icumo</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">b</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">expandbit</span><span class="p">(</span><span class="n">iz</span><span class="p">,</span><span class="n">zpos</span><span class="p">)</span><span class="o">+</span><span class="n">icumo</span> <span class="k">for</span> <span class="n">iz</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">nzero</span><span class="p">))</span></div>
+<div class="viewcode-block" id="reverse"><a class="viewcode-back" href="../progdoc.html#tools_ssg.reverse">[docs]</a><span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="n">it</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;reverse order of an iterable&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">it</span><span class="p">),</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">it</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+<div class="viewcode-block" id="ssign"><a class="viewcode-back" href="../progdoc.html#tools_ssg.ssign">[docs]</a><span class="k">def</span> <span class="nf">ssign</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">sp</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">sm</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: a string of i sign: sp (i&gt;=0) or sm (i&lt;0). &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">sp</span> <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">sm</span></div>
+<div class="viewcode-block" id="arr2pbm"><a class="viewcode-back" href="../progdoc.html#tools_ssg.arr2pbm">[docs]</a><span class="k">def</span> <span class="nf">arr2pbm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write an image map of non-zero entries of matrix A to file pointer fp. Matrix A is an array&quot;&quot;&quot;</span>
+    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;P1</span><span class="se">\n</span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">A</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;1 &quot;</span> <span class="k">if</span> <span class="n">c</span> <span class="k">else</span> <span class="s2">&quot;0 &quot;</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">+=</span><span class="mi">2</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="mi">69</span><span class="p">:</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">p</span><span class="o">=</span><span class="mi">0</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">p</span><span class="o">=</span><span class="mi">0</span></div>
+<div class="viewcode-block" id="cumsum"><a class="viewcode-back" href="../progdoc.html#tools_ssg.cumsum">[docs]</a><span class="k">def</span> <span class="nf">cumsum</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">tot</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:Returns: an iterable of the length len(l)+1 with cumulated sum of items in l. First element in cumsum is equal to initial value of tot. Result depends on the meaning of &quot;+&quot; operator for l items and of tot type.</span>
+<span class="sd">   </span>
+<span class="sd">.. doctest:</span>
+
+<span class="sd">&gt;&gt;&gt; list(cumsum(&quot;abc&quot;,tot=&quot;&quot;))</span>
+<span class="sd">[&#39;&#39;, &#39;a&#39;, &#39;ab&#39;, &#39;abc&#39;]</span>
+
+<span class="sd">&gt;&gt;&gt; list(cumsum(xrange(1,5)))</span>
+<span class="sd">[0, 1, 3, 6, 10]</span>
+<span class="sd">   &quot;&quot;&quot;</span>
+   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+       <span class="k">yield</span> <span class="n">tot</span>
+       <span class="n">tot</span><span class="o">+=</span><span class="n">i</span>
+   <span class="k">yield</span> <span class="n">tot</span></div>
+<div class="viewcode-block" id="wxlay2py"><a class="viewcode-back" href="../progdoc.html#tools_ssg.wxlay2py">[docs]</a><span class="k">def</span> <span class="nf">wxlay2py</span><span class="p">(</span><span class="n">kvt</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :returns: a string with python code generating wxWindow widget layout described in kvh tlist sturcture</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+    <span class="c1"># get the kvh tuples</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kvt</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;wx.&quot;</span> <span class="ow">or</span> <span class="n">k</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;wx_&quot;</span><span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">==</span><span class="nb">type</span><span class="p">([]):</span>
+            <span class="c1">## produce the code for this widget</span>
+            <span class="c1"># call class init</span>
+            <span class="n">varname</span><span class="o">=</span><span class="n">kvh_getv_by_k</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;varname&quot;</span><span class="p">])</span>
+            <span class="n">res</span><span class="o">+=</span><span class="p">(</span><span class="n">varname</span><span class="o">+</span><span class="s2">&quot;=&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">varname</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">param</span><span class="o">=</span><span class="n">kvh_getv_by_k</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;param&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">param</span><span class="p">:</span>
+                <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.parent&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">param</span><span class="o">=</span><span class="n">param</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.top&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">res</span><span class="o">+=</span><span class="n">k</span><span class="o">+</span><span class="s2">&quot;(&quot;</span><span class="o">+</span><span class="p">(</span><span class="n">param</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;);</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="c1"># recursivly create children</span>
+            <span class="n">res</span><span class="o">+=</span><span class="n">wxlay2py</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">parent</span><span class="o">+</span><span class="p">[</span><span class="n">varname</span><span class="p">])</span>
+            <span class="c1"># call methods if any and varname is set</span>
+            <span class="n">cl</span><span class="o">=</span><span class="n">kvh_getv_by_k</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;callmeth&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">varname</span> <span class="ow">and</span> <span class="n">cl</span><span class="p">:</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">kc</span><span class="p">,</span><span class="n">vc</span><span class="p">)</span> <span class="ow">in</span> <span class="n">cl</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">vc</span><span class="p">:</span>
+                        <span class="c1"># if key and value store the result in key</span>
+                        <span class="n">vc</span><span class="o">=</span><span class="n">vc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.parent&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="n">vc</span><span class="o">=</span><span class="n">vc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.self&quot;</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+                        <span class="n">kc</span><span class="o">=</span><span class="n">kc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.self&quot;</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">vc</span><span class="o">=</span><span class="n">vc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.top&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="n">res</span><span class="o">+=</span><span class="n">kc</span><span class="o">+</span><span class="s2">&quot;=&quot;</span><span class="o">+</span><span class="p">(</span><span class="n">varname</span><span class="o">+</span><span class="s2">&quot;.&quot;</span>
+                            <span class="k">if</span> <span class="n">vc</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;wx&quot;</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">+</span><span class="n">vc</span><span class="o">+</span><span class="s2">&quot;;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="k">elif</span> <span class="n">kc</span><span class="p">:</span>
+                        <span class="c1"># just call the key content</span>
+                        <span class="k">if</span> <span class="n">kc</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+                            <span class="n">kc</span><span class="o">=</span><span class="n">kc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.parent&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                            <span class="n">kc</span><span class="o">=</span><span class="n">kc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.self&quot;</span><span class="p">,</span> <span class="n">varname</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="n">kc</span><span class="o">=</span><span class="n">kc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.top&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">parent</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                            <span class="n">res</span><span class="o">+=</span><span class="p">(</span><span class="n">varname</span><span class="o">+</span><span class="s2">&quot;.&quot;</span> <span class="k">if</span> <span class="n">vc</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;wx&quot;</span>
+                                <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">+</span><span class="n">kc</span><span class="o">+</span><span class="s2">&quot;;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># we don&#39;t know what it is, just silently ignore</span>
+            <span class="k">pass</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ulong"><a class="viewcode-back" href="../progdoc.html#tools_ssg.ulong">[docs]</a><span class="k">def</span> <span class="nf">ulong</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;ulong(i) -&gt; workarounded ulong&quot;&quot;&quot;</span>
+    <span class="k">return</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">i</span><span class="o">^</span><span class="mh">0xffffffff</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="read_table"><a class="viewcode-back" href="../progdoc.html#tools_ssg.read_table">[docs]</a><span class="k">def</span> <span class="nf">read_table</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;read_table(f) -&gt; dict(mat, col_names) read a plain text file f in a numpy mat. If some columns are not numerical, they are replaced by np.nan. If header=True, number of column names in the first row after skip must be the same as the number of values in each following row.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">open_here</span><span class="o">=</span><span class="kc">False</span>
+    <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
+        <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">open_here</span><span class="o">=</span><span class="kc">True</span>
+    <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">skip</span><span class="p">:</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">i</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="k">continue</span>
+    <span class="n">line</span><span class="o">=</span><span class="n">fp</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+    <span class="n">fields</span><span class="o">=</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+    <span class="c1"># count fields, create array</span>
+    <span class="n">col_names</span><span class="o">=</span><span class="n">fields</span> <span class="k">if</span> <span class="n">header</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="c1"># proceed normal (i.e. data) line</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asmatrix</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndfromtxt</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">sep</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">open_here</span><span class="p">:</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;mat&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">,</span> <span class="s2">&quot;col_names&quot;</span><span class="p">:</span> <span class="n">col_names</span><span class="p">}</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2012-2019, INRA.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+    </div>
+  </body>
+</html>

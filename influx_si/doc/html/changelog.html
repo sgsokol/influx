@@ -1,0 +1,773 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Change Log for influx_si &#8212; influx_si 5.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="install.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="change-log-for-influx-si">
+<span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-5-0">
+<h2>2019-10-25 version 5.0<a class="headerlink" href="#version-5-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>converted to Python 3</li>
+<li>packaged with python distutils and Conda package management system. Now installation can be made as simple as <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">influx_si</span></code> or <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">influx_si</span></code>. Internet cnnection is required for both methods.</li>
+<li>auxiliary C++ routines are placed in multbxxc R packages. So, no more compilation is needed at first execution of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.</li>
+</ul>
+</dd>
+<dt>Bug fix (all bugs in this release are reported by Baudoin Delépine, INSA, Toulouse, France):</dt>
+<dd><ul class="first last simple">
+<li>fixed doc about R version (now 3.4.0 or higher) and rmumps (now 5.2.1-3 or higher)</li>
+<li>fixed use of <cite>–sln</cite> option</li>
+<li>added explicite error message if <code class="docutils literal notranslate"><span class="pre">tmax</span></code> is Inf (can happen if time grid could not be read from file indicated in <code class="docutils literal notranslate"><span class="pre">file_labcin</span></code> ftbl field)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-4-3">
+<h2>2017-07-04 version 4.4.3<a class="headerlink" href="#version-4-4-3" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added 95% quantile in monte-carlo/cost/ci field in _res.kvh file. It makes possible to do a mono-tail chi2 test for goodness of fit</li>
+<li>added possibility for FTBL files to be encoded in UTF16 and UTF32 (based on case reported by Lucille Stuani, INSERM, Toulouse, France)</li>
+<li>added an explicit error message if no label information could be found in parallel experiment FTBL (reported idem)</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed a warning in Monte-Carlo iteration about multiple values in if() close (reported idem)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-4-2">
+<h2>2017-06-15 version 4.4.2<a class="headerlink" href="#version-4-4-2" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added a new field “constrained net-xch01 fluxes” to the result kvh file</li>
+<li>ff2ftbl.py: instead of only free fluxes, all fluxes are read in kvh file. Thus in a modified FTBL, a partition on free/dependent/constrained fluxes can differ from those used in the kvh file.</li>
+<li>ff2ftbl.py: if kvh and ftbl files have the same prefix, only this prefix can be given as a unique command line argument</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>ff2ftbl.py: fixed “end of line” bug on Windows platform</li>
+<li>plot_smeas.R: fixed metabolite names retrieving in parallel experiments</li>
+<li>plot_smeas.R: fixed disgraceful exit if simulation in influx_s failed</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-4-1">
+<h2>2017-05-24 version 4.4.1<a class="headerlink" href="#version-4-4-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>in plot_smeas.R and plot_imass.R few cosmetic improvements in plot titles and legends</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed non varying free pools in influx_s</li>
+<li>fixed cases where some cumomer (or EMU) weights can have no cumomers (EMU)</li>
+<li>fixed libs.R by including some files (impacted preamble.R)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-4">
+<h2>2017-05-22 version 4.4<a class="headerlink" href="#version-4-4" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added plot_smeas.R file to be included in posttreat_R field in FTBL/OPTIONS. It plots all stationary measurements vs their simulated counterparts in a pdf file.</li>
+<li>added preamble.R, an example of starting session when working with mynetwork.RData issued from save_all.R or save_minenv.R</li>
+<li>R can be again of version 3.3+ (not necessarily 3.4+)</li>
+<li>minor speedup in instationary simulations</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed names in dev vector of pool measurements</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-3">
+<h2>2017-04-28 version 4.3<a class="headerlink" href="#version-4-3" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>speed up of about 30-40% is achieved for instationary simulations with 2nd order time scheme (need upgrade R at least to 3.4.0).</li>
+<li>in plot_imass.R, each measured mass fragment is presented in a separate plot instead of regrouping all fragments for a given metabolite on the same plot.</li>
+<li>in plot_imass.R, non measured metabolites are plotted too now</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed Monte-Carlo iterations with –np=1</li>
+<li>added a mention of python-libsbml in installation procedure</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-2">
+<h2>2017-03-30 version 4.2<a class="headerlink" href="#version-4-2" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added a script ftbl2metxml.py converting an ftbl to an xml file suitable for visualization on <a class="reference external" href="http://metexplore.toulouse.inra.fr">http://metexplore.toulouse.inra.fr</a> . Additionally, it reads flux values from corresponding …_res.kvh file (if available) and put them in files …_net.txt, …_fwd.txt and …_rev.txt for later copy/pasting on the MetExplore site (suggested by Tony Palama, INSA, Toulouse, France)</li>
+<li>added comment tags ‘###’ to txt network format (recognized by txt2ftbl.py and respectively ‘//##’ tag in FTBL format recognized by all programs using FTBL format) to mark a new pathway. It allows ftbl2metxml.py to assign reactions to pathways and thus make a network graph more readable.</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>a duly error message is added to signal a network without any label entry in a reduced cumomer network.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-1">
+<h2>2017-03-03 version 4.1<a class="headerlink" href="#version-4-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added explicit error message when label transitions are missing for any reaction in NETWORK section</li>
+<li>improved speed of labeling simulation in influx_i</li>
+<li>added parameter –tblimit[=0] for trace back limit in errors generated by python (for developers only).</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed error appearing in influx_i during parallel experiments in situation where time intervals are different in different experiments (reported by Maria Fatarova, INSA, Toulouse, France)</li>
+<li>fixed file creation in plot_imass.R (it created pdf in the current directory instead of the working one)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-0-1">
+<h2>2016-12-20 version 4.0.1<a class="headerlink" href="#version-4-0-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>file txt2ftbl.py was lacking in the previous version (reported by Tony Palama, INSA, Toulouse, France)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-4-0">
+<h2>2016-12-19 version 4.0<a class="headerlink" href="#version-4-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>parallel experiments (i.e. same metabolic state but different label entries) can now be processed both in stationary (influx_s) and instationary (influx_i) labeling</li>
+<li>reaction having more than 2 metabolites on ever side can now be entered in FTBL as a series of reactions with the same name</li>
+<li>metabolites with no carbon transitions (like ATP, NADP etc. when they are just co-factors) can now be entered in NETWORK section. They can have stoechiometric coefficients different from 1</li>
+<li>the same metabolite can now appear on both sides of a reaction. It can be helpful for some special carbon shuffles</li>
+<li>reactions without carbon transitions can now be entered in a new FTBL section NOTRACER_NETWORK. It is a good place to enter for example biomass reaction. Stoechiometric coefficients different from one are allowed at this place</li>
+<li>new utility txt2ftbl.py translates an easier readable/writable format for chemical reactions to an FTBL file</li>
+<li>added –addnoise option to facilitate creation of realistic simulated measurements</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug preventing Monte-Carlo simulations with influx_i (reported by Maria Fatarova, INSA, Toulouse, France)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-3-2">
+<h2>2016-07-29 version 3.2<a class="headerlink" href="#version-3-2" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added controls for coherence of label transitions</li>
+<li>added detection of incoherent fragments in MASS_MEASUREMENTS (e.g. longer one than a whole molecule)</li>
+<li>in LABEL_INPUT section, if incomplete labeled forms don’t sum up to 1, and several labeled forms are absent, the lacking label fraction is assigned to the fully unlabeled form</li>
+<li>R package ‘snow’ is no more needed on windows platform to run Monte-Carlo simulations in parallel mode</li>
+<li>on all platforms, Monte-Carlo simulations are now run on a PSOCK cluster and no more on a FORK cluster (Linux) or SOCK (Windows)</li>
+<li>inequalities involving only constrained fluxes or depending solely on such fluxes are now simply ignored with a warning</li>
+<li>fixed Jacobian calculation when no free flux exists</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed building a library mult_bxxc.dll on Windows platform (reported by Tony Palama, INSA/MetaToul Toulouse, France)</li>
+<li>fixed building mult_bxxc.so in parallel context (multiple ftbls)</li>
+<li>fixed formulas in equalities and inequalities with flux names having parenthesis, brackets, spaces and alike</li>
+<li>cluster workers are parsimoniously created in case of multiple starting points</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-3-1">
+<h2>2016-06-13 version 3.1<a class="headerlink" href="#version-3-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added controls and explicit error messages for DEVIATION=0 in FTBL file</li>
+<li>added column “p-value” to residual values in _res.kvh file (may help for outlier choice)</li>
+<li>added check-points for infinite values that can appear in residual and Jacobian</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed EMU mode in instationary case</li>
+<li>fixed renewal of mult_bxxc.so library in case of source update</li>
+<li>fixed cost value calculation in case of outlier exclusion</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-3-0-1">
+<h2>2016-04-18 version 3.0.1<a class="headerlink" href="#version-3-0-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed including mult_bxxc.so file in zip archive which prevented from proper compiling of this dynamic library</li>
+<li>fixed an absence of C++11 flag on platforms where it is not a standard by default.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-3-0">
+<h2>2016-04-15 version 3.0<a class="headerlink" href="#version-3-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>influx_i.py is introduced for instationary label modeling</li>
+<li>some critical calculations are written in C++ so some compilation is needed at first execution.</li>
+<li>new optional package limSolve is used and need to be installed (as well as its dependencies) if <code class="docutils literal notranslate"><span class="pre">--lim</span></code> option is used</li>
+<li>more TIMEIT points introduced for finer time control</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed performance issue in slam package for ‘-‘ and ‘+’ operations</li>
+<li>fixed sparse matrix preparation when there is only one non zero entry</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-15">
+<h2>2016-02-18 version 2.15<a class="headerlink" href="#version-2-15" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>calculation speed was improved due to the use of packages slam and rmumps instead of Matrix;</li>
+<li>added “cpu” field when timing is requested</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug preventing a use of a flux added in EQALITIES in measured fluxes (reported by Edern Cahoreau, INSA, Toulouse, France)</li>
+<li>fixed minor problems in MC iterations (parameter distribution was not significantly affected)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-14">
+<h2>2015-01-19 version 2.14<a class="headerlink" href="#version-2-14" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">commandArgs</span></code> field in FTBL file can have comments in it and occur more than once somewhere in the <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section</li>
+<li><code class="docutils literal notranslate"><span class="pre">--DEBUG</span></code> option is removed as obsolete</li>
+<li>R package <code class="docutils literal notranslate"><span class="pre">bitops</span></code> is not required anymore to be installed (valid for R-3.0.0 or higher)</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug in delivering an error message when <code class="docutils literal notranslate"><span class="pre">commandArgs</span></code> had a comment in it</li>
+<li>fixed the precedence of command line options over <code class="docutils literal notranslate"><span class="pre">commandArgs</span></code> given in FTBL</li>
+<li>fixed a bug in parsing FTBL file having a BOM (invisible utf8 encoding mark) in it (reported by Yanfen Fu, University of Washington, USA)</li>
+<li>fixed representation of growth fluxes by ftbl2xgmml.py utility</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-13">
+<h2>2014-09-17 version 2.13<a class="headerlink" href="#version-2-13" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> field can have several file names separated by <code class="docutils literal notranslate"><span class="pre">';</span> <span class="pre">'</span></code></li>
+<li>added explicit error message if a valid float value is missing for free or constrained flux</li>
+<li>added explicit error message if no dependent flux is included in the balance on any metabolite (suggested by a case submitted by Marc O. Warmoes, Cornell University, USA)</li>
+<li>in the documentation, added a paragraph about consulting offer</li>
+<li>result .kvh file is greatly shortened, keeping only essential information. Custom additional information can be stored in some file via <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> option</li>
+<li>now, <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> returns a non zero code to shell if an error occurred during execution;</li>
+<li>added a parameter <code class="docutils literal notranslate"><span class="pre">monotone</span></code> to the control list of NLSIC.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug in generating EMU systems (manifested in some special cases)</li>
+<li>fixed an error preventing from producing a message suggesting a new partition among dependent, free and constrained fluxes (reported by Stéphane Mottelet, University of Compiegne, France)</li>
+<li>fixed metabolite pooling weights (manifested in some special cases)</li>
+<li>Windows platform: fixed passing command line options to R code</li>
+<li>Windows platform: precompiled <code class="docutils literal notranslate"><span class="pre">nnls</span></code> R package (version 32 bits) can produce wrong results. Recompile it by hand or use 64 bits version.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-12">
+<h2>2014-07-02 version 2.12<a class="headerlink" href="#version-2-12" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>parsing badly formatted ftbl files is made more robust</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug in <code class="docutils literal notranslate"><span class="pre">--emu</span></code> option (was introduced in v.2.11)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-11-1">
+<h2>2014-06-12 version 2.11.1<a class="headerlink" href="#version-2-11-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>an option <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> broken in 2.11 is repaired (reported by Pierre Millard, Manchester Institute of Biotechnology, UK)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-11">
+<h2>2014-06-11 version 2.11<a class="headerlink" href="#version-2-11" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>a joint use of the options <code class="docutils literal notranslate"><span class="pre">--fseries</span></code> and <code class="docutils literal notranslate"><span class="pre">--irand</span></code> gives a possibility to mix fixed and random values in starting points</li>
+<li>post treatment option <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> is introduced in FTBL file. A user script written in R can be used to chain flux estimation and customized data treatment, e.g. graph plotting in a pdf file or simply saving of all the environment for later use and exploring in an R interactive session</li>
+<li>added optional <code class="docutils literal notranslate"><span class="pre">INEQUALITIES/METAB</span></code> section in FTBL file. It can be helpful to limit variations of estimated metabolite concentrations (suggested by Marc Carnicer, INSA of Toulouse, France)</li>
+<li>added optional <code class="docutils literal notranslate"><span class="pre">EQUALITIES/METAB</span></code> section in FTBL file. It can be helpful to fix a ratio between varying metabolite concentrations (suggested by Marc Carnicer, idem)</li>
+<li>the default value of <code class="docutils literal notranslate"><span class="pre">btdesc</span></code> parameter in NLSIC algorithm is lowered from 0.75 to 0.1. In some cases, it can accelerate the optimization convergence.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed EMU list of participants in measurements</li>
+<li>fixed measurement matrix when only one measurement is available</li>
+<li>fixed a fatal error when no free flux is available but at least one metabolite quantity must be estimated</li>
+<li>fixed a bug in pooled measurements. This bug was harmful only if the metabolite pooling was used in more than one type of measurements, e.g. mass <em>and</em> labeling. If only one type of measurements used pooling (e.g. mass), the bug was without effect</li>
+<li>where appropriate, a word “labeling” was replaced by “label” in the field names of the <code class="docutils literal notranslate"><span class="pre">_res.kvh</span></code> file</li>
+<li>fixed superfluous backtracking iterations present for some particular residual functions</li>
+<li>if a flux or a metabolite is present more than once in formulas of (IN)EQUALITIES sections, its coefficients are summed up instead of taking only the last one</li>
+<li>fixed a fatal error in generating inequality matrix for net fluxes</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-10">
+<h2>2014-04-08 version 2.10<a class="headerlink" href="#version-2-10" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added an option <code class="docutils literal notranslate"><span class="pre">--tikhreg</span></code> which is an alternative for <code class="docutils literal notranslate"><span class="pre">--ln</span></code> option. In case of rank deficient Jacobian, it calculates an increment step of the smallest norm in  <em>approximative</em> way. It is done by Tikhonov regularization</li>
+<li>added an option <code class="docutils literal notranslate"><span class="pre">--ffguess</span></code> which makes to ignore the partition between free and dependent fluxes defined in FTBL file(s) and automatically guess a new free/dependent flux partition (suggested by Roland Nilsson, Karolinska Institutet, Sweden)</li>
+<li>added utility <code class="docutils literal notranslate"><span class="pre">ftbl2kvh.py</span></code> which is useful for debugging purposes only</li>
+<li>utilities <code class="docutils literal notranslate"><span class="pre">ftbl2xgmml.py</span></code>, <code class="docutils literal notranslate"><span class="pre">ftbl2cumoAb.py</span></code>, <code class="docutils literal notranslate"><span class="pre">ftbl2netan.py</span></code> and <code class="docutils literal notranslate"><span class="pre">ftbl2kvh.py</span></code> are rewritten in such a way that if no output redirection (with operands ‘&gt;’ or ‘|’) occurs on the command line, the name of the output file is automatically derived from the input one. The suffix <code class="docutils literal notranslate"><span class="pre">.ftbl</span></code> is simply replaced with <code class="docutils literal notranslate"><span class="pre">.xgmml</span></code>, <code class="docutils literal notranslate"><span class="pre">.sys</span></code>, <code class="docutils literal notranslate"><span class="pre">.netan</span></code> or <code class="docutils literal notranslate"><span class="pre">.kvh</span></code> respectively. Thus a plain drug-and-drop can work with these utilities</li>
+<li>option <code class="docutils literal notranslate"><span class="pre">--TIMEIT</span></code> reports times with subsecond precision. The actual precision depends on the platform but typically a 0.01 s precision should be available. On Windows, the precision is usually 1/60 of a second</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed <code class="docutils literal notranslate"><span class="pre">include_growth_flux</span></code> option for <code class="docutils literal notranslate"><span class="pre">ftbl2cumoAb.py</span></code> utility (reported by Marc Carnicer, INSA of Toulouse, France)</li>
+<li>fixed a bug preventing from checking for a linear dependence between rows of stoechiometric matrix if no constrained net flux is defined in the FTBL file (reported by Roland Nilsson, idem)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-9">
+<h2>2014-02-05 version 2.9<a class="headerlink" href="#version-2-9" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>utility <code class="docutils literal notranslate"><span class="pre">ftbl2xgmml.py</span></code> replaces <code class="docutils literal notranslate"><span class="pre">ftbl2rsif.py</span></code>. Now, a standalone XGMML file describes both a network and its graphical properties instead of a collection of files where this information was spread. New graphical conventions are now used.</li>
+<li>an obsolete utility <code class="docutils literal notranslate"><span class="pre">ftbl2cytoscape.bat</span></code> is removed form the distribution.</li>
+<li>added utility <code class="docutils literal notranslate"><span class="pre">res2ftbl_meas.py</span></code> generating measurement section from a result file _res.kvh</li>
+<li>added utility <code class="docutils literal notranslate"><span class="pre">expa2ftbl.R</span></code> transforming stoechiometric information in EXPA format (<a class="reference external" href="http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis">http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis</a>) to various sections of FTBL file, namely to <code class="docutils literal notranslate"><span class="pre">EQUALITY</span></code> section where non carbon carrying fluxes can appear</li>
+<li>files generated by <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and collecting values for graphical representation (like <code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwork</span></code> and others) are renamed by adding a suffix <code class="docutils literal notranslate"><span class="pre">.attrs</span></code> to make them compatible with Cytoscape v3.0</li>
+<li>utilities <code class="docutils literal notranslate"><span class="pre">ffres2ftbl.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">ff2ftbl.py</span></code> distributed for a long time ago, are now mentioned in the documentation</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed <code class="docutils literal notranslate"><span class="pre">--fullsys</span></code> option broken in the previous release.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-8">
+<h2>2014-01-27 version 2.8<a class="headerlink" href="#version-2-8" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">EQUALITY</span></code> section in FTBL file may include fluxes absent in <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section, e.g. fluxes involved in non carbon carrying reactions (suggested by Roland Nilsson, Karolinska Institutet, Sweden)</li>
+<li>when a meaningful partition between free and dependent fluxes cannot be made, a proposition is made as to stoechiometric equations to be eliminated by hand (suggested by Roland Nilsson, idem)</li>
+<li>when <code class="docutils literal notranslate"><span class="pre">--clownr</span></code> option is used, reduced size of cumomer system is more efficient than without this option (replace a fix in 2.6 version)</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed useless memory consumption during ftbl parsing when <code class="docutils literal notranslate"><span class="pre">--emu</span></code> option is used and very long molecules (say &gt;20 carbons) are present (reported by Roland Nilsson, idem)</li>
+<li>some error messages are made more explicit during FTBL parsing</li>
+<li>fixed Jacobian calculation for condensing input reaction</li>
+<li>fixed matrix constructions when no free flux is defined</li>
+<li>fixed b term for full cumomer system</li>
+<li>fixed inequality enforcement when adaptive backtracking is used in NLSIC</li>
+<li>fixed inequality precedence, now specific inequalities from FTBL file prevail on <code class="docutils literal notranslate"><span class="pre">--cupn=CUPN</span></code> option</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-7">
+<h2>2013-10-22 version 2.7<a class="headerlink" href="#version-2-7" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>Monte-Carlo simulations are done in parallel on Windows platform too (needs R package <code class="docutils literal notranslate"><span class="pre">snow</span></code>)</li>
+<li>if the option <code class="docutils literal notranslate"><span class="pre">--seed=SEED</span></code> is used, Monte-Carlo simulations are now reproducible even if run in parallel on multiple cores</li>
+<li>for rank deficient Jacobian, the inequalities are now better enforced</li>
+<li>starting value for <code class="docutils literal notranslate"><span class="pre">maxstep</span></code> parameter is set to <span class="math notranslate nohighlight">\(10||p||\)</span> instead of <span class="math notranslate nohighlight">\(||p||\)</span> where <em>p</em> is a vector of starting values for free parameters to fit.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug preventing to report partial Monte-Carlo results if some simulations failed and some not</li>
+<li>fixed a bug making to use all available cores instead of only one when <code class="docutils literal notranslate"><span class="pre">NP</span></code> was set to 1</li>
+<li>fixed a fatal error when inequality enforcement fails</li>
+<li>error and log messages during zero cross passes are made more explicit</li>
+<li>fixed sending some error messages on standard output instead of <code class="docutils literal notranslate"><span class="pre">.err</span></code> file</li>
+<li>when cumomer matrix is singular, fixed an error message about zero fluxes</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-6">
+<h2>2013-10-02 version 2.6<a class="headerlink" href="#version-2-6" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added option <code class="docutils literal notranslate"><span class="pre">--sln</span></code> (solution least norm) which applies ‘least norm’ to the whole solution vector of free parameters, not just to the increment vector (like <code class="docutils literal notranslate"><span class="pre">--ln</span></code> does)</li>
+<li>a parallel calculation of multiple FTBLs is moved from python to R code. In such a way, some economies of repeated R starting up and library loading are made</li>
+<li>when zero crossing is used (<code class="docutils literal notranslate"><span class="pre">--zc=ZC</span></code>) a third pass is added without any zc constraint.</li>
+<li>added an option <code class="docutils literal notranslate"><span class="pre">maxstep</span></code> to control list of nlsic(). In some situations, it can make the convergence more stable at early iterations.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a fatal error preventing from using BFGS optimization method</li>
+<li>fixed an error in calculating reduced size of cumomer or EMU systems. It did not impact the results (at least for well defined network) but made calculations a little bit longer (reported by Stephane Mottelet, University of Compiegne, France).</li>
+<li>a more explicit error message is generated when a given choice of free fluxes leads to a square but singular flux (stoechiometric) matrix.</li>
+<li>some error messages were printed on standard output instead of <code class="docutils literal notranslate"><span class="pre">.err</span></code> file.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-5">
+<h2>2013-06-28 version 2.5<a class="headerlink" href="#version-2-5" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>an argument of the option <code class="docutils literal notranslate"><span class="pre">--np=NP</span></code> (number of processes) can be fractional, between 0 and 1 in which case the number of requested cores is calculated as NP*number_of_available_cores</li>
+<li>in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more field names in the output file are described (based on discussions with Yanfen Fu, University of Washington, USA)</li>
+<li>missing values in measurements (NA as Non Available) are allowed in FTBL files.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a fatal error if the rights of generated R file cannot be changed</li>
+<li>fixed a bug for <code class="docutils literal notranslate"><span class="pre">--ln</span></code> (least norm) option when without inequalities, increments were not of least norm (reported by Stephane Massou, INSA of Toulouse, France)</li>
+<li>fixed an algorithm used in <code class="docutils literal notranslate"><span class="pre">--ln</span></code>. Now for all inequality systems, both least residual norm and least solution norm are achieved (before, for some systems it was not the case). <strong>Due to this fix, we highly recommend to update to this version if you use</strong> <code class="docutils literal notranslate"><span class="pre">--ln</span></code> <strong>option</strong></li>
+<li>fixed a bug in “zero crossing” inequalities. Now, inequalities involving only constrained fluxes are canceled.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-4">
+<h2>2013-04-11 version 2.4<a class="headerlink" href="#version-2-4" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>number of parallel processes (in case of multiple FTBL files) is limited to a number of cores or to an argument of the <code class="docutils literal notranslate"><span class="pre">--np</span></code> option</li>
+<li>some consistency controls were added on flux names in various FTBL sections.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a bug in formatting some error messages during FTBL parsing;</li>
+<li>fixed an accidental removing of kvh.py file from the previous release;</li>
+<li>fixed non signaling to check <code class="docutils literal notranslate"><span class="pre">.err</span></code> file while some parsing errors did produce;</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-3">
+<h2>2013-03-28 version 2.3<a class="headerlink" href="#version-2-3" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>external <code class="docutils literal notranslate"><span class="pre">multicore</span></code> R package is replaced by native <code class="docutils literal notranslate"><span class="pre">parallel</span></code> package;</li>
+<li>convergence information of Monte-Carlo simulations is reported in the result file;</li>
+<li>relative SD (rsd) in Monte-Carlo statistics is calculated as SD/abs(mean) and no more as SD/abs(estimated parameter);</li>
+<li>if the number of really calculated samples in Monte-Carlo is less than 2, statistics are not calculated;</li>
+<li>R code is self sufficient to be executed via source() function, even in parallel way;</li>
+<li>with a new option <code class="docutils literal notranslate"><span class="pre">--nocalc</span></code>, R code is generated but not executed.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed concurrent access to a global variable in Monte-Carlo parallel execution;</li>
+<li>fixed scope issue in Monte-Carlo simulations preventing from update of the current solution;</li>
+<li>fixed some redundant warning messages;</li>
+<li>fixed placement of .err and .log files if FTBL(s) is (are) given with subdirectories in their names.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-2-1">
+<h2>2013-03-15 version 2.2.1<a class="headerlink" href="#version-2-2-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed a fatal error in Jacobian matrix construction when no measured fluxes are provided in FTBL file (reported by Yanfen Fu, University of Washington, USA);</li>
+<li>in the User’s manual, added a naming convention for variable growth fluxes.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-2">
+<h2>2013-03-13 version 2.2<a class="headerlink" href="#version-2-2" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>if more than one FTBL file is given in argument to <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>, all files are proceeded simultaneously in independent processes;</li>
+<li>outliers in measurements can be automatically detected and excluded from parameter fitting.</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed an error preventing Monte-Carlo results to be written if <code class="docutils literal notranslate"><span class="pre">multicore</span></code> package is not installed;</li>
+<li>fixed a documentation error about <span class="math notranslate nohighlight">\(\ln(M)\)</span> in <code class="docutils literal notranslate"><span class="pre">mynetwork.pres.csv</span></code> file;</li>
+<li>fixed warning resuming if there are many of them;</li>
+<li>fixed some error message generation on FTBL parsing.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-1">
+<h2>2013-02-15 version 2.1<a class="headerlink" href="#version-2-1" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>in nlsic() a new field ‘retres’ is added to the list of returned values. It transfers “as is” the list returned by a last call to residual calculation function;</li>
+<li>added a writing of generalized inverse of Jacobian to the result file;</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed a typo preventing Monte-Carlo statistics on forward-reverse fluxes to be written in the result file.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-2-0">
+<h2>2013-02-05 version 2.0<a class="headerlink" href="#version-2-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>metabolite pooling is modeled. Such pooling can appear due to compartmentation phenomenon or due to isomer coelution in chromatography. Starting from this version, metabolite concentrations can be part of fitted parameters;</li>
+<li>adaptive backtracking algorithm is introduced to NLSIC algorithm;</li>
+<li>history of convergence during minimization can be retrieved;</li>
+<li>symbolic equations for dependent fluxes expressed as functions of free and constrained fluxes are generated by ftbl2cumoAb.py script;</li>
+<li>METAB_MEASUREMENTS section is added to FTBL format;</li>
+<li>added <span class="math notranslate nohighlight">\(\chi^2\)</span> test for evaluating the goodness of fit;</li>
+<li>removed <code class="docutils literal notranslate"><span class="pre">metab_scale</span></code> field from OPTIONS section in FTBL format;</li>
+<li>“dead end” internal metabolites are allowed in a network without being an output metabolite. As consequence, input-output fluxes must be explicitly declared as non reversible in the FTBL;</li>
+<li>added optional EMU framework (<code class="docutils literal notranslate"><span class="pre">--emu</span></code>);</li>
+<li>added optional series of starting points, fixed or randomly generated
+(<code class="docutils literal notranslate"><span class="pre">--fseries</span></code>, <code class="docutils literal notranslate"><span class="pre">--iseries</span></code>);</li>
+<li>matrix construction is reworked and fortran code is removed. Now, no more <code class="docutils literal notranslate"><span class="pre">Rtool</span></code> installation is required for running <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>;</li>
+<li>some error messages are made more explicit and more precise;</li>
+<li>outdated R package <code class="docutils literal notranslate"><span class="pre">fUtilities</span></code> is no more required;</li>
+</ul>
+</dd>
+<dt>Bug fixes:</dt>
+<dd><ul class="first last simple">
+<li>fixed stoechiometric matrix construction when for a given metabolite;
+all fluxes are free or constrained;</li>
+<li>fixed candidate propositions for free fluxes;</li>
+<li>fixed standard deviation value for a <code class="docutils literal notranslate"><span class="pre">DD/T</span></code> field in <code class="docutils literal notranslate"><span class="pre">PEAK_MEASUREMENTS</span></code> section.</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="version-1-0">
+<h2>2011-10-11 version 1.0<a class="headerlink" href="#version-1-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Initial release. Main features:</dt>
+<dd><ul class="first last simple">
+<li>NLSIC algorithm;</li>
+<li>FTBL input format from 13CFlux project;</li>
+<li>reduced cumomer set for cumomer balance equations;</li>
+<li>sparse matrices;</li>
+<li>usage of <code class="docutils literal notranslate"><span class="pre">multicore</span></code> R package for Monte-Carlo simulations on Unix platform;</li>
+<li>usable on platforms having Python+numpy and R+some modules;</li>
+<li>command line interface;</li>
+<li>brief user’s and programmer’s documentation;</li>
+<li>OpenSource (ECL) license.</li>
+</ul>
+</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-5-0">2019-10-25 version 5.0</a></li>
+<li><a class="reference internal" href="#version-4-4-3">2017-07-04 version 4.4.3</a></li>
+<li><a class="reference internal" href="#version-4-4-2">2017-06-15 version 4.4.2</a></li>
+<li><a class="reference internal" href="#version-4-4-1">2017-05-24 version 4.4.1</a></li>
+<li><a class="reference internal" href="#version-4-4">2017-05-22 version 4.4</a></li>
+<li><a class="reference internal" href="#version-4-3">2017-04-28 version 4.3</a></li>
+<li><a class="reference internal" href="#version-4-2">2017-03-30 version 4.2</a></li>
+<li><a class="reference internal" href="#version-4-1">2017-03-03 version 4.1</a></li>
+<li><a class="reference internal" href="#version-4-0-1">2016-12-20 version 4.0.1</a></li>
+<li><a class="reference internal" href="#version-4-0">2016-12-19 version 4.0</a></li>
+<li><a class="reference internal" href="#version-3-2">2016-07-29 version 3.2</a></li>
+<li><a class="reference internal" href="#version-3-1">2016-06-13 version 3.1</a></li>
+<li><a class="reference internal" href="#version-3-0-1">2016-04-18 version 3.0.1</a></li>
+<li><a class="reference internal" href="#version-3-0">2016-04-15 version 3.0</a></li>
+<li><a class="reference internal" href="#version-2-15">2016-02-18 version 2.15</a></li>
+<li><a class="reference internal" href="#version-2-14">2015-01-19 version 2.14</a></li>
+<li><a class="reference internal" href="#version-2-13">2014-09-17 version 2.13</a></li>
+<li><a class="reference internal" href="#version-2-12">2014-07-02 version 2.12</a></li>
+<li><a class="reference internal" href="#version-2-11-1">2014-06-12 version 2.11.1</a></li>
+<li><a class="reference internal" href="#version-2-11">2014-06-11 version 2.11</a></li>
+<li><a class="reference internal" href="#version-2-10">2014-04-08 version 2.10</a></li>
+<li><a class="reference internal" href="#version-2-9">2014-02-05 version 2.9</a></li>
+<li><a class="reference internal" href="#version-2-8">2014-01-27 version 2.8</a></li>
+<li><a class="reference internal" href="#version-2-7">2013-10-22 version 2.7</a></li>
+<li><a class="reference internal" href="#version-2-6">2013-10-02 version 2.6</a></li>
+<li><a class="reference internal" href="#version-2-5">2013-06-28 version 2.5</a></li>
+<li><a class="reference internal" href="#version-2-4">2013-04-11 version 2.4</a></li>
+<li><a class="reference internal" href="#version-2-3">2013-03-28 version 2.3</a></li>
+<li><a class="reference internal" href="#version-2-2-1">2013-03-15 version 2.2.1</a></li>
+<li><a class="reference internal" href="#version-2-2">2013-03-13 version 2.2</a></li>
+<li><a class="reference internal" href="#version-2-1">2013-02-15 version 2.1</a></li>
+<li><a class="reference internal" href="#version-2-0">2013-02-05 version 2.0</a></li>
+<li><a class="reference internal" href="#version-1-0">2011-10-11 version 1.0</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="intro.html"
+                        title="previous chapter">Introduction</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="install.html"
+                        title="next chapter">Installation</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/changelog.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="intro.html" title="Introduction"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2012-2019, INRA.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+    </div>
+  </body>
+</html>

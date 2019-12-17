@@ -1,0 +1,119 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Troubleshooting &#8212; influx_si 5.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Consulting and more" href="consulting.html" />
+    <link rel="prev" title="How to …" href="howto.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="consulting.html" title="Consulting and more"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="howto.html" title="How to …"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="troubleshooting">
+<span id="trouble"></span><h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h1>
+<p>The software is provided “AS IS” so for the troubleshooting you are mostly on your own. We don’t provide any support of any kind for the software itself. Nevertheless, if you need help for your label experiment design and/or realization, you can contact our platform MetaToul (cf. <a class="reference internal" href="consulting.html"><span class="doc">Consulting and more</span></a>)</p>
+<p>Anyway, you can try to solve some current problems by yourself or with a local help.</p>
+<p>If you have a problem during installation, you can ask for help from your local computer desk.</p>
+<p>If you have a problem with FTBL editing, you can read the documentation from <a class="reference external" href="https://www.13cflux.net">13CFlux</a> and/or interpret error messages generated during FTBL parsing.</p>
+<p>If you have some difficulties in choosing free fluxes, define all not constrained fluxes as dependent (put a letter <code class="docutils literal notranslate"><span class="pre">D</span></code> in the column <code class="docutils literal notranslate"><span class="pre">FCD</span></code> of the FTBL sections <code class="docutils literal notranslate"><span class="pre">FLUXES/NET</span></code> and <code class="docutils literal notranslate"><span class="pre">FLUXES/XCH</span></code>) and see an error message that will suggest candidates for free fluxes.</p>
+<p>If your resulting fluxes are badly defined (statistically or structurally), i.e. they have big confidence intervals or the Jacobian is rank deficient, you can try to play with input labeling (cf. IsoDesign software at <a class="reference external" href="http://metatoul.insa-toulouse.fr/metasys/software/isodes/">http://metatoul.insa-toulouse.fr/metasys/software/isodes/</a>) or try to collect some additional data on metabolites not yet measured. To have some insights on what part of the network is already well defined and which one still needs additional measurements, you can try to run <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> with an option <code class="docutils literal notranslate"><span class="pre">--ln</span></code> (as <cite>least norm</cite>) (in addition to <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> option) and examine standard deviation of the fluxes/concentrations in the resulting KVH file.</p>
+<p>If you think to discover a bug in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> you can report it to the author by email <code class="docutils literal notranslate"><span class="pre">sokol</span> <span class="pre">[at]</span> <span class="pre">insa-toulouse</span> <span class="pre">[dot]</span> <span class="pre">fr</span></code>. At this moment, please be sure to use the latest available release as the bug may be already corrected or not be actual any more. Note also that we can’t guarantee that any particular bug can be fixed in any particular release or can be fixed at all. It is possible, that we ask you to send us an ftbl file on which an error occur. It will be done only for purposes of bug reproducing and its identification. The received ftbl file will not be transmitted to any third party.</p>
+<p>Once again, if you could not resolve your problem by your own, see the next section  <a class="reference internal" href="consulting.html"><span class="doc">Consulting and more</span></a>.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="howto.html"
+                        title="previous chapter">How to …</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="consulting.html"
+                        title="next chapter">Consulting and more</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/trouble.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="consulting.html" title="Consulting and more"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="howto.html" title="How to …"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2012-2019, INRA.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,189 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Quick Start &#8212; influx_si 5.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User’s manual" href="manual.html" />
+    <link rel="prev" title="Installation" href="install.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="manual.html" title="User’s manual"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="quick-start">
+<span id="quick"></span><h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+<p>A basic work-flow with <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is composed of the following steps:</p>
+<ol class="arabic simple">
+<li>Create a FTBL file describing your metabolic reactions, carbon transitions, experimental data and some options. Let call an example file <code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code>. The FTBL file must follow syntax rules elaborated for <a class="reference external" href="https://www.13cflux.net/">13CFlux</a> software. The FTBL file is a plain text file. The syntax rules will be more or less obvious for someone working on metabolism biochemistry. So, to go quickly, you can inspire from an example file <code class="docutils literal notranslate"><span class="pre">test/e_coli.ftbl</span></code> distributed with the <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software.</li>
+</ol>
+<blockquote>
+<div><div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Staring from the version 2.5, <code class="docutils literal notranslate"><span class="pre">NA</span></code> values (as “Non Available”) are admitted as measurements values where appropriate. The difference with FTBL where they are simply omitted is that NA measurements are simulated and are present in the vectors <code class="docutils literal notranslate"><span class="pre">simulated</span> <span class="pre">unscaled</span> <span class="pre">labeling</span> <span class="pre">measurements</span></code> and <code class="docutils literal notranslate"><span class="pre">simulated</span> <span class="pre">scaled</span> <span class="pre">labeling</span> <span class="pre">measurements</span></code> in the result kvh file.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">In case of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>, label kinetics can be provided in a separate plain text file with values separated by tabulations. First column in this file gives measurement names, and all other columns correspond to a particular time point each. Time points are given on the first line of the file. In this file, there can be more time points than were used in a real experiment for sample harvesting. In this case, the labeling is simulated and reported for these fictitious time points but the least squares fitting is obviously done only at points where real data are reported.</p>
+</div>
+<p>Empty cells in this file are equivalent to <code class="docutils literal notranslate"><span class="pre">NA</span></code>. Note also that is _not_ necessary to introduce empty columns at regular intervals just to increase the time resolution precision. There is a parameter <code class="docutils literal notranslate"><span class="pre">nsubdiv_dt</span></code> that is designed for this purpose. If it is greater than 1, each time interval defined in the text file is divided in <code class="docutils literal notranslate"><span class="pre">nsubdiv_dt</span></code> sub-intervals.</p>
+</div></blockquote>
+<ol class="arabic" start="2">
+<li><p class="first">Set your current directory to the directory of <code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code> and run</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ influx_s.py mynetwork
+</pre></div>
+</div>
+</li>
+</ol>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ influx_i.py mynetwork
+</pre></div>
+</div>
+<p>Depending on stationary or instationary labeling context. Note that the suffix <code class="docutils literal notranslate"><span class="pre">.ftbl</span></code> is optional and <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> installation directory is supposed to be on the PATH.</p>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run will produce the following files in the same directory that <code class="docutils literal notranslate"><span class="pre">mynetwok.ftbl</span></code></p>
+<dl class="docutils">
+<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.log</span></code></dt>
+<dd>containing the run-time output from various scripts, in particular,
+it contains a report on convergence history during the fitting process.
+It can be helpful for identifying potential problems but if everything
+is going well, the user does not have to examine the content of this file;</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code></dt>
+<dd>containing the warning and error messages.
+Normally, this file should be empty (0 byte size);</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code></dt>
+<dd>containing all of the results. <a class="reference external" href="http://serguei.sokol.free.fr/kvh-format/">KVH format</a> is a
+lightweight plain text format for hierarchically structured data. It can be seen in a text editor or in a spreadsheet software as its fields are tab separated. It can also be processed by user’s custom software for post-processing, graphics output and alike. If <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is run on a series of starting points there will be generated a common result
+file <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> containing common information to all starting points
+but also a series of kvh files, one by starting point, e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork_res.V1.kvh</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mynetwork_res.V2.kvh</span></code> and so on;</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.pres.txt</span></code></dt>
+<dd>containing a matrix of fitted parameters and final cost values. Each column
+corresponds to a particular starting point if run with <code class="docutils literal notranslate"><span class="pre">--fseries</span></code> and /or
+<code class="docutils literal notranslate"><span class="pre">--iseries</span></code> options. If <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> was run without these options, the file
+will contain only one column corresponding to the starting point defined
+in the <code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code> file.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwok</span></code>, <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwok</span></code>, <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork</span></code></dt>
+<dd><p class="first">as the middle name of this files suggest, they can be used to map the corresponding
+values on the network graph in the <a class="reference external" href="http://www.cytoscape.org">cytoscape</a> software.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">All these files are silently overwritten if already exist.
+So take care to copy your results elsewhere if you want to protect them
+from overwriting.</p>
+</div>
+<p class="last">custom files (e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.pdf</span></code>)
+These files can be produced by user supplied scripts that are executed at the end of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> simulations. For example, we provide a script <code class="docutils literal notranslate"><span class="pre">plot_imass.R</span></code> which can be used to plot label kinetics obtained by <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>. One or many of such custom scripts can be given in FTBL file, section OPTIONS, field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> (cf. e_coli_i.ftbl for example)</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>It can be helpful to do some “dry runs” by executing</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --noopt mynetwork
+</pre></div>
+</div>
+<p>before collecting actual measurement data to see if intended measurements will be sufficient to well define all fluxes or at least the fluxes of interest. It is possible to do because the measurement values in the FTBL file does not matter for flux SD calculation when <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> option is used. So it can be used any values even NA at this moment. In the contrary, <code class="docutils literal notranslate"><span class="pre">dev</span></code> values set in measurement sections of the FTBL file, must be realistic. It is generally not a problem as they express measurements errors and are more or less known for a given measurement chain.</p>
+<p class="last">It is worthwhile to stress that a “dry run” is done for some presumed free fluxe values and if they reveal to be very different from actual flux values, it can happen that a network considered as well defined at moment of “dry run” turned into a badly defined network with actual measurement data and corresponding estimated fluxes. So it is important to do his best to guess the most realistic free fluxes for “dry runs”.</p>
+</div>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li>See warning and error messages in <code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code> if any. Correct what has to be corrected and retry p. 2</li>
+<li>Extract and use the numerical results from the <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> file.</li>
+<li>Optionally, visualize net fluxes (or exchange fluxes or logarithm of metabolite concentrations <span class="math notranslate nohighlight">\(\log_2(M)\)</span>) in cytoscape using <code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwok.attrs</span></code>, <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwok.attrs</span></code> or <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork.attrs</span></code>.</li>
+</ol>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="install.html"
+                        title="previous chapter">Installation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="manual.html"
+                        title="next chapter">User’s manual</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/quick.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="manual.html" title="User’s manual"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Installation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2012-2019, INRA.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+    </div>
+  </body>
+</html>
