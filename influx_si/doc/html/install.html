@@ -63,7 +63,13 @@ to the Unix’s one.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda install influx_si
 </pre></div>
 </div>
-<p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.</p>
+<p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.
+If this procedure fails, it is possible that you have to add the following channels to your conda configuration. Do it only once:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda config --add channels bioconda
+$ conda config --add channels conda-forge
+</pre></div>
+</div>
+<p>After that retry the installation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.</p>
 </div>
 <div class="section" id="installation-with-pip">
 <h2>Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Permalink to this headline">¶</a></h2>
@@ -90,11 +96,10 @@ to the Unix’s one.</p>
 <ul class="simple">
 <li>R-3.4.0 or higher (cf <a class="reference external" href="http://www.r-project.org/">http://www.r-project.org/</a> or your system packaging solution) + the following packages.<ul>
 <li>nnls</li>
-<li>rmumps (5.2.1-3 or higher)</li>
+<li>rmumps (5.2.1-6 or higher)</li>
 <li>arrApply</li>
 <li>slam</li>
 <li>limSolve (optional, needed only for <code class="docutils literal notranslate"><span class="pre">--lim</span></code> option)</li>
-<li>devtools</li>
 <li>multbxxc</li>
 </ul>
 </li>

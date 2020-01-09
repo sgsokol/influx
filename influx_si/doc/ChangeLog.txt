@@ -2,6 +2,13 @@
 Change Log for influx_si
 ========================
 
+2020-01-10 version 5.0.1
+------------------------
+Bug fix:
+ - fixed fatal error on windows platform
+ - fixed startup message about Rcpp_Rmumps module on some platforms
+ - fixed dependensy on libsbml
+
 2019-10-25 version 5.0
 ----------------------
 New features:

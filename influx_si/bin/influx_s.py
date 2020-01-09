@@ -93,7 +93,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             if isinstance(v, type("")) else "TRUE" if v is True else "FALSE" \
             if v is False else str(v)) for k,v in cmd_opts.items() if k not in notropt) + '"'] + \
             (["--case_i"] if case_i else []) + [ft]
-        pycmd=[os.path.join(direx, "ftbl2optR.py")] + opt4py
+        pycmd=[sys.executable, os.path.join(direx, "ftbl2optR.py")] + opt4py
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
         flog.write("executing: "+pycmd_s+"\n")
         r_generated=True
@@ -397,10 +397,7 @@ if len(rfiles) > 1:
     rcmd="R --vanilla --slave"
     s="//calcul: "+now_s()+"\n"
     sys.stdout.write(s)
-    if os.name=="nt":
-        retcode=subp.call(rcmd, stdin=open(fpar.name, "r"), shell=True)
-    else:
-        retcode=subp.call(rcmd.split(), stdin=open(fpar.name, "r"))
+    retcode=subp.run(rcmd.split(), stdin=open(fpar.name, "r")).returncode
     # end up writing
     for fR in rfiles:
         f=fR[:-2]
@@ -420,10 +417,7 @@ elif len(rfiles)==1:
     flog.write(s)
     flog.close()
     sys.stdout.write(s)
-    if os.name=="nt":
-        retcode=subp.call(rcmd, stdin=open(f+".R", "r"), shell=True)
-    else:
-        retcode=subp.call(rcmd.split(), stdin=open(f+".R", "r"))
+    retcode=subp.run(rcmd.split(), stdin=open(f+".R", "r")).returncode
     s="end     : "+now_s()+"\n"
     flog=open(f+".log", "a")
     flog.write(s)

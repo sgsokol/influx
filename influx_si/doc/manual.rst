@@ -308,6 +308,11 @@ Here after the available options with their full names are enumerated and detail
 	--addnoise        Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from       FTBL file
 	
 										 This option can be helpful for generating synthetic FTBL files with realistic simulated measurements (cf. :ref:`How to make FTBL file with synthetic data?<howto>`).
+	--copy_doc         copy documentation directory in the current directory and
+                     exit. If ./doc exists, its content is silently owerriten.
+	--copy_test        copy test directory in the current directory and exit. If
+                     ./test exists, its content is silently owerriten.
+	--install_rdep     install R dependencies and exit.
 	--TIMEIT          developer option
 
 										Some portions of code are timed and the results is printed in the log-file. A curious user can use this option without any harm.

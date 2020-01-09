@@ -21,7 +21,7 @@ Installation with ``conda``
 ---------------------------
 If you have Anaconda or Miniconda installed on your system, installation of ``influx_si`` resumes to: ::
 
-  $ conda install influx_si
+  $ conda install influx_si -c conda-forge -c bioconda
   
 It installs ``influx_si`` itself as well as all needed dependencies both in Python and in R.
   
@@ -55,11 +55,10 @@ As of influx_si version 5.0, user has not to install R dependencies manually fro
 - R-3.4.0 or higher (cf http://www.r-project.org/ or your system packaging solution) + the following packages.
   
   + nnls
-  + rmumps (5.2.1-3 or higher)
+  + rmumps (5.2.1-6 or higher)
   + arrApply
   + slam
   + limSolve (optional, needed only for ``--lim`` option)
-  + devtools
   + multbxxc
   
 .. warning:: As of this writing (September 17, 2014), an R package ``nnls`` distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the ``Path`` system variable has the R path ending by ``\bin\x64`` and not just by ``\bin``.
