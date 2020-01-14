@@ -41,8 +41,22 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
 """
     #set_trace()
     f=ft[:-5]
-    flog=open(f+".log", "w")
-    ferr=open(f+".err", "w")
+    d=os.path.dirname(ft)
+    if not os.path.exists(d):
+        sys.stderr.write("Error: directory of FTBL file '%s' does not exist.\n"%d)
+        return(1)
+    try:
+        flog=open(f+".log", "w")
+    except Exception as e:
+        sys.stderr.write("%s\n"%str(e))
+        return(1);
+    try:
+        ferr=open(f+".err", "w")
+    except Exception as e:
+        sys.stderr.write("%s\n"%str(e))
+        flog.close()
+        return(1);
+       
     #import pdb; pdb.set_trace()
     flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
 
@@ -125,6 +139,8 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             return(retcode)
     except:
         #print sys.exc_info()[0]
+        flog.close()
+        ferr.close()
         pass
     return(retcode)
 
@@ -389,8 +405,8 @@ if len(rfiles) > 1:
     q("no", status=retcode)
 """%{
         "np": min(np, len(rfiles)),
-        "flist": ", ".join('"'+f+'"' for f in rfiles),
-        "dirx": os.path.join(dirinst, "R")
+        "flist": ", ".join('"'+f.replace(os.path.sep, "/")+'"' for f in rfiles),
+        "dirx": os.path.join(dirinst, "R").replace(os.path.sep, "/")
     })
     fpar.close()
     # execute R code on cluster

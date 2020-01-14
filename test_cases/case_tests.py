@@ -44,7 +44,9 @@ def setvar(k, v):
 def worker(ith):
     while True:
         item = q.get()
+        #print(c("ith=", ith, "; item=", item))
         if item is None:
+            q.task_done()
             break
         li_res[ith].append(do_case(ith, *item))
         q.task_done()
@@ -223,12 +225,14 @@ if ncore == 0. or ncore > ncavail:
 elif ncore > 0. and ncore < 1.:
     ncore = ncavail*ncore
 ncore = min(round(ncore), len(itest))
+li_res=[[] for i in range(ncore)] # list of results (icase, nm_t, ok, res)
 lock=threading.Lock()
 #li_f=[Do_case() for i in range(ncore)]
 q=Queue()
 ths=[]
 for i in range(ncore):
     t = threading.Thread(target=worker, args=(i,))
+    t.daemon = True # makes the thread interrupt on ctrl-c
     t.start()
     ths.append(t)
 # fill q
@@ -236,7 +240,6 @@ for i in range(ncore):
 
 # run tests
 t00=time()
-li_res=[[] for i in range(ncore)] # list of results (icase, nm_t, ok, res)
 q.join() # block until all tasks are done
 
 #for (icase, line) in enumerate(tests):
