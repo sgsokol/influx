@@ -42,7 +42,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     #set_trace()
     f=ft[:-5]
     d=os.path.dirname(ft)
-    if not os.path.exists(d):
+    if len(d) and not os.path.exists(d):
         sys.stderr.write("Error: directory of FTBL file '%s' does not exist.\n"%d)
         return(1)
     try:
