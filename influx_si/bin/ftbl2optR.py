@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i"])
+        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i", "ffguess"])
     except getopt.GetoptError as err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -146,6 +146,7 @@ if __name__ == "__main__":
     fullsys=False
     emu=False
     clownr=False
+    ffguess=False
     ropts=['""']
     case_i=False
     tblimit=0
@@ -165,6 +166,8 @@ if __name__ == "__main__":
             case_i=True
         elif o=="--tblimit":
             tblimit=int(a)
+        elif o=="--ffguess":
+            ffguess=True
         else:
             #assert False, "unhandled option"
             # unknown options can come from shell
@@ -190,6 +193,7 @@ if __name__ == "__main__":
     import ftbl2code
     ftbl2code.case_i=case_i
     C13_ftbl.clownr=clownr
+    C13_ftbl.ffguess=ffguess
     #org="ex3"
     #org="PPP_exact"
 

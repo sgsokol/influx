@@ -498,7 +498,7 @@ if (length(xi)) {
    stop_mes("No reduced label entry is defined (may be because no measurement defined in FTBL). Cannot continue.", file=fcerr)
 }
 nm_xi=c(%(nm_xi)s)
-dimnames(xi)[[1]]=nm_xi
+rownames(xi)=nm_xi
 nm_list$xi=nm_xi
 nb_xi=length(nm_xi)
 nb_f$xi=nb_xi
@@ -521,7 +521,7 @@ if (emu) {
    xiemu=matrix(c(%(xiemu)s), ncol=nb_exp)
    nm_xiemu=c(%(nm_xiemu)s)
    nm_list$xiemu=nm_xiemu
-   dimnames(xiemu)[[1]]=nm_xiemu
+   rownames(xiemu)=nm_xiemu
    nb_xiemu=length(nm_xiemu)
    nb_f$xiemu=nb_xiemu
    nb_f$xi=nb_xiemu

@@ -24,6 +24,12 @@ If you have Anaconda or Miniconda installed on your system, installation of ``in
   $ conda install influx_si -c conda-forge -c bioconda
   
 It installs ``influx_si`` itself as well as all needed dependencies both in Python and in R.
+
+If you are on Windows and you never used python scripts on this mashine before then it might be necessary to run the following command to make python scripts executable. In Anaconda Powershell do: ::
+
+ $ echo '$env:PATHEXT += ";.PY"' >> $PROFILE
+
+and restart Anaconda PowerShell to make the change effective.
   
 Installation with ``pip``
 -------------------------

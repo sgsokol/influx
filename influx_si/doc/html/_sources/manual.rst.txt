@@ -334,6 +334,9 @@ If an option is provided both on the command line and in the FTBL file, it is th
 
 Parallel experiments
 --------------------
+
+.. _prlexp:
+
 Staring from v4.0, ``influx_si`` offers possibility to treat labeling  data from parallel experiments. Parallel experiments for stationary labeling were described in the literature (e.g. cf. "Parallel labeling experiments and metabolic flux analysis: Past, present and future methodologies.", Crown SB, Antoniewicz MR., *Metab Eng.* 2013 Mar;16:21-32. doi: 10.1016/j.ymben.2012.11.010). But for instationary labeling, at the best of our knowledge, ``influx_si`` is the first software offering parallel experiments treatment.
 
 The main interest of parallel experiments is increased precision of flux estimations. This comes at price of additional work for experiments and data gathering but the result is often worth the effort. As usual, before doing a real "wet" experiment, it can be useful to run few  "dry" simulations to see if planned experiments will deliver desired precision.

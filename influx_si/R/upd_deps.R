@@ -2,7 +2,7 @@
 preq=c("nnls", "rmumps", "arrApply", "slam", "limSolve", "multbxxc")
 # check what is already installed
 iinst=sapply(preq, requireNamespace, quietly = TRUE)
-repos=getOptions("repos")
+repos=getOption("repos")
 repos=if (!length(repos) || repos == "@CRAN@") "https://cloud.r-project.org/" else repos
 # install lacking packages
 plack=preq[!iinst]

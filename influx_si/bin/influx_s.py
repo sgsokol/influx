@@ -100,7 +100,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
 
         # generate the R code
         # leave python options as they are and put R options as arguments to --ropts
-        #pdb.set_trace()
+        #import pdb; pdb.set_trace()
         opt4py=["--"+kc for kc in pyoptnota.intersection(list(cmd_opts.keys()))] + \
             [item for kc in pyopta.intersection(list(cmd_opts.keys())) if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
             ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
@@ -110,6 +110,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         pycmd=[sys.executable, os.path.join(direx, "ftbl2optR.py")] + opt4py
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
         flog.write("executing: "+pycmd_s+"\n")
+        flog.flush()
         r_generated=True
         retcode=subp.run(pycmd, stdout=flog, stderr=ferr).returncode
         if retcode != 0:
@@ -169,7 +170,7 @@ version=open(os.path.join(dirinst, "influx_version.txt"), "r").read().strip()
 
 # valid options for python
 pyopta=set(("tblimit",))
-pyoptnota=set(("fullsys", "emu", "clownr"))
+pyoptnota=set(("fullsys", "emu", "clownr", "ffguess"))
 # non valid options for R
 notropt=set(("tblimit",))
 

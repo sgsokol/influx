@@ -60,16 +60,15 @@ to the Unix’s one.</p>
 <div class="section" id="installation-with-conda">
 <h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Permalink to this headline">¶</a></h2>
 <p>If you have Anaconda or Miniconda installed on your system, installation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> resumes to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda install influx_si
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda install influx_si -c conda-forge -c bioconda
 </pre></div>
 </div>
-<p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.
-If this procedure fails, it is possible that you have to add the following channels to your conda configuration. Do it only once:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda config --add channels bioconda
-$ conda config --add channels conda-forge
+<p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.</p>
+<p>If you are on Windows and you never used python scripts on this mashine before then it might be necessary to run the following command to make python scripts executable. In Anaconda Powershell do:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;$env:PATHEXT += &quot;;.PY&quot;&#39;</span> &gt;&gt; <span class="nv">$PROFILE</span>
 </pre></div>
 </div>
-<p>After that retry the installation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.</p>
+<p>and restart Anaconda PowerShell to make the change effective.</p>
 </div>
 <div class="section" id="installation-with-pip">
 <h2>Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Permalink to this headline">¶</a></h2>
@@ -280,7 +279,7 @@ end     : 2019-12-11 16:25:54
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2019, INRA.
+        &#169; Copyright 2012-2020, INRAE.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

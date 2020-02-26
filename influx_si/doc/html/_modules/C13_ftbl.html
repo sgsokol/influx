@@ -184,6 +184,8 @@
     <span class="s2">&quot;PEAK_MEASUREMENTS&quot;</span><span class="p">,</span>
     <span class="s2">&quot;MASS_SPECTROMETRY&quot;</span>
 <span class="p">)</span>
+<span class="k">if</span> <span class="s2">&quot;ffguess&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">():</span>
+    <span class="n">ffguess</span><span class="o">=</span><span class="kc">False</span>
 <div class="viewcode-block" id="ftbl_parse"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.ftbl_parse">[docs]</a><span class="k">def</span> <span class="nf">ftbl_parse</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;ftbl_parse(f) -&gt; dict</span>
 <span class="sd">    read and parse .ftbl file. The only input parameter f is a stream pointer</span>
@@ -1439,7 +1441,7 @@
         <span class="c1">#    continue</span>
         <span class="c1"># check if this line was already entered before</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">row</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">row</span> <span class="o">==</span> <span class="n">qry</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="n">mqry</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ffguess</span> <span class="ow">and</span> <span class="p">(</span><span class="n">row</span> <span class="o">==</span> <span class="n">qry</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="n">mqry</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
                 <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;Warning: when trying to add a balance equation for metabolite &#39;&quot;</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span>
                     <span class="s2">&quot;&#39;, got equation redundant with those for &#39;&quot;</span><span class="o">+</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrowAfl&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;metab:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vflux&quot;</span><span class="p">][</span><span class="s2">&quot;net&quot;</span><span class="p">]</span><span class="o">+</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vflux&quot;</span><span class="p">][</span><span class="s2">&quot;xch&quot;</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -2871,7 +2873,7 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2019, INRA.
+        &#169; Copyright 2012-2020, INRAE.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

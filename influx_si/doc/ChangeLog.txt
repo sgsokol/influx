@@ -2,11 +2,15 @@
 Change Log for influx_si
 ========================
 
-2020-01-?? version 5.0.2
+2020-02-26 version 5.0.2
 ------------------------
 Bug fix:
  - fixed parallel execution of multiple FTBL on windows
  - fixed influx_si hunging on inxesiting directory in FTBL name
+ - fixed dimnames()[[1]]<- failure when nrow==1 (reported by Younes Dellero, INRAE, Rennes, France)
+ - fixed --ffguess failing when redundant reaction was present (idem)
+ - fixed use of `influx_s.py --install_rdep` (reported by Loic Le Gregam, INSA, Toulouse, France)
+ - updated user manual for trouble-shooting and consulting services
 
 2020-01-10 version 5.0.1
 ------------------------

@@ -48,6 +48,21 @@
             
   <div class="section" id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-5-0-2">
+<h2>2020-02-26 version 5.0.2<a class="headerlink" href="#version-5-0-2" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed parallel execution of multiple FTBL on windows</li>
+<li>fixed influx_si hunging on inxesiting directory in FTBL name</li>
+<li>fixed dimnames()[[1]]&lt;- failure when nrow==1 (reported by Younes Dellero, INRAE, Rennes, France)</li>
+<li>fixed –ffguess failing when redundant reaction was present (idem)</li>
+<li>fixed use of <cite>influx_s.py –install_rdep</cite> (reported by Loic Le Gregam, INSA, Toulouse, France)</li>
+<li>updated user manual for trouble-shooting and consulting services</li>
+</ul>
+</dd>
+</dl>
+</div>
 <div class="section" id="version-5-0-1">
 <h2>2020-01-10 version 5.0.1<a class="headerlink" href="#version-5-0-1" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
@@ -693,6 +708,7 @@ all fluxes are free or constrained;</li>
   <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-5-0-2">2020-02-26 version 5.0.2</a></li>
 <li><a class="reference internal" href="#version-5-0-1">2020-01-10 version 5.0.1</a></li>
 <li><a class="reference internal" href="#version-5-0">2019-10-25 version 5.0</a></li>
 <li><a class="reference internal" href="#version-4-4-3">2017-07-04 version 4.4.3</a></li>
@@ -779,7 +795,7 @@ all fluxes are free or constrained;</li>
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2019, INRA.
+        &#169; Copyright 2012-2020, INRAE.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>

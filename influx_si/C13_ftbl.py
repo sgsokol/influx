@@ -142,6 +142,8 @@ req_prl=(
     "PEAK_MEASUREMENTS",
     "MASS_SPECTROMETRY"
 )
+if "ffguess" not in locals():
+    ffguess=False
 def ftbl_parse(f):
     """ftbl_parse(f) -> dict
     read and parse .ftbl file. The only input parameter f is a stream pointer
@@ -1397,7 +1399,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         #    continue
         # check if this line was already entered before
         for (i,row) in enumerate(res):
-            if row == qry or (np.array(row) == mqry).all():
+            if not ffguess and (row == qry or (np.array(row) == mqry).all()):
                 wout("Warning: when trying to add a balance equation for metabolite '"+metab+
                     "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
                 wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")

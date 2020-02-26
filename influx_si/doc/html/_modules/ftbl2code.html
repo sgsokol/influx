@@ -540,7 +540,7 @@
 <span class="s2">   stop_mes(&quot;No reduced label entry is defined (may be because no measurement defined in FTBL). Cannot continue.&quot;, file=fcerr)</span>
 <span class="s2">}</span>
 <span class="s2">nm_xi=c(</span><span class="si">%(nm_xi)s</span><span class="s2">)</span>
-<span class="s2">dimnames(xi)[[1]]=nm_xi</span>
+<span class="s2">rownames(xi)=nm_xi</span>
 <span class="s2">nm_list$xi=nm_xi</span>
 <span class="s2">nb_xi=length(nm_xi)</span>
 <span class="s2">nb_f$xi=nb_xi</span>
@@ -563,7 +563,7 @@
 <span class="s2">   xiemu=matrix(c(</span><span class="si">%(xiemu)s</span><span class="s2">), ncol=nb_exp)</span>
 <span class="s2">   nm_xiemu=c(</span><span class="si">%(nm_xiemu)s</span><span class="s2">)</span>
 <span class="s2">   nm_list$xiemu=nm_xiemu</span>
-<span class="s2">   dimnames(xiemu)[[1]]=nm_xiemu</span>
+<span class="s2">   rownames(xiemu)=nm_xiemu</span>
 <span class="s2">   nb_xiemu=length(nm_xiemu)</span>
 <span class="s2">   nb_f$xiemu=nb_xiemu</span>
 <span class="s2">   nb_f$xi=nb_xiemu</span>
@@ -2070,7 +2070,7 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2019, INRA.
+        &#169; Copyright 2012-2020, INRAE.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
     </div>
   </body>
