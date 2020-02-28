@@ -6,9 +6,9 @@ Change Log for influx_si
 ------------------------
 Bug fix:
  - fixed parallel execution of multiple FTBL on windows
- - fixed influx_si hunging on inxesiting directory in FTBL name
+ - fixed influx_si hanging on in-existing directory in FTBL name
  - fixed dimnames()[[1]]<- failure when nrow==1 (reported by Younes Dellero, INRAE, Rennes, France)
- - fixed --ffguess failing when redundant reaction was present (idem)
+ - fixed --ffguess silently failing when redundant reaction was present (idem)
  - fixed use of `influx_s.py --install_rdep` (reported by Loic Le Gregam, INSA, Toulouse, France)
  - updated user manual for trouble-shooting and consulting services
 

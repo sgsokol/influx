@@ -133,4 +133,4 @@ ChangeLog.pdf: ChangeLog.txt
 	rst2latex ChangeLog.txt > ChangeLog.tex && pdflatex ChangeLog.tex;
 
 doc_influx: html latexpdf ChangeLog.pdf
-	cp -rp _build/latex/influx_si.pdf _build/html .
+	cp -rpf _build/latex/influx_si.pdf _build/html .
