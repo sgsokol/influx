@@ -129,7 +129,7 @@ for (iexp in seq_len(nb_exp)) {
             mainlab=met
          } else {
             mask=rep("0", metlen)
-            mask[eval(parse(text=sub("~", ":", fr, fixed=TRUE)))]="1"
+            mask[eval(parse(text=paste0("c(", sub("~", ":", fr, fixed=TRUE), ")")))]="1"
             mainlab=sprintf("%s #%s", met, paste0(mask, collapse=""))
          }
          plot_ms(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
