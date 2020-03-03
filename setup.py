@@ -28,8 +28,6 @@ setup(
       'influx_si/bin/ftbl2netan.py',
       'influx_si/bin/ftbl2optR.py',
       'influx_si/bin/ftbl2xgmml.py',
-      'influx_si/bin/influx_s.py',
-      'influx_si/bin/influx_i.py',
       'influx_si/bin/res2ftbl_meas.py',
       'influx_si/bin/txt2ftbl.py',
    ],
@@ -48,4 +46,10 @@ setup(
       'Source': 'https://github.com/sgsokol/influx',
       'Tracker': 'https://github.com/sgsokol/influx/issues',
    },
+   entry_points={
+        'console_scripts': [
+            'influx_i = influx_si.influx_core:start_cli',
+            'influx_s = influx_si.influx_core:start_cli',
+        ],
+   }
 )
