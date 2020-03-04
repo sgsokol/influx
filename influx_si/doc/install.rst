@@ -16,6 +16,15 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
  cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical
  to the Unix's one.
 
+.. note:: In command examples to run, we use script names with extension `.py`. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without '.py'. For example, commands: ::
+
+ $ influx_s.py e_coli
+ 
+ and ::
+
+ $ influx_s e_coli
+ 
+ are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort cab be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
 
 Installation with ``conda``
 ---------------------------
@@ -24,12 +33,6 @@ If you have Anaconda or Miniconda installed on your system, installation of ``in
   $ conda install influx_si -c conda-forge -c bioconda
   
 It installs ``influx_si`` itself as well as all needed dependencies both in Python and in R.
-
-If you are on Windows and you never used python scripts on this mashine before then it might be necessary to run the following command to make python scripts executable. In Anaconda Powershell do: ::
-
- $ echo '$env:PATHEXT += ";.PY"' >> $PROFILE
-
-and restart Anaconda PowerShell to make the change effective.
   
 Installation with ``pip``
 -------------------------
@@ -76,23 +79,9 @@ Python dependencies
 As of influx_si version 5.0, user has not to install Python dependencies manually. So they are listed here just for information.
 
 - python 3.0 (or higher) and modules
+
   + scipy
   + libsbml (optional, needed for ftbl2metxml.py)
-
-.. note:: On some Python distributions (e.g. Anaconda) on Windows platform, the association between ``.py`` files and Python interpreter is made in incomplete way: the file is executed but command line arguments are not passed to Python. To correct this, a user with administrator privileges has to edit register base with ``regedit``. The key ``HKEY_CLASSES_ROOT\py_auto_file\shell\open\command`` must be changed from
-  
-   .. code-block:: text
-   
-     "<path_to_your_python_dir>\python.exe" "%1"
-  
-   to
-   
-   .. code-block:: text
-   
-     "<path_to_your_python_dir>\python.exe" "%1" %*
-
-
-   It may happen (depending on your Windows version) that some other keys (related to Python too) have to be modified in similar way.
 
 ********************
 Test of installation

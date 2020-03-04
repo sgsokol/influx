@@ -171,17 +171,26 @@ if itest:
     itest=[]
     for item in ili:
         item=item.strip()
-        match=re.match("(\d*):(\d*)", item)
+        match=re.match("(-?\d*):(-?\d*)", item)
         if match:
-            beg=int(match.group(1)) or 1
+            try:
+                beg=int(match.group(1))
+            except ValueError:
+                beg=1
             if beg < 0:
-                beg=nb_te-beg+1
-            end=int(match.group(2)) or nb_te
+                beg=nb_te+beg+1
+            try:
+                end=int(match.group(2))
+            except ValueError:
+                end=nb_te
             if end < 0:
-                end=nb_te-end+1
+                end=nb_te+end+1
             itest+=list(range(int(beg), int(end)+1))
         else:
-            itest.append(int(item))
+            i=int(item)
+            if i < 0:
+                i=nb_te+i+1
+            itest.append(i)
 if nmtest:
     itest=itest or []
     nmli=nmtest.split(",")

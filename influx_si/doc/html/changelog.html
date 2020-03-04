@@ -48,6 +48,21 @@
             
   <div class="section" id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-5-0-3">
+<h2>2020-03-04 version 5.0.3<a class="headerlink" href="#version-5-0-3" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New feature:</dt>
+<dd><ul class="first last simple">
+<li>all Python scripts are doubled with executable files without ‘.py’ extension (suggested by Pierre Millard, INRAE, and Matthieu Guionnet, CNRS, Toulouse, France)</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed few typos in the documentation</li>
+</ul>
+</dd>
+</dl>
+</div>
 <div class="section" id="version-5-0-2">
 <h2>2020-02-26 version 5.0.2<a class="headerlink" href="#version-5-0-2" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
@@ -70,7 +85,7 @@
 <dd><ul class="first last simple">
 <li>fixed fatal error on windows platform</li>
 <li>fixed startup message about Rcpp_Rmumps module on some platforms</li>
-<li>fixed dependensy on libsbml</li>
+<li>fixed dependency on libsbml</li>
 </ul>
 </dd>
 </dl>
@@ -81,7 +96,7 @@
 <dt>New features:</dt>
 <dd><ul class="first last simple">
 <li>converted to Python 3</li>
-<li>packaged with python distutils and Conda package management system. Now installation can be made as simple as <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">influx_si</span></code> or <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">influx_si</span></code>. Internet cnnection is required for both methods.</li>
+<li>packaged with python distutils and Conda package management system. Now installation can be made as simple as <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">influx_si</span></code> or <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">influx_si</span></code>. Internet connection is required for both methods.</li>
 <li>auxiliary C++ routines are placed in multbxxc R packages. So, no more compilation is needed at first execution of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.</li>
 </ul>
 </dd>
@@ -89,7 +104,7 @@
 <dd><ul class="first last simple">
 <li>fixed doc about R version (now 3.4.0 or higher) and rmumps (now 5.2.1-3 or higher)</li>
 <li>fixed use of <cite>–sln</cite> option</li>
-<li>added explicite error message if <code class="docutils literal notranslate"><span class="pre">tmax</span></code> is Inf (can happen if time grid could not be read from file indicated in <code class="docutils literal notranslate"><span class="pre">file_labcin</span></code> ftbl field)</li>
+<li>added explicit error message if <code class="docutils literal notranslate"><span class="pre">tmax</span></code> is Inf (can happen if time grid could not be read from file indicated in <code class="docutils literal notranslate"><span class="pre">file_labcin</span></code> ftbl field)</li>
 </ul>
 </dd>
 </dl>
@@ -708,6 +723,7 @@ all fluxes are free or constrained;</li>
   <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-5-0-3">2020-03-04 version 5.0.3</a></li>
 <li><a class="reference internal" href="#version-5-0-2">2020-02-26 version 5.0.2</a></li>
 <li><a class="reference internal" href="#version-5-0-1">2020-01-10 version 5.0.1</a></li>
 <li><a class="reference internal" href="#version-5-0">2019-10-25 version 5.0</a></li>

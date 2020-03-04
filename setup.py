@@ -33,6 +33,22 @@ setup(
       'influx_si/bin/res2ftbl_meas.py',
       'influx_si/bin/txt2ftbl.py',
    ],
+   entry_points={
+      "console_scripts": [
+         "ff2ftbl = influx_si.cli:cli",
+         "ftbl2code = influx_si.cli:cli",
+         "ftbl2cumoAb = influx_si.cli:cli",
+         "ftbl2kvh = influx_si.cli:cli",
+         "ftbl2metxml = influx_si.cli:cli",
+         "ftbl2netan = influx_si.cli:cli",
+         "ftbl2optR = influx_si.cli:cli",
+         "ftbl2xgmml = influx_si.cli:cli",
+         "influx_s = influx_si.cli:cli",
+         "influx_i = influx_si.cli:cli",
+         "res2ftbl_meas = influx_si.cli:cli",
+         "txt2ftbl = influx_si.cli:cli",
+      ],
+   },
    classifiers=[
       'Environment :: Console',
       'Intended Audience :: End Users/Desktop',

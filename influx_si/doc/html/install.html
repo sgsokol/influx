@@ -57,6 +57,18 @@ On windows, in DOS environment the syntax is often similar and in
 cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical
 to the Unix’s one.</p>
 </div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>In command examples to run, we use script names with extension <cite>.py</cite>. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without ‘.py’. For example, commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py e_coli
+</pre></div>
+</div>
+<p>and</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s e_coli
+</pre></div>
+</div>
+<p class="last">are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort cab be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.</p>
+</div>
 <div class="section" id="installation-with-conda">
 <h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Permalink to this headline">¶</a></h2>
 <p>If you have Anaconda or Miniconda installed on your system, installation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> resumes to:</p>
@@ -64,11 +76,6 @@ to the Unix’s one.</p>
 </pre></div>
 </div>
 <p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.</p>
-<p>If you are on Windows and you never used python scripts on this mashine before then it might be necessary to run the following command to make python scripts executable. In Anaconda Powershell do:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;$env:PATHEXT += &quot;;.PY&quot;&#39;</span> &gt;&gt; <span class="nv">$PROFILE</span>
-</pre></div>
-</div>
-<p>and restart Anaconda PowerShell to make the change effective.</p>
 </div>
 <div class="section" id="installation-with-pip">
 <h2>Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Permalink to this headline">¶</a></h2>
@@ -112,22 +119,12 @@ to the Unix’s one.</p>
 <h2>Python dependencies<a class="headerlink" href="#python-dependencies" title="Permalink to this headline">¶</a></h2>
 <p>As of influx_si version 5.0, user has not to install Python dependencies manually. So they are listed here just for information.</p>
 <ul class="simple">
-<li>python 3.0 (or higher) and modules
-+ scipy
-+ libsbml (optional, needed for ftbl2metxml.py)</li>
+<li>python 3.0 (or higher) and modules<ul>
+<li>scipy</li>
+<li>libsbml (optional, needed for ftbl2metxml.py)</li>
 </ul>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p>On some Python distributions (e.g. Anaconda) on Windows platform, the association between <code class="docutils literal notranslate"><span class="pre">.py</span></code> files and Python interpreter is made in incomplete way: the file is executed but command line arguments are not passed to Python. To correct this, a user with administrator privileges has to edit register base with <code class="docutils literal notranslate"><span class="pre">regedit</span></code>. The key <code class="docutils literal notranslate"><span class="pre">HKEY_CLASSES_ROOT\py_auto_file\shell\open\command</span></code> must be changed from</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;&lt;path_to_your_python_dir&gt;\python.exe&quot; &quot;%1&quot;
-</pre></div>
-</div>
-<p>to</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;&lt;path_to_your_python_dir&gt;\python.exe&quot; &quot;%1&quot; %*
-</pre></div>
-</div>
-<p class="last">It may happen (depending on your Windows version) that some other keys (related to Python too) have to be modified in similar way.</p>
-</div>
+</li>
+</ul>
 <div class="section" id="test-of-installation">
 <h3>Test of installation<a class="headerlink" href="#test-of-installation" title="Permalink to this headline">¶</a></h3>
 <p>Open a shell window and get to your working directory.
