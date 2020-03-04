@@ -1,7 +1,7 @@
 from setuptools import setup
 #from distutils.core import setup
 
-with open("README.rst", "r") as f:
+with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 with open("influx_si/influx_version.txt", "r") as f:
     version = f.read().rstrip()
