@@ -24,7 +24,7 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
 
  $ influx_s e_coli
  
- are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort cab be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
+ are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
 
 Installation with ``conda``
 ---------------------------
@@ -124,7 +124,7 @@ interpret them, try to figure out why the errors occurred and correct them.
 
 In high throughput context, you can find useful to run ``influx_si`` in parallel on many FTBL files. It can be done just by providing more than one FTBL file in argument. For example, with two of FTBLs provided with the package you can run: ::
  
- $ ../influx_s.py e_coli.ftbl e_coli_growth.ftbl
+ $ influx_s.py e_coli.ftbl e_coli_growth.ftbl
  
 
 In this case, the output looks sightly different than in one by one run:

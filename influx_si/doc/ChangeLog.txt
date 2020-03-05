@@ -2,13 +2,13 @@
 Change Log for influx_si
 ========================
 
-2020-03-04 version 5.0.3
+2020-03-05 version 5.0.3
 ------------------------
 New feature:
  - all Python scripts are doubled with executable files without '.py' extension (suggested by Pierre Millard, INRAE, and Matthieu Guionnet, CNRS, Toulouse, France)
 
 Bug fix:
- - fixed few typos in the documentation
+ - fixed few typos in documentation
 
 2020-02-26 version 5.0.2
 ------------------------

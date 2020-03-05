@@ -67,7 +67,7 @@ to the Unix’s one.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s e_coli
 </pre></div>
 </div>
-<p class="last">are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort cab be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.</p>
+<p class="last">are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.</p>
 </div>
 <div class="section" id="installation-with-conda">
 <h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Permalink to this headline">¶</a></h2>
@@ -158,7 +158,7 @@ underlying numerical libraries (BLAS, LAPACK and so on).</p>
 <p>If something went wrong, check the error messages in <code class="docutils literal notranslate"><span class="pre">e_coli.err</span></code>,
 interpret them, try to figure out why the errors occurred and correct them.</p>
 <p>In high throughput context, you can find useful to run <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> in parallel on many FTBL files. It can be done just by providing more than one FTBL file in argument. For example, with two of FTBLs provided with the package you can run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ../influx_s.py e_coli.ftbl e_coli_growth.ftbl
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py e_coli.ftbl e_coli_growth.ftbl
 </pre></div>
 </div>
 <p>In this case, the output looks sightly different than in one by one run:</p>
