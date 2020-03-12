@@ -27,7 +27,7 @@ License: Gnu Public License (GPL) v3 http://www.gnu.org/licenses/gpl.html
 # 2008-01-24 sokol. First trial (not working)
 # 2014-01-29 sokol. Revamped into working state (based on ftbl2rsif.py)
 
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys
     import os
     import stat

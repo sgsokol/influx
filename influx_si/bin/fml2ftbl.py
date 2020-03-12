@@ -99,11 +99,11 @@ for fm in l:
    meas["f"][fm['textual']]=mdata[fm['@id']][0]
 
 ## ms
-meas['ms']={}
+meas['ms']=[]
 l=doc['fluxml']['configuration']['measurement']['model']['labelingmeasurement']['group']
 l=[l] if not is_list(l) else l
 for gr in l:
-   meas['ms'][gr['textual']]=mdata[gr['@id']]
+   meas['ms'].append((gr['textual'], gr['@scale'], mdata[gr['@id']]))
 
 # extract input labeling
 ldoc=doc['fluxml']['configuration']['input']
@@ -183,9 +183,16 @@ for met,li in inlab.items():
 
 # print ms measurements
 print("\nMASS_SPECTROMETRY\n\tMETA_NAME\tFRAGMENT\tWEIGHT\tVALUE\tDEVIATION")
-for frag,msli in meas["ms"].items():
+for frag,scale,msli in meas["ms"]:
    met,ali=frag.split("[") # metab and atom list
    ali=ali.split("]")[0]
+   if scale == 'auto':
+      vsum=0.
+      for v in msli:
+         v['val']=float(v['val'])
+         vsum += v['val']
+      for v in msli:
+         v['val'] /= vsum
    print(f"\t{met}\t{ali}\t{msli[0]['ms+']}\t{msli[0]['val']}\t{msli[0]['sd']}")
    for it in msli[1:]:
       print(f"\t\t\t{it['ms+']}\t{it['val']}\t{it['sd']}")
@@ -195,6 +202,6 @@ print("""
 OPTIONS
 	OPT_NAME	OPT_VALUE
 	//optctrl_history	1 // nlsic
-	commandArgs	--ln --TIMEIT
+	commandArgs	--ln --TIMEIT --noscale
 	posttreat_R	save_all.R; plot_smeas.R
 """)

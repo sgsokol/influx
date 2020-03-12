@@ -3,19 +3,29 @@ plot_ms=function(x, m=NULL, dev=NULL, ...) {
    # x and m are supposed to have the same dimension and organization
    n=length(x)
    nm=names(x)
+   
+   if (length(m)) {
+      m=matrix(m, nrow=n)
+      nc=ncol(m)
+      colnames(m)=rep("meas", nc)
+   } else {
+      nc=1
+   }
    if (length((nms <- strsplit(nm, ":", fixed=TRUE))[[1]]) > 2) {
       nm_leg=as.expression(sapply(nms, function(v) substitute(M[i], list(i=v[4]))))
    } else {
       nm_leg=as.expression(sapply(seq_len(n)-1, function(v) substitute(M[i], list(i=v))))
    }
-   xlim=range(0, if (length(m)) m[1]-dev else 0, sum(x), sum(m)+dev)*1.1
-   bc=barplot(cbind(sim=x, meas=m), width=0.1*diff(xlim), horiz=TRUE, xlab="MS fraction", ylim=c(0, 0.25), xlim=xlim, asp=TRUE, col=co,
+   xlim=range(0, if (length(m) && !is.null(dev)) min(m[1,])-dev else 0, sum(x), if (length(m) && !is.null(dev)) max(col_sums(m))+dev else 0)*1.1
+   bc=barplot(cbind(sim=x, m), width=0.1*diff(xlim), horiz=TRUE, xlab="MS fraction", ylim=c(0, 0.25*nc), xlim=xlim, asp=TRUE, col=co,
       legend.text=nm_leg, args.legend=list(cex=0.75, horiz=TRUE), ...)
    if (!is.null(m) && !is.null(dev)) {
-      cume=cumsum(m)
-      h=seq(-1, 1, len=n)*0.03
-      segments(cume-dev, bc[2]+h, cume+dev, bc[2]+h)
-      arrows(cume-dev, bc[2]+h, cume+dev, bc[2]+h, length=0.05, angle=80, code=3)
+      for (j in seq(ncol(m))) {
+         cume=cumsum(m[,j])
+         h=seq(-1, 1, len=n)*0.03
+         segments(cume-dev, bc[j+1]+h, cume+dev, bc[j+1]+h)
+         arrows(cume-dev, bc[j+1]+h, cume+dev, bc[j+1]+h, length=0.05, angle=80, code=3)
+      }
    }
 }
 plot_lab=function(x, m=NULL, dev=NULL, ...) {
@@ -105,11 +115,11 @@ co=c(
 "#df926c",
 "#a84f5b"
 )
-if (is.null(.GlobalEnv$simlab)) {
-   stop_mes("Simulated data are not available. Plotting skipped", fcerr)
+if (is.null(.GlobalEnv$jx_f) || is.null(jx_f$simlab)) {
+   stop_mes("plot_smeas.R: simulated data are not available. Plotting skipped", fcerr)
 }
 for (iexp in seq_len(nb_exp)) {
-   sim=simlab[[iexp]]
+   sim=jx_f$simlab[[iexp]]
    me=measurements$vec$labeled[[iexp]] # measured stationary ms data
 
    # get unique met-fragment names
@@ -121,6 +131,13 @@ for (iexp in seq_len(nb_exp)) {
       nmf=sort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":")))
       for (metf in nmf) {
          i=grep(sprintf("m:%s:", metf), nm_sel, fixed=TRUE, v=TRUE)
+         # count repeated fragments
+         nbf=length(grep(sprintf("m:%s:0", metf), i, fixed=TRUE, v=TRUE))
+         if (nbf > 1) {
+            isim=i[seq(length(i)/nbf)]
+         } else {
+            isim=i
+         }
          mf=strsplit(metf, ":")[[1]]
          met=mf[1]
          fr=mf[2]
@@ -132,35 +149,39 @@ for (iexp in seq_len(nb_exp)) {
             mask[eval(parse(text=paste0("c(", sub("~", ":", fr, fixed=TRUE), ")")))]="1"
             mainlab=sprintf("%s #%s", met, paste0(mask, collapse=""))
          }
-         plot_ms(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
+         plot_ms(sim[isim], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
       }
    }
    # plot MS of non measured metabs
-   nm_sim=rownames(mid)
-   nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
-   nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
-   if (emu) {
-      nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1)
-   }
-   nmp=sort(setdiff(nmmid, nmm))
-   if (length(nmp)) {
-      plot(0:1, c(0,0.1), type="n", axes=FALSE, xlab="", ylab="")
-      text(0.5, 0.05, lab="MS simulations", cex=2)
-   }
-   for (met in nmp) {
-      if (emu) {
-         i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
-         # take fragments
-         fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
-         for (f in fr) {
-            i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
-            fi=as.integer(f)
-            mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
-            plot_ms(mid[i,iexp], NULL, NULL, main=mainlab)
+#browser()
+   if (!is.null(.GlobalEnv$mid)) {
+      nm_sim=names(mid[,iexp])
+      # get "pyr" from "m:pyr:1~3:0:171" (on ms)
+      nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
+      # get "pyr" from "pyr:7+0" (on simulated)
+      nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
+      if (emu)
+         nmmid=unique(sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1))
+      nmp=sort(setdiff(nmmid, nmm))
+      if (length(nmp)) {
+         plot(0:1, c(0,0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="MS simulations", cex=2)
+      }
+      for (met in nmp) {
+         if (emu) {
+            i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
+            # take fragments
+            fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
+            for (f in fr) {
+               i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
+               fi=as.integer(f)
+               mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
+               plot_ms(mid[i, iexp], NULL, NULL, main=mainlab)
+            }
+         } else {
+            i=grep(sprintf("^%s", met), nm_sim, v=TRUE)
+            plot_ms(mid[i, iexp], NULL, NULL, main=met)
          }
-      } else {
-         i=grep(sprintf("^%s\\+", met), nm_sim, v=TRUE)
-         plot_ms(mid[i,iexp], NULL, NULL, main=met)
       }
    }
    # LABEL_MEASURMENTS

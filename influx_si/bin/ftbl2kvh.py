@@ -3,7 +3,7 @@
 and write the resulting dictionary in kvh format on kvh file
 usage: ftbl2kvh.py network[.ftbl] [> network.kvh]
 """
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys, os, getopt, stat;
     import influx_si;
     import tools_ssg;

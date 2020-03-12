@@ -23,7 +23,7 @@ def check(value, message):
        raise Exception(err_msg)
    else:
      return
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys, os, getopt, stat, re
     from libsbml import *
 

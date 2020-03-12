@@ -1785,21 +1785,14 @@ if (clownr!=0.) {
 }
 nb_fn=nb_fln+nb_ffn
 if (cupn != 0 && nb_fn > 0) {
-   # add upper limits on [df].net <= cupn for net fluxes
+   # add absolute upper limits on -cupn <= [df].net <= cupn for net fluxes
    # explicit inequalities take precedence over generic ones
    # so eliminate net fluxes which are already in inequalities
+   ## proceed n:smth>=flux
    nm_tmp=c(nm_ffn, nm_fln) # all not fixed net fluxes
    nm_itmp=paste("n:.+>=", substring(nm_tmp, 5), sep="")
-   i=sapply(seq(along=nm_itmp), function(k) {
-      j=grep(nm_itmp[k], nm_i)
-      #cat(nm_itmp[k], "->", nm_i[j], "\\n", file=fclog)
-      if (length(j)==0) {
-         return(0)
-      } else {
-         return(k)
-      }
-   })
-   i=i[i!=0]
+   i=sapply(vgrep(nm_itmp, nm_i), length)
+   i=which(i!=0)
    if (length(i) > 0) {
       nm_tmp=nm_tmp[-i]
    }
@@ -1807,12 +1800,28 @@ if (cupn != 0 && nb_fn > 0) {
    if (len_tmp > 0) {
       nb_tmp=nrow(mi)
       mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx))
-      nm_i=c(nm_i, paste(nm_tmp, "<=", cupn, sep=""))
+      nm_i=c(nm_i, paste0(nm_tmp, "<=", cupn))
       li=c(li, rep(-cupn, len_tmp))
       mi[nb_tmp+(1:len_tmp),nm_tmp]=diag(-1., len_tmp)
    }
+   ## proceed n:smth<=flux
+   nm_tmp=c(nm_ffn, nm_fln) # all not fixed net fluxes
+   nm_itmp=paste("n:.+<=", substring(nm_tmp, 5), sep="")
+   i=sapply(vgrep(nm_itmp, nm_i), length)
+   i=which(i!=0)
+   if (length(i) > 0) {
+      nm_tmp=nm_tmp[-i]
+   }
+   len_tmp=length(nm_tmp)
+   if (len_tmp > 0) {
+      nb_tmp=nrow(mi)
+      mi=rbind(mi, matrix(0, nrow=len_tmp, ncol=nb_fallnx))
+      nm_i=c(nm_i, paste0(nm_tmp, ">=", -cupn))
+      li=c(li, rep(-cupn, len_tmp))
+      mi[nb_tmp+(1:len_tmp),nm_tmp]=diag(1., len_tmp)
+   }
 }
-
+#browser()
 """%{
 #   "nb_notrev": len([fli for (fli,t,nxi) in tfallnx
 #      if nxi=="n" and t!="c" and fli in netan["notrev"]]),

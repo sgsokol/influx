@@ -2,6 +2,16 @@
 Change Log for influx_si
 ========================
 
+2020-03-11 version 5.0.3.900
+------------------------
+New feature:
+ - option --cupn is now considered in absolute sens, i.e. net fluxes are limited from both sides: '-cupn <= netflux <= cupn' (before it was 'netflux <= cupn' only)
+
+Bug fix:
+ - fixed executable files of additional tools
+ - fixed plot_smeas.R for plotting simulated but not measured MS data
+ - fixed plot_smeas.R for plotting repeatedly measured MS data
+
 2020-03-05 version 5.0.3
 ------------------------
 New feature:

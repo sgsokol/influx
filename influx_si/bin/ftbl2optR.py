@@ -103,7 +103,7 @@ Functions:
 # 2010-10-16 sokol: fortran code is no more generated, R Matrix package is used for sparse matrices.
 # 2014-04-14 sokol:adapted for both "s" and "i" cases
 
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys
     import os
     import stat

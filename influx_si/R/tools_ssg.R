@@ -1408,3 +1408,4 @@ mat2ccs=function(a, tol=.Machine$double.eps*64) {
    p=c(0L, cumsum(colSums(inz)))
    return(list(i=row(a)[inz]-1L, p=c(0L, cumsum(colSums(inz))), x=a[inz], nrow=nrow(a), ncol=ncol(a), dimnames=dimnames(a)))
 }
+vgrep=base::Vectorize(base::grep, "pattern")

@@ -7,7 +7,7 @@ suffixed with '_cinlabN.txt'
 usage: res2ftbl_meas.py [network_res[.kvh]] # produce network_simN.ftbl where N is parallel experiment number.
 
 """
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys, os, getopt
     import re
     import datetime as dt

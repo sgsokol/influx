@@ -210,7 +210,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         fc.close()
     return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto]
 
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys
     import os
     import stat
@@ -317,7 +317,7 @@ if __name__ == "__main__":
 
 NETWORK
 	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
-"""%(base, dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d"), path_txt))
+"""%(base, dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d"), path_txt if path_txt != sys.stdin else "stdin"))
 
     # write the ftbl content
     for row in netw:

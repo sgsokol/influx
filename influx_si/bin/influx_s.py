@@ -205,7 +205,7 @@ parser.add_option(
     help="upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999")
 parser.add_option(
 "--cupn", type="float",
-    help="upper limit for net fluxes. Default: 1.e3")
+    help="absolute limit for net fluxes: -cupn <= netflux <= cupn. Must be non negative. Value 0 means no limit. Default: 1.e3")
 parser.add_option(
 "--cupp", type="float",
     help="upper limit for metabolite pool. Default: 1.e5"),

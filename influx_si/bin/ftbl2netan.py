@@ -3,7 +3,7 @@
 and write netan in kvh format on stdout
 usage: ftbl2netan.py network[.ftbl] [> network.netan]
 """
-if __name__ == "__main__":
+if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys, os, getopt, stat
     sys.tracebacklimit=None
     import influx_si
