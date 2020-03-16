@@ -90,6 +90,41 @@ import copy
 import os
 import sys
 from codecs import BOM_UTF8, BOM_UTF16_BE, BOM_UTF16_LE, BOM_UTF32_BE, BOM_UTF32_LE
+class oset(dict):
+    def __init__(*args, **kwds):
+        self, *args = args
+        if len(args) == 1:
+            for k in args[0]:
+                self[k]=1
+        elif len(args) > 1:
+            raise TypeError('expected at most 1 arguments, got %d' % len(args))
+    def copy(self):
+        tmp=oset()
+        tmp.update(self)
+        return(tmp)
+    def add(self, x):
+        self[x]=1
+    def difference_update(self, x):
+        self -= oset(x)
+    def difference(self, x):
+        return(self - oset(x))
+    def update(self, x):
+        if x:
+            for i in x:
+                self[i]=1
+    def intersection(self, x):
+        return self & oset(x)
+    def __sub__(self, x):
+        tmp=oset(x)
+        return oset(i for i in self if i not in tmp)
+    def __and__(self, x):
+        tmp=oset(x)
+        return oset(i for i in self if i in tmp)
+    def __or__(self, x):
+        tmp=oset(x)
+        tmp.update(self)
+        return tmp
+
 BOMS = (
     (BOM_UTF8, "UTF-8"),
     (BOM_UTF32_BE, "UTF-32-BE"),
@@ -107,7 +142,7 @@ sys.path.append(dirx)
 
 from tools_ssg import *
 NaN=float("nan")
-float_conv=set((
+float_conv=oset((
     "VALUE",
     "DEVIATION",
     "OPT_VALUE",
@@ -120,20 +155,20 @@ float_conv=set((
 ))
 # define legal sections/subsections
 defsec={
-    "PROJECT": set(),
-    "NETWORK": set(),
-    "NOTRACER_NETWORK": set(("FLUX_NAME", "EQUATION")),
-    "FLUXES": set(("NET", "XCH")),
-    "EQUALITIES": set(("NET", "XCH", "METAB")),
-    "INEQUALITIES": set(("NET", "XCH", "METAB")),
-    "LABEL_INPUT": set(),
-    "FLUX_MEASUREMENTS": set(),
-    "LABEL_MEASUREMENTS": set(),
-    "PEAK_MEASUREMENTS": set(),
-    "MASS_SPECTROMETRY": set(),
-    "METAB_MEASUREMENTS": set(),
-    "OPTIONS": set(),
-    "METABOLITE_POOLS": set(),
+    "PROJECT": oset(),
+    "NETWORK": oset(),
+    "NOTRACER_NETWORK": oset(("FLUX_NAME", "EQUATION")),
+    "FLUXES": oset(("NET", "XCH")),
+    "EQUALITIES": oset(("NET", "XCH", "METAB")),
+    "INEQUALITIES": oset(("NET", "XCH", "METAB")),
+    "LABEL_INPUT": oset(),
+    "FLUX_MEASUREMENTS": oset(),
+    "LABEL_MEASUREMENTS": oset(),
+    "PEAK_MEASUREMENTS": oset(),
+    "MASS_SPECTROMETRY": oset(),
+    "METAB_MEASUREMENTS": oset(),
+    "OPTIONS": oset(),
+    "METABOLITE_POOLS": oset(),
 }
 # at least one of these fields required to be in prl_exp ftbls
 req_prl=(
@@ -153,7 +188,7 @@ def ftbl_parse(f):
     "TRANS" correponds to carbon transitions."""
     import re
     import codecs
-    ftbl={};    # main dictionary to be returned
+    ftbl=dict();    # main dictionary to be returned
     
     #print("f=", f)
     if not isstr(f):
@@ -200,7 +235,7 @@ def ftbl_parse(f):
                 # fc=open(f, "r")
                 # lines=fc.readlines()
                 # fc.close()
-    ftbl["pathway"]={}
+    ftbl["pathway"]=dict()
     
     #print f;##
     reblank=re.compile("^[\t ]*$")
@@ -211,7 +246,7 @@ def ftbl_parse(f):
     col_names=[]
     sec_name=subsec_name=""
     irow=0
-    dic={}
+    dic=dict()
     pathway=""
     #import pdb; pdb.set_trace()
     for l in lines:
@@ -277,7 +312,7 @@ def ftbl_parse(f):
                 # prepare sub-storage
                 if not ftbl[sec_name]:
                     # replace an empty list by an empty dictionary
-                    ftbl[sec_name]={}
+                    ftbl[sec_name]=dict()
                 #print (irow, reading)##
                 ftbl[sec_name][subsec_name]=[]
                 try: del stock
@@ -368,9 +403,9 @@ def ftbl_parse(f):
     tr=ftbl["TRANS"]
     if (len(nw) != len(tr)):
         raise Exception("Number of reactions (%d) is not equal to label transition number (%d)"%(len(nw), len(tr)) )
-    ureac=set(row["FLUX_NAME"] for row in ftbl["NETWORK"])
-    long_reac={}
-    long_trans={}
+    ureac=oset(row["FLUX_NAME"] for row in ftbl["NETWORK"])
+    long_reac=dict()
+    long_trans=dict()
     for reac in ureac:
         if reac not in long_reac:
             long_reac[reac]={"left": [], "right": []}
@@ -442,27 +477,27 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         raise("netan argument must be a dictionary")
     if not netan:
         netan.update({
-            "input":set(),
-            "output":set(),
-            "subs":set(),
-            "prods":set(),
-            "metabs":set(),
-            "reac":set(),
-            "notrev":set(),
-            "sto_r_m":{},
-            "sto_m_r":{},
-            "flux_m_r":{},
-            "cumo_balance_pattern":{},
-            "Clen":{},
-            "formula":{},
-            "metab_netw":{},
-            "cumo_sys":{},
-            "carbotrans":{},
-            "Cmax":{},
-            "flux_dep":{},
-            "flux_free":{},
-            "flux_constr":{},
-            "flux_measured":{},
+            "input":oset(),
+            "output":oset(),
+            "subs":oset(),
+            "prods":oset(),
+            "metabs":oset(),
+            "reac":oset(),
+            "notrev":oset(),
+            "sto_r_m":dict(),
+            "sto_m_r":dict(),
+            "flux_m_r":dict(),
+            "cumo_balance_pattern":dict(),
+            "Clen":dict(),
+            "formula":dict(),
+            "metab_netw":dict(),
+            "cumo_sys":dict(),
+            "carbotrans":dict(),
+            "Cmax":dict(),
+            "flux_dep":dict(),
+            "flux_free":dict(),
+            "flux_constr":dict(),
+            "flux_measured":dict(),
             "iso_input":[],
             "cumo_input":[],
             "rcumo_input":[],
@@ -475,21 +510,21 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             "vcumo":[],
             "Afl":[],
             "bfl":[],
-            "vflux":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-            "vflux_free":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-            "vflux_constr":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-            "vflux_meas":{"net":[], "net2i":{}},
-            "vflux_growth":{"net":[], "net2i":{}},
-            "vflux_compl":{"net":[], "xch":[], "net2i":{}, "xch2i":{}},
-            "vflux_fwrv":{"fw":[], "rv":[], "fw2i":{}, "rv2i":{}},
+            "vflux":{"net":[], "xch":[], "net2i":dict(), "xch2i":dict()},
+            "vflux_free":{"net":[], "xch":[], "net2i":dict(), "xch2i":dict()},
+            "vflux_constr":{"net":[], "xch":[], "net2i":dict(), "xch2i":dict()},
+            "vflux_meas":{"net":[], "net2i":dict()},
+            "vflux_growth":{"net":[], "net2i":dict()},
+            "vflux_compl":{"net":[], "xch":[], "net2i":dict(), "xch2i":dict()},
+            "vflux_fwrv":{"fw":[], "rv":[], "fw2i":dict(), "rv2i":dict()},
             "vrowAfl":[],
-            "flux_in":set(),
-            "flux_out":set(),
-            "flux_inout":set(),
-            "opt": {},
-            "met_pools": {},
-            "nx2dfcg": {},
-            "metab_measured":{},
+            "flux_in":oset(),
+            "flux_out":oset(),
+            "flux_inout":oset(),
+            "opt":dict(),
+            "met_pools":dict(),
+            "nx2dfcg":dict(),
+            "metab_measured":dict(),
         })
     res="";     # auxiliary short-cut to current result
     netan["exp_names"]=[ftbl["base_name"]]
@@ -511,7 +546,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
     # check the presence of fields "NAME", "FCD" and maybe "VALUE(F/C)"
     for suf in ["NET", "XCH"]:
-        for row in ftbl.get("FLUXES", {}).get(suf, {}):
+        for row in ftbl.get("FLUXES", dict()).get(suf, dict()):
             if not "NAME" in row:
                 raise Exception("No required field NAME in section FLUX/%s (%s: %s)"%(suf, ftbl["name"], row["irow"]))
             if not "FCD" in row:
@@ -519,8 +554,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             if (row["FCD"]=="F" or row["FCD"]=="C") and not "VALUE(F/C)" in row:
                 raise Exception("For flux '%s' in section FLUX/%s, the field 'VALUE(F/C)' is requiered but is absent (%s: %s)"%(row["NAME"], suf, ftbl["name"], row["irow"]))
     # quick consistency check between net and xch fluxes
-    fnet=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("NET", {}))
-    fxch=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}))
+    fnet=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("NET", dict()))
+    fxch=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", dict()))
     net_wo_xch=fnet-fxch
     if net_wo_xch:
         raise Exception("Fluxe(s) '%s' are defined in the FLUX/NET section but not in the XCH one."%join(", ", net_wo_xch))
@@ -529,7 +564,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         raise Exception("Fluxe(s) '%s' are defined in the FLUX/XCH section but not in the NET one."%join(", ", xch_wo_net))
 
     # quick not reversible reactions for complete subs and prods accounting
-    revreac=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", {}) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
+    revreac=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", dict()) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
     # analyse networks
     netw=ftbl.get("long_reac")
     if not netw:
@@ -540,8 +575,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # corresponding carbon transition row
         crow=ftbl["long_trans"][reac]
         # local substrate (es), product (ps) and metabolites (ms) sets
-        es=set(m for m,_ in row["left"])
-        ps=set(m for m,_ in row["right"])
+        es=oset(m for m,_ in row["left"])
+        ps=oset(m for m,_ in row["right"])
         ms=es|ps
         #if es&ps:
         #   raise Exception("The same metabolite(s) '%s' are present in both sides of a reaction '%s' (%s: %s)."%(join(", ", es&ps), reac, ftbl["name"], row["irow"]))
@@ -585,7 +620,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         uni=dict()
         for lr in ("left", "right"):
             lets[lr]="".join(l for m,l in netan["carbotrans"][reac][lr])
-            uni[lr]=set(lets[lr])
+            uni[lr]=oset(lets[lr])
             if len(uni[lr]) != len(lets[lr]):
                 # find repeated letters
                 di=dict((l,lets[lr].count(l)) for l in uni[lr])
@@ -631,7 +666,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         elif len(spl) > 2:
             raise Exception("Too many '=' signs (%d) in NOTRACER_NETWORK reaction: '%s' (%s: %s)"%(reac, len(spl)-1, ftbl["name"], row["irow"]))
         lr=("left", "right")
-        di={}
+        di=dict()
         for i,su in enumerate(spl):
             terms=su.split("+")
             try:
@@ -651,8 +686,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 netan["sto_m_r"][s]={"left":[], "right":[]}
             netan["sto_m_r"][s]["right"].append((reac, c))
         netan["reac"].add(reac)
-        es=set(m for m,co in di["left"])
-        ps=set(m for m,co in di["right"])
+        es=oset(m for m,co in di["left"])
+        ps=oset(m for m,co in di["right"])
         ms=es|ps
         for m in ms:
             if m not in netan["Clen"]:
@@ -677,20 +712,20 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     netan["metabint"].difference_update(netan["input"] | netan["output"])
 
     # all met_pools must be in internal metabolites
-    mdif=set(netan["met_pools"]).difference(netan["metabint"])
+    mdif=oset(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
         # unknown metabolite
         raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in section METABOLITE_POOLS are not internal metabolites in NETWORK section.")
     if case_i:
         # check it other way: all metabint must be in metpools
-        mdif=set(netan["metabint"]).difference(netan["met_pools"])
+        mdif=oset(netan["metabint"]).difference(netan["met_pools"])
         if len(mdif) :
             # unknown metabolite
             raise Exception("Unknown metabolite concentration. Metabolite(s) '"+", ".join(mdif)+"' defined in section NETWORK are not defined in METABOLITE_POOLS section.")
 
     # add growth fluxes if requested
-    netan["flux_growth"]={"net": {}}
-    netan["flux_vgrowth"]={"net": {}, "xch": {}}; # fluxes depending on variable pools
+    netan["flux_growth"]={"net":dict()}
+    netan["flux_vgrowth"]={"net":dict(), "xch":dict()}; # fluxes depending on variable pools
     if netan["opt"].get("include_growth_flux"):
         if not netan["opt"].get("mu"):
             raise Exception("Parameter include_growth_flux is set to True but the growth parameter mu is absent or zero in OPTIONS section")
@@ -720,7 +755,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
     # check metab names in pools and network
     # all met_pools must be in internal metabolites
-    mdif=set(netan["met_pools"]).difference(netan["metabint"])
+    mdif=oset(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
         # unknown metabolite
         raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in the section METABOLITE_POOLS are not internal metabolites in the NETWORK section.")
@@ -733,8 +768,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined as internal in the section NETWORK, are not defined in the METABOLITE_POOLS section.")
     
     # input and output flux names
-    netan["flux_in"]=set(f for m in netan["input"] for f,_ in netan["sto_m_r"][m]["left"])
-    netan["flux_out"]=set(f for m in netan["output"] for f,_ in netan["sto_m_r"][m]["right"])
+    netan["flux_in"]=oset(f for m in netan["input"] for f,_ in netan["sto_m_r"][m]["left"])
+    netan["flux_out"]=oset(f for m in netan["output"] for f,_ in netan["sto_m_r"][m]["right"])
     netan["flux_inout"]=netan["flux_in"] | netan["flux_out"]
     #print "fl in + out="+str(netan["flux_in"])+"+"+str( netan["flux_out"]);##
     
@@ -744,8 +779,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # net fluxes
     
     # temporary list of constrained net fluxes
-    fcnstr=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("NET", []) if row["FCD"] == "C")
-    for row in ftbl.get("EQUALITIES",{}).get("NET",[]):
+    fcnstr=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("NET", []) if row["FCD"] == "C")
+    for row in ftbl.get("EQUALITIES", dict()).get("NET",[]):
         dicf=formula2dict(row["FORMULA"])
         # number of non constrained fluxes in a formula
         nb_nonc=sum(fl not in fcnstr for fl in dicf)
@@ -759,8 +794,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     # xch fluxes
     # temporary list of constrained xch fluxes
-    fcnstr=set(row["NAME"] for row in ftbl.get("FLUXES", {}).get("XCH", []) if row["FCD"] == "C")
-    for row in ftbl.get("EQUALITIES",{}).get("XCH",[]):
+    fcnstr=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", []) if row["FCD"] == "C")
+    for row in ftbl.get("EQUALITIES", dict()).get("XCH",[]):
         dicf=formula2dict(row["FORMULA"])
         # number of non constrained fluxes in a formula
         nb_nonc=sum(fl not in fcnstr for fl in dicf)
@@ -772,11 +807,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 eval(row["VALUE"]),
                 dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
-    netan["eqflux"]=set(f for row in netan["flux_equal"]["net"] for f in [*row[1].keys()]) | set(f for row in netan["flux_equal"]["xch"] for f in [*row[1].keys()])
+    netan["eqflux"]=oset(f for row in netan["flux_equal"]["net"] for f in [*row[1].keys()]) | oset(f for row in netan["flux_equal"]["xch"] for f in [*row[1].keys()])
     eqflux=netan["eqflux"]
     # metab EQAULITIES
     netan["metab_equal"]=list()
-    for row in ftbl.get("EQUALITIES",{}).get("METAB",[]):
+    for row in ftbl.get("EQUALITIES", dict()).get("METAB",[]):
         #print row;##
         dicf=formula2dict(row["FORMULA"])
         nb_neg=0
@@ -798,11 +833,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # constrained fluxes (dictionary flux->value)
     # variable growth fluxes (dictionary flux->value)
     # The rest are dependent fluxes
-    netan["flux_dep"]={"net":{}, "xch":{}}
-    netan["flux_free"]={"net":{}, "xch":{}}
-    netan["flux_constr"]={"net":{}, "xch":{}}
+    netan["flux_dep"]=dict({"net":dict(), "xch":dict()})
+    netan["flux_free"]=dict({"net":dict(), "xch":dict()})
+    netan["flux_constr"]=dict({"net":dict(), "xch":dict()})
     flx=ftbl.get("FLUXES")
-    fcd=set(("F", "C", "D"))
+    fcd=oset(("F", "C", "D"))
     if flx:
         xch=flx.get("XCH")
         net=flx.get("NET")
@@ -817,16 +852,16 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             raise Exception("The flux name(s) '%s' from the FLUX/XCH section is (are) not defined in the NETWORK neither EQUALITY section."%(", ".join(unk)))
 
         # check that all reactions from NETWORK are at least in FLUX/NET section
-        fnet=set( row["NAME"] for row in net if row["NAME"] and row["FCD"] in fcd )
+        fnet=oset( row["NAME"] for row in net if row["NAME"] and row["FCD"] in fcd )
         #print("fnet=", fnet)
         #print("allreac=", allreac)
-        unk=allreac-fnet-set(netan["flux_growth"]["net"])-set(netan["flux_vgrowth"]["net"])
+        unk=allreac-fnet-oset(netan["flux_growth"]["net"])-oset(netan["flux_vgrowth"]["net"])
         if len(unk):
             raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
 
         # check that all reactions from EQUALITY are at least in FLUX/NET/XCH section
-        fnetxch=set( row["NAME"] for row in net+xch if row["NAME"] and row["FCD"] in fcd )
-        unk=eqflux-fnet-set(netan["flux_growth"]["net"])-set(netan["flux_vgrowth"]["net"])
+        fnetxch=oset( row["NAME"] for row in net+xch if row["NAME"] and row["FCD"] in fcd )
+        unk=eqflux-fnet-oset(netan["flux_growth"]["net"])-oset(netan["flux_vgrowth"]["net"])
         if len(unk):
             raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
     else:
@@ -981,7 +1016,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # list of tuples (value,comp,dict) where dict is flux:coef
     # and comp is of "<", "<=", ...
     # net fluxes
-    for row in ftbl.get("INEQUALITIES",{}).get("NET",[]):
+    for row in ftbl.get("INEQUALITIES", dict()).get("NET",[]):
         #print row;##
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (%s: %s)."%(row["COMP"], ftbl["name"], row["irow"]))
@@ -997,7 +1032,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 row["COMP"],
                 dicf))
     # xch fluxes
-    for row in ftbl.get("INEQUALITIES",{}).get("XCH",[]):
+    for row in ftbl.get("INEQUALITIES", dict()).get("XCH",[]):
         #print row;##
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (%s: %s)."%(row["COMP"], ftbl["name"], row["irow"]))
@@ -1013,7 +1048,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                         (afftype, fl, join("", row)))
     # metabolite inequalities (like the flux ones)
     netan["metab_inequal"]=list()
-    for row in ftbl.get("INEQUALITIES",{}).get("METAB",[]):
+    for row in ftbl.get("INEQUALITIES", dict()).get("METAB",[]):
         dicf=formula2dict(row["FORMULA"])
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (%s: %s)."%(row["COMP"], ftbl["name"], row["irow"]))
@@ -1085,7 +1120,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     for reac,parts in netan["formula"].items():
         for metab,_ in parts["left"]:
             if not metab in res:
-                res[metab]=set()
+                res[metab]=oset()
             res[metab].update(m for m,_ in parts["right"])
     # order cumomers by weight. For a given weight, cumomers are sorted by
     # metabolites order.
@@ -1161,9 +1196,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                             if in_metab in netan["input"]:
                                 # put it in rhs
                                 if cumo not in res["b"][w-1]:
-                                    res["b"][w-1][cumo]={}
+                                    res["b"][w-1][cumo]=dict()
                                 if flux not in res["b"][w-1][cumo]:
-                                    res["b"][w-1][cumo][flux]={}
+                                    res["b"][w-1][cumo][flux]=dict()
                                 if imetab not in res["b"][w-1][cumo][flux]:
                                     res["b"][w-1][cumo][flux][imetab]=[]
                                 if not netan["cumo_input"] or in_cumo not in netan["cumo_input"][0]:
@@ -1178,9 +1213,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                         elif in_w < w:
                             # put lighter cumomer product in rhs list[iterm]
                             if cumo not in res["b"][w-1]:
-                                res["b"][w-1][cumo]={}
+                                res["b"][w-1][cumo]=dict()
                             if flux not in res["b"][w-1][cumo]:
-                                res["b"][w-1][cumo][flux]={}
+                                res["b"][w-1][cumo][flux]=dict()
                             if imetab not in res["b"][w-1][cumo][flux]:
                                 res["b"][w-1][cumo][flux][imetab]=[]
                             #res["b"][w-1][cumo][flux][imetab].append(
@@ -1204,7 +1239,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         ##aff("st "+str(w), starts)
         # complete starts by all others cumomers
         starts+=[c for c in netan["cumo_sys"]["A"][w-1] if not c in starts]
-        cumo_paths=cumo_path(starts, netan["cumo_sys"]["A"][w-1], set())
+        cumo_paths=cumo_path(starts, netan["cumo_sys"]["A"][w-1], oset())
         # order
         netan["vcumo"].append([cumo for cumo in valval(cumo_paths)])
 
@@ -1386,7 +1421,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # 'right' part produces metab
         _=[coefs[rea].append(co) for rea,co in lr["right"]]
         coefs=dict((rea, sum(li)) for rea,li in coefs.items())
-        deps=set(coefs.keys()).intersection(netan["vflux"]["net"])
+        deps=oset(coefs.keys()).intersection(netan["vflux"]["net"])
         if not deps:
             raise Exception("A balance on metabolite '%s' does not contain any dependent flux.\nAt least one of the following net fluxes %s\nmust be declared dependent in the FLUX/NET section (put letter 'D' in the column 'FCD' for some flux)."%(metab, list(coefs.keys())))
         qry=[coefs.get(fl,0) for fl in netan["vflux"]["net"]]
@@ -1483,7 +1518,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             proc_mass_meas(fp, netan)
             proc_kinopt(fp, netan)
 
-def enum_path(starts, netw, outs, visited=set()):
+def enum_path(starts, netw, outs, visited=oset()):
     """Enumerate metabilites along to reaction pathways.
     Algo: start from an input, follow chemical pathways till an output or
     already visited metabolite. Returns a list of metabolite pathways.
@@ -1506,7 +1541,7 @@ def enum_path(starts, netw, outs, visited=set()):
         else:
             res.append([start])
     return res
-def cumo_path(starts, A, visited=set()):
+def cumo_path(starts, A, visited=oset()):
     """Enumerate cumomers along reaction pathways.
     Algo: start from an input, follow chemical pathways till no more
     neighbours or till only visited metabolite rest in network.
@@ -1523,7 +1558,7 @@ def cumo_path(starts, A, visited=set()):
            continue
         visited.add(start)
         # next_starts are cumos influenced by start
-        next_starts=set(cumo for cumo in A if start in A[cumo])
+        next_starts=oset(cumo for cumo in A if start in A[cumo])
 ##        aff('next to '+start, next_starts)
         next_starts-=visited
         if next_starts:
@@ -1564,7 +1599,7 @@ def src_ind(substrate, product, iprod):
                 pass
         movbit<<=1
     return isubstr if (isubstr or
-        (iprod==0 and (set(product) & set(substrate)))) else None
+        (iprod==0 and (oset(product) & oset(substrate)))) else None
 def labprods(prods, metab, isostr, strs):
     """labprods(prods, metab, isostr, strs)
     Return a set of tuples (vmetab,visostr) which receive at least
@@ -1573,7 +1608,7 @@ def labprods(prods, metab, isostr, strs):
     # run through product part of reaction to get
     # metabs containing labeled letter from isostr
     #print "p=", prods, "m=", metab, "i=", isostr, "s=", strs;##
-    res=set()
+    res=oset()
     # get labeled letters
     lets="".join(s[i] for (i,carb) in enumerate(isostr) if carb=="1" for s in strs)
     #print "ls=", lets;##
@@ -1614,9 +1649,9 @@ def allprods(srcs, prods, isos, metab, isostr):
     # all source isotop couples (im,ic)
     icouples=[]
     if metab==m1:
-        icouples=[(isostr,is2) for is2 in isos.get(m2,set(("",)))]
+        icouples=[(isostr,is2) for is2 in isos.get(m2,oset(("",)))]
     if metab==m2:
-        icouples.extend((is1,isostr) for is1 in isos.get(m1,set(("",))))
+        icouples.extend((is1,isostr) for is1 in isos.get(m1,oset(("",))))
     #print "icpls=", list(icouples);##
     #sys.exit(1);##
     # labeled source letters
@@ -1626,28 +1661,28 @@ def allprods(srcs, prods, isos, metab, isostr):
         for (is1,is2) in icouples]
     #print "lets=", lets;##
     # form all products
-    res=set()
+    res=oset()
     for inm in mpos:
         (m,s)=srcs[inm]
         mlab="".join(l for (i,l) in enumerate(s) if isostr[i]=="1")
         # co-substrate (if any)
         (cm,cs)=("","") if len(srcs)==1 else srcs[(inm+1)%2]
         # run through isotops of co-substrate
-        for coiso in isos.get(cm,set(("",))):
+        for coiso in isos.get(cm,oset(("",))):
             lab=mlab+"".join(l for (i,l) in enumerate(cs) if coiso[i]=="1")
             # form product isotops
             for (pm,ps) in prods:
                 ip="".join(("1" if l in lab else "0") for l in ps)
-                if set(ps)&set(mlab):
+                if oset(ps)&oset(mlab):
                     # get only products labeled by metab+isostr
                     res.add((cm,coiso, pm, ip))
     #print "res=", res
     return res
 def prod(metab, iso, s, cmetab, ciso, cs, prods):
-    """prod(metab, iso, s, cmetab, ciso, cs, prods)->set()
+    """prod(metab, iso, s, cmetab, ciso, cs, prods)->oset()
     get isotops from labeled substrates"""
     #print "prod: m=", metab, "s=", s, "i=", iso, "cm=", cmetab, "cs=", cs, "ci=", ciso
-    res=set()
+    res=oset()
     if cs and ciso == -1:
         return res
     lab=""
@@ -1666,7 +1701,7 @@ def frag_prod(metab, frag, s, cmetab, cfrag, cs, prods):
     """frag_prod(metab, frag, s, cmetab, cfrag, cs, prods)
     Get fragments from labeled substrates"""
     #print "frag_prod: m=", metab, "s=", s, "f=", frag, "cm=", cmetab, "cs=", cs, "cf=", cfrag
-    res=set()
+    res=oset()
     if cs and not cfrag:
         # no fragment for this metabolite is yet produced
         return res
@@ -1729,7 +1764,7 @@ def formula2dict(f, pterm=re.compile(r'\W*([+-])\W*'), pflux=re.compile(r'(?P<co
     """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
     character (# is allowed). Output is a dict f_i:[+-]a_i"""
-    res={}
+    res=dict()
     sign=1
     l=(i for i in pterm.split(str(f)))
     for term in l:
@@ -1812,7 +1847,7 @@ def label_meas2matrix_vec_dev(netan):
                     vec.append(row["val"])
                     dev.append(row["dev"])
                     ids.append(row["id"])
-                    res={}
+                    res=dict()
                     for cumostr in row["bcumos"]:
                         decomp=bcumo_decomp(cumostr)
                         for icumo in decomp["+"]:
@@ -1878,7 +1913,7 @@ def mass_meas2matrix_vec_dev(netan):
                     bcumos=["#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
                             for iw in range(1<<nmask) if sumbit(iw)==weight]
     #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
-                    res={}
+                    res=dict()
                     for cumostr in bcumos:
                         #print cumostr;##
                         decomp=bcumo_decomp(cumostr)
@@ -1953,7 +1988,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
                     vec.append(row["val"])
                     dev.append(row["dev"])
                     ids.append(row["id"])
-                    res={}
+                    res=dict()
                     # for a given (c_no,peak) construct bcumo sum: #x10x+#x01x+...
                     # shift the 3-bit mask to the right carbon position
                     if c_no < n:
@@ -2109,8 +2144,8 @@ def aglom(na,ta,loop):
                 del(na[hi])
                 del(ta[hi])
                 # update loop dictionary
-                loop[lo]=loop.get(lo,set((lo,)))
-                loop[lo].update(loop.get(hi, set((hi,))))
+                loop[lo]=loop.get(lo,oset((lo,)))
+                loop[lo].update(loop.get(hi, oset((hi,))))
                 if hi in loop:
                     del(loop[hi])
                 #print "loop:"+str(loop)
@@ -2126,7 +2161,7 @@ def lowtri(A):
     # now move to lower number keys that influence others
     while unsrt:
         for k in list(unsrt):
-            srt.extend(set(A[k].keys()).difference(set(srt)))
+            srt.extend(oset(A[k].keys()).difference(oset(srt)))
             for i in [*A[k].keys()]:
                 try:
                     unsrt.remove(i)
@@ -2135,16 +2170,16 @@ def lowtri(A):
     return srt
 def topo_order(A, tA):
     """Try to sort keys of A in topological order. tA is just a transpose of A"""
-    unsrt=set(A.keys())
+    unsrt=oset(A.keys())
     srtin=list()
     srtout=list()
     
     while unsrt:
         # shave inputs and outputs
-        inps=set(k for k in unsrt if len(set(A[k]).difference(srtin))==1)
+        inps=oset(k for k in unsrt if len(oset(A[k]).difference(srtin))==1)
         srtin.extend(inps)
         unsrt.difference_update(inps)
-        outs=set(k for k in unsrt if len(set(tA[k]).difference(unsrt))==1)
+        outs=oset(k for k in unsrt if len(oset(tA[k]).difference(unsrt))==1)
         if outs:
             srtout.insert(0, outs)
             unsrt.difference_update(outs)
@@ -2159,7 +2194,7 @@ def transpose(A):
     tA=dict()
     for i in A:
         for j in A[i]:
-            tA[j]=tA.get(j,{})
+            tA[j]=tA.get(j, dict())
             tA[j][i]=A[i][j]
     return(tA)
 def rcumo_sys(netan, emu=False):
@@ -2184,7 +2219,7 @@ def rcumo_sys(netan, emu=False):
         netan["rcumo_input"]=[{} for i in range(n)]
     
     # get cumomers involved in measurements
-    meas_cumos=set()
+    meas_cumos=oset()
     if emu:
         for meas in measures:
             for item in measures[meas]:
@@ -2198,10 +2233,10 @@ def rcumo_sys(netan, emu=False):
                     metab=row["metab"]
                     meas_cumos.update(metab+":"+str(icumo) for icumo in [*row["coefs"].keys()] if icumo != 0)
     # make list of observed weights
-    weights=set(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos)
+    weights=oset(sumbit(int(cumo.split(":")[1])) for cumo in meas_cumos)
     if not weights:
         netan["vrcumo"]=[]
-        netan["rcumo2i0"]={}
+        netan["rcumo2i0"]=dict()
         netan["rcumo_sys"]={"A": [], "b": []}
         return {"A": [], "b": []}
     
@@ -2213,7 +2248,7 @@ def rcumo_sys(netan, emu=False):
     to_visit=dict((w,[]) for w in weights)
     A=[{} for i in range(maxw)]; # store matrices by weight
     b=[{} for i in range(maxw)]; # store rhs by weight
-    used=set()
+    used=oset()
 
     # initialize to_visit, we'll stop when it's empty
     for cumo in meas_cumos:
@@ -2265,8 +2300,8 @@ def rcumo_sys(netan, emu=False):
                     if inw==w :
                         # equal weight => A
                         if inmetab in netan["input"]:
-                            b[w-1][cumo]=b[w-1].get(cumo, {})
-                            b[w-1][cumo][fl]=b[w-1][cumo].get(fl,{})
+                            b[w-1][cumo]=b[w-1].get(cumo, dict())
+                            b[w-1][cumo][fl]=b[w-1][cumo].get(fl, dict())
                             b[w-1][cumo][fl][imetab]=b[w-1][cumo][fl].get(imetab,[])
                             #b[w-1][cumo][fl][imetab].append(netan["cumo_input"][incumo])
                             b[w-1][cumo][fl][imetab].append(incumo)
@@ -2276,8 +2311,8 @@ def rcumo_sys(netan, emu=False):
                         #aff("A "+str(w)+cumo, A[w-1][cumo]);##
                     elif inw < w:
                         # lower weight => b
-                        b[w-1][cumo]=b[w-1].get(cumo, {})
-                        b[w-1][cumo][fl]=b[w-1][cumo].get(fl,{})
+                        b[w-1][cumo]=b[w-1].get(cumo, dict())
+                        b[w-1][cumo][fl]=b[w-1][cumo].get(fl, dict())
                         b[w-1][cumo][fl][imetab]=b[w-1][cumo][fl].get(imetab,[])
                         b[w-1][cumo][fl][imetab].append(incumo)
                 # gather all influx in diagonal term
@@ -2323,7 +2358,7 @@ def cumo_infl(netan, cumo):
     icumo=int(icumo)
     res=[]
     # run through input forward fluxes of this metab
-    for reac,coef in set(netan["sto_m_r"][metab]["right"]):
+    for reac,coef in oset(netan["sto_m_r"][metab]["right"]):
         if reac not in netan["carbotrans"]:
             continue # it can happen because of NOTRACER_NETWORK
         # get all cstr for given metab
@@ -2336,7 +2371,7 @@ def cumo_infl(netan, cumo):
                     in_cumo=in_metab+":"+str(in_icumo)
                     res.append((in_cumo, "fwd."+reac, imetab, iin_metab))
     # run through input reverse fluxes of this metab
-    fluxset=set(f for f,c in netan["sto_m_r"][metab]["left"])
+    fluxset=oset(f for f,c in netan["sto_m_r"][metab]["left"])
     if (clownr):
         # non reversible reactions are all positive
         fluxset=fluxset.difference(netan["notrev"])
@@ -2355,15 +2390,15 @@ def cumo_infl(netan, cumo):
                     res.append((in_cumo, "rev."+reac, imetab, iin_metab))
     return res
 def infl(metab, netan):
-    """infl(metab, netan)->set(fluxes)
+    """infl(metab, netan)->oset(fluxes)
     List incoming fluxes for this metabolite (fwd.reac, rev.reac, ...)
     """
     # run through input forward fluxes of this metab
-    res=set("fwd."+reac for reac,_ in netan["sto_m_r"][metab]["right"])
+    res=oset("fwd."+reac for reac,_ in netan["sto_m_r"][metab]["right"])
     # run through input reverse fluxes of this metab
     res.update("rev."+reac for reac in
-        set(f for f,_ in netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]))
-#        set(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]))
+        oset(f for f,_ in netan["sto_m_r"][metab]["left"]).difference(netan["flux_inout"]))
+#        oset(netan["sto_m_r"][metab]["left"]).difference(netan["notrev"]))
     return(res)
 
 def t_iso2m(n):
@@ -2418,8 +2453,8 @@ def ms_frag_gath(netan):
     observed in MS measurements.
     The fragment mask is encoded in the same way as cumomers, Met:7 <=> Met#(0)111
     """
-    frags=set()
-    to_visit=set()
+    frags=oset()
+    to_visit=oset()
     for di in netan["mass_meas"]:
         for m_id in di:
             for mask in di[m_id]:
@@ -2459,7 +2494,7 @@ def proc_label_input(ftbl, netan):
                 (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), ilen,  netan["Clen"][metab], ftbl["name"], row["irow"]))
         iiso=strbit2int(row["ISOTOPOMER"])
         if metab not in res:
-            res[metab]={}
+            res[metab]=dict()
         val=eval(row["VALUE"])
         res[metab][iiso]=val
         if val < 0 or val > 1:
@@ -2487,15 +2522,15 @@ def proc_label_input(ftbl, netan):
             # just one form is lacking
             if su != 1.:
                 # add it to complete to 1
-                la=list(set(range(nfo))-set(res[metab]))[0]
+                la=list(oset(range(nfo))-oset(res[metab]))[0]
                 res[metab][la]=1.-su
     if ili > 0:
         # complete absent inputs by their values from the first ftbl
-        for m in set(netan["iso_input"][0])-set(res):
+        for m in oset(netan["iso_input"][0])-oset(res):
             res[m]=netan["iso_input"][0][m];
-    zeroc=set(m for m,n in netan["Clen"].items() if n == 0)
-    lmi=set(res.keys())-set(netan["input"]) # label input - input
-    iml=set(netan["input"])-zeroc-set(res.keys()) # input - label input
+    zeroc=oset(m for m,n in netan["Clen"].items() if n == 0)
+    lmi=oset(res.keys())-netan["input"] # label input - input
+    iml=oset(netan["input"])-zeroc-oset(res.keys()) # input - label input
     if lmi:
         raise Exception("LABEL_INPUT section contains metabolite(s) that are not network input(s): '%s' (%s)\n"%(", ".join(lmi), ftbl["name"]))
     if iml:
@@ -2522,13 +2557,13 @@ def proc_label_meas(ftbl, netan):
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
-            mdif=set(metabl).difference(netan["met_pools"])
+            mdif=oset(metabl).difference(netan["met_pools"])
             if mdif:
                 raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %s)."%(join(", ", mdif), ftbl["name"], row["irow"]))
 
         # check that all metabs are unique
-        count=dict((i, metabl.count(i)) for i in set(metabl))
-        notuniq=set((i for i in count if count[i] > 1))
+        count=dict((i, metabl.count(i)) for i in oset(metabl))
+        notuniq=oset((i for i in count if count[i] > 1))
         if notuniq:
             raise Exception("Metabolite(s) '%s' is present twice or more (%s: %s)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
 
@@ -2547,7 +2582,7 @@ You can add a fictious metabolite in your network immediatly after '"""%ftbl["na
             if clen!=clen0 :
                 raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
         if not metabs in res:
-            res[metabs]={}
+            res[metabs]=dict()
         if not group in res[metabs]:
             res[metabs][group]=[]
         # prepare cumos list
@@ -2608,13 +2643,13 @@ def proc_peak_meas(ftbl, netan):
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
-            mdif=set(metabl).difference(netan["met_pools"])
+            mdif=oset(metabl).difference(netan["met_pools"])
             if mdif:
                 raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %s)"%(join(", ", mdif), ftbl["name"], row["irow"]))
 
         # check that all metabs are unique
-        count=dict((i, metabl.count(i)) for i in set(metabl))
-        notuniq=set((i for i in count if count[i] > 1))
+        count=dict((i, metabl.count(i)) for i in oset(metabl))
+        notuniq=oset((i for i in count if count[i] > 1))
         if notuniq:
             raise Exception("Metabolite(s) '%s' is present twice or more (%s: %s)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
 
@@ -2631,7 +2666,7 @@ You can add a fictious metabolite in your network immediatly after '"""%(ftbl["n
             clen=netan["Clen"][metab]
             if clen!=clen0 :
                 raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
-        res.setdefault(metabs,{})
+        res.setdefault(metabs, dict())
         for suff in ("S", "D-", "D+", "DD", "T"):
             # get val and dev for this type of peak
             val=row.get("VALUE_"+suff,"")
@@ -2662,7 +2697,7 @@ You can add a fictious metabolite in your network immediatly after '"""%(ftbl["n
                 raise Exception("Peak D+ cannot be set for metabolite "+metab+", c_no="+str(c_no)+" (%s: %s)"%(ftbl["name"], row["irow"]))
             if (suff == "DD" or suff == "T") and (c_no == 1 or c_no == clen or clen < 3):
                 raise Exception("Peak DD (or T) cannot be set for metabolite "+metab+", c_no="+str(c_no)+", len="+str(clen)+" (%s: %s)"%(ftbl["name"], row["irow"]))
-            res[metabs].setdefault(row["irow"],{})
+            res[metabs].setdefault(row["irow"], dict())
             res[metabs][row["irow"]][suff]={
                "val": val,
                "dev": dev,
@@ -2689,14 +2724,14 @@ def proc_mass_meas(ftbl, netan):
         metabl=metabs.split("+")
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
-            mdif=set(metabl).difference(netan["met_pools"])
+            mdif=oset(metabl).difference(netan["met_pools"])
             if mdif:
                 raise Exception("Pooled metabolite(s) '%s' are absent in METABOLITE_POOLS section (%s: %s)"%(join(", ", mdif), ftbl["name"], row["irow"]))
 
         # check that all metabs are unique
-        count=dict((i, metabl.count(i)) for i in set(metabl))
+        count=dict((i, metabl.count(i)) for i in oset(metabl))
         #print(count)
-        notuniq=set((i for i in count if count[i] > 1))
+        notuniq=oset((i for i in count if count[i] > 1))
         if notuniq:
             raise Exception("Metabolite(s) '%s' is present twice or more (%s: %s)"%(join(", ", notuniq), ftbl["name"], row["irow"]))
 
@@ -2746,8 +2781,8 @@ You can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASU
             raise Exception("Weight "+str(weight)+" is higher than fragment length "+frag+" (%s: %d)"%(ftbl["name"], irow))
         if clen < sumbit(mask):
             raise Exception("Fragment "+frag+" is longer than metabolite length "+str(clen)+" (%s: %d)"%(ftbl["name"], irow))
-        res.setdefault(m_id, {})
-        res[m_id].setdefault(mask, {})
+        res.setdefault(m_id, dict())
+        res[m_id].setdefault(mask, dict())
         if not row["VALUE"]:
             raise Exception("The field VALUE is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         if not row["DEVIATION"]:
@@ -2778,7 +2813,7 @@ def proc_kinopt(ftbl, netan):
     if "opt" not in netan:
         netan["opt"]=dict((k, []) for k in de)
     # get ftbl OPTIONS -> d
-    d={}
+    d=dict()
     for row in ftbl.get("OPTIONS",[]):
         try:
             d[row["OPT_NAME"]]=eval(row["OPT_VALUE"])
