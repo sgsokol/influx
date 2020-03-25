@@ -105,7 +105,9 @@ class oset(dict):
     def add(self, x):
         self[x]=1
     def difference_update(self, x):
-        self -= oset(x)
+        for k in x:
+            if k in self:
+                del(self[k])
     def difference(self, x):
         return(self - oset(x))
     def update(self, x):

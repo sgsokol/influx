@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 """
-usage: ubf2txt.py < model.ubf > model.txt
+usage: ubf2ftbl.py < model.ubf > model.ftbl
 """
 # translate University of Barcelona format to plain txt format for labeling flux system
 import sys
@@ -23,7 +23,9 @@ Return a list of strings formatted as lines of FTBL file
          if l[:12].lower() == "// reactions":
             reacfound = True
          continue
-         
+      l=l.strip()
+      if not l or (len(l) > 1 and l[:2] == "//"):
+         continue
       # here reactions go
       ## get names
       nms, parts = l.split(":")
@@ -51,10 +53,28 @@ Return a list of strings formatted as lines of FTBL file
       for a in (ar, al):
          a[:] = ["".join(lett[int(l)-1] for l in it) for it in a]
       # complete metab list
+      if not rl and rr:
+         rl=[s+"_in" for s in rr]
+         al=ar
+      if not rr and rl:
+         rr=[s+"_sink" for s in rl]
+         ar=al
       for r,a in [(rl, al), (rr, ar)]:
          if len(r) < len(a) and all(len(ai) == len(a[0]) for ai in a):
             # repeat last item in rl to match the len(al)
             r += [r[-1] for i in range(len(a)-len(r))]
+      # complete lacking carbon in/out
+      sl="".join(al)
+      sr="".join(ar)
+      ndiff=len(sl) - len(sr)
+      if ndiff < 0:
+         # add _cX_in
+         rl.append("_c"+str(-ndiff)+"_in")
+         al.append("".join(sorted(set(sr)-set(sl))))
+      elif ndiff > 0:
+         # add _cX_sink
+         rr.append("_c"+str(ndiff)+"_sink")
+         ar.append("".join(sorted(set(sl)-set(sr))))
       res.append((nmf, nms, rl, sep, rr, al, ar))
 
    # format txt as
@@ -69,19 +89,17 @@ def ubf2ms(lines):
    """Convert ubf ms data to ftbl MASS_SPECTROMETRY section
 Return list of strings
 """
-   sres=[]
+   sres = []
    sres.append("MASS_SPECTROMETRY")
    sres.append("	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION")
-
-   for met, data in zip(lines[::2], lines[1::2]):
-      data = data.split(" ")
-      met = re.sub("_(C\d)-", "\t\\1-", met)
-      m, f = re.match("(_?[a-zA-Z0-9_-]*\w+)(\tC\d-C\d fragment)?", met).group(1,2)
+   onelineformat = len(lines)%2 == 1 or (lines and ":" in lines[0])
+   source = (l.split(":") for l in lines if l.strip()) if onelineformat else zip(lines[::2], lines[1::2])
+   for met, data in source:
+      data = data.strip().split(" ")
+      met = re.sub("_?(fragment )?[Cc](\d)-[Cc](\d)( fragment)?\s*", "\t\\2\t\\3", met)
+      li = met.split("\t")
+      m, b, e = li if len(li) > 1 else (met, "1", str(len(data)-1))
       m = m.strip()
-      if f:
-         b, e = re.match("\tC(\d)-C(\d) fragment", f).group(1, 2)
-      else:
-         b, e = "1", str(len(data)-1)
       sres.append(f"\t{m}\t{b}~{e}\t0\t{data[0].strip()}\t0.01")
       for i, d in enumerate(data[1:]):
          sres.append(f"\t\t\t{i+1}\t{d.strip()}\t0.01")
@@ -96,6 +114,8 @@ with open(args.network, "r") as f:
    txt = "\n".join(ubf2txt(f.readlines()))
 # convert txt to FTBL
 ftbl = subprocess.run(["txt2ftbl"], input=txt, capture_output=True, text=True)
+if ftbl.returncode != 0:
+   raise Exception(ftbl.stderr)
 ftbl = ftbl.stdout.split("\n")
 # convert ms to ftbl
 if args.ms:
