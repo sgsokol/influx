@@ -113,6 +113,6 @@ specific language governing permissions and limitations under the License.
 
 Software and documentation author:
 
-  Serguei SOKOL, INRA, France <sokol [at] insa-toulouse.fr>
+  Serguei SOKOL, INRAE, France <sokol [at] insa-toulouse.fr>
 
-Copyright 2011-2019, INRA, France
+Copyright 2011-2020, INRAE, France

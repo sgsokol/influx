@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.0 documentation</title>
+    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.1 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.1 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -239,7 +239,7 @@ with items corresponding to sections in .ftbl. One section is added.
 
 <dl class="function">
 <dt id="C13_ftbl.infl">
-<code class="descclassname">C13_ftbl.</code><code class="descname">infl</code><span class="sig-paren">(</span><em>metab</em>, <em>netan)-&gt;set(fluxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#infl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.infl" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">C13_ftbl.</code><code class="descname">infl</code><span class="sig-paren">(</span><em>metab</em>, <em>netan)-&gt;oset(fluxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#infl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.infl" title="Permalink to this definition">¶</a></dt>
 <dd><p>List incoming fluxes for this metabolite (fwd.reac, rev.reac, …)</p>
 </dd></dl>
 
@@ -342,6 +342,24 @@ The fragment mask is encoded in the same way as cumomers, Met:7 &lt;=&gt; Met#(0
 <dd><p>Return charcater string ‘once’ for n=1, ‘twice’ for n=2 and ‘n times’ for other n</p>
 </dd></dl>
 
+<dl class="class">
+<dt id="C13_ftbl.oset">
+<em class="property">class </em><code class="descclassname">C13_ftbl.</code><code class="descname">oset</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#oset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.oset" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="C13_ftbl.oset.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a shallow copy of D<a class="reference internal" href="_modules/C13_ftbl.html#oset.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.oset.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="C13_ftbl.oset.update">
+<code class="descname">update</code><span class="sig-paren">(</span><span class="optional">[</span><em>E</em>, <span class="optional">]</span><em>**F</em><span class="sig-paren">)</span> &#x2192; None.  Update D from dict/iterable E and F.<a class="reference internal" href="_modules/C13_ftbl.html#oset.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.oset.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
+If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
+In either case, this is followed by: for k in F:  D[k] = F[k]</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="C13_ftbl.peak_meas2matrix_vec_dev">
 <code class="descclassname">C13_ftbl.</code><code class="descname">peak_meas2matrix_vec_dev</code><span class="sig-paren">(</span><em>netan</em>, <em>dmask={'D+': 3</em>, <em>'D-': 6</em>, <em>'DD': 7</em>, <em>'S': 2</em>, <em>'T': 7}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#peak_meas2matrix_vec_dev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.peak_meas2matrix_vec_dev" title="Permalink to this definition">¶</a></dt>
@@ -392,7 +410,7 @@ List item is a dict {}metab;{isotop_int_index:fraction}}</p>
 
 <dl class="function">
 <dt id="C13_ftbl.prod">
-<code class="descclassname">C13_ftbl.</code><code class="descname">prod</code><span class="sig-paren">(</span><em>metab</em>, <em>iso</em>, <em>s</em>, <em>cmetab</em>, <em>ciso</em>, <em>cs</em>, <em>prods)-&gt;set(</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#prod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.prod" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">C13_ftbl.</code><code class="descname">prod</code><span class="sig-paren">(</span><em>metab</em>, <em>iso</em>, <em>s</em>, <em>cmetab</em>, <em>ciso</em>, <em>cs</em>, <em>prods)-&gt;oset(</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#prod"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.prod" title="Permalink to this definition">¶</a></dt>
 <dd><p>get isotops from labeled substrates</p>
 </dd></dl>
 
@@ -1129,7 +1147,7 @@ of a dictionnary are silently overwritten</p>
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.1 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

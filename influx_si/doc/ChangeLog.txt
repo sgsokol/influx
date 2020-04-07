@@ -2,16 +2,20 @@
 Change Log for influx_si
 ========================
 
-2020-03-11 version 5.0.3.901
+2020-04-07 version 5.1.0
 ------------------------
-New feature:
+New features:
  - option --cupn is now considered in absolute sens, i.e. net fluxes are limited from both sides: '-cupn <= netflux <= cupn' (before it was 'netflux <= cupn' only)
+ - influx_i.py is no more symbolic link neither just a copy of influx_s.py, just a python proxy based on exec().
+ - e_coli.ftbl file from test collection is configured to create e_coli.pdf with graphics instead of e_coli.RData
 
 Bug fix:
  - fixed executable files of additional tools
  - fixed plot_smeas.R for plotting simulated but not measured MS data
- - fixed plot_smeas.R for plotting repeatedly measured MS data
- - fixed non reproducible R code generation
+ - fixed plot_smeas.R for plotting repeatedly measured fragments by MS
+ - fixed non reproducible R code generation (Python must be >= 3.6 for this)
+ - fixed kvh reading which was impacting several additional tools
+ - parallel experiment examples are back in the test/prl_exp/ directory
 
 2020-03-05 version 5.0.3
 ------------------------

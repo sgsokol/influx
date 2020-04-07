@@ -84,8 +84,8 @@ ff=dict((row[0], round(float(row[1]), nround)) for row in ff[1:])
 
 #print("ff=", ff)
 # read ftbl in a list of lines
-f=open(ftbl, "rb")
-lftbl=f.readlines()
+with open(ftbl, "r") as f:
+    lftbl=f.readlines()
 # detect flux definition section in ftbl
 ifl=[i for (i,l) in enumerate(lftbl) if re.match("^FLUXES\w*(//.*)*", l)][0]
 inet=ifl+[i for (i,l) in enumerate(lftbl[ifl:]) if re.match("\tNET\w*(//.*)*", l)][0]

@@ -18,7 +18,7 @@ def kvh2tlist(fp, lev=[0], indent=[0]):
     # check the stream
     open_here=False;
     if isstr(fp):
-        fp=codecs.open(fp, "rb", encoding="utf-8-sig");
+        fp=codecs.open(fp, "r", encoding="utf-8-sig");
         fp.seek(0);
         open_here=True;
     # error control
@@ -163,7 +163,7 @@ def dict2kvh(d, fp=sys.stdout, indent=0):
     open_here=False;
     if isstr(fp):
         open_here=True;
-        fp=open(fp, "wb");
+        fp=open(fp, "w");
     for (k,v) in d.items():
         fp.write("%s%s" % ("\t"*indent, escape(str(k), "\t\\\n")));
         if type(v) == type({}):
@@ -185,7 +185,7 @@ def tlist2kvh(d, fp=sys.stdout, indent=0):
     open_here=False;
     if isstr(fp):
         open_here=True;
-        fp=open(fp, "wb");
+        fp=open(fp, "w");
     for (k,v) in d:
         fp.write("%s%s" % ("\t"*indent, escape(str(k), "\t\\\n")));
         if type(v) == type([]):
@@ -232,12 +232,12 @@ def kvh_get_matrix(fp, keys):
     Return a matrix which is a list of lists (rows). The first item in each row is the
     row name. In case of matrix (i.e. "row_col" is present in kvh file), the very first row contain column names."""
     
-    open_here=False
     if isinstance(fp, str):
-        fp=open(fp, "rb")
-        open_here=True
+        with open(fp, "r") as fp:
+            cont=fp.readlines()
+    else:
+        cont=fp.readlines()
     # keys can be a list of subfield keys.
-    cont=fp.readlines()
     ncont=len(cont)
     # get start line number by grep successively all fields in v
     # and the indent

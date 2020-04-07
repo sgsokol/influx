@@ -150,18 +150,26 @@ In the same manner as for fluxes, user can have to constrain variable metabolite
 		...
 
 ``NA`` in measurements (v2.5)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Missing values marked as ``NA`` are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as ``NA`` is that the latter will be simulated and reported in corresponding simulation sections of the result file.
 This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to ``NA`` (but not their SD).
 
 Convention evolution
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+
 Not only FTBL format evolved but also some conventions between its parts and content did so. Here is a complete list of them:
+
   - user must explicitly declare input-output fluxes as non reversible (set them as ``C`` with a value ``0`` in the section ``FLUX/XCH``) to make a distinction between input-output metabolites and "dead-end" metabolites (the latter are allowed since the version 2.0 and have net flux equal to 0 while exchange flux non zero).
+  
   - starting from the version 2.8, new fluxes (i.e. absent in the ``NETWORK`` section) may appear in ``EQUALITY`` section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in ``FLUX/{NET,XCH}`` sections (even if this feature is maintained in v4.0 its interest has diminished since cofactors can now be directly introduced in ``NETWORK`` and ``NOTRACER_NETWORK`` sections);
+  
   - in LABEL_INPUT section following conventions apply since v3.2:
+  
       * *"the rest is unlabeled"*: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;
+      
       * *"guess the lacking one"*: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.
+      
   - starting from v4.2, a particular comment tag ``//##`` is used to introduce a pathway name. The information on pathways can be useful for visualization on a partner web site MetExplore_ (cf. ``ftbl2metxml`` in _`Additional tools` section).
 
 Basic influx_si usage
@@ -301,7 +309,7 @@ Here after the available options with their full names are enumerated and detail
 
 										 .. note::
 
-											Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).
+											Don't use an equal sign "=" to give a p-value to this option. Here, only a white space can be used as a separator (as in the example above).
 	--nocalc          generate an R code but not execute it.
 											
 										This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
@@ -352,7 +360,7 @@ Secondary FTBL files can also contain ``NETWORK`` and other sections found in th
  $ ./influx_s.py test/prl_exp/e_coli_glc1-6n
 
 You can find an example of parallel experiment data in the directory ``test/prl_exp`` in files 
-e_coli_glc1-6n.ftbl (main file), e_coli_glc2n.ftbl, e_coli_glc3n.ftbl, e_coli_glc4n.ftbl, e_coli_glc5n.ftbl, e_coli_glc6n.ftbl. These files correspond to stationary labeling experiments described in "Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis", Robert W. Leighty, Maciek R. Antoniewicz, *Metabolic Engineering* 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).
+``e_coli_glc1-6n.ftbl`` (main file), ``e_coli_glc2n.ftbl``, ``e_coli_glc3n.ftbl``, ``e_coli_glc4n.ftbl``, ``e_coli_glc5n.ftbl``, ``e_coli_glc6n.ftbl``. These files correspond to stationary labeling experiments described in "Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis", Robert W. Leighty, Maciek R. Antoniewicz, *Metabolic Engineering* 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).
 
 We also provide an example of simulated instationary parallel experiments in the files ``e_coli_GX_prl.ftbl`` (main file) and ``e_coli_GX_X.ftbl`` (secondary file) corresponding to simultaneous consumption of glucose and xylose. The network for this simulations was borrowed from "13C metabolic flux analysis of microbial and mammalian systems is enhanced with GC-MS measurements of glycogen and RNA labeling", Christopher P. Long, Jennifer Au, Jacqueline E. Gonzalez, Maciek R. Antoniewicz, Metabolic Engineering 38 (2016) 65–72. The experiment consisted in dynamic labeling by uniformly labeled glucose (main experiment)  and by uniformly labeled xylose (secondary one). Labeling kinetics MS data are given in ``e_coli_GX_MS.txt`` and ``e_coli_GX_X_MS.txt`` files respectively. To play with this example, you can run (still in installation directory): ::
  

@@ -284,7 +284,6 @@ parser.add_option(
 parser.add_option(
 "--tblimit", type="int", default=0,
     help="developer option: set trace back limit for python error messages")
-
 # parse commande line
 (opts, args) = parser.parse_args()
 # expand wildcard (for Windows OS)

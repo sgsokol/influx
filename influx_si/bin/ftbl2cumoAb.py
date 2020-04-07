@@ -164,7 +164,7 @@ for (ir,row) in enumerate(netan["Afl"]):
             for (fl,coef) in netan["bfl"][ir].items()), a="0"),
     })
 
-if invAfl != None:
+if not invAfl is None:
     # show formulas for dependent fluxes using inverted Afl
     # free, constrained and constant value name to index translator
     nfn=len(netan["vflux_free"]["net"])

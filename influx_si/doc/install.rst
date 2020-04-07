@@ -12,9 +12,7 @@ The software was developed on Linux
 but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.
 
 .. note:: The code examples here after are given for Unix shell environment.
- On windows, in DOS environment the syntax is often similar and in
- cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical
- to the Unix's one.
+ On windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix's one.
 
 .. note:: In command examples to run, we use script names with extension `.py`. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without '.py'. For example, commands: ::
 
@@ -78,7 +76,7 @@ Python dependencies
 
 As of influx_si version 5.0, user has not to install Python dependencies manually. So they are listed here just for information.
 
-- python 3.0 (or higher) and modules
+- python 3.6 (or higher) and modules
 
   + scipy
   + libsbml (optional, needed for ftbl2metxml.py)

@@ -57,16 +57,17 @@ def do_case(ith, icase, line):
     fd_err=open(os.path.join(tempdir.name, ("err%%0%dd.txt"%ndig)%icase), "w")
     ok=None
     t0=time()
+    nm_t="row %s:%d"%(fcases, icase)
+    fields=line.split("\t")
+    if len(fields) == 3:
+        fields.append("")
     try: # capture excpetion to log them in err.txt
         #import pdb; pdb.set_trace()
-        fields=line.split("\t")
-        if len(fields) == 3:
-            fields.append("")
+        if len(fields) != 4:
+            raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))
         (nm_t, retcode, cmd, testcmd)=(item.strip() for item in fields[:4])
         if not nm_t:
             nm_t="row %s:%d"%(fcases, icase)
-        if len(fields) != 4:
-            raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))
         if not retcode:
             raise Exception("%s: the return code (second column) for tested command must not be empty. Give at least True (no error) of False (error) (%s: %d)"%(me, fcases, icase))
         if not cmd:
@@ -89,6 +90,7 @@ def do_case(ith, icase, line):
             print('%d:th%d:%s running "%s" ...'%(icase, ith, nm_t, cmd))
         else:
             print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
+        #pdb.set_trace()
         if not dry:
             p = subp.run(cmd, shell=True, stdout=fd_out, stderr=fd_err).returncode
             if ncore > 1:
@@ -96,7 +98,7 @@ def do_case(ith, icase, line):
         else:
             p = None
     except Exception as e:
-        mes="%s\n"%str(e)
+        mes="%s\n\tin case: %s\n"%(str(e), icase)
         sys.stderr.write(mes)
         fd_err.write(mes)
         ok = False
@@ -118,7 +120,7 @@ def do_case(ith, icase, line):
             addmes = " Failed condition%s: %s."%(plural_s(nb_fail), "; ".join(item for (t, item) in res if not t))
             ok = False
     elif not retcode_ok:
-        addmes = " Unexpected code returned by program: '%s' (expected '%s')"%(retcode.title(), p)
+        addmes = " Unexpected code returned by program: '%s' (expected '%s')"%(p, retcode.title())
     t1=time()
     if ok:
         res = "OK for test %d '%s' (%.2f s)\n"%(icase, nm_t, t1-t0)
@@ -133,21 +135,22 @@ ondos=platform.system() == "Windows"
 # create a parser for command line options
 parser = ap.ArgumentParser(usage="usage: %(prog)s [options] tabulated_file.txt",
     description=__doc__)
-parser.add_argument(
-"--itest",
-       help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Negative values counts from the end of case list. E.g. '-1' indicates the last test case. Default: '' (empty, i.e. all provided tests are passed)")
-parser.add_argument(
-"--nmtest",
-       help="Names of tests to be executed. Format: 'name1,name2' (a coma separated list) -- use tests who's names are name1'  and 'name2' (cf. the first column of tab file); 'name1:name2' (a begin:end interval) -- use the tests located in tab file between 'name1' and 'name2';  'name1:name2,name3,name4:name5' -- a mix of both formats is allowed. 'name1:' means from the test 'name1' to the end. ':name2' means from the first to the test 'name2'. In a coma separated list, each entry is tested literally against test names, in case of fail, the entries are tried as regular expressions. E.g. a name 'err.*' will fit all test names started with 'err'. Default: '' (empty, i.e. all provided tests are passed). Options --itest and --nmtest are complementary, i.e. a union of both test collections is passed")
-parser.add_argument(
-"--ncore", type=float, default=0.,
-       help="core number to use in parallel testing. Default 0 i.e. all available cores. A fractional number between 0 and 1 indicate a fraction of available cores to use.")
-parser.add_argument(
-"-n", "--dry", action="store_true", default=False,
-       help="Dry run: show output as if all tests were OK. None of shell command is excecuted")
-parser.add_argument(
-"fcases", 
-       help="The file name of test cases")
+if parser:
+    parser.add_argument(
+    "--itest",
+           help="Indexes of tests to be executed. Format: '1:10' -- use only first ten tests; '1,3' -- use the first and third tests; '1:10,15,91:100' -- a mix of both formats is allowed. '3:' means from the third to the end. ':5' means from the first to the fifth test. Negative values counts from the end of case list. E.g. '-1' indicates the last test case. Default: '' (empty, i.e. all provided tests are passed)")
+    parser.add_argument(
+    "--nmtest",
+           help="Names of tests to be executed. Format: 'name1,name2' (a coma separated list) -- use tests who's names are name1'  and 'name2' (cf. the first column of tab file); 'name1:name2' (a begin:end interval) -- use the tests located in tab file between 'name1' and 'name2';  'name1:name2,name3,name4:name5' -- a mix of both formats is allowed. 'name1:' means from the test 'name1' to the end. ':name2' means from the first to the test 'name2'. In a coma separated list, each entry is tested literally against test names, in case of fail, the entries are tried as regular expressions. E.g. a name 'err.*' will fit all test names started with 'err'. Default: '' (empty, i.e. all provided tests are passed). Options --itest and --nmtest are complementary, i.e. a union of both test collections is passed")
+    parser.add_argument(
+    "--ncore", type=float, default=0.,
+           help="core number to use in parallel testing. Default 0 i.e. all available cores. A fractional number between 0 and 1 indicate a fraction of available cores to use.")
+    parser.add_argument(
+    "-n", "--dry", action="store_true", default=False,
+           help="Dry run: show output as if all tests were OK. None of shell command is excecuted")
+    parser.add_argument(
+    "fcases", 
+           help="The file name of test cases")
 
 # parse commande line
 args = parser.parse_args()
@@ -235,31 +238,35 @@ elif ncore > 0. and ncore < 1.:
     ncore = ncavail*ncore
 ncore = min(round(ncore), len(itest))
 li_res=[[] for i in range(ncore)] # list of results (icase, nm_t, ok, res)
-lock=threading.Lock()
-#li_f=[Do_case() for i in range(ncore)]
-q=Queue()
-ths=[]
-for i in range(ncore):
-    t = threading.Thread(target=worker, args=(i,))
-    t.daemon = True # makes the thread interrupt on ctrl-c
-    t.start()
-    ths.append(t)
-# fill q
-[q.put((i+1,l)) for i,l in enumerate(tests)]
+#import pdb; pdb.set_trace()
+if ncore > 1:
+    lock=threading.Lock()
+    #li_f=[Do_case() for i in range(ncore)]
+    q=Queue()
+    ths=[]
+    for i in range(ncore):
+        t = threading.Thread(target=worker, args=(i,))
+        t.daemon = True # makes the thread interrupt on ctrl-c
+        t.start()
+        ths.append(t)
+    # fill q
+    [q.put((i+1,l)) for i,l in enumerate(tests)]
 
-# run tests
-t00=time()
-q.join() # block until all tasks are done
+    # run tests
+    t00=time()
+    q.join() # block until all tasks are done
 
-#for (icase, line) in enumerate(tests):
-#    ith = icase%ncore
-#    res = do_case(icase, line)
-#    li_res[ith].append(res)
-# stop workers
-for t in ths:
-    q.put(None)
-for t in ths:
-    t.join()
+    # stop workers
+    for t in ths:
+        q.put(None)
+    for t in ths:
+        t.join()
+else:
+    t00=time()
+    for (icase, line) in enumerate(tests):
+        ith = icase%ncore
+        res = do_case(ith, icase+1, line)
+        li_res[ith].append(res)
 # gather all out's and err's test.out and test.err
 for ftype in ["out", "err"]:
     with open("test."+ftype, "wb") as ofd:

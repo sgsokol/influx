@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>User’s manual &#8212; influx_si 5.0 documentation</title>
+    <title>User’s manual &#8212; influx_si 5.1 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.1 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -186,24 +186,25 @@ This feature can be useful for preliminary simulations when there is no yet data
 </div>
 <div class="section" id="convention-evolution">
 <h3>Convention evolution<a class="headerlink" href="#convention-evolution" title="Permalink to this headline">¶</a></h3>
-<dl class="docutils">
-<dt>Not only FTBL format evolved but also some conventions between its parts and content did so. Here is a complete list of them:</dt>
-<dd><ul class="first last simple">
-<li>user must explicitly declare input-output fluxes as non reversible (set them as <code class="docutils literal notranslate"><span class="pre">C</span></code> with a value <code class="docutils literal notranslate"><span class="pre">0</span></code> in the section <code class="docutils literal notranslate"><span class="pre">FLUX/XCH</span></code>) to make a distinction between input-output metabolites and “dead-end” metabolites (the latter are allowed since the version 2.0 and have net flux equal to 0 while exchange flux non zero).</li>
-<li>starting from the version 2.8, new fluxes (i.e. absent in the <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section) may appear in <code class="docutils literal notranslate"><span class="pre">EQUALITY</span></code> section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in <code class="docutils literal notranslate"><span class="pre">FLUX/{NET,XCH}</span></code> sections (even if this feature is maintained in v4.0 its interest has diminished since cofactors can now be directly introduced in <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> and <code class="docutils literal notranslate"><span class="pre">NOTRACER_NETWORK</span></code> sections);</li>
-<li><dl class="first docutils">
-<dt>in LABEL_INPUT section following conventions apply since v3.2:</dt>
-<dd><ul class="first last">
+<p>Not only FTBL format evolved but also some conventions between its parts and content did so. Here is a complete list of them:</p>
+<blockquote>
+<div><ul>
+<li><p class="first">user must explicitly declare input-output fluxes as non reversible (set them as <code class="docutils literal notranslate"><span class="pre">C</span></code> with a value <code class="docutils literal notranslate"><span class="pre">0</span></code> in the section <code class="docutils literal notranslate"><span class="pre">FLUX/XCH</span></code>) to make a distinction between input-output metabolites and “dead-end” metabolites (the latter are allowed since the version 2.0 and have net flux equal to 0 while exchange flux non zero).</p>
+</li>
+<li><p class="first">starting from the version 2.8, new fluxes (i.e. absent in the <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section) may appear in <code class="docutils literal notranslate"><span class="pre">EQUALITY</span></code> section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in <code class="docutils literal notranslate"><span class="pre">FLUX/{NET,XCH}</span></code> sections (even if this feature is maintained in v4.0 its interest has diminished since cofactors can now be directly introduced in <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> and <code class="docutils literal notranslate"><span class="pre">NOTRACER_NETWORK</span></code> sections);</p>
+</li>
+<li><p class="first">in LABEL_INPUT section following conventions apply since v3.2:</p>
+<blockquote>
+<div><ul class="simple">
 <li><em>“the rest is unlabeled”</em>: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;</li>
 <li><em>“guess the lacking one”</em>: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.</li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </li>
-<li>starting from v4.2, a particular comment tag <code class="docutils literal notranslate"><span class="pre">//##</span></code> is used to introduce a pathway name. The information on pathways can be useful for visualization on a partner web site <a class="reference external" href="http://metexplore.toulouse.inra.fr/">MetExplore</a> (cf. <code class="docutils literal notranslate"><span class="pre">ftbl2metxml</span></code> in <span class="target" id="additional-tools">Additional tools</span> section).</li>
+<li><p class="first">starting from v4.2, a particular comment tag <code class="docutils literal notranslate"><span class="pre">//##</span></code> is used to introduce a pathway name. The information on pathways can be useful for visualization on a partner web site <a class="reference external" href="http://metexplore.toulouse.inra.fr/">MetExplore</a> (cf. <code class="docutils literal notranslate"><span class="pre">ftbl2metxml</span></code> in <span class="target" id="additional-tools">Additional tools</span> section).</p>
+</li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </div>
 </div>
 <div class="section" id="basic-influx-si-usage">
@@ -401,7 +402,7 @@ An optional p-value used here does not give a proportion of residuals that will 
 </div>
 <div class="last admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Don’t use an equal sign “=” to give a p-value to this option. Here, only a white space can be used as a separator (see the example above).</p>
+<p class="last">Don’t use an equal sign “=” to give a p-value to this option. Here, only a white space can be used as a separator (as in the example above).</p>
 </div>
 </td></tr>
 <tr><td class="option-group">
@@ -459,7 +460,7 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 </pre></div>
 </div>
 <p>You can find an example of parallel experiment data in the directory <code class="docutils literal notranslate"><span class="pre">test/prl_exp</span></code> in files
-e_coli_glc1-6n.ftbl (main file), e_coli_glc2n.ftbl, e_coli_glc3n.ftbl, e_coli_glc4n.ftbl, e_coli_glc5n.ftbl, e_coli_glc6n.ftbl. These files correspond to stationary labeling experiments described in “Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis”, Robert W. Leighty, Maciek R. Antoniewicz, <em>Metabolic Engineering</em> 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).</p>
+<code class="docutils literal notranslate"><span class="pre">e_coli_glc1-6n.ftbl</span></code> (main file), <code class="docutils literal notranslate"><span class="pre">e_coli_glc2n.ftbl</span></code>, <code class="docutils literal notranslate"><span class="pre">e_coli_glc3n.ftbl</span></code>, <code class="docutils literal notranslate"><span class="pre">e_coli_glc4n.ftbl</span></code>, <code class="docutils literal notranslate"><span class="pre">e_coli_glc5n.ftbl</span></code>, <code class="docutils literal notranslate"><span class="pre">e_coli_glc6n.ftbl</span></code>. These files correspond to stationary labeling experiments described in “Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis”, Robert W. Leighty, Maciek R. Antoniewicz, <em>Metabolic Engineering</em> 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).</p>
 <p>We also provide an example of simulated instationary parallel experiments in the files <code class="docutils literal notranslate"><span class="pre">e_coli_GX_prl.ftbl</span></code> (main file) and <code class="docutils literal notranslate"><span class="pre">e_coli_GX_X.ftbl</span></code> (secondary file) corresponding to simultaneous consumption of glucose and xylose. The network for this simulations was borrowed from “13C metabolic flux analysis of microbial and mammalian systems is enhanced with GC-MS measurements of glycogen and RNA labeling”, Christopher P. Long, Jennifer Au, Jacqueline E. Gonzalez, Maciek R. Antoniewicz, Metabolic Engineering 38 (2016) 65–72. The experiment consisted in dynamic labeling by uniformly labeled glucose (main experiment)  and by uniformly labeled xylose (secondary one). Labeling kinetics MS data are given in <code class="docutils literal notranslate"><span class="pre">e_coli_GX_MS.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">e_coli_GX_X_MS.txt</span></code> files respectively. To play with this example, you can run (still in installation directory):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./influx_i.py test/prl_exp/e_coli_GX_prl
 </pre></div>
@@ -1165,7 +1166,7 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.0 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.1 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

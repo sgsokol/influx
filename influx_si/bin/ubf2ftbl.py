@@ -17,38 +17,40 @@ Return a list of strings formatted as lines of FTBL file
 """
    sres = [] # list strings: name<tab>reac
    res = [] # tuples, 1 per reaction
+   metabs = {} # dict like "npyrc": "pyr"
    reacfound = False
    for l in lines:
-      if not reacfound:
-         if l[:12].lower() == "// reactions":
-            reacfound = True
-         continue
       l=l.strip()
+      # skip empty lines and comments
       if not l or (len(l) > 1 and l[:2] == "//"):
          continue
+      # detect reaction start
+      if not reacfound:
+         if l[:10].lower() == "reactions:":
+            reacfound = True
+            continue
+         # here metabs go
+         li = re.split(" +", l)
+         if li[0] != "Metab":
+            continue
+         p,lng,mi,mn = li
+         metabs[mi] = mn.strip('" ')
+         continue
       # here reactions go
-      ## get names
-      nms, parts = l.split(":")
-      nmf, nms = re.match("([^,]*,)?(.+)", nms).group(1,2) # get name full, name short
-      nmf = (nmf[:-1] if nmf else "").strip()
-      nms = nms.strip()
-      ## split reac and atom mapping
-      sep = re.findall(" *(<?[-=]+>?) *", parts)
-      if len(sep) != 2:
-         raise Exception(f"Expected two reaction sings, instead got '{sep}' in '{l}'")
-      if sep[0] != sep[1]:
-         tmp = "' and '".join(sep)
-         raise Exception(f"Expected two identical reaction sings, instead got '{tmp}' in '{l}'")
-      sep = sep[0]
-      try:
-         p1, p2, p3 = re.split(" *<?[-=]+>? *", parts)
-      except:
-         sys.stderr.write(f"line '{l}'\n")
-      rl = re.findall("[^+ ]+", p1)
-      ar = re.findall("[0-9]+", p3)
-      rr, al = zip(*(re.findall("([_a-zA-Z][^+ ]*)|([0-9]+)", p2)))
-      rr = list(filter(None, rr))
-      al = list(filter(None, al))
+      li = re.split(" +", l)
+      if "$" not in li and "->" not in li:
+         continue # not reaction string
+      idol = li.index("$")
+      iarr = li.index("->")
+      ## get reaction parts
+      nms = li[0]
+      nmf = ""
+      sep = "->"
+      rl = [metabs[it.strip("y[]")] for it in li[1:iarr]]
+      rr = [metabs[it.strip("y[]")] for it in li[iarr+1:idol]]
+      if not rl and not rr:
+         continue
+      al,ar = [a.split("+") for a in li[-1].strip("()").split(">")]
       # translate '123' to 'abc'
       for a in (ar, al):
          a[:] = ["".join(lett[int(l)-1] for l in it) for it in a]
@@ -96,7 +98,7 @@ Return list of strings
    source = (l.split(":") for l in lines if l.strip()) if onelineformat else zip(lines[::2], lines[1::2])
    for met, data in source:
       data = data.strip().split(" ")
-      met = re.sub("_?(fragment )?[Cc](\d)-[Cc](\d)( fragment)?\s*", "\t\\2\t\\3", met)
+      met = re.sub("_?(fragment )?[Cc](\d)-?[Cc](\d)( fragment)?\s*", "\t\\2\t\\3", met)
       li = met.split("\t")
       m, b, e = li if len(li) > 1 else (met, "1", str(len(data)-1))
       m = m.strip()

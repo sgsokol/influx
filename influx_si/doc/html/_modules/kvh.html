@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>kvh &#8212; influx_si 5.0 documentation</title>
+    <title>kvh &#8212; influx_si 5.1 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
@@ -29,7 +29,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -42,14 +42,14 @@
   <h1>Source code for kvh</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">codecs</span>
-<span class="kn">from</span> <span class="nn">re</span> <span class="k">import</span> <span class="n">match</span>
+<span class="kn">from</span> <span class="nn">re</span> <span class="kn">import</span> <span class="n">match</span>
 
 <span class="c1">#import pdb</span>
 
 <span class="k">def</span> <span class="nf">isstr</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">Obj</span><span class="p">():</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwrags</span><span class="p">)</span>
 <div class="viewcode-block" id="kvh2tlist"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2tlist">[docs]</a><span class="k">def</span> <span class="nf">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">lev</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -60,7 +60,7 @@
     <span class="c1"># check the stream</span>
     <span class="n">open_here</span><span class="o">=</span><span class="kc">False</span><span class="p">;</span>
     <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
-        <span class="n">fp</span><span class="o">=</span><span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8-sig&quot;</span><span class="p">);</span>
+        <span class="n">fp</span><span class="o">=</span><span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8-sig&quot;</span><span class="p">);</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
         <span class="n">open_here</span><span class="o">=</span><span class="kc">True</span><span class="p">;</span>
     <span class="c1"># error control</span>
@@ -205,7 +205,7 @@
     <span class="n">open_here</span><span class="o">=</span><span class="kc">False</span><span class="p">;</span>
     <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
         <span class="n">open_here</span><span class="o">=</span><span class="kc">True</span><span class="p">;</span>
-        <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">);</span>
+        <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">);</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">*</span><span class="n">indent</span><span class="p">,</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\t\\\n</span><span class="s2">&quot;</span><span class="p">)));</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">({}):</span>
@@ -227,7 +227,7 @@
     <span class="n">open_here</span><span class="o">=</span><span class="kc">False</span><span class="p">;</span>
     <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
         <span class="n">open_here</span><span class="o">=</span><span class="kc">True</span><span class="p">;</span>
-        <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">);</span>
+        <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">);</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">*</span><span class="n">indent</span><span class="p">,</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\t\\\n</span><span class="s2">&quot;</span><span class="p">)));</span>
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">([]):</span>
@@ -274,12 +274,12 @@
 <span class="sd">    Return a matrix which is a list of lists (rows). The first item in each row is the</span>
 <span class="sd">    row name. In case of matrix (i.e. &quot;row_col&quot; is present in kvh file), the very first row contain column names.&quot;&quot;&quot;</span>
     
-    <span class="n">open_here</span><span class="o">=</span><span class="kc">False</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span>
-        <span class="n">open_here</span><span class="o">=</span><span class="kc">True</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">cont</span><span class="o">=</span><span class="n">fp</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cont</span><span class="o">=</span><span class="n">fp</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
     <span class="c1"># keys can be a list of subfield keys.</span>
-    <span class="n">cont</span><span class="o">=</span><span class="n">fp</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
     <span class="n">ncont</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">cont</span><span class="p">)</span>
     <span class="c1"># get start line number by grep successively all fields in v</span>
     <span class="c1"># and the indent</span>
@@ -336,7 +336,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>

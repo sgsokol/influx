@@ -1,0 +1,563 @@
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	e_coli_anto	1		2016-10-11	converted by txt2ftbl.py from 'e_coli_anto.txt'
+
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// Glycolysis
+	v1	Gluc.ext	PEP	G6P	Pyr
+		#abcdef	#ghi	#abcdef	#ghi
+	v2	G6P		F6P
+		#abcdef		#abcdef
+	v3	F6P	ATP	FBP	
+		#abcdef	#	#abcdef	
+	v4	FBP		DHAP	GAP
+		#abcdef		#cba	#def
+	v5	DHAP		GAP
+		#abc		#abc
+	v6	GAP		3PG	ATP
+		#abc		#abc	#
+	v6			NADH
+				#
+	v7	3PG		PEP
+		#abc		#abc
+	v8	PEP		Pyr	ATP
+		#abc		#abc	#
+// Pentose Phosphate Pathway
+	v9	G6P		6PG	NADPH
+		#abcdef		#abcdef	#
+	v10	6PG		Ru5P	CO2
+		#abcdef		#bcdef	#a
+	v10			NADPH
+				#
+	v11	Ru5P		X5P
+		#abcde		#abcde
+	v12	Ru5P		R5P
+		#abcde		#abcde
+	v13	X5P		TK-C2	GAP
+		#abcde		#ab	#cde
+	v14	F6P		TK-C2	E4P
+		#abcdef		#ab	#cdef
+	v15	S7P		TK-C2	R5P
+		#abcdefg		#ab	#cdefg
+	v16	F6P		TA-C3	GAP
+		#abcdef		#abc	#def
+	v17	S7P		TA-C3	E4P
+		#abcdefg		#abc	#defg
+// Entner-Doudoroff Pathway
+	v18	6PG		KDPG
+		#abcdef		#abcdef
+	v19	KDPG		Pyr	GAP
+		#abcdef		#abc	#def
+// TCA Cycle
+	v20	Pyr		AcCoA	CO2
+		#abc		#bc	#a
+	v20			NADH
+				#
+	v21	OAC	AcCoA	Cit	
+		#abcd	#ef	#dcbfea	
+	v22	Cit		ICit
+		#abcdef		#abcdef
+	v23	ICit		AKG	CO2
+		#abcdef		#abcde	#f
+	v23			NADPH
+				#
+	v24	AKG		SucCoA	CO2
+		#abcde		#bcde	#a
+	v24			NADH
+				#
+	v25_1	SucCoA		Suc	ATP
+		#abcd		#abcd	#
+	v25_2	SucCoA		Suc	ATP
+		#abcd		#dcba	#
+	v26_1	Suc		Fum	FADH2
+		#abcd		#abcd	#
+	v26_2	Suc		Fum	FADH2
+		#abcd		#dcba	#
+	v26_3	Suc		Fum	FADH2
+		#dcba		#abcd	#
+	v26_4	Suc		Fum	FADH2
+		#dcba		#dcba	#
+	v27_1	Fum		Mal
+		#abcd		#abcd
+	v27_2	Fum		Mal
+		#dcba		#abcd
+	v28	Mal		OAC	NADH
+		#abcd		#abcd	#
+// Glyoxylate Shunt
+	v29_1	ICit		Glyox	Suc
+		#abcdef		#ab	#edcf
+	v29_2	ICit		Glyox	Suc
+		#abcdef		#ab	#fcde
+	v30	Glyox	AcCoA	Mal	
+		#ab	#cd	#abdc	
+// Amphibolic Reactions
+	v31	Mal		Pyr	CO2
+		#abcd		#abc	#d
+	v31			NADPH
+				#
+	v32	Mal		Pyr	CO2
+		#abcd		#abc	#d
+	v32			NADH
+				#
+	v33	PEP	CO2	OAC	
+		#abc	#d	#abcd	
+	v34	OAC	ATP	PEP	CO2
+		#abcd	#	#abc	#d
+// Acetic Acid Formation
+	v35	AcCoA		Ac	ATP
+		#ab		#ab	#
+// Amino Acid Biosynthesis
+	v36	AKG	NADPH	Glu	
+		#abcde	#	#abcde	
+	v36	NH3		
+		#		
+	v37	Glu	ATP	Gln	
+		#abcde	#	#abcde	
+	v37	NH3		
+		#		
+	v38	Glu	ATP	Pro	
+		#abcde	#	#abcde	
+	v38	2*NADPH		
+		#		
+	v39	Glu	CO2	Arg	AKG
+		#abcde	#f	#abcdef	#ghijk
+	v39	Gln	Asp	Fum	Ac
+		#ghijk	#lmno	#lmno	#pq
+	v39	AcCoA	5*ATP		
+		#pq	#		
+	v39	NADPH		
+		#		
+	v40	OAC	Glu	Asp	AKG
+		#abcd	#efghi	#abcd	#efghi
+	v41	Asp	2*ATP	Asn	
+		#abcd	#	#abcd	
+	v41	NH3		
+		#		
+	v42	Pyr	Glu	Ala	AKG
+		#abc	#defgh	#abc	#defgh
+	v43	3PG	Glu	Ser	AKG
+		#abc	#defgh	#abc	#defgh
+	v43			NADH
+				#
+	v44	Ser		Gly	MEETHF
+		#abc		#ab	#c
+	v45	Gly		CO2	MEETHF
+		#ab		#a	#b
+	v45			NADH	NH3
+				#	#
+	v46	Thr		Gly	AcCoA
+		#abcd		#ab	#cd
+	v46			NADH
+				#
+	v47	Ser	AcCoA	Cys	Ac
+		#abc	#de	#abc	#de
+	v47	3*ATP	4*NADPH		
+		#	#		
+	v47	SO4		
+		#		
+	v48_1	Asp	Pyr	LL-DAP	AKG
+		#abcd	#efg	#abcdgfe	#hijkl
+	v48_1	Glu	SucCoA	Suc	
+		#hijkl	#mnop	#mnop	
+	v48_1	ATP	2*NADPH		
+		#	#		
+	v48_2	Asp	Pyr	LL-DAP	AKG
+		#abcd	#efg	#abcdgfe	#hijkl
+	v48_2	Glu	SucCoA	Suc	
+		#hijkl	#mnop	#ponm	
+	v48_2	ATP	2*NADPH		
+		#	#		
+	v48_3	Asp	Pyr	LL-DAP	AKG
+		#abcd	#efg	#efgdcba	#hijkl
+	v48_3	Glu	SucCoA	Suc	
+		#hijkl	#mnop	#mnop	
+	v48_3	ATP	2*NADPH		
+		#	#		
+	v48_4	Asp	Pyr	LL-DAP	AKG
+		#abcd	#efg	#efgdcba	#hijkl
+	v48_4	Glu	SucCoA	Suc	
+		#hijkl	#mnop	#ponm	
+	v48_4	ATP	2*NADPH		
+		#	#		
+	v49_1	LL-DAP		Lys	CO2
+		#abcdefg		#abcdef	#g
+	v49_2	LL-DAP		Lys	CO2
+		#gfedcba		#abcdef	#g
+	v50	Asp	2*ATP	Thr	
+		#abcd	#	#abcd	
+	v50	2*NADPH		
+		#		
+	v51_1	Asp	METHF	Met	Pyr
+		#abcd	#e	#abcde	#fgh
+	v51_1	Cys	SucCoA	Suc	NH3
+		#fgh	#ijkl	#ijkl	#
+	v51_1	ATP	2*NADPH		
+		#	#		
+	v51_2	Asp	METHF	Met	Pyr
+		#abcd	#e	#abcde	#fgh
+	v51_2	Cys	SucCoA	Suc	NH3
+		#fgh	#ijkl	#lkji	#
+	v51_2	ATP	2*NADPH		
+		#	#		
+	v52	Pyr	Pyr	Val	CO2
+		#abc	#def	#abcef	#d
+	v52	Glu	NADPH	AKG	
+		#ghijk	#	#ghijk	
+	v53	AcCoA	Pyr	Leu	CO2
+		#ab	#cde	#abdghe	#c
+	v53	Pyr	Glu	CO2	AKG
+		#fgh	#ijklm	#f	#ijklm
+	v53	NADPH		NADH
+		#		#
+	v54	Thr	Pyr	Ile	CO2
+		#abcd	#efg	#abfcdg	#e
+	v54	Glu	NADPH	AKG	NH3
+		#hijkl	#	#hijkl	#
+	v55	PEP	PEP	Phe	CO2
+		#abc	#def	#abcefghij	#d
+	v55	E4P	Glu	AKG	
+		#ghij	#klmno	#klmno	
+	v55	ATP	NADPH		
+		#	#		
+	v56	PEP	PEP	Tyr	CO2
+		#abc	#def	#abcefghij	#d
+	v56	E4P	Glu	AKG	NADH
+		#ghij	#klmno	#klmno	#
+	v56	ATP	NADPH		
+		#	#		
+	v57	Ser	R5P	Trp	CO2
+		#abc	#defgh	#abcedklmnoj	#i
+	v57	PEP	E4P	GAP	Pyr
+		#ijk	#lmno	#fgh	#pqr
+	v57	PEP	Gln	Glu	
+		#pqr	#stuvw	#stuvw	
+	v57	3*ATP	NADPH		
+		#	#		
+	v58	R5P	FTHF	His	AKG
+		#abcde	#f	#edcbaf	#ghijk
+	v58	Gln	Asp	Fum	NADH
+		#ghijk	#lmno	#lmno	#
+	v58	5*ATP		
+		#		
+// One-Carbon Metabolism
+	v59	MEETHF	NADH	METHF	
+		#a	#	#a	
+	v60	MEETHF		FTHF	NADPH
+		#a		#a	#
+// Transport
+	v65	Ac		Ac.ext
+		#ab		#ab
+	v66	CO2		CO2.ext
+		#a		#a
+// CO2 Exchange
+	v71	CO2.unlabeled	CO2	CO2	CO2.out
+		#a	#b	#a	#b
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+// Oxidative Phosphorylation
+	v61	NADH+0.5*O2 = 2*ATP
+	v62	FADH2+0.5*O2 = ATP
+// Transhydrogenation
+	v63	NADH = NADPH
+// ATP Hydrolysis
+	v64	ATP = ATP.ext
+	v67	O2.ext = O2
+	v68	NH3.ext = NH3
+	v69	SO4.ext = SO4
+// Biomass Formation
+	v70	0.488*Ala+0.281*Arg+0.229*Asn+0.229*Asp+0.087*Cys+0.250*Glu+0.250*Gln+0.582*Gly+0.090*His+0.276*Ile+0.428*Leu+0.326*Lys+0.146*Met+0.176*Phe+0.210*Pro+0.205*Ser+0.241*Thr+0.054*Trp+0.131*Tyr+0.402*Val+0.205*G6P+0.071*F6P+0.754*R5P+0.129*GAP+0.619*3PG+0.051*PEP+0.083*Pyr+2.510*AcCoA+0.087*AKG+0.340*OAC+0.443*MEETHF+33.247*ATP+5.363*NADPH = 39.68*Biomass+1.455*NADH
+
+EQUALITIES
+	NET
+		VALUE	FORMULA
+		0	v25_1 - v25_2
+		0	v26_1 - v26_2
+		0	v26_1 - v26_3
+		0	v26_1 - v26_4
+		0	v27_1 - v27_2
+		0	v29_1 - v29_2
+		0	v48_1 - v48_2
+		0	v48_1 - v48_3
+		0	v48_1 - v48_4
+		0	v49_1 - v49_2
+		0	v51_1 - v51_2
+	XCH
+		VALUE	FORMULA
+		0	v25_1 - v25_2
+		0	v26_1 - v26_2
+		0	v26_1 - v26_3
+		0	v26_1 - v26_4
+		0	v27_1 - v27_2
+
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	100
+		v2	F	68.6
+		v3	D	81.6
+		v4	D	81.6
+		v5	D	81.6
+		v6	D	168.9
+		v7	D	158
+		v8	D	27.1
+		v9	D	29.8
+		v10	D	28.8
+		v11	D	13.5
+		v12	D	15.2
+		v13	D	13.5
+		v14	D	-5.3
+		v15	D	-8.2
+		v16	D	-8.2
+		v17	D	8.2
+		v18	F	1
+		v19	D	1
+		v20	F	107.4
+		v21	D	16.4
+		v22	D	16.4
+		v23	D	13.1
+		v24	D	4.7
+		v25_1	D	0.45
+		v25_2	D	0.45
+		v26_1	D	1.975
+		v26_2	D	1.975
+		v26_3	D	1.975
+		v26_4	D	1.975
+		v27_1	D	5.45
+		v27_2	D	5.45
+		v28	D	14.2
+		v29_1	D	1.65
+		v29_2	D	1.65
+		v30	D	3.3
+		v31	D	0
+		v32	F	0
+		v33	D	29.4
+		v34	F	4.7
+		v35	F	66
+		v36	D	54.2
+		v37	D	5.3
+		v38	D	1.7
+		v39	D	2.2
+		v40	D	19.8
+		v41	D	1.8
+		v42	D	3.8
+		v43	D	6.1
+		v44	D	2.2
+		v45	D	3.1
+		v46	D	5.5
+		v47	D	1.8
+		v48_1	D	0.65
+		v48_2	D	0.65
+		v48_3	D	0.65
+		v48_4	D	0.65
+		v49_1	D	1.3
+		v49_2	D	1.3
+		v50	D	9.6
+		v51_1	D	0.55
+		v51_2	D	0.55
+		v52	D	3.2
+		v53	D	3.4
+		v54	D	2.2
+		v55	D	1.4
+		v56	D	1
+		v57	D	0.4
+		v58	D	0.7
+		v59	D	1.1
+		v60	D	0.7
+		v61	F	250.9
+		v62	D	7.9
+		v63	F	75.1
+		v64	F	367.3
+		v65	D	70
+		v66	D	147.5
+		v67	D	129.4
+		v68	D	54.8
+		v69	D	1.8
+		v70	D	7.9
+		v71	F	34.2
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	0
+		v2	F	0.995726
+		v3	C	0
+		v4	F	0.9951
+		v5	F	0.979253
+		v6	F	0.69697
+		v7	F	0
+		v8	C	0
+		v9	C	0
+		v10	C	0
+		v11	F	0.983444
+		v12	F	0.916667
+		v13	F	0.991158
+		v14	F	0.52381
+		v15	F	0.930556
+		v16	F	0
+		v17	F	0.864865
+		v18	C	0
+		v19	C	0
+		v20	C	0
+		v21	C	0
+		v22	F	0.994824
+		v23	F	0.996109
+		v24	C	0
+		v25_1	F	0.01E0
+		v25_2	D	0.01E0
+		v26_1	F	0.01E0
+		v26_2	D	0.01E0
+		v26_3	D	0.01E0
+		v26_4	D	0.01E0
+		v27_1	F	0.01E0
+		v27_2	D	0.01E0
+		v28	F	0.992938
+		v29_1	C	0
+		v29_2	C	0
+		v30	C	0
+		v31	C	0
+		v32	C	0
+		v33	C	0
+		v34	C	0
+		v35	F	0.99575
+		v36	C	0
+		v37	C	0
+		v38	C	0
+		v39	C	0
+		v40	C	0
+		v41	C	0
+		v42	C	0
+		v43	C	0
+		v44	F	0
+		v45	F	0.995825
+		v46	C	0
+		v47	C	0
+		v48_1	C	0
+		v48_2	C	0
+		v48_3	C	0
+		v48_4	C	0
+		v49_1	C	0
+		v49_2	C	0
+		v50	C	0
+		v51_1	C	0
+		v51_2	C	0
+		v52	C	0
+		v53	C	0
+		v54	C	0
+		v55	C	0
+		v56	C	0
+		v57	C	0
+		v58	C	0
+		v59	C	0
+		v60	C	0
+		v61	C	0
+		v62	C	0
+		v63	F	0.993643
+		v64	C	0
+		v65	C	0
+		v66	C	0
+		v67	C	0
+		v68	C	0
+		v69	C	0
+		v70	C	0
+		v71	C	0
+
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	CO2.unlabeled	#0	1
+	Gluc.ext	#000100	0.996
+
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+	XCH
+		VALUE	COMP	FORMULA
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+	Ser	2,3	0	0.995024650566341	0.01
+			1	0.0167549633929138	0.01
+			2	0.00428450923188151	0.01
+	Tyr	1,2	0	0.473442939600418	0.01
+			1	0.508512955521893	0.01
+			2	-0.0184941294420532	0.01
+	Ser	1~3	0	0.469540569228375	0.01
+			1	0.538726068356073	0.01
+			2	0.00387849060943398	0.01
+			3	-0.01574427545739	0.01
+	Phe	1,2	0	0.473071534981411	0.01
+			1	0.523465746120941	0.01
+			2	-0.0116326782306372	0.01
+	Asp	1~4	0	0.4540715882892	0.01
+			1	0.407992160886188	0.01
+			2	0.125171375014961	0.01
+			3	-0.00616034055477103	0.01
+			4	0.00239124551313075	0.01
+	Asp	2~4	0	0.73408398501211	0.01
+			1	0.27989453818559	0.01
+			2	-0.00832309799243939	0.01
+			3	0.00819533454139747	0.01
+	Phe	2~9	0	0.239484929789245	0.01
+			1	0.728645300934085	0.01
+			2	-0.0100868641162196	0.01
+			3	0.00646051624982604	0.01
+			4	0.0114270843903805	0.01
+			5	-0.0074571647577886	0.01
+			6	0.00803364444715024	0.01
+			7	0.0016110031018522	0.01
+			8	0.00203488487083928	0.01
+	Val	1~5	0	0.47435675262582	0.01
+			1	0.544783588269106	0.01
+			2	0.00339674331180121	0.01
+			3	0.00258642587910444	0.01
+			4	0.00160454245281756	0.01
+			5	-0.00699840674242767	0.01
+	Glu	2~5	0	0.973593156733747	0.01
+			1	0.0250802125031875	0.01
+			2	0.0231818055439416	0.01
+			3	-0.000860649249691758	0.01
+			4	0.0174261723973114	0.01
+	Asp	1,2	0	0.585017823287922	0.01
+			1	0.407634834765151	0.01
+			2	0.0034703198101068	0.01
+	Ala	1~3	0	0.470770289302156	0.01
+			1	0.523242434274034	0.01
+			2	0.0109088649045342	0.01
+			3	0.00224622329009146	0.01
+	Gly	1,2	0	0.641528102760849	0.01
+			1	0.351502338477458	0.01
+			2	0.0044191103337116	0.01
+	Ile	2~6	0	0.727188969670504	0.01
+			1	0.267298668299744	0.01
+			2	0.00643740147563439	0.01
+			3	-0.011434445098715	0.01
+			4	-0.00450386413516281	0.01
+			5	0.011418193259691	0.01
+	Leu	2~6	0	0.989189344918423	0.01
+			1	0.0134144023816768	0.01
+			2	0.00788018694730994	0.01
+			3	-0.0102119950567234	0.01
+			4	-0.00897905628381277	0.01
+			5	-0.0104165704937312	0.01
+	Gly	2	0	1.00630026265314	0.01
+			1	-0.00251977043706423	0.01
+	Ala	2,3	0	1.00884254920351	0.01
+			1	-0.00454265828735525	0.01
+			2	0.0160174119895842	0.01
+	Val	2~5	0	1.02185249267039	0.01
+			1	0.0137793798975663	0.01
+			2	-0.00281196395872798	0.01
+			3	0.0127399517630193	0.01
+			4	0.00523462400812915	0.01
+	Glu	1~5	0	0.715813487964412	0.01
+			1	0.273575313537765	0.01
+			2	-0.00584451221489383	0.01
+			3	0.00779576665193892	0.01
+			4	-0.00819307062796152	0.01
+			5	0.0131305750586266	0.01
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noscale --T --ln
