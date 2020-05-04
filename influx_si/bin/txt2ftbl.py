@@ -149,7 +149,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         ilr=[[0]*len(it) for it in i_n_scr]
         nlr=[[n for i,n in it] for it in i_n_scr]
         lrs=[]
-        loop=["for ilr[%(ilr)d][%(isc)d] in xrange(%(nsc)d):"%{"ilr": il, "isc": isc, "nsc": nsc} for il in range(2) for isc,nsc in enumerate(nlr[il]) if nsc > 1]
+        loop=["for ilr[%(ilr)d][%(isc)d] in range(%(nsc)d):"%{"ilr": il, "isc": isc, "nsc": nsc} for il in range(2) for isc,nsc in enumerate(nlr[il]) if nsc > 1]
         code="\n".join(" "*i+it for i,it in enumerate(loop))
         if loop:
             ire=0
@@ -218,7 +218,8 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     import re
     import math
     import datetime as dt
-    from scipy import linalg, diag
+    from scipy import linalg
+    from numpy import diag
 
     import influx_si
     from tools_ssg import *

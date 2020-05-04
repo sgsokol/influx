@@ -704,9 +704,12 @@ for (irun in seq_len(nseries)) {
    # check if initial approximation is feasible
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
-   if (any(ineq <= -1.e-10)) {
-      cat("The following ", sum(ineq<= -1.e-10), " ineqalities are not respected at starting point", runsuf, ":\n", sep="", file=fclog)
-      i=ineq[ineq<= -1.e-10]
+   # set tolerance for inequality
+   tol_ineq=if (method=="BFGS") 0. else 1.e-10
+   nbad=sum(ineq <= -tol_ineq)
+   if (nbad > 0) {
+      cat("The following ", nbad, " ineqalities are not respected at starting point", runsuf, ":\n", sep="", file=fclog)
+      i=ineq[ineq<= -tol_ineq]
       cat(paste(names(i), i, sep="\t", collapse="\n"), "\n", sep="", file=fclog)
       # put them inside
       capture.output(pinside <- put_inside(param, ui, ci), file=fclog)
@@ -784,7 +787,7 @@ for (irun in seq_len(nseries)) {
          zi=rep(TRUE, nrow(ui_zc))
       }
 
-      inotsat=ci_zc[zi]>1.e-10
+      inotsat=ci_zc[zi]>tol_ineq
       if (any(inotsat)) {
          cat("Warning: The following constant zc inequalities are not satisfied:\n", file=fcerr)
          cat(nm_izc[zi][inotsat], sep="\n", file=fcerr)
@@ -802,7 +805,7 @@ for (irun in seq_len(nseries)) {
       uzcd=sapply(seq_len(nb_zc), function(i) apply(abs(tui-ui_zc[i,]), 2L, max))
       uzcs=sapply(seq_len(nb_zc), function(i) apply(abs(tui+ui_zc[i,]), 2L, max))
       czcd=abs(outer(abs(ci), abs(ci_zc), "-"))
-      ired=which(apply((uzcd < 1.e-10 | uzcs < 1.e-10) & czcd <= 1.e-2, 2, any))
+      ired=which(apply((uzcd < tol_ineq | uzcs < tol_ineq) & czcd <= 1.e-2, 2, any))
       
       if (length(ired) > 0L) {
          # remove all ired inequalities
@@ -870,9 +873,10 @@ for (irun in seq_len(nseries)) {
    # see if there are any active inequalities at starting point
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
-   if (any(abs(ineq)<=1.e-10)) {
-      cat("The following ", sum(abs(ineq)<=1.e-10), " ineqalitie(s) are active at starting point", runsuf, ":\\n",
-         paste(names(ineq[abs(ineq)<=1.e-10]), collapse="\\n"), "\\n", sep="", file=fclog)
+   nbad=sum(abs(ineq)<=tol_ineq)
+   if (nbad > 0) {
+      cat("The following ", nbad, " ineqalitie(s) are active at starting point", runsuf, ":\\n",
+         paste(names(ineq[abs(ineq)<=tol_ineq]), collapse="\\n"), "\\n", sep="", file=fclog)
    }
 """)
 
@@ -952,7 +956,7 @@ for (irun in seq_len(nseries)) {
             close(fkvh)
             next
          }
-         if (sum(is.infinite(rres$jacobian))) {
+         if (any(is.infinite(rres$jacobian))) {
             cat("Infinite values appeared in Jacobian (at identifiability check)", file=fcerr)
             retcode[irun]=1
             close(fkvh)
@@ -1014,7 +1018,7 @@ for (irun in seq_len(nseries)) {
             cat("secondzc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          # inverse active "zc" inequalities
-         nm_inv=names(which((ui%*%res$par-ci)[,1]<=1.e-10))
+         nm_inv=names(which((ui%*%res$par-ci)[,1]<=tol_ineq))
          i=grep("^zc ", nm_inv, v=T)
          if (length(i) > 0) {
             i=str2ind(i, nm_i)
@@ -1173,7 +1177,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
       cat("postopt : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
    }
    # active constraints
-   ine=as.numeric(abs(ui%*%param-ci))<1.e-10
+   ine=as.numeric(abs(ui%*%param-ci))<tol_ineq
    if (any(ine)) {
       obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
    }

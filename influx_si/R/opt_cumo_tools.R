@@ -884,11 +884,11 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    return(list(j_rhsw=j_rhsw, b_x=b_x))
 }
 
-put_inside=function(param, ui, ci) {
+put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3) {
    # put param inside of feasible domain delimited by u%*%param >= ci
    mes=""
    ineq=as.numeric(ui%*%param)-ci
-   if (all(ineq>1.e-10)) {
+   if (all(ineq>tol_in)) {
       # nothing to do, already inside and well inside
       return(param)
    }
@@ -897,13 +897,13 @@ put_inside=function(param, ui, ci) {
       # get new active inequalities
       ineqd=as.numeric(ui%*%(param+dp))-ci
       # check that we are at least at the border and not outside
-      if (any(ineqd < -1.e-7)) {
+      if (any(ineqd < -tol_out)) {
          param=NA
          attr(param, "mes")="Inequality system is ill-conditionned. Failed to solve."
          attr(param, "err")=1
          return(param)
       }
-      iact=ineqd<=1.e-10
+      iact=ineqd<=tol_in
 #print(ineqd[iact])
       # solve an ldp pb to find non decreasing direction
       # for active inequalities
@@ -911,7 +911,7 @@ put_inside=function(param, ui, ci) {
       na=sum(iact)
       # find closest vector to c(1,1,...) making the direction increasing
       tma=tcrossprod(ma)
-      bet=ldp(tma, 1.e-3 - apply(tma, 1, sum))
+      bet=ldp(tma, tol_desc - apply(tma, 1, sum))
       if (is.null(bet)) {
          param=param+dp
          attr(param, "mes")="Infeasible constraints for inside direction."
@@ -923,7 +923,7 @@ put_inside=function(param, ui, ci) {
       decr=(ui%*%vn)<0.
       alpha=((-ineqd)/(ui%*%vn))[decr]
       alpha=alpha[alpha>0]
-      alpha=0.5*min(0.001, alpha)
+      alpha=0.5*min(tol_desc, alpha)
       dpn=dp+alpha*vn
       # check that new dp is still inside
       if (any(ui%*%(param+dpn)-ci < 0.)) {
@@ -933,11 +933,11 @@ put_inside=function(param, ui, ci) {
       }
       names(param)=nm_par
       if (nb_ff > 0) {
-         i=abs(dpn[seq_len(nb_ff)])>=1.e-10
-         if (sum(i) > 0) {
+         i=abs(dpn[seq_len(nb_ff)])>=tol_in
+         if (any(i)) {
             tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dpn[1:nb_ff], dpn[1:nb_ff])
             dimnames(tmp)=list(nm_par[1:nb_ff], c("outside", "inside", "delta"))
-            obj2kvh(tmp[i,,drop=FALSE], "Free parameters put inside of feasible domain")
+            obj2kvh(tmp[i,,drop=FALSE], "Free fluxes put inside of feasible domain")
          }
       }
       # move starting point slightly inside of feasible domain
@@ -1230,6 +1230,7 @@ opt_wrapper=function(param, measurements, jx_f, labargs, trace=1) {
    labargs$measurements=measurements
    labargs$jx_f=jx_f
    if (method == "BFGS") {
+#browser()
       control=list(maxit=500, trace=trace)
       control[names(control_ftbl)]=control_ftbl
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,

@@ -61,15 +61,20 @@ if fkvh == "-":
     # read from standart input
     fkvh=sys.stdin
 else:
-    if os.path.isfile(fkvh) and fkvh[-8:] == "_res.kvh":
-        fbase=fkvh[:-8]
+    if os.path.isfile(fkvh):
+        if fkvh[-8:] == "_res.kvh":
+            fbase=fkvh[:-8]
+        else:
+            fbase=None
     else:
         fbase=fkvh
         fkvh+="_res.kvh"
 if (len(args) == 2):
     ftbl=args[1]
-else:
+elif not fbase is None:
     ftbl=fbase+".ftbl"
+else:
+    raise Exception("When _res.kvh and .ftbl have different basecpart of name, both file names must be provided.")
 
 # get free and dependent fluxes from kvh
 ff=kvh.kvh_get_matrix(fkvh, ["linear stats", "net-xch01 fluxes (sorted by name)"])

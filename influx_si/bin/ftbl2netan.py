@@ -51,7 +51,13 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     
     ftbl=C13_ftbl.ftbl_parse(fftbl)
     netan=dict()
-    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
+    try:
+        C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
+    except Exception as e:
+        sys.stderr.write("ftbl2netan: Exception\n"+str(e)+"\n")
+        tools_ssg.dict2kvh(netan, f)
+        sys.exit(1)
+    #import pdb; pdb.set_trace()
     tools_ssg.dict2kvh(netan, f)
     # calculate measure matrices
     if "measures" not in netan:

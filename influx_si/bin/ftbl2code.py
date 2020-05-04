@@ -132,12 +132,12 @@ l$nb_cl=%(ncucumo)d # number of lighter cumomers
 maxprod=%(maxprod)d
 if (nb_c > 0) {
    # matrix a
-   ind_a=matrix(as.integer(c(%(ind_a)s)), ncol=3, byrow=T)
+   ind_a=matrix(as.integer(c(%(ind_a)s)), ncol=3, byrow=TRUE)
    colnames(ind_a)=c("indf", "ir0", "ic0")
    l$ind_a=ind_a
    
    # vector b
-   ind_b=matrix(as.integer(c(%(ind_b)s)), ncol=2+%(maxprod)d, byrow=T)
+   ind_b=matrix(as.integer(c(%(ind_b)s)), ncol=2+%(maxprod)d, byrow=TRUE)
    colnames(ind_b)=c("indf", "irow", paste("indx", seq_len(%(maxprod)d), sep=""))
    l$ind_b=ind_b
    
@@ -376,22 +376,22 @@ if (cinout < 0) {
       "Instead, the value ", cinout, " is given.", sep=""), file=fcerr)
 }
 # minimization method
-validmethods=list("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic")
+validmethods=c("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic")
 if (! method %%in%% validmethods) {
-   cat(paste("Wraning: method", method, "is not known. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
+   cat(paste("Warning: method", method, "is not known. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
    method="nlsic"
 }
 if (method == "ipopt") {
-   installed=suppressPackageStartupMessages(library(ipoptr, logical.return=T))
+   installed=suppressPackageStartupMessages(library(ipoptr, logical.return=TRUE))
    if (!installed) {
-      stop_mes("An optimization method ipopt is requested but available in this R installation", file=fcerr)
+      stop_mes("An optimization method ipopt is requested but not available in this R installation", file=fcerr)
    }
 }
 if (least_norm && sln) {
    stop_mes("Options --ln and --sln cannot be activated simultaniously.", file=fcerr)
 }
 
-avaco=try(detectCores(), silent=T)
+avaco=try(detectCores(), silent=TRUE)
 if (inherits(avaco, "try-error")) {
    avaco=NULL
 }
@@ -937,7 +937,7 @@ bp=as.numeric(c2bfl%stm%fc+cnst2bfl)
 if (ffguess) {
    # make an automatic guess for free/dependent flux partition
    afd=as.matrix(cBind(Afl, -p2bfl))
-   qafd=qr(afd, LAPACK=T)
+   qafd=qr(afd, LAPACK=TRUE)
    d=abs(diag(qafd$qr))
    rank=sum(d > d[1]*1.e-10)
    qrow=qr(t(afd))
@@ -963,17 +963,17 @@ if (ffguess) {
    bp=bp[irows]
    
    # replace names
-   nm_fl=sub("f.", "d.", colnames(Afl), fixed=T)
+   nm_fl=sub("f.", "d.", colnames(Afl), fixed=TRUE)
    colnames(Afl)=nm_fl # both net and xch
-   nm_fln=sort(grep("^d.n.", nm_fl, v=T))
-   nm_flx=sort(grep("^d.x.", nm_fl, v=T))
+   nm_fln=sort(grep("^d.n.", nm_fl, v=TRUE))
+   nm_flx=sort(grep("^d.x.", nm_fl, v=TRUE))
    nm_fl=c(nm_fln, nm_flx)
    Afl=Afl[, nm_fl, drop=FALSE]
    
-   nm_ff=sub("d.", "f.", colnames(p2bfl), fixed=T) # both net and xch
+   nm_ff=sub("d.", "f.", colnames(p2bfl), fixed=TRUE) # both net and xch
    colnames(p2bfl)=nm_ff
-   nm_ffn=sort(grep("^f.n.", nm_ff, v=T))
-   nm_ffx=sort(grep("^f.x.", nm_ff, v=T))
+   nm_ffn=sort(grep("^f.n.", nm_ff, v=TRUE))
+   nm_ffx=sort(grep("^f.x.", nm_ff, v=TRUE))
    nm_ff=c(nm_ffn, nm_ffx)
    p2bfl=p2bfl[, nm_ff, drop=FALSE]
    
@@ -984,7 +984,7 @@ if (ffguess) {
 #browser()
 }
 nm_list$flnx=nm_fl
-nm_fallnx=c(nm_fln, nm_ffn, nm_fcn, nm_fgr, nm_flx, nm_ffx, nm_fcx, sub(".n.", ".x.", nm_fgr, fixed=T))
+nm_fallnx=c(nm_fln, nm_ffn, nm_fcn, nm_fgr, nm_flx, nm_ffx, nm_fcx, sub(".n.", ".x.", nm_fgr, fixed=TRUE))
 nm_list$fallnx=nm_fallnx
 nm_net=c(nm_fln, nm_ffn, nm_fcn)
 names(nm_net)=substring(nm_net, 5)
@@ -1019,7 +1019,7 @@ if (TIMEIT) {
    cat("Afl qr(): ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
-qrAfl=qr(Afl, LAPACK=T)
+qrAfl=qr(Afl, LAPACK=TRUE)
 d=abs(diag(qrAfl$qr))
 qrAfl$rank=sum(d > d[1]*1.e-10)
 rank=qrAfl$rank
@@ -1066,7 +1066,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
             colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl), colnames(c2bfl))
          }
          aextended=aful
-         qae=qr(aextended, LAPACK=T)
+         qae=qr(aextended, LAPACK=TRUE)
          d=abs(diag(qae$qr))
          ranke=sum(d > d[1L]*1.e-10)
          if (ranke == nrow(Afl)) {
@@ -1099,7 +1099,7 @@ if (qrAfl$rank != nb_fl) {
    # make a suggestion of new free fluxes
    A=cBind(Afl, -p2bfl, -c2bfl)
    colnames(A)=c(colnames(Afl), nm_ff, nm_fc)
-   qa=qr(A, LAPACK=T)
+   qa=qr(A, LAPACK=TRUE)
    d=diag(qa$qr)
    qa$rank=sum(abs(d)>=abs(d[1]*1.e-10))
    
@@ -1423,7 +1423,7 @@ ind_mema=matrix(c(
 })
 
         f.write(r"""
-NULL), ncol=3, byrow=T); # close ind_mema creation
+NULL), ncol=3, byrow=TRUE); # close ind_mema creation
 measmat[[%(iexp)d]][ind_mema[,1:2,drop=FALSE]]=ind_mema[,3]
 memaone[[%(iexp)d]]=c(%(memaone)s)
 """%{
@@ -1473,7 +1473,7 @@ for (iexp in seq_len(nb_exp)) {
    
    # matrix for summing weighted measurements
    meas2sum[[iexp]]=simple_triplet_zero_matrix(length(ipooled[[iexp]]$ishort), nb_measmat[[iexp]])
-   meas2sum[[iexp]][cbind(pmatch(nm_measmat[[iexp]], nm_measmat[[iexp]][ipooled[[iexp]]$ishort], dup=T),       seq_len(nb_measmat[[iexp]]))]=1.
+   meas2sum[[iexp]][cbind(pmatch(nm_measmat[[iexp]], nm_measmat[[iexp]][ipooled[[iexp]]$ishort], dup=TRUE),       seq_len(nb_measmat[[iexp]]))]=1.
    dimnames(meas2sum[[iexp]])=list(nm_meas[[iexp]], nm_measmat[[iexp]])
    
    # dpw_dpf - matrix for derivation of pool weights by free pools
@@ -1708,7 +1708,7 @@ if (nb_fx) {
     
     nb_notrev=len(netan["notrev"])
     f.write("""
-nm_inout=grep("^[^c]\\\\.", nm_net[c(%(nm_inout)s)], v=T) # strip out constrained fluxes
+nm_inout=grep("^[^c]\\\\.", nm_net[c(%(nm_inout)s)], v=TRUE) # strip out constrained fluxes
 nb_inout=length(nm_inout)
 if (nb_inout > 0) {
    # add cinout low limits on inout net fluxes
@@ -1762,7 +1762,7 @@ if (clownr!=0.) {
    # search for inout too
    nm_itmp=paste("inout ", nm_tmp, ">=", sep="")
    i=sapply(1:length(nm_itmp), function(k) {
-      j=grep(nm_itmp[k], nm_i, fix=T)
+      j=grep(nm_itmp[k], nm_i, fix=TRUE)
       #cat(nm_itmp[k], "->", nm_i[j], "\\n", file=fclog)
       if (length(j)==0) {
          return(0)
@@ -1871,7 +1871,7 @@ uip_ind=c(
     f.write("""%s
 )
 if (length(uip_ind) > 0) {
-   uip_ind=matrix(uip_ind, byrow=T, ncol=5L)
+   uip_ind=matrix(uip_ind, byrow=TRUE, ncol=5L)
 } else {
    uip_ind=matrix(0, 0L, 5L)
 }
@@ -1974,7 +1974,7 @@ ep_ind=c(
     f.write("""%s
 )
 if (length(ep_ind) > 0) {
-   ep_ind=matrix(ep_ind, byrow=T, ncol=5L)
+   ep_ind=matrix(ep_ind, byrow=TRUE, ncol=5L)
 } else {
    ep_ind=matrix(0, 0L, 5L)
 }

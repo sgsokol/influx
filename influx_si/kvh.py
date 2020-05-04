@@ -166,11 +166,11 @@ def dict2kvh(d, fp=sys.stdout, indent=0):
         fp=open(fp, "w");
     for (k,v) in d.items():
         fp.write("%s%s" % ("\t"*indent, escape(str(k), "\t\\\n")));
-        if type(v) == type({}):
+        if type(v) == type({}) or type({}) in type(v).__bases__:
             # recursive call with incremented indentation
             fp.write("\n");
             dict2kvh(v, fp, indent+1);
-        elif "__dict__" in dir(v):
+        elif "__dict__" in dir(v) and v.__dict__:
             # recursive call with incremented indentation
             fp.write("\n");
             dict2kvh(v.__dict__, fp, indent+1);

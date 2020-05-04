@@ -2,6 +2,18 @@
 Change Log for influx_si
 ========================
 
+2020-04-?? version 5.1.0.901
+----------------------------
+New feature:
+ - ``ff2ftbl`` can accept an input kvh file not ending with ``_res.kvh``
+ - ``ftbl2netan`` will write a partial output in case of error during FTBL parsing
+ - added error message if input metabolite appears in measurment FTBL sections
+
+Bug fix:
+ - fixed txt2ftbl, removed xrange() hidden call
+ - fixed kvh.dict2kvh() for writing objects derived from dict()
+ - fixed putting border line starting values inside feasible domain for BFGS method
+
 2020-04-07 version 5.1.0
 ------------------------
 New features:
