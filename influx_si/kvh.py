@@ -9,7 +9,7 @@ def isstr(s):
 class Obj():
     def __init__(**kwargs):
         self.__dict__.update(kwrags)
-def kvh2tlist(fp, lev=[0], indent=[0]):
+def kvh2tlist(fp, lev=[0], indent=[0], strip=False):
     """
     Read a kvh file from fp stream descriptor
     and organize its content in list of tuples [(k1,v1), (k2,[(k2.1, v2.1)])]
@@ -58,14 +58,14 @@ def kvh2tlist(fp, lev=[0], indent=[0]):
             if open_here:
                 fp.close();
             return tlist;
-        (key,sep)=kvh_read_key(fp);
+        (key,sep)=kvh_read_key(fp, strip);
         if sep=="\t":
-            tlist.append((key, kvh_read_val(fp)));
+            tlist.append((key, kvh_read_val(fp, strip)));
             indent[0]=0;
         elif sep=="\n":
             lev[0]+=1;
             indent[0]=0;
-            nextlist=kvh2tlist(fp, lev, indent);
+            nextlist=kvh2tlist(fp, lev, indent, strip);
             lev[0]-=1;
             if len(nextlist)==0:
                 # no value and no deeper level
@@ -82,7 +82,7 @@ def kvh2tlist(fp, lev=[0], indent=[0]):
                 fp.close();
             return tlist;
 
-def kvh_read_key(fp):
+def kvh_read_key(fp, strip=False):
     """Read a string from the current position till the first unescaped \t, \n or the end of stream fp.
 
 :returns: tuple (key, sep), sep=None at the end of the stream
@@ -97,18 +97,18 @@ def kvh_read_key(fp):
             nextchar=fp.read(1);
             if nextchar=="":
                 # end of file
-                return (key, None);
+                return (key.strip() if strip else key, None);
             else:
                 # just add escaped char
                 key+=nextchar;
         elif char=="\t" or char=="\n":
-            return (key, char);
+            return (key.strip() if strip else key, char);
         elif char=="":
-            return (key, None);
+            return (key.strip() if strip else key, None);
         else:
             # just add a plain char
             key+=char;
-def kvh_read_val(fp):
+def kvh_read_val(fp, strip=False):
     """
     Read a string from current position till the first unescaped
     \n or the end of file.
@@ -121,12 +121,12 @@ def kvh_read_val(fp):
             nextchar=fp.read(1);
             if nextchar=="":
                 # end of file
-                return val;
+                return val.strip() if strip else val;
             else:
                 # just add escaped char
                 val+=nextchar;
         elif char=="\n" or char=="":
-            return val;
+            return val.strip() if strip else val;
         else:
             # just add a plain char
             val+=char;
@@ -142,20 +142,20 @@ def kvh_tlist2obj(tlist):
     a hierarchical dictionnary. Repeated keys at the same level
     of a dictionnary are silently overwritten"""
     return Obj(**dict((k,(v if isstr(v) else kvh_tlist2obj(v))) for (k,v) in tlist));
-def kvh2dict(fp):
+def kvh2dict(fp, strip=False):
     r"""
     Read a kvh file from fp pointer then translate its tlist
     structure to a returned hierarchical dictionnary.
     Repeated keys at the same level of a dictionnary are
     silently overwritten"""
-    return kvh_tlist2dict(kvh2tlist(fp));
-def kvh2obj(fp):
+    return kvh_tlist2dict(kvh2tlist(fp, strip=strip));
+def kvh2obj(fp, strip=False):
     r"""
     Read a kvh file from fp pointer then translate its tlist
     structure to a returned object hierarchy.
     Repeated fields at the same level of an object are
     silently overwritten"""
-    return kvh_tlist2obj(kvh2tlist(fp));
+    return kvh_tlist2obj(kvh2tlist(fp, strip=strip));
 def dict2kvh(d, fp=sys.stdout, indent=0):
     r"""dict2kvh(d, fp=sys.stdout, indent=0)
     Write a nested dictionary on the stream fp (stdout by default).

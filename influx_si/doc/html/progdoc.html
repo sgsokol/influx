@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.1 documentation</title>
+    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.2 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.1 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.2 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -83,10 +83,9 @@ Return False if no nodes were aglomerated.</p>
 <dl class="function">
 <dt id="C13_ftbl.aglom_loop1">
 <code class="descclassname">C13_ftbl.</code><code class="descname">aglom_loop1</code><span class="sig-paren">(</span><em>A</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#aglom_loop1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.aglom_loop1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Agglomerate nodes of A if they are mutually influence each other
-i.e.they are in a loop of length 1.
-Return a new dictionary of influence where entries are those of A aglomerated
-and glued “by” tab symbol</p>
+<dd><p>Agglomerate nodes of A if they mutually influence each other
+i.e. they are in a loop of length 1.
+Return a new dictionary of influence where entries are those of A aglomerated and glued “by” tab symbol</p>
 </dd></dl>
 
 <dl class="function">
@@ -155,7 +154,7 @@ Each pathways is an ordered list.</p>
 <code class="descclassname">C13_ftbl.</code><code class="descname">dom_cmp</code><span class="sig-paren">(</span><em>A</em>, <em>i</em>, <em>j</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#dom_cmp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.dom_cmp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compares influances of i-th and j-th lements of A.
 Returns 0 if i and j are mutually influenced, 1 if i in A[j]
-(i influences j) , -1 if otherwise</p>
+(i influences j) , -1 otherwise</p>
 </dd></dl>
 
 <dl class="function">
@@ -735,7 +734,7 @@ Example: os.system(“ls %s” % escape(file_name_with_all_meta_chars_but_newlin
 
 <dl class="function">
 <dt id="kvh.kvh2dict">
-<code class="descclassname">kvh.</code><code class="descname">kvh2dict</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2dict" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">kvh.</code><code class="descname">kvh2dict</code><span class="sig-paren">(</span><em>fp</em>, <em>strip=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read a kvh file from fp pointer then translate its tlist
 structure to a returned hierarchical dictionnary.
 Repeated keys at the same level of a dictionnary are
@@ -744,7 +743,7 @@ silently overwritten</p>
 
 <dl class="function">
 <dt id="kvh.kvh2obj">
-<code class="descclassname">kvh.</code><code class="descname">kvh2obj</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2obj" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">kvh.</code><code class="descname">kvh2obj</code><span class="sig-paren">(</span><em>fp</em>, <em>strip=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2obj" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read a kvh file from fp pointer then translate its tlist
 structure to a returned object hierarchy.
 Repeated fields at the same level of an object are
@@ -753,7 +752,7 @@ silently overwritten</p>
 
 <dl class="function">
 <dt id="kvh.kvh2tlist">
-<code class="descclassname">kvh.</code><code class="descname">kvh2tlist</code><span class="sig-paren">(</span><em>fp, lev=[0], indent=[0]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2tlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2tlist" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">kvh.</code><code class="descname">kvh2tlist</code><span class="sig-paren">(</span><em>fp, lev=[0], indent=[0], strip=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh2tlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh2tlist" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read a kvh file from fp stream descriptor
 and organize its content in list of tuples [(k1,v1), (k2,[(k2.1, v2.1)])]
 If fp is a string, it is used in open() operator</p>
@@ -778,7 +777,7 @@ defined in the list of keys kl. Return None if no key is found</p>
 
 <dl class="function">
 <dt id="kvh.kvh_read_key">
-<code class="descclassname">kvh.</code><code class="descname">kvh_read_key</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_read_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_read_key" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">kvh.</code><code class="descname">kvh_read_key</code><span class="sig-paren">(</span><em>fp</em>, <em>strip=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_read_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_read_key" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>Read a string from the current position till the first unescaped        , </dt>
 <dd>or the end of stream fp.</dd>
@@ -795,7 +794,7 @@ defined in the list of keys kl. Return None if no key is found</p>
 
 <dl class="function">
 <dt id="kvh.kvh_read_val">
-<code class="descclassname">kvh.</code><code class="descname">kvh_read_val</code><span class="sig-paren">(</span><em>fp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_read_val"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_read_val" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">kvh.</code><code class="descname">kvh_read_val</code><span class="sig-paren">(</span><em>fp</em>, <em>strip=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kvh.html#kvh_read_val"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kvh.kvh_read_val" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div>Read a string from current position till the first unescaped</div></blockquote>
 <dl class="docutils">
@@ -1147,7 +1146,7 @@ of a dictionnary are silently overwritten</p>
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.1 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.2 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

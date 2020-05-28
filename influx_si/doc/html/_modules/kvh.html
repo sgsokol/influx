@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>kvh &#8212; influx_si 5.1 documentation</title>
+    <title>kvh &#8212; influx_si 5.2 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
@@ -29,7 +29,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -51,7 +51,7 @@
 <span class="k">class</span> <span class="nc">Obj</span><span class="p">():</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwrags</span><span class="p">)</span>
-<div class="viewcode-block" id="kvh2tlist"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2tlist">[docs]</a><span class="k">def</span> <span class="nf">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">lev</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+<div class="viewcode-block" id="kvh2tlist"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2tlist">[docs]</a><span class="k">def</span> <span class="nf">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">lev</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read a kvh file from fp stream descriptor</span>
 <span class="sd">    and organize its content in list of tuples [(k1,v1), (k2,[(k2.1, v2.1)])]</span>
@@ -100,14 +100,14 @@
             <span class="k">if</span> <span class="n">open_here</span><span class="p">:</span>
                 <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">();</span>
             <span class="k">return</span> <span class="n">tlist</span><span class="p">;</span>
-        <span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">sep</span><span class="p">)</span><span class="o">=</span><span class="n">kvh_read_key</span><span class="p">(</span><span class="n">fp</span><span class="p">);</span>
+        <span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">sep</span><span class="p">)</span><span class="o">=</span><span class="n">kvh_read_key</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="p">);</span>
         <span class="k">if</span> <span class="n">sep</span><span class="o">==</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">:</span>
-            <span class="n">tlist</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">kvh_read_val</span><span class="p">(</span><span class="n">fp</span><span class="p">)));</span>
+            <span class="n">tlist</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">kvh_read_val</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="p">)));</span>
             <span class="n">indent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
         <span class="k">elif</span> <span class="n">sep</span><span class="o">==</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">:</span>
             <span class="n">lev</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+=</span><span class="mi">1</span><span class="p">;</span>
             <span class="n">indent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span>
-            <span class="n">nextlist</span><span class="o">=</span><span class="n">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">lev</span><span class="p">,</span> <span class="n">indent</span><span class="p">);</span>
+            <span class="n">nextlist</span><span class="o">=</span><span class="n">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">lev</span><span class="p">,</span> <span class="n">indent</span><span class="p">,</span> <span class="n">strip</span><span class="p">);</span>
             <span class="n">lev</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-=</span><span class="mi">1</span><span class="p">;</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nextlist</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># no value and no deeper level</span>
@@ -124,7 +124,7 @@
                 <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">();</span>
             <span class="k">return</span> <span class="n">tlist</span><span class="p">;</span></div>
 
-<div class="viewcode-block" id="kvh_read_key"><a class="viewcode-back" href="../progdoc.html#kvh.kvh_read_key">[docs]</a><span class="k">def</span> <span class="nf">kvh_read_key</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
+<div class="viewcode-block" id="kvh_read_key"><a class="viewcode-back" href="../progdoc.html#kvh.kvh_read_key">[docs]</a><span class="k">def</span> <span class="nf">kvh_read_key</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read a string from the current position till the first unescaped \t, \n or the end of stream fp.</span>
 
 <span class="sd">:returns: tuple (key, sep), sep=None at the end of the stream</span>
@@ -139,18 +139,18 @@
             <span class="n">nextchar</span><span class="o">=</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
             <span class="k">if</span> <span class="n">nextchar</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
                 <span class="c1"># end of file</span>
-                <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">);</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">strip</span> <span class="k">else</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">);</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># just add escaped char</span>
                 <span class="n">key</span><span class="o">+=</span><span class="n">nextchar</span><span class="p">;</span>
         <span class="k">elif</span> <span class="n">char</span><span class="o">==</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="ow">or</span> <span class="n">char</span><span class="o">==</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">char</span><span class="p">);</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">strip</span> <span class="k">else</span> <span class="n">key</span><span class="p">,</span> <span class="n">char</span><span class="p">);</span>
         <span class="k">elif</span> <span class="n">char</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">);</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">strip</span> <span class="k">else</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">);</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># just add a plain char</span>
             <span class="n">key</span><span class="o">+=</span><span class="n">char</span><span class="p">;</span></div>
-<div class="viewcode-block" id="kvh_read_val"><a class="viewcode-back" href="../progdoc.html#kvh.kvh_read_val">[docs]</a><span class="k">def</span> <span class="nf">kvh_read_val</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
+<div class="viewcode-block" id="kvh_read_val"><a class="viewcode-back" href="../progdoc.html#kvh.kvh_read_val">[docs]</a><span class="k">def</span> <span class="nf">kvh_read_val</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read a string from current position till the first unescaped</span>
 <span class="sd">    \n or the end of file.</span>
@@ -163,12 +163,12 @@
             <span class="n">nextchar</span><span class="o">=</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
             <span class="k">if</span> <span class="n">nextchar</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
                 <span class="c1"># end of file</span>
-                <span class="k">return</span> <span class="n">val</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">strip</span> <span class="k">else</span> <span class="n">val</span><span class="p">;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># just add escaped char</span>
                 <span class="n">val</span><span class="o">+=</span><span class="n">nextchar</span><span class="p">;</span>
         <span class="k">elif</span> <span class="n">char</span><span class="o">==</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">or</span> <span class="n">char</span><span class="o">==</span><span class="s2">&quot;&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">val</span><span class="p">;</span>
+            <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">strip</span> <span class="k">else</span> <span class="n">val</span><span class="p">;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># just add a plain char</span>
             <span class="n">val</span><span class="o">+=</span><span class="n">char</span><span class="p">;</span></div>
@@ -184,20 +184,20 @@
 <span class="sd">    a hierarchical dictionnary. Repeated keys at the same level</span>
 <span class="sd">    of a dictionnary are silently overwritten&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">Obj</span><span class="p">(</span><span class="o">**</span><span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,(</span><span class="n">v</span> <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="n">kvh_tlist2obj</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tlist</span><span class="p">));</span></div>
-<div class="viewcode-block" id="kvh2dict"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2dict">[docs]</a><span class="k">def</span> <span class="nf">kvh2dict</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
+<div class="viewcode-block" id="kvh2dict"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2dict">[docs]</a><span class="k">def</span> <span class="nf">kvh2dict</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read a kvh file from fp pointer then translate its tlist</span>
 <span class="sd">    structure to a returned hierarchical dictionnary.</span>
 <span class="sd">    Repeated keys at the same level of a dictionnary are</span>
 <span class="sd">    silently overwritten&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">kvh_tlist2dict</span><span class="p">(</span><span class="n">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">));</span></div>
-<div class="viewcode-block" id="kvh2obj"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2obj">[docs]</a><span class="k">def</span> <span class="nf">kvh2obj</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">kvh_tlist2dict</span><span class="p">(</span><span class="n">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">));</span></div>
+<div class="viewcode-block" id="kvh2obj"><a class="viewcode-back" href="../progdoc.html#kvh.kvh2obj">[docs]</a><span class="k">def</span> <span class="nf">kvh2obj</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read a kvh file from fp pointer then translate its tlist</span>
 <span class="sd">    structure to a returned object hierarchy.</span>
 <span class="sd">    Repeated fields at the same level of an object are</span>
 <span class="sd">    silently overwritten&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">kvh_tlist2obj</span><span class="p">(</span><span class="n">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">));</span></div>
+    <span class="k">return</span> <span class="n">kvh_tlist2obj</span><span class="p">(</span><span class="n">kvh2tlist</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">strip</span><span class="o">=</span><span class="n">strip</span><span class="p">));</span></div>
 <div class="viewcode-block" id="dict2kvh"><a class="viewcode-back" href="../progdoc.html#kvh.dict2kvh">[docs]</a><span class="k">def</span> <span class="nf">dict2kvh</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">fp</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;dict2kvh(d, fp=sys.stdout, indent=0)</span>
 <span class="sd">    Write a nested dictionary on the stream fp (stdout by default).</span>
@@ -208,11 +208,11 @@
         <span class="n">fp</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">);</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">*</span><span class="n">indent</span><span class="p">,</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="s2">&quot;</span><span class="se">\t\\\n</span><span class="s2">&quot;</span><span class="p">)));</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">({}):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">({})</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">({})</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">:</span>
             <span class="c1"># recursive call with incremented indentation</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
             <span class="n">dict2kvh</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">indent</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
-        <span class="k">elif</span> <span class="s2">&quot;__dict__&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="s2">&quot;__dict__&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
             <span class="c1"># recursive call with incremented indentation</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">);</span>
             <span class="n">dict2kvh</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">indent</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span>
@@ -336,7 +336,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>

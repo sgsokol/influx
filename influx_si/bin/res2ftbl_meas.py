@@ -58,7 +58,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
         sys.exit(1)
     fkvh=open(fkvh, "r") if fkvh else sys.stdin
 
-    d=kvh.kvh2tlist(fkvh) # all kvh data
+    d=kvh.kvh2tlist(fkvh, strip=True) # all kvh data
     #pprint.pprint(d)
     ivers=[int(v) if re.match("^\d+$", v) else -1 for v in d[0][1][0][1].split(".")]
     if ivers[0] < 4:

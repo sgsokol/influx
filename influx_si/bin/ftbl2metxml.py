@@ -133,7 +133,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     if not os.path.exists(fkvh):
         sys.stderr.write("Warning: file '%s' is not found. No flux value is written in txt files.\n"%fkvh)
         sys.exit(0)
-    dkvh=kvh.kvh2dict(fkvh)
+    dkvh=kvh.kvh2dict(fkvh, strip=True)
     if not "linear stats" in dkvh or not "fwd-rev fluxes (sorted by name)" in dkvh["linear stats"]:
         sys.stderr.write("Warning: field 'linear stats/fwd-rev fluxes (sorted by name)' is not found in file '%s'. No flux value is written in txt files.\n"%fkvh)
         sys.exit(0)

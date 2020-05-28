@@ -2081,7 +2081,7 @@ def mat2graph(A, fp):
 def dom_cmp(A, i, j):
     """Compares influances of i-th and j-th lements of A.
     Returns 0 if i and j are mutually influenced, 1 if i in A[j]
-    (i influences j) , -1 if otherwise"""
+    (i influences j) , -1 otherwise"""
     return (0 if i in A[j] and j in A[i] else 1 if i in A[j] else -1 if j in A[i] else 0)
 def mat2pbm(A, v, fp):
     """Write an image map of non-zero entries of matrix A to file pointer fp.
@@ -2098,10 +2098,9 @@ def mat2pbm(A, v, fp):
         fp.write("\n")
         p=0
 def aglom_loop1(A):
-    """Agglomerate nodes of A if they are mutually influence each other
-    i.e.they are in a loop of length 1.
-    Return a new dictionary of influence where entries are those of A aglomerated
-    and glued "by" tab symbol"""
+    """Agglomerate nodes of A if they mutually influence each other
+    i.e. they are in a loop of length 1.
+    Return a new dictionary of influence where entries are those of A aglomerated and glued "by" tab symbol"""
     # i->loop_name(=min of all nodes in this loop)
     na=copy.deepcopy(A)
     loop=dict()
