@@ -350,7 +350,7 @@ time_order="1"
 # synonymous
 myver=version
 optimize=!noopt
-method=meth
+methods=trimws(strsplit(meth, ",")[[1L]])
 sensitive=sens
 least_norm=ln
 initrand=irand
@@ -376,12 +376,12 @@ if (cinout < 0) {
       "Instead, the value ", cinout, " is given.", sep=""), file=fcerr)
 }
 # minimization method
-validmethods=c("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic")
-if (! method %%in%% validmethods) {
-   cat(paste("Warning: method", method, "is not known. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
-   method="nlsic"
+validmethods=c("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic", "pso")
+if (! all(igood <- (methods %%in%% validmethods))) {
+   cat(paste("Warning: optimization methods ", paste0(methods[!igood], collapse=", "), " are not implemented. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
+   methods[!igood]="nlsic"
 }
-if (method == "ipopt") {
+if ("ipopt" %%in%% methods) {
    installed=suppressPackageStartupMessages(library(ipoptr, logical.return=TRUE))
    if (!installed) {
       stop_mes("An optimization method ipopt is requested but not available in this R installation", file=fcerr)
@@ -1248,7 +1248,7 @@ if (!noscale) {
    names(param)=nm_par
 """ % {
         "meas": meas,
-        "sc": join(", ", ["0"]*len(o_sc[ili][meas])),
+        "sc": join(", ", ["1"]*len(o_sc[ili][meas])),
         "sc_names": join(", ", o_sc[ili][meas], '"'+str(ili+1)+":"+meas+';', '"'),
         })
 

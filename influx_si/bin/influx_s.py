@@ -96,6 +96,8 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         ftbl_opts._update_loose(dict((k,v) for (k,v) in eval(str(cmd_opts)).items() if not v is None))
         cmd_opts=eval(str(ftbl_opts))
         cmd_opts=dict((k,v) for k,v in cmd_opts.items() if v is not None)
+        if cmd_opts["meth"]:
+            cmd_opts["meth"]=",".join(cmd_opts["meth"])
         #print("cmd_opts=", cmd_opts)
 
         # generate the R code
@@ -185,8 +187,8 @@ parser.add_option(
 "--noscale", action="store_true",
     help="no scaling factors to optimize => all scaling factors are assumed to be 1")
 parser.add_option(
-"--meth", type="choice",
-    choices=["BFGS", "Nelder-Mead", "nlsic"],
+"--meth", type="choice", action="append",
+    choices=["BFGS", "Nelder-Mead", "nlsic", "pso"],
     help="method for optimization, one of nlsic|BFGS|Nelder-Mead. Default: nlsic")
 parser.add_option(
 "--fullsys", action="store_true",

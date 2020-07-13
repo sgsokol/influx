@@ -614,11 +614,24 @@ if (case_i && (time_order == "2" || time_order == "1,2")) {
 # formated output in kvh file
 fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
 """)
-    f.write("""
-control_ftbl=list(%(ctrl_ftbl)s)
-"""%{
-    "ctrl_ftbl": join(", ", (k[8:]+"="+str(v) for (k,v) in netan["opt"].items() if k.startswith("optctrl_"))),
-})
+    # parse optctrl in netan["opt"]
+    # optctrl_maxit=100 goes to list(default=list(maxit=100))
+    # optctrl:bfgs:maxit=1000 goes to list(bfgs=list(maxit=1000))
+    dctrl={"default": dict()}
+    for k,v in netan["opt"].items():
+        if not k.startswith("optctrl") or len(k) < 8:
+            continue
+        k=k[7:] # strip "optctrl" part
+        if k[0] == "_":
+            dctrl["default"][k[1:]]=str(v)
+        elif k[0] == ":":
+            li=k[1:].split(":")
+            dctrl[li[0]]=dctrl.get(li[0], dict())
+            dctrl[li[0]][join(":", li[1:])]=str(v)
+    #print(dctrl)
+    sep=",\n\t"
+    tmp=f"list({sep.join('`'+m+'`=list('+', '.join('`'+kk+'`='+vv for kk,vv in dd.items())+')' for m,dd in dctrl.items())})"
+    f.write(f"control_ftbl={tmp}")
     f.write(r"""
 retcode=numeric(nseries)
 cl_type="PSOCK"
@@ -637,7 +650,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
       if (TIMEIT) {
          cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
-      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "method", "sln", "labargs", "dirr", "emu", "%stm%", "case_i", "time_order"))
+      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "methods", "sln", "labargs", "dirr", "emu", "%stm%", "case_i", "time_order"))
       if (TIMEIT) {
          cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
@@ -705,10 +718,10 @@ for (irun in seq_len(nseries)) {
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
    # set tolerance for inequality
-   tol_ineq=if (method=="BFGS") 0. else 1.e-10
+   tol_ineq=if ("BFGS" %in% methods) 0. else 1.e-10
    nbad=sum(ineq <= -tol_ineq)
    if (nbad > 0) {
-      cat("The following ", nbad, " ineqalities are not respected at starting point", runsuf, ":\n", sep="", file=fclog)
+      cat("The following ", nbad, " inequalities are not respected at starting point", runsuf, ":\n", sep="", file=fclog)
       i=ineq[ineq<= -tol_ineq]
       cat(paste(names(i), i, sep="\t", collapse="\n"), "\n", sep="", file=fclog)
       # put them inside
@@ -870,6 +883,7 @@ for (irun in seq_len(nseries)) {
    }
 """)
     f.write("""
+#browser()
    # see if there are any active inequalities at starting point
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
@@ -944,7 +958,7 @@ for (irun in seq_len(nseries)) {
     f.write("""
 #browser()
    if (optimize && nb_ff+nb_poolf > 0L) {
-      if (!(least_norm || sln || method!="nlsic")) {
+      if (!(least_norm || sln || !"nlsic" %in% methods)) {
          # check if at starting position all fluxes can be resolved
          if (TIMEIT) {
             cat("check ja: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
@@ -995,114 +1009,116 @@ for (irun in seq_len(nseries)) {
       # pass control to the chosen optimization method
       if (time_order=="1,2")
          labargs$time_order="1" # start with order 1, later continue with 2
-      capture.output(res <- opt_wrapper(param, measurements, jx_f, labargs), file=fclog)
-      if ((!is.null(res$err) && res$err) || is.null(res$par)) {
-         cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
-         res$par=rep(NA, length(param))
-         res$cost=NA
-      } else if (!is.null(res$mes) && nchar(res$mes)) {
-         cat("first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
-      }
-      if (any(is.na(res$par))) {
-         res$retres$jx_f=NULL # to avoid writing of huge data
-         obj2kvh(res, "failed first pass optimization process information", fkvh)
-         cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
-         close(fkvh)
-         retcode[irun]=max(res$err, 1)
-         next
-      }
-      param=res$par
-#browser()
-      if (zerocross && !is.null(mi_zc)) {
-         if (TIMEIT) {
-            cat("secondzc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+      for (method in methods) {
+         capture.output(res <- opt_wrapper(param, measurements, jx_f, labargs), file=fclog)
+         if ((!is.null(res$err) && res$err) || is.null(res$par)) {
+            cat("error in first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+            res$par=rep(NA, length(param))
+            res$cost=NA
+         } else if (!is.null(res$mes) && nchar(res$mes)) {
+            cat("warning in first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
          }
-         # inverse active "zc" inequalities
-         nm_inv=names(which((ui%*%res$par-ci)[,1]<=tol_ineq))
-         i=grep("^zc ", nm_inv, v=T)
-         if (length(i) > 0) {
-            i=str2ind(i, nm_i)
-            cat("The following inequalities are active after first pass
-of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="", file=fclog)
-            ipos=grep(">=", nm_i[i], v=T)
-            ineg=grep("<=", nm_i[i], v=T)
-            ui[i,]=-ui[i,,drop=FALSE]
-            if (length(ipos)) {
-               ipzc=str2ind(ipos, nm_izc)
-               ipos=str2ind(ipos, nm_i)
-               ci[ipos]=as.numeric(zc+mi_zc[ipzc,,drop=FALSE]%*%mic)
-               nm_i[ipos]=sub(">=", "<=-", nm_i[ipos])
+         if (any(is.na(res$par))) {
+            res$retres$jx_f=NULL # to avoid writing of huge data
+            obj2kvh(res, "failed first pass optimization process information", fkvh)
+            cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
+            close(fkvh)
+            retcode[irun]=max(res$err, 1)
+            next
+         }
+         param=res$par
+   #browser()
+         if (zerocross && !is.null(mi_zc)) {
+            if (TIMEIT) {
+               cat("secondzc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
             }
-            if (length(ineg)) {
-               inzc=str2ind(ineg, nm_izc)
-               ineg=str2ind(ineg, nm_i)
-               ci[ineg]=as.numeric(zc+mi_zc[inzc,,drop=FALSE]%*%mic)
-               nm_i[ineg]=sub("<=-", ">=", nm_i[ineg])
-            }
-            rownames(ui)=nm_i
-            names(ci)=nm_i
-            # enforce new inequalities
-            reopt=TRUE
-            capture.output(pinside <- put_inside(res$par, ui, ci), file=fclog)
-            if (any(is.na(pinside))) {
-               if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
-                  # fatal error occured, don't reoptimize
-                  cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
-                  reopt=FALSE
-               }
-            } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0){
-               # non fatal problem
-               cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
-            }
-            # reoptimize
-            if (reopt) {
-               cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
-               capture.output(reso <- opt_wrapper(pinside, measurements, new.env(), labargs), file=fclog)
-               if (reso$err || is.null(reso$par)) {
-                  cat("second zero crossing pass: ", reso$mes, "\\n", sep="", file=fcerr)
-               } else if (!is.null(reso$mes) && nchar(reso$mes)) {
-                  cat("second zero crossing pass", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
-               }
-               if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
-                  param=reso$par
-                  res=reso
-                  jx_f=labargs$jx_f
-               }
-               if (any(is.na(reso$par))) {
-                  reso$retres$jx_f=NULL # to avoid writing of huge data
-                  obj2kvh(reso, "failed second pass optimization process information", fkvh)
-                  cat("Second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fcerr, sep="")
-               }
-            }
-            # last pass, free all zc constraints
-            i=grep("^zc ", nm_i)
+            # inverse active "zc" inequalities
+            nm_inv=names(which((ui%*%res$par-ci)[,1]<=tol_ineq))
+            i=grep("^zc ", nm_inv, v=T)
             if (length(i) > 0) {
-               if (TIMEIT) {
-                  cat("last zc : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+               i=str2ind(i, nm_i)
+               cat("The following inequalities are active after first pass
+   of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="", file=fclog)
+               ipos=grep(">=", nm_i[i], v=T)
+               ineg=grep("<=", nm_i[i], v=T)
+               ui[i,]=-ui[i,,drop=FALSE]
+               if (length(ipos)) {
+                  ipzc=str2ind(ipos, nm_izc)
+                  ipos=str2ind(ipos, nm_i)
+                  ci[ipos]=as.numeric(zc+mi_zc[ipzc,,drop=FALSE]%*%mic)
+                  nm_i[ipos]=sub(">=", "<=-", nm_i[ipos])
                }
-               ui=ui[-i,,drop=FALSE]
-               ci=ci[-i]
-               nm_i=nm_i[-i]
-               cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
-               capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
-               if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
-                  cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
+               if (length(ineg)) {
+                  inzc=str2ind(ineg, nm_izc)
+                  ineg=str2ind(ineg, nm_i)
+                  ci[ineg]=as.numeric(zc+mi_zc[inzc,,drop=FALSE]%*%mic)
+                  nm_i[ineg]=sub("<=-", ">=", nm_i[ineg])
                }
-               if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
-                  param=reso$par
-                  res=reso
-                  jx_f=labargs$jx_f
+               rownames(ui)=nm_i
+               names(ci)=nm_i
+               # enforce new inequalities
+               reopt=TRUE
+               capture.output(pinside <- put_inside(res$par, ui, ci), file=fclog)
+               if (any(is.na(pinside))) {
+                  if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
+                     # fatal error occured, don't reoptimize
+                     cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
+                     reopt=FALSE
+                  }
+               } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0){
+                  # non fatal problem
+                  cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
                }
-               if (any(is.na(res$par))) {
-                  res$retres$jx_f=NULL # to avoid writing of huge data
-                  obj2kvh(res, "failed last pass optimization process information", fkvh)
-                  cat("Last zero crossing pass failed. Keep free parameters from previous passes", runsuf, "\\n", file=fcerr, sep="")
+               # reoptimize
+               if (reopt) {
+                  cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
+                  capture.output(reso <- opt_wrapper(pinside, measurements, new.env(), labargs), file=fclog)
+                  if (reso$err || is.null(reso$par)) {
+                     cat("second zero crossing pass: ", reso$mes, "\\n", sep="", file=fcerr)
+                  } else if (!is.null(reso$mes) && nchar(reso$mes)) {
+                     cat("second zero crossing pass", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
+                  }
+                  if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
+                     param=reso$par
+                     res=reso
+                     jx_f=labargs$jx_f
+                  }
+                  if (any(is.na(reso$par))) {
+                     reso$retres$jx_f=NULL # to avoid writing of huge data
+                     obj2kvh(reso, "failed second pass optimization process information", fkvh)
+                     cat("Second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fcerr, sep="")
+                  }
                }
+               # last pass, free all zc constraints
+               i=grep("^zc ", nm_i)
+               if (length(i) > 0) {
+                  if (TIMEIT) {
+                     cat("last zc : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+                  }
+                  ui=ui[-i,,drop=FALSE]
+                  ci=ci[-i]
+                  nm_i=nm_i[-i]
+                  cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
+                  capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
+                  if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
+                     cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
+                  }
+                  if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
+                     param=reso$par
+                     res=reso
+                     jx_f=labargs$jx_f
+                  }
+                  if (any(is.na(res$par))) {
+                     res$retres$jx_f=NULL # to avoid writing of huge data
+                     obj2kvh(res, "failed last pass optimization process information", fkvh)
+                     cat("Last zero crossing pass failed. Keep free parameters from previous passes", runsuf, "\\n", file=fcerr, sep="")
+                  }
+               }
+            } else {
+               cat("After the first optimization, no zero crossing inequality was activated. So no reoptimization", runsuf, "\\n", sep="", file=fclog)
             }
-         } else {
-            cat("After the first optimization, no zero crossing inequality was activated. So no reoptimization", runsuf, "\\n", sep="", file=fclog)
-         }
-      } # end if zero crossing
+         } # end if zero crossing
+      } # for method
       param=res$par
       names(param)=nm_par
       if (excl_outliers != F) {
@@ -1121,6 +1137,7 @@ of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], 
             cat("Excluded outliers at p-value ", excl_outliers, ":\\n", sep="", file=fclog)
             write.table(outtab, file=fclog, append=TRUE, quote=FALSE, sep="\\t", col.names=FALSE)
             
+            # optimize with the last method from methods
             capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
             if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
                cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)

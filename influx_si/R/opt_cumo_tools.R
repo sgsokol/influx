@@ -886,6 +886,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
 
 put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3) {
    # put param inside of feasible domain delimited by u%*%param >= ci
+   nm_par=names(param)
    mes=""
    ineq=as.numeric(ui%*%param)-ci
    if (all(ineq>tol_in)) {
@@ -896,7 +897,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
    if (!is.null(dp)) {
       # get new active inequalities
       ineqd=as.numeric(ui%*%(param+dp))-ci
-      # check that we are at least at the border and not outside
+      # check that we are not too far outside
       if (any(ineqd < -tol_out)) {
          param=NA
          attr(param, "mes")="Inequality system is ill-conditionned. Failed to solve."
@@ -918,7 +919,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
          attr(param, "err")=0
          return(param)
       }
-      vn=ma%tmm%(1.+bet)
+      vn=crossprod(ma, 1.+bet)
       vn=vn/norm(vn)
       decr=(ui%*%vn)<0.
       alpha=((-ineqd)/(ui%*%vn))[decr]
@@ -932,7 +933,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
          dpn=dp
       }
       names(param)=nm_par
-      if (nb_ff > 0) {
+      if (!is.null(mget("nb_ff", ifnotfound=list(NULL))[[1L]]) && nb_ff > 0) {
          i=abs(dpn[seq_len(nb_ff)])>=tol_in
          if (any(i)) {
             tmp=cbind(param[1:nb_ff], param[1:nb_ff]+dpn[1:nb_ff], dpn[1:nb_ff])
@@ -1232,21 +1233,21 @@ opt_wrapper=function(param, measurements, jx_f, labargs, trace=1) {
    if (method == "BFGS") {
 #browser()
       control=list(maxit=500, trace=trace)
-      control[names(control_ftbl)]=control_ftbl
+      control[names(control_ftbl$BFGS)]=control_ftbl$BFGS
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-5, control,
          method="BFGS", outer.iterations=100, outer.eps=1e-08,
          labargs)
    } else if (method == "Nelder-Mead") {
       control=list(maxit=1000, trace=trace)
-      control[names(control_ftbl)]=control_ftbl
+      control[names(control_ftbl[["Nelder-Mead"]])]=control_ftbl[["Nelder-Mead"]]
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="Nelder-Mead", outer.iterations=100, outer.eps=1e-08,
          labargs)
    } else if (method == "SANN") {
       control=list(maxit=1000, trace=trace)
-      control[names(control_ftbl)]=control_ftbl
+      control[names(control_ftbl$sann)]=control_ftbl$sann
       res=constrOptim(param, cumo_cost, grad=cumo_gradj,
          ui, ci, mu = 1e-4, control,
          method="SANN", outer.iterations=100, outer.eps=1e-08,
@@ -1256,13 +1257,14 @@ opt_wrapper=function(param, measurements, jx_f, labargs, trace=1) {
          ci=list(report=F), history=FALSE, adaptbt=TRUE, sln=sln,
          maxstep=max(10.*sqrt(norm2(param)), 1.)
       )
-      control[names(control_ftbl)]=control_ftbl
+      control[names(control_ftbl$default)]=control_ftbl$default
+      control[names(control_ftbl$nlsic)]=control_ftbl$nlsic
       res=nlsic(param, lab_resid, 
          ui, ci, control, e=ep, eco=cp, flsi=lsi_fun,
          labargs)
    } else if (method == "ipopt") {
       control=list(max_iter=500, print_level=trace*5)
-      control[names(control_ftbl)]=control_ftbl
+      control[names(control_ftbl$ipopt)]=control_ftbl$ipopt
       tui=c(t(ui))
       eval_g=function(x, labargs) {
          return(ui%*%x)
@@ -1285,6 +1287,21 @@ opt_wrapper=function(param, measurements, jx_f, labargs, trace=1) {
          labargs)
       res$par=res$solution
       names(res$par)=nm_par
+   } else if (method == "pso") {
+      control=list(
+         type="SPSO2011",
+         trace=trace,
+         maxit=100,
+         reltol=1.e-2
+      )
+      control[names(control_ftbl$pso)]=control_ftbl$pso
+#print(control_ftbl)
+#print(control)
+      res=try(psoptim_ic(param, cumo_cost, labargs, mean=0.5, control=control, ui=ui, ci=ci), silent=TRUE)
+#print(res)
+      if (inherits(res, "try-error")) {
+         res=list(err=1L, par=NULL, mes=attr(res, "condition")$message)
+      }
    } else {
       stop_mes(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
    }

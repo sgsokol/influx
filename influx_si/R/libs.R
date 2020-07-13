@@ -16,6 +16,7 @@ compiler::enableJIT(0)
 # get some common tools
 source(file.path(dirr, "tools_ssg.R"))
 source(file.path(dirr, "nlsic.R"))
+source(file.path(dirr, "psoptim_ic.R"))
 source(file.path(dirr, "kvh.R"))
 #loadcmp(file.path(dirr, "tools_ssg.Rc"))
 #loadcmp(file.path(dirr, "nlsic.Rc"))
