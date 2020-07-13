@@ -155,6 +155,10 @@ In the same manner as for fluxes, user can have to constrain variable metabolite
 Missing values marked as ``NA`` are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as ``NA`` is that the latter will be simulated and reported in corresponding simulation sections of the result file.
 This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to ``NA`` (but not their SD).
 
+Optimization control parameters (v5.3)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Optimization method(s) can be tuned by control parameters that can be put in ``OPTIONS`` section. The format of those fields has changed. Before, the field names were looking like ``optctrl_maxit`` i.e. a prefix ``optctrl_`` followed by a parameter name, here ``maxit``. Starting from v5.3, they look like ``optctrl:nlsic:maxit`` i.e. a prefix ``optctrl`` followed by method name (here ``nlsic``) and ended by parameter name, like ``maxit``, all 3 separated by colon ``:``. This new format allows giving parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one ``influx_si`` run. More about parameters can be found in the section `Optimization options`_.
+
 Convention evolution
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -222,8 +226,15 @@ Here after the available options with their full names are enumerated and detail
 	--noscale        no scaling factors to optimize => all scaling factors are assumed to be 1
 
 									 This option can be useful if your measurements are already scaled to sum up to 1 which is often the case of MS data. Then, user saves some free parameters corresponding to scaling factors. This option can become mandatory if user wants to prevent scaling factors to be adjusted by optimization process.
-	--meth=METH      method for optimization, one of nlsic|BFGS|Nelder-Mead.
-									 Default: nlsic
+	--meth=METH      method for optimization, one of nlsic|BFGS|Nelder-Mead|pso. Default: nlsic. Multiple occurences of this
+                     option can appear on commande line. In this case,
+                     specified minimization methods are applied successively,
+                     e.g. ``--meth pso --meth nlsic`` means that ``pso`` will be
+                     used first, then ``nlsic`` will take over from the point where ``pso`` ends. In case of
+                     multiple methods, it is recommended to start with non-gradient methods like ``pso`` or ``Nelder-Mead`` and make them
+                     follow by gradient based methods like ``nlsic`` or ``BFGS``. If
+                     ``pso`` or ``Nelder-Mead`` are indeed used as the first method,
+                     it is not recommended to combine them with ``--zc`` option.
 	--fullsys        calculate all cumomer set (not just the reduced one
 									 necessary to simulate measurements)
 
@@ -372,13 +383,16 @@ Note that set of measured metabolite fragments as well as sampling time points f
 
 Optimization options
 --------------------
-These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). They can be given only in an FTBL file, in the section OPTIONS. These options are prefixed with ``optctrl_`` which is followed by a particular option name. For example, ``optctrl_errx`` corresponds to the stopping criterion hereafter and the corresponding FTBL portion could look like
+These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). They can be given only in an FTBL file, in the section OPTIONS. These options are prefixed with ``optctrl`` which is followed by a particular optimization method name and ended by an option name. For example, ``optctrl:nlsic:errx`` corresponds to the stopping criterion. A corresponding FTBL portion could look like
 
 .. code-block:: none
 
  OPTIONS
 	OPT_NAME	OPT_VALUE
-	optctrl_errx	1.e-3
+	optctrl:nlsic:errx	1.e-3
+
+NLSIC parameters
+~~~~~~~~~~~~~~~~
 
 All possible options and their default values for NLSIC algorithm follow:
 
@@ -417,6 +431,49 @@ All possible options and their default values for NLSIC algorithm follow:
 		
 	 monotone=FALSE
 		should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.
+
+PSO parameters
+~~~~~~~~~~~~~~
+
+Particle Swarm Optimization is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That's why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package `pso v1.0.3 <https://cran.r-project.org/package=pso>`_  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written fox box constrained problems. While ``influx_si`` required a general linear constraints. So we modified  the algorithms and its parameters with their defaults as used in ``influx_si`` are following:
+
+        trace=0
+                an integer controlling the trace printing. A zero value means no printing
+        fnscale=1
+                scale factor for minimized function. It is useless in ``influx_si`` context.
+        maxit=100
+                maximal iteration number to not overcome
+        maxf=Inf
+                maximal number of a cost function evaluation
+        abstol=-Inf
+                stopping criterion by absolute tolerance during approximating the searched minimum. This parameter can only be useful if the searched minimal value is known in advance. It is not the case of ``influx_si``
+        reltol=0
+                stopping criterion by relative change in the found minimal value
+        REPORT = 10
+                if tracing is enabled, this parameters gives the number of iterations passed between two successive reports
+        s=NA,
+                swarm size. If NA, it is automatically determined.
+        k=3, p=NA, w=1/(2*log(2)), c.p=.5+log(2), c.g=.5+log(2)
+                are parameters governing PSO minimization paths. For their significance see the original `pso documentation <https://cran.r-project.org/web/packages/pso/pso.pdf>`_
+        d=NA
+                domain diameter
+        v.max=NA
+                maximum allowed velocity
+        rand.order=TRUE
+                proceed swarm particles in random order or not
+        max.restart=Inf
+                maximal allowed restarts
+        maxit.stagnate=Inf
+                maximal successive iterations allowed without a detected decrease in optimization function.
+        trace.stats=FALSE
+                return or not detailed statistics about the convergence process (not used in ``influx_si``)
+        type="SPSO2011",
+                which PSO strategy to use. Available options are "SPSO2011" and "SPSO2007". More about this in the original documentation.
+        tolineq=1.e-10
+                tolerance for violating of linear constraints that can happen mainly due to rounding errors. 
+
+Other optimization methods
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Names and default values for BFGS and Nelder-Mead algorithms can be found in the R help on ``optim()`` function.
 

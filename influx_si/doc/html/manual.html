@@ -184,6 +184,10 @@ INEQUALITIES
 <p>Missing values marked as <code class="docutils literal notranslate"><span class="pre">NA</span></code> are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as <code class="docutils literal notranslate"><span class="pre">NA</span></code> is that the latter will be simulated and reported in corresponding simulation sections of the result file.
 This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to <code class="docutils literal notranslate"><span class="pre">NA</span></code> (but not their SD).</p>
 </div>
+<div class="section" id="optimization-control-parameters-v5-3">
+<h3>Optimization control parameters (v5.3)<a class="headerlink" href="#optimization-control-parameters-v5-3" title="Permalink to this headline">¶</a></h3>
+<p>Optimization method(s) can be tuned by control parameters that can be put in <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section. The format of those fields has changed. Before, the field names were looking like <code class="docutils literal notranslate"><span class="pre">optctrl_maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl_</span></code> followed by a parameter name, here <code class="docutils literal notranslate"><span class="pre">maxit</span></code>. Starting from v5.3, they look like <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl</span></code> followed by method name (here <code class="docutils literal notranslate"><span class="pre">nlsic</span></code>) and ended by parameter name, like <code class="docutils literal notranslate"><span class="pre">maxit</span></code>, all 3 separated by colon <code class="docutils literal notranslate"><span class="pre">:</span></code>. This new format allows giving parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run. More about parameters can be found in the section <a class="reference internal" href="#optimization-options">Optimization options</a>.</p>
+</div>
 <div class="section" id="convention-evolution">
 <h3>Convention evolution<a class="headerlink" href="#convention-evolution" title="Permalink to this headline">¶</a></h3>
 <p>Not only FTBL format evolved but also some conventions between its parts and content did so. Here is a complete list of them:</p>
@@ -267,8 +271,15 @@ dependent fluxes, cumomers, stats and so on</td></tr>
 </td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--meth=<var>METH</var></span></kbd></td>
-<td>method for optimization, one of nlsic|BFGS|Nelder-Mead.
-Default: nlsic</td></tr>
+<td>method for optimization, one of nlsic|BFGS|Nelder-Mead|pso. Default: nlsic. Multiple occurences of this
+option can appear on commande line. In this case,
+specified minimization methods are applied successively,
+e.g. <code class="docutils literal notranslate"><span class="pre">--meth</span> <span class="pre">pso</span> <span class="pre">--meth</span> <span class="pre">nlsic</span></code> means that <code class="docutils literal notranslate"><span class="pre">pso</span></code> will be
+used first, then <code class="docutils literal notranslate"><span class="pre">nlsic</span></code> will take over from the point where <code class="docutils literal notranslate"><span class="pre">pso</span></code> ends. In case of
+multiple methods, it is recommended to start with non-gradient methods like <code class="docutils literal notranslate"><span class="pre">pso</span></code> or <code class="docutils literal notranslate"><span class="pre">Nelder-Mead</span></code> and make them
+follow by gradient based methods like <code class="docutils literal notranslate"><span class="pre">nlsic</span></code> or <code class="docutils literal notranslate"><span class="pre">BFGS</span></code>. If
+<code class="docutils literal notranslate"><span class="pre">pso</span></code> or <code class="docutils literal notranslate"><span class="pre">Nelder-Mead</span></code> are indeed used as the first method,
+it is not recommended to combine them with <code class="docutils literal notranslate"><span class="pre">--zc</span></code> option.</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--fullsys</span></kbd></td>
 <td><p class="first">calculate all cumomer set (not just the reduced one
@@ -470,12 +481,14 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 </div>
 <div class="section" id="optimization-options">
 <h2>Optimization options<a class="headerlink" href="#optimization-options" title="Permalink to this headline">¶</a></h2>
-<p>These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). They can be given only in an FTBL file, in the section OPTIONS. These options are prefixed with <code class="docutils literal notranslate"><span class="pre">optctrl_</span></code> which is followed by a particular option name. For example, <code class="docutils literal notranslate"><span class="pre">optctrl_errx</span></code> corresponds to the stopping criterion hereafter and the corresponding FTBL portion could look like</p>
+<p>These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). They can be given only in an FTBL file, in the section OPTIONS. These options are prefixed with <code class="docutils literal notranslate"><span class="pre">optctrl</span></code> which is followed by a particular optimization method name and ended by an option name. For example, <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:errx</span></code> corresponds to the stopping criterion. A corresponding FTBL portion could look like</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>OPTIONS
        OPT_NAME        OPT_VALUE
-       optctrl_errx    1.e-3
+       optctrl:nlsic:errx      1.e-3
 </pre></div>
 </div>
+<div class="section" id="nlsic-parameters">
+<h3>NLSIC parameters<a class="headerlink" href="#nlsic-parameters" title="Permalink to this headline">¶</a></h3>
 <p>All possible options and their default values for NLSIC algorithm follow:</p>
 <blockquote>
 <div><dl class="docutils">
@@ -505,7 +518,53 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 <dd>should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.</dd>
 </dl>
 </div></blockquote>
+</div>
+<div class="section" id="pso-parameters">
+<h3>PSO parameters<a class="headerlink" href="#pso-parameters" title="Permalink to this headline">¶</a></h3>
+<p>Particle Swarm Optimization is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That’s why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written fox box constrained problems. While <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> required a general linear constraints. So we modified  the algorithms and its parameters with their defaults as used in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> are following:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>trace=0</dt>
+<dd>an integer controlling the trace printing. A zero value means no printing</dd>
+<dt>fnscale=1</dt>
+<dd>scale factor for minimized function. It is useless in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> context.</dd>
+<dt>maxit=100</dt>
+<dd>maximal iteration number to not overcome</dd>
+<dt>maxf=Inf</dt>
+<dd>maximal number of a cost function evaluation</dd>
+<dt>abstol=-Inf</dt>
+<dd>stopping criterion by absolute tolerance during approximating the searched minimum. This parameter can only be useful if the searched minimal value is known in advance. It is not the case of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code></dd>
+<dt>reltol=0</dt>
+<dd>stopping criterion by relative change in the found minimal value</dd>
+<dt>REPORT = 10</dt>
+<dd>if tracing is enabled, this parameters gives the number of iterations passed between two successive reports</dd>
+<dt>s=NA,</dt>
+<dd>swarm size. If NA, it is automatically determined.</dd>
+<dt>k=3, p=NA, w=1/(2*log(2)), c.p=.5+log(2), c.g=.5+log(2)</dt>
+<dd>are parameters governing PSO minimization paths. For their significance see the original <a class="reference external" href="https://cran.r-project.org/web/packages/pso/pso.pdf">pso documentation</a></dd>
+<dt>d=NA</dt>
+<dd>domain diameter</dd>
+<dt>v.max=NA</dt>
+<dd>maximum allowed velocity</dd>
+<dt>rand.order=TRUE</dt>
+<dd>proceed swarm particles in random order or not</dd>
+<dt>max.restart=Inf</dt>
+<dd>maximal allowed restarts</dd>
+<dt>maxit.stagnate=Inf</dt>
+<dd>maximal successive iterations allowed without a detected decrease in optimization function.</dd>
+<dt>trace.stats=FALSE</dt>
+<dd>return or not detailed statistics about the convergence process (not used in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>)</dd>
+<dt>type=”SPSO2011”,</dt>
+<dd>which PSO strategy to use. Available options are “SPSO2011” and “SPSO2007”. More about this in the original documentation.</dd>
+<dt>tolineq=1.e-10</dt>
+<dd>tolerance for violating of linear constraints that can happen mainly due to rounding errors.</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="other-optimization-methods">
+<h3>Other optimization methods<a class="headerlink" href="#other-optimization-methods" title="Permalink to this headline">¶</a></h3>
 <p>Names and default values for BFGS and Nelder-Mead algorithms can be found in the R help on <code class="docutils literal notranslate"><span class="pre">optim()</span></code> function.</p>
+</div>
 </div>
 <div class="section" id="growth-flux-option">
 <h2>Growth flux option<a class="headerlink" href="#growth-flux-option" title="Permalink to this headline">¶</a></h2>
@@ -1083,13 +1142,19 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 <li><a class="reference internal" href="#section-notracer-network-v4-0">Section <code class="docutils literal notranslate"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)</a></li>
 <li><a class="reference internal" href="#sub-sections-equality-metab-and-inequality-metab-v2-11">Sub-sections <code class="docutils literal notranslate"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal notranslate"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)</a></li>
 <li><a class="reference internal" href="#na-in-measurements-v2-5"><code class="docutils literal notranslate"><span class="pre">NA</span></code> in measurements (v2.5)</a></li>
+<li><a class="reference internal" href="#optimization-control-parameters-v5-3">Optimization control parameters (v5.3)</a></li>
 <li><a class="reference internal" href="#convention-evolution">Convention evolution</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#basic-influx-si-usage">Basic influx_si usage</a></li>
 <li><a class="reference internal" href="#influx-si-command-line-options"><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> command line options</a></li>
 <li><a class="reference internal" href="#parallel-experiments">Parallel experiments</a></li>
-<li><a class="reference internal" href="#optimization-options">Optimization options</a></li>
+<li><a class="reference internal" href="#optimization-options">Optimization options</a><ul>
+<li><a class="reference internal" href="#nlsic-parameters">NLSIC parameters</a></li>
+<li><a class="reference internal" href="#pso-parameters">PSO parameters</a></li>
+<li><a class="reference internal" href="#other-optimization-methods">Other optimization methods</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#growth-flux-option">Growth flux option</a></li>
 <li><a class="reference internal" href="#post-treatment-option">Post treatment option</a></li>
 <li><a class="reference internal" href="#exclusive-influx-i-options">Exclusive <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> options</a></li>
