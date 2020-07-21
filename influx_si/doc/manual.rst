@@ -226,15 +226,18 @@ Here after the available options with their full names are enumerated and detail
 	--noscale        no scaling factors to optimize => all scaling factors are assumed to be 1
 
 									 This option can be useful if your measurements are already scaled to sum up to 1 which is often the case of MS data. Then, user saves some free parameters corresponding to scaling factors. This option can become mandatory if user wants to prevent scaling factors to be adjusted by optimization process.
-	--meth=METH      method for optimization, one of nlsic|BFGS|Nelder-Mead|pso. Default: nlsic. Multiple occurences of this
-                     option can appear on commande line. In this case,
+	--meth=METH        method for optimization, one of ``nlsic|BFGS|Nelder-Mead|pso``.
+                     Default: ``nlsic``. Multiple occurrences of this
+                     option can appear on command line. In this case,
                      specified minimization methods are applied successively,
                      e.g. ``--meth pso --meth nlsic`` means that ``pso`` will be
-                     used first, then ``nlsic`` will take over from the point where ``pso`` ends. In case of
-                     multiple methods, it is recommended to start with non-gradient methods like ``pso`` or ``Nelder-Mead`` and make them
-                     follow by gradient based methods like ``nlsic`` or ``BFGS``. If
-                     ``pso`` or ``Nelder-Mead`` are indeed used as the first method,
-                     it is not recommended to combine them with ``--zc`` option.
+                     used first, then ``nlsic`` will take over from the point
+                     where ``pso`` ends. In case of multiple methods, it is
+                     recommended to start with non-gradient methods like ``pso``
+                     or ``Nelder-Mead`` and make them follow by gradient based
+                     methods like ``nlsic`` or ``BFGS``. If ``pso`` or ``Nelder-Mead``
+                     are indeed used as the first method, it is not
+                     recommended to combine them with ``--zc`` option.
 	--fullsys        calculate all cumomer set (not just the reduced one
 									 necessary to simulate measurements)
 

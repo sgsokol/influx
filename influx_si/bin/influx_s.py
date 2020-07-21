@@ -189,7 +189,7 @@ parser.add_option(
 parser.add_option(
 "--meth", type="choice", action="append",
     choices=["BFGS", "Nelder-Mead", "nlsic", "pso"],
-    help="method for optimization, one of nlsic|BFGS|Nelder-Mead|pso. Default: nlsic. Multiple occurences of this option can appear on commande line. In this case, specified minimization methods are applied successively, e.g. --meth pso --meth nlsic' means that pso will be used first, then nlsic will take over from the point where pso ends. In case of multiple methods, it is recommended to start with non-gradient methods like pso or Nelder-Mead and make them follow by gradient based methods like nlsic or BFGS. If pso or Nelder-Mead are indeed used as the first method, it is not recommended to combine them with --zc option.")
+    help="method for optimization, one of 'nlsic|BFGS|Nelder-Mead|pso'. Default: 'nlsic'. Multiple occurrences of this option can appear on command line. In this case, specified minimization methods are applied successively, e.g. '--meth pso --meth nlsic' means that 'pso' will be used first, then 'nlsic' will take over from the point where 'pso' ends. In case of multiple methods, it is recommended to start with non-gradient methods like 'pso' or 'Nelder-Mead' and make them follow by gradient based methods like 'nlsic' or 'BFGS'. If 'pso' or 'Nelder-Mead' are indeed used as the first method, it is not recommended to combine them with '--zc' option.")
 parser.add_option(
 "--fullsys", action="store_true",
     help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)")

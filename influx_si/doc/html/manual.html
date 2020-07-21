@@ -271,15 +271,18 @@ dependent fluxes, cumomers, stats and so on</td></tr>
 </td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--meth=<var>METH</var></span></kbd></td>
-<td>method for optimization, one of nlsic|BFGS|Nelder-Mead|pso. Default: nlsic. Multiple occurences of this
-option can appear on commande line. In this case,
+<td>method for optimization, one of <code class="docutils literal notranslate"><span class="pre">nlsic|BFGS|Nelder-Mead|pso</span></code>.
+Default: <code class="docutils literal notranslate"><span class="pre">nlsic</span></code>. Multiple occurrences of this
+option can appear on command line. In this case,
 specified minimization methods are applied successively,
 e.g. <code class="docutils literal notranslate"><span class="pre">--meth</span> <span class="pre">pso</span> <span class="pre">--meth</span> <span class="pre">nlsic</span></code> means that <code class="docutils literal notranslate"><span class="pre">pso</span></code> will be
-used first, then <code class="docutils literal notranslate"><span class="pre">nlsic</span></code> will take over from the point where <code class="docutils literal notranslate"><span class="pre">pso</span></code> ends. In case of
-multiple methods, it is recommended to start with non-gradient methods like <code class="docutils literal notranslate"><span class="pre">pso</span></code> or <code class="docutils literal notranslate"><span class="pre">Nelder-Mead</span></code> and make them
-follow by gradient based methods like <code class="docutils literal notranslate"><span class="pre">nlsic</span></code> or <code class="docutils literal notranslate"><span class="pre">BFGS</span></code>. If
-<code class="docutils literal notranslate"><span class="pre">pso</span></code> or <code class="docutils literal notranslate"><span class="pre">Nelder-Mead</span></code> are indeed used as the first method,
-it is not recommended to combine them with <code class="docutils literal notranslate"><span class="pre">--zc</span></code> option.</td></tr>
+used first, then <code class="docutils literal notranslate"><span class="pre">nlsic</span></code> will take over from the point
+where <code class="docutils literal notranslate"><span class="pre">pso</span></code> ends. In case of multiple methods, it is
+recommended to start with non-gradient methods like <code class="docutils literal notranslate"><span class="pre">pso</span></code>
+or <code class="docutils literal notranslate"><span class="pre">Nelder-Mead</span></code> and make them follow by gradient based
+methods like <code class="docutils literal notranslate"><span class="pre">nlsic</span></code> or <code class="docutils literal notranslate"><span class="pre">BFGS</span></code>. If <code class="docutils literal notranslate"><span class="pre">pso</span></code> or <code class="docutils literal notranslate"><span class="pre">Nelder-Mead</span></code>
+are indeed used as the first method, it is not
+recommended to combine them with <code class="docutils literal notranslate"><span class="pre">--zc</span></code> option.</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--fullsys</span></kbd></td>
 <td><p class="first">calculate all cumomer set (not just the reduced one
@@ -521,7 +524,7 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 </div>
 <div class="section" id="pso-parameters">
 <h3>PSO parameters<a class="headerlink" href="#pso-parameters" title="Permalink to this headline">¶</a></h3>
-<p>Particle Swarm Optimization is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That’s why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written fox box constrained problems. While <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> required a general linear constraints. So we modified  the algorithms and its parameters with their defaults as used in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> are following:</p>
+<p>Particle Swarm Optimization (PSO) is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That’s why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written for box constrained problems. While <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> requires a usage of general linear constraints. So we modified  the algorithms and its parameters with their defaults as used in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> are following:</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>trace=0</dt>
