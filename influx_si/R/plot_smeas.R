@@ -16,7 +16,7 @@ plot_ms=function(x, m=NULL, dev=NULL, ...) {
    } else {
       nm_leg=as.expression(sapply(seq_len(n)-1, function(v) substitute(M[i], list(i=v))))
    }
-   xlim=range(0, if (length(m) && !is.null(dev)) min(m[1,])-dev else 0, sum(x), if (length(m) && !is.null(dev)) max(col_sums(m))+dev else 0)*1.1
+   xlim=range(0, if (length(m) && !is.null(dev)) min(colSums(m, na.rm=TRUE)-dev[1]) else 0, sum(x), if (length(m) && !is.null(dev)) max(col_sums(m, na.rm=TRUE))+dev else 0)*1.1
    bc=barplot(cbind(sim=x, m), width=0.1*diff(xlim), horiz=TRUE, xlab="MS fraction", ylim=c(0, 0.25*nc), xlim=xlim, asp=TRUE, col=co,
       legend.text=nm_leg, args.legend=list(cex=0.75, horiz=TRUE), ...)
    if (!is.null(m) && !is.null(dev)) {

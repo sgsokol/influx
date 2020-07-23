@@ -95,11 +95,11 @@ Licensing
 The original version of ``influx_si`` software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.
 
 The software is licensed under the GNU Public License, Version
-2.0 or higher at your conveniece (the "License"); you may not use this software and documentation except in compliance with the License.
+2.0 or higher at your convenience (the "License"); you may not use this software and documentation except in compliance with the License.
+
+A file ``influx_si/R/psoptim_ic.R`` is based on the code from CRAN package `pso v1.0.3 <https://cran.r-project.org/package=pso>`_  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original code is licensed under LGPL-3 terms so our modifications are licensed under the `same terms <https://www.gnu.org/licenses/lgpl-3.0.en.html>`_ .
 
 If you publish results obtained with ``influx_s`` you have to cite the original paper in Bioinformatics 2012 (cf. above). A paper describing ``influx_i`` is yet to publish.
-
-If you re-distribute ``influx_si`` alone or included in other software packages, you have to ensure that the end user abide to the terms of this license.
 
 You may obtain a copy of the License :doc:`here <license>` or at
 
@@ -115,4 +115,4 @@ Software and documentation author:
 
   Serguei SOKOL, INRAE, France <sokol [at] insa-toulouse.fr>
 
-Copyright 2011-2020, INRAE, France
+Copyright 2011-2020, INRAE/CNRS/INSA

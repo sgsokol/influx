@@ -1,4 +1,4 @@
-License for influx_s software
-=============================
+License for influx_si software
+==============================
 
 .. literalinclude:: ../licence_en.txt

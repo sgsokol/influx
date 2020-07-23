@@ -392,7 +392,7 @@
 <span class="s2"># synonymous</span>
 <span class="s2">myver=version</span>
 <span class="s2">optimize=!noopt</span>
-<span class="s2">method=meth</span>
+<span class="s2">methods=trimws(strsplit(meth, &quot;,&quot;)[[1L]])</span>
 <span class="s2">sensitive=sens</span>
 <span class="s2">least_norm=ln</span>
 <span class="s2">initrand=irand</span>
@@ -418,12 +418,12 @@
 <span class="s2">      &quot;Instead, the value &quot;, cinout, &quot; is given.&quot;, sep=&quot;&quot;), file=fcerr)</span>
 <span class="s2">}</span>
 <span class="s2"># minimization method</span>
-<span class="s2">validmethods=c(&quot;BFGS&quot;, &quot;Nelder-Mead&quot;, &quot;SANN&quot;, &quot;ipopt&quot;, &quot;nlsic&quot;)</span>
-<span class="s2">if (! method </span><span class="si">%%</span><span class="s2">in</span><span class="si">%%</span><span class="s2"> validmethods) {</span>
-<span class="s2">   cat(paste(&quot;Warning: method&quot;, method, &quot;is not known. &#39;nlsic&#39; is used instead.&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fcerr)</span>
-<span class="s2">   method=&quot;nlsic&quot;</span>
+<span class="s2">validmethods=c(&quot;BFGS&quot;, &quot;Nelder-Mead&quot;, &quot;SANN&quot;, &quot;ipopt&quot;, &quot;nlsic&quot;, &quot;pso&quot;)</span>
+<span class="s2">if (! all(igood &lt;- (methods </span><span class="si">%%</span><span class="s2">in</span><span class="si">%%</span><span class="s2"> validmethods))) {</span>
+<span class="s2">   cat(paste(&quot;Warning: optimization methods &quot;, paste0(methods[!igood], collapse=&quot;, &quot;), &quot; are not implemented. &#39;nlsic&#39; is used instead.&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fcerr)</span>
+<span class="s2">   methods[!igood]=&quot;nlsic&quot;</span>
 <span class="s2">}</span>
-<span class="s2">if (method == &quot;ipopt&quot;) {</span>
+<span class="s2">if (&quot;ipopt&quot; </span><span class="si">%%</span><span class="s2">in</span><span class="si">%%</span><span class="s2"> methods) {</span>
 <span class="s2">   installed=suppressPackageStartupMessages(library(ipoptr, logical.return=TRUE))</span>
 <span class="s2">   if (!installed) {</span>
 <span class="s2">      stop_mes(&quot;An optimization method ipopt is requested but not available in this R installation&quot;, file=fcerr)</span>
@@ -1290,7 +1290,7 @@
 <span class="s2">   names(param)=nm_par</span>
 <span class="s2">&quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">{</span>
         <span class="s2">&quot;meas&quot;</span><span class="p">:</span> <span class="n">meas</span><span class="p">,</span>
-        <span class="s2">&quot;sc&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">o_sc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">])),</span>
+        <span class="s2">&quot;sc&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;1&quot;</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">o_sc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">])),</span>
         <span class="s2">&quot;sc_names&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">o_sc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">],</span> <span class="s1">&#39;&quot;&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ili</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;:&quot;</span><span class="o">+</span><span class="n">meas</span><span class="o">+</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
         <span class="p">})</span>
 
