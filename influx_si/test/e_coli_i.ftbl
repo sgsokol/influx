@@ -786,4 +786,4 @@ OPTIONS
 	//optctrl_history	1
 	optctrl_adaptbt	1
 	optctrl_monotone	1
-	posttreat_R	save_all.R; plot_imass.R
+	posttreat_R	plot_imass.R
