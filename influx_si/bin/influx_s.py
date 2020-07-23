@@ -330,7 +330,7 @@ if dict_opts["install_rdep"]:
                 p.stdin.flush()
             time.sleep(0.1)
     else:
-        p=subp.Popen(["R", "--interactive", "--no-save", "--no-restore", "--no-echo"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
+        p=subp.Popen(["R", "--interactive", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
         p.stdin.write(("source('"+os.path.join(dirinst, "R", "upd_deps.R")+"')\n").encode())
         p.stdin.flush()
         import select

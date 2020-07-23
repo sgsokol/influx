@@ -2,6 +2,18 @@
 Change Log for influx_si
 ========================
 
+2020-07-24 version 5.3.0
+------------------------
+New features:
+ - added PSO optimization method (suggested by Pierre Millard, INRAE, Toulouse, France)
+ - now optimization methods can be chained in the same run, e.g. ``--meth pso --meth nlsic``
+ - the field ``optctrl...`` is now formatted to allow homonym parameters with different values for different optimization methods
+ - option ``--install_rdep`` becomes interactive and reproduces the behavior of R's ``install.packages()`` to allow installation in a user's R personal library  when the default directory is not writable (suggested by Matthieu Guionnet, CNRS, Toulouse, France)
+ 
+Bug fix:
+ - ``plot_smeas.R`` is fixed for cases where NA is present in MS measurements.
+ - fixed a fatal error in ``--install_rdep`` on Windows
+
 2020-05-28 version 5.2.0
 ------------------------
 New features:

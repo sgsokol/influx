@@ -232,7 +232,12 @@ This feature can be useful for preliminary simulations when there is no yet data
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py <span class="o">[</span>options<span class="o">]</span> mynetwork
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">[options]</span></code> is an option list separated by a white character. Each option starts with a double dash <code class="docutils literal notranslate"><span class="pre">--</span></code> and can be followed by its argument if applicable. For example, to use BFGS optimization method instead of the default NLSIC algorithm, a user can run:</p>
+<p>where <code class="docutils literal notranslate"><span class="pre">[options]</span></code> is an option list separated by a white character.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Here and throughout this manual, content placed in brackets  <code class="docutils literal notranslate"><span class="pre">[...]</span></code> is meant to be an optional part of the command. If the user does wish to type an optional part of a command, the brackets themselves must be omitted.</p>
+</div>
+<p>Each option starts with a double dash <code class="docutils literal notranslate"><span class="pre">--</span></code> and can be followed by its argument if applicable. For example, to use BFGS optimization method instead of the default NLSIC algorithm, a user can run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --meth BFGS mynetwork
 </pre></div>
 </div>
@@ -412,7 +417,7 @@ An optional p-value used here does not give a proportion of residuals that will 
 </td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--addnoise</span></kbd></td>
-<td><p class="first">Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from       FTBL file</p>
+<td><p class="first">Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from FTBL file</p>
 <p class="last">This option can be helpful for generating synthetic FTBL files with realistic simulated measurements (cf. <a class="reference internal" href="howto.html#howto"><span class="std std-ref">How to make FTBL file with synthetic data?</span></a>).</p>
 </td></tr>
 <tr><td class="option-group">
@@ -425,7 +430,9 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 ./test exists, its content is silently owerriten.</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--install_rdep</span></kbd></td>
-<td>install R dependencies and exit.</td></tr>
+<td><p class="first">install R dependencies and exit.</p>
+<p class="last">starting from v5.3, this installation is made in interactive mode. I.e. if the default installation directory (the first one from a list returned by R’s <code class="docutils literal notranslate"><span class="pre">.libPaths()</span></code>) is not writable by the user then <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> will try to install the needed packages in the directory defined in R session variable <code class="docutils literal notranslate"><span class="pre">R_LIBS_USER</span></code>. If this last does not exist, the user is asked for a permission to create it. This behavior is the default one of R’s <code class="docutils literal notranslate"><span class="pre">install.packages()</span></code> which is used here.</p>
+</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--TIMEIT</span></kbd></td>
 <td><p class="first">developer option</p>

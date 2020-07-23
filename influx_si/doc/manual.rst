@@ -201,7 +201,12 @@ If used with options, ``influx_si`` can be run like ::
 
  $ influx_s.py [options] mynetwork
 
-where ``[options]`` is an option list separated by a white character. Each option starts with a double dash ``--`` and can be followed by its argument if applicable. For example, to use BFGS optimization method instead of the default NLSIC algorithm, a user can run::
+where ``[options]`` is an option list separated by a white character.
+
+.. note::
+ Here and throughout this manual, content placed in brackets  ``[...]`` is meant to be an optional part of the command. If the user does wish to type an optional part of a command, the brackets themselves must be omitted.
+
+Each option starts with a double dash ``--`` and can be followed by its argument if applicable. For example, to use BFGS optimization method instead of the default NLSIC algorithm, a user can run::
 
  $ influx_s.py --meth BFGS mynetwork
 
@@ -313,7 +318,7 @@ Here after the available options with their full names are enumerated and detail
 	--nocalc          generate an R code but not execute it.
 											
 										This option can be useful for parallel execution of the generated R files via ``source()`` function in cluster environment
-	--addnoise        Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from       FTBL file
+	--addnoise        Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from FTBL file
 	
 										 This option can be helpful for generating synthetic FTBL files with realistic simulated measurements (cf. :ref:`How to make FTBL file with synthetic data?<howto>`).
 	--copy_doc         copy documentation directory in the current directory and
@@ -321,6 +326,8 @@ Here after the available options with their full names are enumerated and detail
 	--copy_test        copy test directory in the current directory and exit. If
                      ./test exists, its content is silently owerriten.
 	--install_rdep     install R dependencies and exit.
+
+								starting from v5.3, this installation is made in interactive mode. I.e. if the default installation directory (the first one from a list returned by R's ``.libPaths()``) is not writable by the user then ``influx_si`` will try to install the needed packages in the directory defined in R session variable ``R_LIBS_USER``. If this last does not exist, the user is asked for a permission to create it. This behavior is the default one of R's ``install.packages()`` which is used here.
 	--TIMEIT          developer option
 
 										Some portions of code are timed and the results is printed in the log-file. A curious user can use this option without any harm.
