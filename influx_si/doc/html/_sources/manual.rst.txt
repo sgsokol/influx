@@ -438,7 +438,7 @@ All possible options and their default values for NLSIC algorithm follow:
 PSO parameters
 ~~~~~~~~~~~~~~
 
-Particle Swarm Optimization (PSO) is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That's why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package `pso v1.0.3 <https://cran.r-project.org/package=pso>`_  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written for box constrained problems. While ``influx_si`` requires a usage of general linear constraints. So we modified  the algorithms and its parameters with their defaults as used in ``influx_si`` are following:
+Particle Swarm Optimization (PSO) is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That's why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package `pso v1.0.3 <https://cran.r-project.org/package=pso>`_  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written for box constrained problems. While ``influx_si`` requires a usage of general linear constraints. So we modified the algorithms accordingly. Its parameters with their default values used in ``influx_si`` are following:
 
         trace=0
                 an integer controlling the trace printing. A zero value means no printing
