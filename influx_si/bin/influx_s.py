@@ -3,7 +3,7 @@
 """
 import influx_si
 
-import sys, os, datetime as dt, subprocess as subp, re
+import sys, os, datetime as dt, subprocess as subp, re, time
 from optparse import OptionParser
 from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
@@ -312,7 +312,41 @@ if dict_opts["copy_test"]:
     copy_tree(dsrc, ddst, verbose=1)
 if dict_opts["install_rdep"]:
     do_exit=True
-    subp.run(["Rscript", os.path.join(dirinst, "R", "upd_deps.R")])
+    if os.name == 'nt':
+        p=subp.Popen(["Rterm", "--ess", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr)
+        p.stdin.write(("source('"+"/".join(dirinst.split(os.path.sep)+["R", "upd_deps.R"])+"')\n").encode())
+        p.stdin.flush()
+        import msvcrt
+        while True:
+            if not p.poll() is None:
+                break
+            if msvcrt.kbhit():
+                try:
+                    buf=input()+"\n"
+                except:
+                    break
+                #print("got on stdin buf='"+buf+"'")
+                p.stdin.write(buf.encode())
+                p.stdin.flush()
+            time.sleep(0.1)
+    else:
+        p=subp.Popen(["R", "--interactive", "--no-save", "--no-restore", "--no-echo"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
+        p.stdin.write(("source('"+os.path.join(dirinst, "R", "upd_deps.R")+"')\n").encode())
+        p.stdin.flush()
+        import select
+        po=select.poll()
+        po.register(sys.stdin, select.POLLIN)
+        while True:
+            if not p.poll() is None:
+                break
+            if po.poll(100):
+                try:
+                    buf=input()+"\n"
+                except:
+                    break
+                #print("got buf='"+buf+"'")
+                p.stdin.write(buf.encode())
+                p.stdin.flush()
 if do_exit:
     sys.exit(0)
 
