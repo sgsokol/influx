@@ -1010,7 +1010,7 @@ for (irun in seq_len(nseries)) {
       if (time_order=="1,2")
          labargs$time_order="1" # start with order 1, later continue with 2
       for (method in methods) {
-         capture.output(res <- opt_wrapper(param, measurements, jx_f, labargs), file=fclog)
+         capture.output(res <- opt_wrapper(param, method, measurements, jx_f, labargs), file=fclog)
          if ((!is.null(res$err) && res$err) || is.null(res$par)) {
             cat("error in first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
             res$par=rep(NA, length(param))
@@ -1072,7 +1072,7 @@ for (irun in seq_len(nseries)) {
                # reoptimize
                if (reopt) {
                   cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
-                  capture.output(reso <- opt_wrapper(pinside, measurements, new.env(), labargs), file=fclog)
+                  capture.output(reso <- opt_wrapper(pinside, method, measurements, new.env(), labargs), file=fclog)
                   if (reso$err || is.null(reso$par)) {
                      cat("second zero crossing pass: ", reso$mes, "\\n", sep="", file=fcerr)
                   } else if (!is.null(reso$mes) && nchar(reso$mes)) {
@@ -1099,7 +1099,7 @@ for (irun in seq_len(nseries)) {
                   ci=ci[-i]
                   nm_i=nm_i[-i]
                   cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
-                  capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
+                  capture.output(reso <- opt_wrapper(param, method, measurements, new.env(), labargs), file=fclog)
                   if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
                      cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
                   }
@@ -1138,7 +1138,7 @@ for (irun in seq_len(nseries)) {
             write.table(outtab, file=fclog, append=TRUE, quote=FALSE, sep="\\t", col.names=FALSE)
             
             # optimize with the last method from methods
-            capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
+            capture.output(reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs), file=fclog)
             if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
                cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)
             }
@@ -1163,7 +1163,7 @@ for (irun in seq_len(nseries)) {
             cat("order 2 : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          labargs$time_order="2" # continue with the 2-nd order
-         capture.output(reso <- opt_wrapper(param, measurements, new.env(), labargs), file=fclog)
+         capture.output(reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs), file=fclog)
          if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
             cat("order2: ", reso$mes, "\\n", sep="", file=fcerr)
          }

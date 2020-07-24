@@ -1226,7 +1226,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    return(spemu)
 }
 
-opt_wrapper=function(param, measurements, jx_f, labargs, trace=1) {
+opt_wrapper=function(param, method, measurements, jx_f, labargs, trace=1) {
    oldmeas=labargs$measurements
    labargs$measurements=measurements
    labargs$jx_f=jx_f
@@ -1359,7 +1359,7 @@ mc_sim=function(imc) {
 #d=diag(qr(rres$jacobian, LAPACK=TRUE)$qr)
 #cat("param=", param, "\n", sep=" ")
 #cat("d=", d, "\n", sep=" ")
-   res=opt_wrapper(param, measurements_mc, loc_jx_f, labargs, trace=0)
+   res=opt_wrapper(param, tail(methods, 1L), measurements_mc, loc_jx_f, labargs, trace=0)
    #save(res, file=sprintf("mc_%d.RData", imc))
    if (res$err && !is.null(res$mes) && nchar(res$mes) > 0) {
       fcerr=file(file.path(dirw, sprintf("%s.%smc%d.err", baseshort, runsuf, imc)), "wb")

@@ -239,8 +239,8 @@ elif ncore > 0. and ncore < 1.:
 ncore = min(round(ncore), len(itest))
 li_res=[[] for i in range(ncore)] # list of results (icase, nm_t, ok, res)
 #import pdb; pdb.set_trace()
+lock=threading.Lock()
 if ncore > 1:
-    lock=threading.Lock()
     #li_f=[Do_case() for i in range(ncore)]
     q=Queue()
     ths=[]

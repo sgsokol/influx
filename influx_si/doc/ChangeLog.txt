@@ -12,7 +12,6 @@ New features:
  
 Bug fix:
  - ``plot_smeas.R`` is fixed for cases where NA is present in MS measurements.
- - fixed a fatal error in ``--install_rdep`` on Windows
 
 2020-05-28 version 5.2.0
 ------------------------
