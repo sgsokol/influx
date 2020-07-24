@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Change Log for influx_si &#8212; influx_si 5.2 documentation</title>
+    <title>Change Log for influx_si &#8212; influx_si 5.3 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="intro.html" title="Introduction"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.2 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -48,6 +48,25 @@
             
   <div class="section" id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-5-3-0">
+<h2>2020-07-24 version 5.3.0<a class="headerlink" href="#version-5-3-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>added PSO optimization method (suggested by Pierre Millard, INRAE, Toulouse, France)</li>
+<li>now optimization methods can be chained in the same run, e.g. <code class="docutils literal notranslate"><span class="pre">--meth</span> <span class="pre">pso</span> <span class="pre">--meth</span> <span class="pre">nlsic</span></code></li>
+<li>the field <code class="docutils literal notranslate"><span class="pre">optctrl...</span></code> is now formatted to allow homonym parameters with different values for different optimization methods</li>
+<li>option <code class="docutils literal notranslate"><span class="pre">--install_rdep</span></code> becomes interactive and reproduces the behavior of R’s <code class="docutils literal notranslate"><span class="pre">install.packages()</span></code> to allow installation in a user’s R personal library  when the default directory is not writable (suggested by Matthieu Guionnet, CNRS, Toulouse, France)</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> is fixed for cases where NA is present in MS measurements.</li>
+<li>fixed a fatal error in <code class="docutils literal notranslate"><span class="pre">--install_rdep</span></code> on Windows</li>
+</ul>
+</dd>
+</dl>
+</div>
 <div class="section" id="version-5-2-0">
 <h2>2020-05-28 version 5.2.0<a class="headerlink" href="#version-5-2-0" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
@@ -766,6 +785,7 @@ all fluxes are free or constrained;</li>
   <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-5-3-0">2020-07-24 version 5.3.0</a></li>
 <li><a class="reference internal" href="#version-5-2-0">2020-05-28 version 5.2.0</a></li>
 <li><a class="reference internal" href="#version-5-1-0">2020-04-07 version 5.1.0</a></li>
 <li><a class="reference internal" href="#version-5-0-3">2020-03-05 version 5.0.3</a></li>
@@ -852,7 +872,7 @@ all fluxes are free or constrained;</li>
         <li class="right" >
           <a href="intro.html" title="Introduction"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.2 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

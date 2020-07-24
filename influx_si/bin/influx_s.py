@@ -39,7 +39,7 @@ def qworker():
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """
-    #set_trace()
+    #import pdb; pdb.set_trace()
     f=ft[:-5]
     d=os.path.dirname(ft)
     if len(d) and not os.path.exists(d):
@@ -96,7 +96,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
         ftbl_opts._update_loose(dict((k,v) for (k,v) in eval(str(cmd_opts)).items() if not v is None))
         cmd_opts=eval(str(ftbl_opts))
         cmd_opts=dict((k,v) for k,v in cmd_opts.items() if v is not None)
-        if cmd_opts["meth"]:
+        if "meth" in cmd_opts and cmd_opts["meth"]:
             cmd_opts["meth"]=",".join(cmd_opts["meth"])
         #print("cmd_opts=", cmd_opts)
 

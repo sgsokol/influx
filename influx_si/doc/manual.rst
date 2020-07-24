@@ -157,7 +157,7 @@ This feature can be useful for preliminary simulations when there is no yet data
 
 Optimization control parameters (v5.3)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Optimization method(s) can be tuned by control parameters that can be put in ``OPTIONS`` section. The format of those fields has changed. Before, the field names were looking like ``optctrl_maxit`` i.e. a prefix ``optctrl_`` followed by a parameter name, here ``maxit``. Starting from v5.3, they look like ``optctrl:nlsic:maxit`` i.e. a prefix ``optctrl`` followed by method name (here ``nlsic``) and ended by parameter name, like ``maxit``, all 3 separated by colon ``:``. This new format allows giving parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one ``influx_si`` run. More about parameters can be found in the section `Optimization options`_.
+Optimization method(s) can be tuned by control parameters that can be put in ``OPTIONS`` section. The format of those fields has changed. Before, the field names were looking like ``optctrl_maxit`` i.e. a prefix ``optctrl_`` followed by a parameter name, here ``maxit``. Starting from v5.3, they look like ``optctrl:nlsic:maxit`` i.e. a prefix ``optctrl`` followed by a method name (here ``nlsic``) and ended by parameter name, like ``maxit``, all 3 separated by colon ``:``. This new format allows tuning parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one ``influx_si`` run. More about parameters can be found in the section `Optimization options`_.
 
 Convention evolution
 ~~~~~~~~~~~~~~~~~~~~
@@ -555,18 +555,22 @@ Post treatment option
 
 User can specify a name of one or several R scripts that will be automatically executed after non aborted ``influx_si`` run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file ``test/save_all.R`` and its use can be found in the options of ``test/e_coli.ftbl`` file.
 
-To activate this option, the script names must be provided in the ``OPTIONS`` section, in the field ``posttreat_R`` and separated by ``'; '``, e.g. ::
+To activate this option, the script names must be provided in the ``OPTIONS`` section, in the field ``posttreat_R`` and separated by ``'; '``, e.g.:
 
- OPTIONS
+ .. code-block:: text
+
+  OPTIONS
 	OPT_NAME	OPT_VALUE
 	posttreat_R	save_all.R; plot_something.pdf
-	
-The script name is interpreted as a relative path to the directory where the original FTBL file is located. After execution of ``save_all.R``, a file ``e_coli.RData`` is created. This particular example can be used to restore a calculation R environment by launching R and executing::
+
+
+The script name is interpreted as a relative path to the directory where the original FTBL file is located.  If the file is not found starting from FTBL's directory, it is searched for in ``influx_si/R``.
+After execution of ``save_all.R``, a file ``e_coli.RData`` is created. This particular example can be used to restore a calculation R environment by launching R and executing::
 
  > load("e_coli.RData")
  
 After that, all variables defined in influx_si at the end of the calculations will be available in the current interactive session.
-To be able to launch custom calculations on these variables, user has to do some preliminary actions. An example of such actions can be found in a file ``preamble.R`` which can be adapted for users's case.
+To be able to launch custom calculations on these variables, user has to do some preliminary actions. An example of such actions can be found in a file ``preamble.R`` which can be adapted for user's case.
 
 To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:
 
@@ -613,7 +617,7 @@ A full list of all available variable and functions can be obtained in an R sess
  
 This list of more than 400 items is too long to be fully described here. We hope that few items succinctly described in this section will be sufficient for basic custom treatments.
 
-An inspirations for your own custom treatments and/or plotting can be found in files ``plot_imass.R`` and ``plot_smeas.R`` that plot instationary and stationary data respectively in pdf files.
+An inspiration for your own custom treatments and/or plotting can be found in files ``plot_imass.R`` and ``plot_smeas.R`` that plot instationary and stationary data respectively in pdf files.
 
 Exclusive ``influx_i`` options
 ------------------------------
@@ -864,7 +868,7 @@ or/and ::
  nlsic: Maximal backtrack iteration number is achieved
  
 Theoretically, user can increase the limit for those two numbers
-(``optctrl_maxit`` and ``optctrl_btmaxit`` respectively in the ``OPTIONS`` section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
+(``optctrl:nlsic:maxit`` and ``optctrl:nlsic:btmaxit`` respectively in the ``OPTIONS`` section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
 In all cases, a slow convergence is due to high non linearity of the solved problem. What can vary from one situation to another, it is the nature of this non linearity. Depending on this nature, several steps can be undertaken to accelerate optimization:
 
 1. If a non linearity causing the slow convergence is due to the use of function absolute value :math:`|x|` in the calculation of forward and revers fluxes from net and exchange fluxes, then an option ``--zc=ZC`` (zero crossing) can be very efficient. This non linearity can become harmful when during optimization a net flux has to change its sign, in other words it has to cross zero.
@@ -899,7 +903,7 @@ This situation is signaled by an error message::
 This problem can occur for badly defined network which are very sensitive to truncation errors. The effect of such errors can become comparable to the effect of the increment step during optimization. It means that we cannot decrease the norm of residual vector under the values resulting from rounding errors.
 If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no so many actions that user could undertake except to make his system better defined as described in previous sections.
 
-.. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`10^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`10^{-3}` or :math:`10^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl_errx`` in the section ``OPTIONS`` of FTBL file). 
+.. note:: By default, we use a very small value for increment norm as stopping criterion (:math:`10^{-5}`). It can be considered as very drastic criterion and can be relaxed to :math:`10^{-3}` or :math:`10^{-2}` depending on required precision for a problem in hand (to do that, use an option ``optctrl:nlsic:errx`` in the section ``OPTIONS`` of FTBL file). 
 
 Additional tools
 ----------------

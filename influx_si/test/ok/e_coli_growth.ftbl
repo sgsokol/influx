@@ -774,7 +774,7 @@ OPTIONS
 	optctrl_maxit	50
 	commandArgs	--TIMEIT
 	//optctrl_btdesc	0.1
-	posttreat_R	save_all.R; plot_smeas.R
+	posttreat_R	plot_smeas.R
 METABOLITE_POOLS
 	META_NAME	META_SIZE	// size is in units of metab_scale option defined before
 	// source: p.millard 2010/12/03 Nissle_Glc_conc.xlsx sent by email

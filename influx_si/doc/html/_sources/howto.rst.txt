@@ -18,7 +18,7 @@ How to ...
 
 .. describe:: ... accelerate calculations?
 
- You can relax stopping criterion and pass from 1.e-5 (by default) to, for example, 1.e-2 if this precision is sufficient for you. Use ``optctrl_errx`` option in FTBL file (section ``OPTIONS``) for this.
+ You can relax stopping criterion and pass from 1.e-5 (by default) to, for example, 1.e-2 if this precision is sufficient for you. Use ``optctrl:nlsic:errx`` option in FTBL file (section ``OPTIONS``) for this.
 
  If you mean to accelerate Monte-Carlo simulations in Unix environment, you can use a hardware with many cores. In this case, the wall clock time can be reduced significantly. Note that distant nodes, even inside of the same cluster, are not used in the such kind of Monte-Carlo simulations.
 
@@ -26,7 +26,7 @@ How to ...
 
 .. describe:: ... extend upper limit for non linear iterations?
 
- By default, this value is 50 which should be largely sufficient for most cases. If not, you can set another value via ``optctrl_maxit`` option in the FTBL file (section ``OPTIONS``). But most probably, you would like to check your network definition or to add some data or to change a substrate labeling, anyway to do something to get a well defined network instead of trying to make converge the fitting on some biologically almost meaningless situation.
+ By default, this value is 50 which should be largely sufficient for most cases. If not, you can set another value via ``optctrl:nlsic:maxit`` option in the FTBL file (section ``OPTIONS``). But most probably, you would like to check your network definition or to add some data or to change a substrate labeling, anyway to do something to get a well defined network instead of trying to make converge the fitting on some biologically almost meaningless situation.
 
 .. describe:: ... make FTBL file with synthetic data?
 
@@ -48,8 +48,8 @@ How to ...
 
 .. describe:: ... do custom post-treatment of Monte-Carlo iterations?
 
- Let suppose that you want to filter some of Monte-Carlo (MC) iterations based on their cost values.
- In ``OPTIONS/psottreat_R`` of your FTBL file add ``save_all.R``. The file ``save_all.R`` can be found in ``test`` directory of ``influx_si`` distribution and must be copied to the directory where your FTBL file resides. Execution of ``save_all.R`` at the end of calculations will simply save all session variables in ``mynetwork.RData`` file (supposing that your FTBL file is names ``mynetwork.ftbl``). In particular, you need ``free_mc`` matrix which contains free parameters (each column results from a given MC iteration). After that you can open an interactive R session in your working directory and run something similar to:
+ Let suppose you want to filter some of Monte-Carlo (MC) iterations based on their cost values.
+ In ``OPTIONS/posttreat_R`` of your FTBL file add ``save_all.R``. The file ``save_all.R`` can be found in ``R`` directory of ``influx_si`` distribution. Execution of ``save_all.R`` at the end of calculations will simply save all session variables in ``mynetwork.RData`` file (supposing that your FTBL file is named ``mynetwork.ftbl``). In particular, you need ``free_mc`` matrix which contains free parameters (each column results from a given MC iteration). After that you can open an interactive R session in your working directory and run something similar to:
  
  .. code-block:: r
   

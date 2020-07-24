@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>User’s manual &#8212; influx_si 5.2 documentation</title>
+    <title>User’s manual &#8212; influx_si 5.3 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.2 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -186,7 +186,7 @@ This feature can be useful for preliminary simulations when there is no yet data
 </div>
 <div class="section" id="optimization-control-parameters-v5-3">
 <h3>Optimization control parameters (v5.3)<a class="headerlink" href="#optimization-control-parameters-v5-3" title="Permalink to this headline">¶</a></h3>
-<p>Optimization method(s) can be tuned by control parameters that can be put in <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section. The format of those fields has changed. Before, the field names were looking like <code class="docutils literal notranslate"><span class="pre">optctrl_maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl_</span></code> followed by a parameter name, here <code class="docutils literal notranslate"><span class="pre">maxit</span></code>. Starting from v5.3, they look like <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl</span></code> followed by method name (here <code class="docutils literal notranslate"><span class="pre">nlsic</span></code>) and ended by parameter name, like <code class="docutils literal notranslate"><span class="pre">maxit</span></code>, all 3 separated by colon <code class="docutils literal notranslate"><span class="pre">:</span></code>. This new format allows giving parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run. More about parameters can be found in the section <a class="reference internal" href="#optimization-options">Optimization options</a>.</p>
+<p>Optimization method(s) can be tuned by control parameters that can be put in <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section. The format of those fields has changed. Before, the field names were looking like <code class="docutils literal notranslate"><span class="pre">optctrl_maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl_</span></code> followed by a parameter name, here <code class="docutils literal notranslate"><span class="pre">maxit</span></code>. Starting from v5.3, they look like <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl</span></code> followed by a method name (here <code class="docutils literal notranslate"><span class="pre">nlsic</span></code>) and ended by parameter name, like <code class="docutils literal notranslate"><span class="pre">maxit</span></code>, all 3 separated by colon <code class="docutils literal notranslate"><span class="pre">:</span></code>. This new format allows tuning parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run. More about parameters can be found in the section <a class="reference internal" href="#optimization-options">Optimization options</a>.</p>
 </div>
 <div class="section" id="convention-evolution">
 <h3>Convention evolution<a class="headerlink" href="#convention-evolution" title="Permalink to this headline">¶</a></h3>
@@ -634,18 +634,21 @@ This flux can be varying or constant during optimization process depending on wh
 <div class="section" id="post-treatment-option">
 <h2>Post treatment option<a class="headerlink" href="#post-treatment-option" title="Permalink to this headline">¶</a></h2>
 <p>User can specify a name of one or several R scripts that will be automatically executed after non aborted <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file <code class="docutils literal notranslate"><span class="pre">test/save_all.R</span></code> and its use can be found in the options of <code class="docutils literal notranslate"><span class="pre">test/e_coli.ftbl</span></code> file.</p>
-<p>To activate this option, the script names must be provided in the <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section, in the field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> and separated by <code class="docutils literal notranslate"><span class="pre">';</span> <span class="pre">'</span></code>, e.g.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>OPTIONS
-       OPT_NAME        OPT_VALUE
-       posttreat_R     save_all.R<span class="p">;</span> plot_something.pdf
+<p>To activate this option, the script names must be provided in the <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section, in the field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> and separated by <code class="docutils literal notranslate"><span class="pre">';</span> <span class="pre">'</span></code>, e.g.:</p>
+<blockquote>
+<div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>OPTIONS
+      OPT_NAME        OPT_VALUE
+      posttreat_R     save_all.R; plot_something.pdf
 </pre></div>
 </div>
-<p>The script name is interpreted as a relative path to the directory where the original FTBL file is located. After execution of <code class="docutils literal notranslate"><span class="pre">save_all.R</span></code>, a file <code class="docutils literal notranslate"><span class="pre">e_coli.RData</span></code> is created. This particular example can be used to restore a calculation R environment by launching R and executing:</p>
+</div></blockquote>
+<p>The script name is interpreted as a relative path to the directory where the original FTBL file is located.  If the file is not found starting from FTBL’s directory, it is searched for in <code class="docutils literal notranslate"><span class="pre">influx_si/R</span></code>.
+After execution of <code class="docutils literal notranslate"><span class="pre">save_all.R</span></code>, a file <code class="docutils literal notranslate"><span class="pre">e_coli.RData</span></code> is created. This particular example can be used to restore a calculation R environment by launching R and executing:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt; load<span class="o">(</span><span class="s2">&quot;e_coli.RData&quot;</span><span class="o">)</span>
 </pre></div>
 </div>
 <p>After that, all variables defined in influx_si at the end of the calculations will be available in the current interactive session.
-To be able to launch custom calculations on these variables, user has to do some preliminary actions. An example of such actions can be found in a file <code class="docutils literal notranslate"><span class="pre">preamble.R</span></code> which can be adapted for users’s case.</p>
+To be able to launch custom calculations on these variables, user has to do some preliminary actions. An example of such actions can be found in a file <code class="docutils literal notranslate"><span class="pre">preamble.R</span></code> which can be adapted for user’s case.</p>
 <p>To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:</p>
 <dl class="docutils">
 <dt>dirw</dt>
@@ -691,7 +694,7 @@ To be able to launch custom calculations on these variables, user has to do some
 </pre></div>
 </div>
 <p>This list of more than 400 items is too long to be fully described here. We hope that few items succinctly described in this section will be sufficient for basic custom treatments.</p>
-<p>An inspirations for your own custom treatments and/or plotting can be found in files <code class="docutils literal notranslate"><span class="pre">plot_imass.R</span></code> and <code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> that plot instationary and stationary data respectively in pdf files.</p>
+<p>An inspiration for your own custom treatments and/or plotting can be found in files <code class="docutils literal notranslate"><span class="pre">plot_imass.R</span></code> and <code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> that plot instationary and stationary data respectively in pdf files.</p>
 </div>
 <div class="section" id="exclusive-influx-i-options">
 <h2>Exclusive <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> options<a class="headerlink" href="#exclusive-influx-i-options" title="Permalink to this headline">¶</a></h2>
@@ -936,7 +939,7 @@ Least L2-norm solution is provided.
 </pre></div>
 </div>
 <p>Theoretically, user can increase the limit for those two numbers
-(<code class="docutils literal notranslate"><span class="pre">optctrl_maxit</span></code> and <code class="docutils literal notranslate"><span class="pre">optctrl_btmaxit</span></code> respectively in the <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
+(<code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:maxit</span></code> and <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:btmaxit</span></code> respectively in the <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
 In all cases, a slow convergence is due to high non linearity of the solved problem. What can vary from one situation to another, it is the nature of this non linearity. Depending on this nature, several steps can be undertaken to accelerate optimization:</p>
 <ol class="arabic simple">
 <li>If a non linearity causing the slow convergence is due to the use of function absolute value <span class="math notranslate nohighlight">\(|x|\)</span> in the calculation of forward and revers fluxes from net and exchange fluxes, then an option <code class="docutils literal notranslate"><span class="pre">--zc=ZC</span></code> (zero crossing) can be very efficient. This non linearity can become harmful when during optimization a net flux has to change its sign, in other words it has to cross zero.</li>
@@ -972,7 +975,7 @@ If <code class="docutils literal notranslate"><span class="pre">--zc</span></cod
 If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no so many actions that user could undertake except to make his system better defined as described in previous sections.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">By default, we use a very small value for increment norm as stopping criterion (<span class="math notranslate nohighlight">\(10^{-5}\)</span>). It can be considered as very drastic criterion and can be relaxed to <span class="math notranslate nohighlight">\(10^{-3}\)</span> or <span class="math notranslate nohighlight">\(10^{-2}\)</span> depending on required precision for a problem in hand (to do that, use an option <code class="docutils literal notranslate"><span class="pre">optctrl_errx</span></code> in the section <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> of FTBL file).</p>
+<p class="last">By default, we use a very small value for increment norm as stopping criterion (<span class="math notranslate nohighlight">\(10^{-5}\)</span>). It can be considered as very drastic criterion and can be relaxed to <span class="math notranslate nohighlight">\(10^{-3}\)</span> or <span class="math notranslate nohighlight">\(10^{-2}\)</span> depending on required precision for a problem in hand (to do that, use an option <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:errx</span></code> in the section <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> of FTBL file).</p>
 </div>
 </div>
 </div>
@@ -1241,7 +1244,7 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.2 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
