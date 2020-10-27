@@ -179,7 +179,7 @@ for (iexp in seq_len(nb_exp)) {
                plot_ms(mid[i, iexp], NULL, NULL, main=mainlab)
             }
          } else {
-            i=grep(sprintf("^%s", met), nm_sim, v=TRUE)
+            i=grep(sprintf("^%s\\+[0-9]+$", met), nm_sim, v=TRUE)
             plot_ms(mid[i, iexp], NULL, NULL, main=met)
          }
       }

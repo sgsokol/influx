@@ -460,6 +460,26 @@ jx_f=new.env()
     "org": escape(os.path.basename(f.name[:-2]), '"'),
     "ropts": ropts,
 })
+
+    # parse optctrl in netan["opt"]
+    # optctrl_maxit=100 goes to list(default=list(maxit=100))
+    # optctrl:bfgs:maxit=1000 goes to list(bfgs=list(maxit=1000))
+    dctrl={"default": dict()}
+    for k,v in netan["opt"].items():
+        if not k.startswith("optctrl") or len(k) < 8:
+            continue
+        k=k[7:] # strip "optctrl" part
+        if k[0] == "_":
+            dctrl["default"][k[1:]]=str(v)
+        elif k[0] == ":":
+            li=k[1:].split(":")
+            dctrl[li[0]]=dctrl.get(li[0], dict())
+            dctrl[li[0]][join(":", li[1:])]=str(v)
+    #print(dctrl)
+    sep=",\n\t"
+    tmp=f"list({sep.join('`'+m+'`=list('+', '.join('`'+kk+'`='+vv for kk,vv in dd.items())+')' for m,dd in dctrl.items())})"
+    f.write(f"control_ftbl={tmp}")
+
     if case_i:
         f.write("""
 source(file.path(dirr, "opt_icumo_tools.R"))

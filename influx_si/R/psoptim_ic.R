@@ -1,7 +1,7 @@
 # This work is based on a CRAN package pso (https://CRAN.R-project.org/package=pso ) by Claus Bendtsen <papyrus.bendtsen at gmail.com>.
 # As the original license requires, this modified file is released under terms of LGPL-3.
 # modification's author: Serguei Sokol (sokol <at> insa-toulouse <dot> fr)
-# modification's Copyright: INRAE, 2020.
+# modification's Copyright: INRAE/CNRS/INSA, 2020.
 
 aap=arrApply::arrApply
 
@@ -145,6 +145,7 @@ psoptim_ic <- function (par, fn, ..., magnitude=1, mean=0,
     }
   }
   ## Iterations
+  msgcode=0
   stats.iter <- 1
   stats.restart <- 0
   stats.stagnate <- 0
@@ -194,7 +195,9 @@ psoptim_ic <- function (par, fn, ..., magnitude=1, mean=0,
         mes=format(rbind(c("violation", "ineq", "iparticle"), cbind(ine[ine<0], nm_i, iw[,2L])))
         mes=paste0(apply(mes, 1, paste0, collapse=" "), collapse="\n\t")
 #browser()
-        stop("not all particles satisfy inequality constraints (iter=", stats.iter, "):\n\t", mes)
+        msg=paste0("not all particles satisfy inequality constraints (iter=", stats.iter, "):\n\t", mes)
+        msgcode=5
+        break
       }
       for (j in seq(ncol(X))) {
         if (!any(ibad <- (ine1[,j] < -p.tolineq))) {
@@ -282,6 +285,8 @@ psoptim_ic <- function (par, fn, ..., magnitude=1, mean=0,
   } else if (stats.restart>=p.maxrestart) {
     msg <- "Maximal number of restarts reached"
     msgcode <- 3
+  } else if (msgcode==5) {
+    ; # inequalities failed
   } else {
     msg <- "Maximal number of iterations without improvement reached"
     msgcode <- 4

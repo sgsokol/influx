@@ -1301,6 +1301,10 @@ opt_wrapper=function(param, method, measurements, jx_f, labargs, trace=1) {
 #print(res)
       if (inherits(res, "try-error")) {
          res=list(err=1L, par=NULL, mes=attr(res, "condition")$message)
+      } else {
+         tmp=list(err=res$msgcode, par=res$par, mes=res$msg)
+         res[c("msg", "par", "msg")]=NULL
+         res=c(tmp, res) # preserve the rest of the fields: stats etc.
       }
    } else {
       stop_mes(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
@@ -1453,6 +1457,15 @@ sparse2spa=function(spa) {
       i=as.integer(iu0%%nb_c)
       j=as.integer(iu0%/%nb_c)
       l$a=Rmumps$new(i, j, rep(pi, length(iu0)), nb_c)
+      if (!is.null(control_ftbl$mumps)) {
+#browser()
+         lapply(grep("^icntl_", names(control_ftbl$mumps), v=TRUE), function(nm) {
+            i=suppressWarnings(as.integer(strsplit(nm, "_")[[1L]][2]))
+            v=suppressWarnings(as.integer(control_ftbl$mumps[[nm]]))
+            if (!is.na(i) && !is.na(v))
+               l$a$set_icntl(v, i)
+         })
+      }
       l$iadiag=which(i==j)
       # prepare sparse bmat where col_sums(bmat) will give b$v
       if (emu) {

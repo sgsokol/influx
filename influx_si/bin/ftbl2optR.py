@@ -614,24 +614,6 @@ if (case_i && (time_order == "2" || time_order == "1,2")) {
 # formated output in kvh file
 fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
 """)
-    # parse optctrl in netan["opt"]
-    # optctrl_maxit=100 goes to list(default=list(maxit=100))
-    # optctrl:bfgs:maxit=1000 goes to list(bfgs=list(maxit=1000))
-    dctrl={"default": dict()}
-    for k,v in netan["opt"].items():
-        if not k.startswith("optctrl") or len(k) < 8:
-            continue
-        k=k[7:] # strip "optctrl" part
-        if k[0] == "_":
-            dctrl["default"][k[1:]]=str(v)
-        elif k[0] == ":":
-            li=k[1:].split(":")
-            dctrl[li[0]]=dctrl.get(li[0], dict())
-            dctrl[li[0]][join(":", li[1:])]=str(v)
-    #print(dctrl)
-    sep=",\n\t"
-    tmp=f"list({sep.join('`'+m+'`=list('+', '.join('`'+kk+'`='+vv for kk,vv in dd.items())+')' for m,dd in dctrl.items())})"
-    f.write(f"control_ftbl={tmp}")
     f.write(r"""
 retcode=numeric(nseries)
 cl_type="PSOCK"
