@@ -455,7 +455,7 @@ jx_f=new.env()
 """%{
     "dirw": escape(os.path.abspath(os.path.dirname(f.name)), '\\"'),
     "dirr": escape(dirr, '\\"'),
-    "case_i": "T" if case_i else "F",
+    "case_i": "TRUE" if case_i else "FALSE",
     "vernum": open(os.path.join(dirr, "..", "influx_version.txt"), "r").read().strip(),
     "org": escape(os.path.basename(f.name[:-2]), '"'),
     "ropts": ropts,

@@ -178,7 +178,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # branched from param2fl_usm_eul().
    # 2014-07-09 sokol
    
-#browser()   
+#browser()
    # from labargs to local vars
    #cat("labargs=", format(labargs), "\n")
    for (item in ls(labargs)) {
@@ -216,7 +216,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       #cat("param2fl_usm_eul2: recalculate jacobian\n")
       jx_f$df_dffp=df_dffp(param, lf$flnx, nb_f, nm_list)
    }
-   Alit=lapply(seq_len(nb_w), function(iw) -fwrv2Abr(fwrv, spa[[iw]], x1, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=F,  emu=emu)$A$triplet())
+   Alit=lapply(seq_len(nb_w), function(iw) -fwrv2Abr(fwrv, spa[[iw]], NULL, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=FALSE,  emu=emu)$A$triplet())
    dtru=unique(unlist(lapply(seq_len(nb_exp), function(iexp) as.character(round(diff(tifull[[iexp]]), 6)))))
    # prepare place for (diag(vm)/dt-a)^-1 common to all iexp
    if (is.null(labargs$ali_w)) {
@@ -257,7 +257,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       
       # prepare vectors at t1=0 with zero labeling
       # incu, xi is supposed to be in [0; 1]
-      x1=c(1., xi[,iexp], rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1
+      x1=c(1., xi[,1L,iexp], rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1
       names(x1)=c("one", nm$inp, nm$x)
       # prepare time vectors
       dt=diff(tifull[[iexp]])
@@ -277,7 +277,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
 #browser()
       xsim=matrix(x1, nrow=length(x1), ncol=ntico)
       #xsim[1+seq_len(nb_xi),]=xi[,iexp] # set input label profile
-      bop(xsim, c(1, 1, nb_xi), "=", xi[,iexp])
+      bop(xsim, c(1, 1, nb_xi), "=", xi[,-1,iexp])
       
       dimnames(xsim)=list(names(x1), tifull[[iexp]][-1L])
       if (cjac) {

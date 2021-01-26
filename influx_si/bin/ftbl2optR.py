@@ -462,6 +462,17 @@ for (iexp in seq_len(nb_exp)) {
       nb_f$ipf2ircumo2[[iexp]][[iw]]=i2[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
    }
 }
+# replicate first column in xi as many times as there are time points
+if (time_order == "2" || time_order == "1,2") {
+   xi2=array(xi, dim=c(dim(xi), nb_tifu2))
+   xi=xi2[,,1:nb_tifu, drop=FALSE]
+   xi=aperm(xi, c(1,3,2))
+   xi2=aperm(xi2, c(1,3,2))
+} else {
+   xi=array(xi, dim=c(dim(xi), nb_tifu))
+   xi=aperm(xi, c(1,3,2))
+}
+
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
 nb_f$tifu=nb_tifu
 nb_f$tifu2=nb_tifu2
@@ -605,6 +616,7 @@ if (case_i && (time_order == "2" || time_order == "1,2")) {
    labargs2=as.environment(as.list(labargs))
    labargs2$nb_f=as.environment(as.list(labargs$nb_f))
    labargs2$tifull=tifull2
+   labargs2$xi=xi2
    labargs2$jx_f=new.env()
    labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
    labargs2$nb_f$tifu=nb_f$tifu2
