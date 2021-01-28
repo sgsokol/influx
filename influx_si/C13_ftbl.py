@@ -2808,7 +2808,7 @@ In case of output, you can add a fictious metabolite following to '"""+metab+"' 
         }
 
 def proc_kinopt(ftbl, netan):
-    """Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt
+    """Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt, funlab
     """
     # default values (used when absent in ftbl)
     de={"file_labcin": "", "dt": 1, "tmax": float("inf"), "nsubdiv_dt": 1}
@@ -2817,17 +2817,40 @@ def proc_kinopt(ftbl, netan):
     # get ftbl OPTIONS -> d
     d=dict()
     for row in ftbl.get("OPTIONS",[]):
-        try:
-            d[row["OPT_NAME"]]=eval(row["OPT_VALUE"])
-        except:
+        if row["OPT_NAME"][:7] == "funlab:":
             d[row["OPT_NAME"]]=row["OPT_VALUE"]
+        else:
+            try:
+                d[row["OPT_NAME"]]=eval(row["OPT_VALUE"])
+            except:
+                d[row["OPT_NAME"]]=row["OPT_VALUE"]
     for k in de:
         if k not in netan["opt"]:
             netan["opt"][k]=[]
-        elif type(netan["opt"][k]) != type([]):
+        elif type(netan["opt"][k]) != list:
             netan["opt"][k]=[] # if already set to a value, reset to a list
         ili=len(netan["opt"][k])
         netan["opt"][k]+=[{}]
         res=netan["opt"][k]
         res[ili]=d.get(k, de[k])
+    # append funval entries
+    if "funlab" not in netan["opt"]:
+        netan["opt"]["funlab"]=[]
+    ili=len(netan["opt"]["funlab"])
+    netan["opt"]["funlab"]+=[{}]
+    netan["opt"]["funlab"][ili]=dict((k[7:],v) for k,v in d.items() if k[:7] == "funlab:")
 
+def mkfunlabli(d):
+    "transform 'd' dict to an R function calculating labeling dependent on time 't'"
+    # d is like {'Gluc_1:#100000': '{T=0; if (t >= T) 1 else NA}'}
+    # transform it to {metab: {i: code}} where 'i' is calculated from #100000
+    dn=dict()
+    for k,v in d.items():
+        m,i=k.split(":")
+        dn[m]=dn.get(m, {})
+        i=strbit2int(i)
+        if i in dn[m]:
+            raise Exception(f"input isotopomer '{k}' already has its labeling function")
+        dn[m][i]=v
+    return "%(li)s"%{"li": "list("+", ".join("`%(m)s`=list(%(i2f)s)"%{"m": m, "i2f": ", ".join(f"`{iso}`=parse(text='{f}')" for iso,f in idi.items())} for m,idi in dn.items())+")"}
+    

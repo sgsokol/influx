@@ -327,6 +327,9 @@ tstart=0.
 tmax=c(%(tmax)s)
 dt=c(%(dt)s)
 
+# funlab list
+funlabli=list(%(funlabli)s)
+
 # read measvecti from file(s) specified in ftbl(s)
 flabcin=c(%(flabcin)s)
 measvecti=ti=tifull=tifull2=vector("list", nb_exp)
@@ -404,6 +407,12 @@ for (iexp in seq_len(nb_exp)) {
          optimize=F
       }
    }
+   # recalculate nb_exp from measvecti
+   nb_meas=sapply(measvecti, NROW)
+   nb_meas_cumo=c(0., cumsum(nb_meas[-nb_exp]))
+   iexp_meas=lapply(seq_len(nb_exp), function(iexp) seq_len(nb_meas[iexp])+nb_meas_cumo[iexp])
+   nb_f$nb_meas=nb_meas
+
    nb_ti[iexp]=length(ti[[iexp]])
    if (nb_ti[iexp] < 2L) {
       mes=sprintf("After filtering by tmax, only %%d time moments are kept for experiment '%%s'. It is not sufficient.", nb_ti[iexp], nm_exp[iexp])
@@ -433,6 +442,7 @@ for (iexp in seq_len(nb_exp)) {
     "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
     "flabcin": join(", ", netan["opt"]["file_labcin"], '"', '"'),
     "nsubdiv_dt": join(", ", netan["opt"]["nsubdiv_dt"]),
+    "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["opt"]["funlab"]))
 })
 
         f.write("""
@@ -462,15 +472,18 @@ for (iexp in seq_len(nb_exp)) {
       nb_f$ipf2ircumo2[[iexp]][[iw]]=i2[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
    }
 }
-# replicate first column in xi as many times as there are time points
-if (time_order == "2" || time_order == "1,2") {
-   xi2=array(xi, dim=c(dim(xi), nb_tifu2))
-   xi=xi2[,,1:nb_tifu, drop=FALSE]
-   xi=aperm(xi, c(1,3,2))
-   xi2=aperm(xi2, c(1,3,2))
-} else {
-   xi=array(xi, dim=c(dim(xi), nb_tifu))
-   xi=aperm(xi, c(1,3,2))
+if (length(funlabli) == 0) {
+   # replicate first column in xi as many times as there are time points
+   if (time_order == "2" || time_order == "1,2") {
+      xi2=lapply(seq(nb_exp), function(iexp) matrix(xi, nrow=dim(xi), ncol=nb_tifu2))
+   }
+   xi=lapply(seq(nb_exp), function(iexp) matrix(xi, nrow=dim(xi), ncol=nb_tifu))
+}  else {
+   # use funlab
+   xi=lapply(seq(nb_exp), function(iexp) funlab(tifull[[iexp]], nm_inp, funlabli[[iexp]]))
+   if (time_order == "2" || time_order == "1,2") {
+      xi2=lapply(seq(nb_exp), function(iexp) funlab(tifull2[[iexp]], nm_inp, funlabli[[iexp]]))
+   }
 }
 
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
@@ -485,11 +498,11 @@ nb_f$ti=nb_ti
 # gather all measurement information
 measurements=list(
    vec=list(labeled=measvec, flux=fmn, pool=vecpoolm, kin=if (case_i) measvecti else NULL),
-   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev, kin=if (case_i) rep(measdev, nb_ti-1) else NULL),
+   dev=list(labeled=measdev, flux=fmndev, pool=poolmdev, kin=if (case_i) lapply(structure(seq(nb_exp), names=names(measdev)), function(i) {v=measdev[[i]]; nbc=if (is.null(measvecti[[i]])) 0 else ncol(measvecti[[i]]); suppressWarnings(matrix(v, nrow=length(v), ncol=nbc))}) else NULL),
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
-nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, outer(nm_meas[[iexp]], ti[[iexp]][-1L], paste, sep=", t="), sep=":"))) else unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, nm_meas[[iexp]], sep=":"))), nm_fmn, nm_poolm)
+nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, outer(rownames(measvecti[[iexp]]), ti[[iexp]][-1L], paste, sep=", t="), sep=":", recycle0=TRUE))) else unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, nm_meas[[iexp]], sep=":"))), nm_fmn, nm_poolm)
 nm_list$resid=nm_resid
 
 if (TIMEIT) {

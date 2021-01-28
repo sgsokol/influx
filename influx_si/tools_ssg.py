@@ -123,7 +123,7 @@ def list2count(l, incr=1):
     return dico
 
 def strbit2int(s):
-    r"""translate a string of 0's and 1's interpreted as bits to an integer all characters different from 0,1 are silently ignored"""
+    r"""translate a string of 0's and 1's interpreted as bits to an integer all characters different from 0,1 are silently ignored."""
     res=0
     movb=1
     for c in s[::-1]:
@@ -150,7 +150,7 @@ def expandbit(i,pos):
 
 def isstr(s):
     r""":returns: True if the argument is a string"""
-    return isinstance(s,type("")) or isinstance(s,type(""))
+    return isinstance(s,str)
 
 def trd(l, d, p="", s="", a=""):
     r"""translate items in an iterable l by a dictionary d, prefixing translated items by optional p and suffixing them by optional s. If an item is not found in the dictionnary alternative string a is used. If a==None, the item is left unchanged. No prefix or suffix are applied in both case.

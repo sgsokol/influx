@@ -257,7 +257,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       
       # prepare vectors at t1=0 with zero labeling
       # incu, xi is supposed to be in [0; 1]
-      x1=c(1., xi[,1L,iexp], rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1
+      x1=c(1., xi[[iexp]][,1L], rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1
       names(x1)=c("one", nm$inp, nm$x)
       # prepare time vectors
       dt=diff(tifull[[iexp]])
@@ -276,8 +276,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       
 #browser()
       xsim=matrix(x1, nrow=length(x1), ncol=ntico)
-      #xsim[1+seq_len(nb_xi),]=xi[,iexp] # set input label profile
-      bop(xsim, c(1, 1, nb_xi), "=", xi[,-1,iexp])
+      bop(xsim, c(1, 1, nb_xi), "=", xi[[iexp]][,-1])
       
       dimnames(xsim)=list(names(x1), tifull[[iexp]][-1L])
       if (cjac) {
@@ -493,7 +492,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             redim(dux_dp, c(dim(dux_dp)[1], ntise*(nb_ff+nb_poolf)))
             dux_dp=meas2sum[[iexp]]%stm%(pwe[[iexp]]*dux_dp) # resize
          }
-         redim(dux_dp, c(nb_meas[iexp], ntise, nb_ff+nb_poolf))
+         redim(dux_dp, c(nrow(measmat[[iexp]]), ntise, nb_ff+nb_poolf))
          if (length(ijpwef[[iexp]]) > 0L) {
             # derivative of pool ponderation factor
             dpw_dpf=double(nrow(measmat[[iexp]])*ntise*nb_poolf)
@@ -588,4 +587,22 @@ param2fl_usm_rich=function(param, cjac, labargs) {
       res1=param2fl_usm_eul2(param, cjac, labargs)
    }
    return(res1)
+}
+funlab=function(tp, cumo, li) {
+   lit=lapply(li, function(m) lapply(structure(names(m), names=names(m)), function(n) vapply(tp, function(t) eval(m[[n]]), double(1L)))) # time dependent isotopomers, i.e. functions applied on t
+   sp=matrix(unlist(strsplit(cumo, ":")), nrow=2)
+   cres=matrix(0., nrow=length(cumo), ncol=length(tp))
+   for (j in seq(ncol(sp))) {
+      # find what isotopomers in lit contributes to this cumo
+      met=sp[1, j]
+      icu=as.integer(sp[2, j])
+      iso=as.integer(names(lit[[met]]))
+      i=sapply(iso, function(i) bitwAnd(i, icu) == icu)
+      res=double(length(tp))
+      if (any(i)) {
+         sapply(lit[[met]][i], function(v) {res <<- res+v; NULL})
+      }
+      cres[j,]=res
+   }
+   return(cres)
 }
