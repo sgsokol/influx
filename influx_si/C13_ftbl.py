@@ -2811,7 +2811,7 @@ def proc_kinopt(ftbl, netan):
     """Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt, funlab
     """
     # default values (used when absent in ftbl)
-    de={"file_labcin": "", "dt": 1, "tmax": float("inf"), "nsubdiv_dt": 1}
+    de={"file_labcin": "", "dt": 1, "tmax": float("inf"), "nsubdiv_dt": 1, "funlabR": ""}
     if "opt" not in netan:
         netan["opt"]=dict((k, []) for k in de)
     # get ftbl OPTIONS -> d

@@ -329,6 +329,8 @@ dt=c(%(dt)s)
 
 # funlab list
 funlabli=list(%(funlabli)s)
+funlabR=paste(dirw, c(%(funlabR)s), sep="/")
+funlabR[funlabR == paste0(dirw, "/")]="" # set to "" where file names are empty
 
 # read measvecti from file(s) specified in ftbl(s)
 flabcin=c(%(flabcin)s)
@@ -442,7 +444,8 @@ for (iexp in seq_len(nb_exp)) {
     "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
     "flabcin": join(", ", netan["opt"]["file_labcin"], '"', '"'),
     "nsubdiv_dt": join(", ", netan["opt"]["nsubdiv_dt"]),
-    "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["opt"]["funlab"]))
+    "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["opt"]["funlab"])),
+    "funlabR": join(", ", netan["opt"]["funlabR"], '"', '"')
 })
 
         f.write("""
@@ -483,9 +486,17 @@ for (iexp in seq(nb_exp)) {
       xil[[iexp]]=matrix(xi[,iexp], nrow=nrow(xi), ncol=nb_tifu[[iexp]])
    }  else {
       # use funlab
-      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp, fli, emu, nm_exp[[iexp]], fcerr)
+      env=new.env() # funlab code won't see influx's variables
+      if (nchar(funlabR[[iexp]])) {
+         if (file.exists(funlabR[[iexp]])) {
+            es=try(source(funlabR[[iexp]], local=env), outFile=fcerr)
+         } else {
+            stop_mes("funlab script R '", funlabR[[iexp]], "' from '", nm_exp[[iexp]],"' does not exist.", file=fcerr)
+         }
+      }
+      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp, fli, env, emu, nm_exp[[iexp]], fcerr)
       if (time_order == "2" || time_order == "1,2")
-         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, emu, nm_exp[[iexp]], fcerr)
+         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, env, emu, nm_exp[[iexp]], fcerr)
    }
 }
 xi=xil

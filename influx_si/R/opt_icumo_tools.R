@@ -593,10 +593,11 @@ param2fl_usm_rich=function(param, cjac, labargs) {
 # nm_inp cumo: "Glc:63"
 # nm_inp emu: "Glc:63+0"
  
-funlab=function(tp, nm_inp, li, emu, fname, fcerr, tol=.Machine$double.eps*2**8) {
+funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=.Machine$double.eps*2**8) {
    # lit is nested a list: met => str(isoint) => vector of legth #tp
    lit=lapply(structure(seq_along(li), names=names(li)), function(i) {m=li[[i]]; met=names(li)[[i]]; lapply(structure(names(m), names=names(m)), function(n) vapply(tp, function(t) {
-      v=eval(m[[n]])
+      env$t=t
+      v=eval(m[[n]], env)
       if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
          ibad=which(ibad)[1]
          stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a non numeric value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
@@ -632,9 +633,8 @@ funlab=function(tp, nm_inp, li, emu, fname, fcerr, tol=.Machine$double.eps*2**8)
          iso=as.integer(names(lit[[met]]))
          i=sapply(iso, function(ii) sum(as.integer(intToBits(bitwAnd(ii, iemu[1])))) == iemu[2])
          res=double(length(tp))
-         if (any(i)) {
-            sapply(lit[[met]][i], function(v) {res <<- res+v; NULL})
-         }
+         if (any(i))
+            res=Reduce("+", lit[[met]][i])
          cres[j,]=res
       }
    } else {
@@ -645,9 +645,8 @@ funlab=function(tp, nm_inp, li, emu, fname, fcerr, tol=.Machine$double.eps*2**8)
          iso=as.integer(names(lit[[met]]))
          i=sapply(iso, function(ii) bitwAnd(ii, icu) == icu)
          res=double(length(tp))
-         if (any(i)) {
-            sapply(lit[[met]][i], function(v) {res <<- res+v; NULL})
-         }
+         if (any(i))
+            res=Reduce("+", lit[[met]][i])
          cres[j,]=res
       }
    }
