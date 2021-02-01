@@ -482,7 +482,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #redim(xpf, c(nbc_x[nb_w+1L], ntise*(nb_ff+nb_poolf)))
          # scale part of jacobian
          if (nb_f$nb_sc_tot != 0L) {
-            stop_mes("nb_sc != 0L is not implemented as meaningless for dynamic labeling. Use --noscale option.", fcerr)
+            stop_mes("nb_sc != 0L is not implemented as meaningless for dynamic labeling. Use --noscale option.", file=fcerr)
          }
          #dux_dp=measmat[[iexp]]%stm%xpf
          dux_dp=mm_xpf(measmat[[iexp]], xpf, isel)
@@ -588,21 +588,68 @@ param2fl_usm_rich=function(param, cjac, labargs) {
    }
    return(res1)
 }
-funlab=function(tp, cumo, li) {
-   lit=lapply(li, function(m) lapply(structure(names(m), names=names(m)), function(n) vapply(tp, function(t) eval(m[[n]]), double(1L)))) # time dependent isotopomers, i.e. functions applied on t
-   sp=matrix(unlist(strsplit(cumo, ":")), nrow=2)
-   cres=matrix(0., nrow=length(cumo), ncol=length(tp))
-   for (j in seq(ncol(sp))) {
-      # find what isotopomers in lit contributes to this cumo
-      met=sp[1, j]
-      icu=as.integer(sp[2, j])
-      iso=as.integer(names(lit[[met]]))
-      i=sapply(iso, function(i) bitwAnd(i, icu) == icu)
-      res=double(length(tp))
-      if (any(i)) {
-         sapply(lit[[met]][i], function(v) {res <<- res+v; NULL})
+# transform a funlab list 'li' into matrix #nm_inp x #tp having input labeling in time points 'tp'
+# li entries: "metab name" -> "int iso mask" -> R-code depending on scalar 't'
+# nm_inp cumo: "Glc:63"
+# nm_inp emu: "Glc:63+0"
+ 
+funlab=function(tp, nm_inp, li, emu, fname, fcerr, tol=.Machine$double.eps*2**8) {
+   # lit is nested a list: met => str(isoint) => vector of legth #tp
+   lit=lapply(structure(seq_along(li), names=names(li)), function(i) {m=li[[i]]; met=names(li)[[i]]; lapply(structure(names(m), names=names(m)), function(n) vapply(tp, function(t) {
+      v=eval(m[[n]])
+      if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
+         ibad=which(ibad)[1]
+         stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a non numeric value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
       }
-      cres[j,]=res
+      v[v < 0. && v >= -tol]=0.
+      v[v > 1. && v <= 1+tol]=1.
+      if (any(ibad <- v < 0.)) {
+         ibad=which(ibad)[1]
+         stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a negative value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+      }
+      if (any(ibad <- v > 1.)) {
+         ibad=which(ibad)[1]
+         stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a value > 1 at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+      }
+      v
+   }, double(1L)))}) # time dependent isotopomers, i.e. functions applied on t
+   # sanity check, sum==1
+   for (met in names(lit)) {
+      su=Reduce("+", lit[[met]])
+#browser()
+      if (any(ibad <- su < 1-tol | su > 1+tol)) {
+         ibad=which(ibad)[1]
+         stop_mes("Input label '", met, "' from '", fname, "' sums up to a value not equal to 1 at t=", tp[ibad], ": '", su[ibad], "'.", file=fcerr)
+      }
+   }
+   sp=matrix(unlist(strsplit(nm_inp, ":", fixed=TRUE)), nrow=2)
+   cres=matrix(0., nrow=length(nm_inp), ncol=length(tp))
+   if (emu) {
+      for (j in seq(ncol(sp))) {
+         # find what isotopomers in lit contributes to this nm_inp
+         met=sp[1L, j]
+         iemu=as.integer(strsplit(sp[2L, j], "+", fixed=TRUE)[[1L]])
+         iso=as.integer(names(lit[[met]]))
+         i=sapply(iso, function(ii) sum(as.integer(intToBits(bitwAnd(ii, iemu[1])))) == iemu[2])
+         res=double(length(tp))
+         if (any(i)) {
+            sapply(lit[[met]][i], function(v) {res <<- res+v; NULL})
+         }
+         cres[j,]=res
+      }
+   } else {
+      for (j in seq(ncol(sp))) {
+         # find what isotopomers in lit contributes to this nm_inp
+         met=sp[1L, j]
+         icu=as.integer(sp[2L, j])
+         iso=as.integer(names(lit[[met]]))
+         i=sapply(iso, function(ii) bitwAnd(ii, icu) == icu)
+         res=double(length(tp))
+         if (any(i)) {
+            sapply(lit[[met]][i], function(v) {res <<- res+v; NULL})
+         }
+         cres[j,]=res
+      }
    }
    return(cres)
 }

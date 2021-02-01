@@ -2842,11 +2842,11 @@ def proc_kinopt(ftbl, netan):
 
 def mkfunlabli(d):
     "transform 'd' dict to an R function calculating labeling dependent on time 't'"
-    # d is like {'Gluc_1:#100000': '{T=0; if (t >= T) 1 else NA}'}
+    # d is like {'Gluc_1#100000': '{T=0; if (t >= T) 1 else NA}'}
     # transform it to {metab: {i: code}} where 'i' is calculated from #100000
     dn=dict()
     for k,v in d.items():
-        m,i=k.split(":")
+        m,i=k.split("#")
         dn[m]=dn.get(m, {})
         i=strbit2int(i)
         if i in dn[m]:

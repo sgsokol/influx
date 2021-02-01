@@ -368,12 +368,12 @@ if (substring(sensitive, 1, 3)=="mc=") {
 # cupx==0 means no upper limit => cupx=1
 cupx=ifelse(cupx, cupx, 1)
 if (cupx < 0 || cupx > 1) {
-   stop_mes(paste("Option '--cupx N' must have N in the interval [0,1]\n",
-      "Instead, the value ", cupx, " si given.", sep=""), file=fcerr)
+   stop_mes("Option '--cupx N' must have N in the interval [0,1]\\n",
+      "Instead, the value ", cupx, " is given.", file=fcerr)
 }
 if (cinout < 0) {
-   stop_mes(paste("Option '--cinout N' must have N non negative\n",
-      "Instead, the value ", cinout, " is given.", sep=""), file=fcerr)
+   stop_mes("Option '--cinout N' must have N non negative\\n",
+      "Instead, the value ", cinout, " is given.", file=fcerr)
 }
 # minimization method
 validmethods=c("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic", "pso")
@@ -427,7 +427,7 @@ if (zc==-.Machine$double.xmax) {
    zerocross=F
 } else {
    if (zc < 0.) {
-      stop_mes(paste("Zero crossing value ZC must be non negative, instead ", zc, " is given.", sep=""), file=fcerr)
+      stop_mes("Zero crossing value ZC must be non negative, instead ", zc, " is given.", file=fcerr)
    }
    zerocross=T
 }
@@ -440,7 +440,7 @@ if (seed==-.Machine$integer.max) {
 }
 time_order=gsub("\\\\s", "", time_order) # remove spaces if any
 if (!(time_order %%in%% c("1", "2", "1,2"))) {
-   stop_mes(sprintf("time_order must be '1', '2' or '1,2'. Instead got '%%s'"))
+   stop_mes("time_order must be '1', '2' or '1,2'. Instead got '", time_order, "'", file=fcerr)
 }
 opts=commandArgs()
 # end command line argument proceeding
@@ -962,13 +962,12 @@ if (ffguess) {
    rank=sum(d > d[1]*1.e-10)
    qrow=qr(t(afd))
    rankr=qrow$rank
-   if (rank != rankr) {
-      mes="Weird error: column and row ranks are not equal.\\n"
-      stop_mes(mes, file=fcerr)
-   }
+   if (rank != rankr)
+      stop_mes("Weird error: column and row ranks are not equal.", file=fcerr)
+   
    irows=qrow$pivot[seq_len(rankr)]
    if (rank==0) {
-      stop_mes("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.\\n", file=fcerr)
+      stop_mes("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.", file=fcerr)
    }
    Afl=afd[irows, qafd$pivot[1L:rank], drop=FALSE]
    ka=kappa(Afl)
@@ -1108,9 +1107,9 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          sep="")
    }""")
     f.write("""
-   stop_mes(paste("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
+   stop_mes("Flux matrix is not square or is singular: (", nrow(Afl), "eq x ", ncol(Afl), "unk)\\n",
       "You have to change your choice of free fluxes in the '%(n_ftbl)s' file.\\n",
-      mes, sep=""), file=fcerr)
+      mes, file=fcerr)
 }
 
 # make sure that free params choice leads to not singular matrix
@@ -1603,7 +1602,7 @@ if (case_i) {
    met_net=unique(matrix(unlist(strsplit(nm_rcumo, ":", fixed=TRUE)), nrow=2)[1,])
    net_pool=sort(setdiff(met_net, names(nm_poolall)))
    if (length(net_pool) > 0) {
-      stop_mes("The following metabolites are internal in NETWORK section but not in METABOLITE_POOLS one:\\n"%s+%paste(net_pool, collapse="\\n"), file=fcerr)
+      stop_mes("The following metabolites are internal in NETWORK section but not in METABOLITE_POOLS one:\\n", paste(net_pool, collapse="\\n"), file=fcerr)
    }
 }
 """)

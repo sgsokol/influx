@@ -116,7 +116,7 @@ co=c(
 "#a84f5b"
 )
 if (is.null(.GlobalEnv$jx_f) || is.null(jx_f$simlab)) {
-   stop_mes("plot_smeas.R: simulated data are not available. Plotting skipped", fcerr)
+   stop_mes("plot_smeas.R: simulated data are not available. Plotting skipped", file=fcerr)
 }
 for (iexp in seq_len(nb_exp)) {
    sim=jx_f$simlab[[iexp]]

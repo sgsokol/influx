@@ -1307,7 +1307,7 @@ opt_wrapper=function(param, method, measurements, jx_f, labargs, trace=1) {
          res=c(tmp, res) # preserve the rest of the fields: stats etc.
       }
    } else {
-      stop_mes(paste("Unknown minimization method '", method, "'\\n", sep=""), file=fcerr)
+      stop_mes("Unknown minimization method '", method, "'", file=fcerr)
    }
    if (is.null(res$err)) {
       res$err=0L

@@ -472,19 +472,23 @@ for (iexp in seq_len(nb_exp)) {
       nb_f$ipf2ircumo2[[iexp]][[iw]]=i2[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
    }
 }
-if (length(funlabli) == 0) {
-   # replicate first column in xi as many times as there are time points
-   if (time_order == "2" || time_order == "1,2") {
-      xi2=lapply(seq(nb_exp), function(iexp) matrix(xi, nrow=dim(xi), ncol=nb_tifu2))
-   }
-   xi=lapply(seq(nb_exp), function(iexp) matrix(xi, nrow=dim(xi), ncol=nb_tifu))
-}  else {
-   # use funlab
-   xi=lapply(seq(nb_exp), function(iexp) funlab(tifull[[iexp]], nm_inp, funlabli[[iexp]]))
-   if (time_order == "2" || time_order == "1,2") {
-      xi2=lapply(seq(nb_exp), function(iexp) funlab(tifull2[[iexp]], nm_inp, funlabli[[iexp]]))
+xil=vector("list", nb_exp)
+xi2=vector("list", nb_exp)
+for (iexp in seq(nb_exp)) {
+   fli=funlabli[[iexp]]
+   if (length(fli) == 0) {
+      # replicate first column in xi as many times as there are time points
+      if (time_order == "2" || time_order == "1,2")
+         xi2[[iexp]]=matrix(xi[,iexp], nrow=nrow(xi), ncol=nb_tifu2[[iexp]])
+      xil[[iexp]]=matrix(xi[,iexp], nrow=nrow(xi), ncol=nb_tifu[[iexp]])
+   }  else {
+      # use funlab
+      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp, fli, emu, nm_exp[[iexp]], fcerr)
+      if (time_order == "2" || time_order == "1,2")
+         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, emu, nm_exp[[iexp]], fcerr)
    }
 }
+xi=xil
 
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
 nb_f$tifu=nb_tifu
@@ -516,7 +520,7 @@ if (nchar(fseries) > 0) {
    # skip parameters (rows) who's name is not in nm_par
    i=rownames(pstart) %in% nm_par
    if (!any(i)) {
-      stop_mes("Option --fseries is used but no free parameter with known name is found.\\n")
+      stop_mes("Option --fseries is used but no free parameter with known name is found.\\n", file=fcerr)
    }
    pstart=pstart[i,,drop=FALSE]
    cat("Using starting values form '", fseries, "' for the following free parameters:\\n", paste(rownames(pstart), collapse="\\n"), "\\n", sep="", file=fclog)

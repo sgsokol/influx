@@ -1195,17 +1195,17 @@ list2vars=function(li) {
    }
    return(NULL)
 }
-stop_mes=function(mes="", file=stderr()) {
+stop_mes=function(..., file=stderr()) {
    # print the error message mes to the error file (by default stderr)
    # and exit with status 1 without environement saving
    # If the session is intercative and the file is not stderr,
    # the message is duplicated on the screen via stop(mes)
-   cat(mes, "\n", sep="", file=file)
+   cat(..., "\n", sep="", file=file)
    if (isatty(stdin()) && file!=stderr()) {
-      stop(mes, call.=F)
-   } else {
-      q("no", status=1)
+      stop(..., call.=FALSE)
    }
+   if (!isatty(stdin()))
+      q("no", status=1)
 }
 lusolve=function(lua, b, perm=NULL) {
    # solve a normal system a*x=b when lu(a) is already available.
