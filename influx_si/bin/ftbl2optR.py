@@ -336,10 +336,10 @@ nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
 nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
 for (iexp in seq_len(nb_exp)) {
    if (tmax[iexp] < 0) {
-      stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), fcerr)
+      stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), file=fcerr)
    }
    if (dt[iexp] <= 0) {
-      stop_mes(sprintf("The parameter dt must be positive (dt=%%g in '%%s.ftbl')", dt[iexp], nm_exp[iexp]), fcerr)
+      stop_mes(sprintf("The parameter dt must be positive (dt=%%g in '%%s.ftbl')", dt[iexp], nm_exp[iexp]), file=fcerr)
    }
    if (nchar(flabcin[iexp])) {
       if (substr(flabcin[iexp], 1, 1) == "/")
@@ -853,7 +853,7 @@ for (irun in seq_len(nseries)) {
                im=(ir2isc[[iexp]]==(i+1)) & iva
                if (sum(im) < 2) {
                   mes=sprintf("scaling: no sufficient valid data for scaling factor '%s'\\n", nm_par[i])
-                  stop_mes(mes, fcerr)
+                  stop_mes(mes, file=fcerr)
                }
                param[i]=sum(ms[im])/sum(ss[im])
             }

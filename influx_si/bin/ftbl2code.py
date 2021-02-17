@@ -1282,7 +1282,9 @@ if (!noscale) {
    # for corresponding rows of measure matrix
    ir2isc=vector("list", %d)
 """%nexp)
-    base_isc=2+len(netan["flux_free"]["net"])+len(netan["flux_free"]["xch"])
+    #base_isc=2+len(netan["flux_free"]["net"])+len(netan["flux_free"]["xch"])
+    base_isc=2 # the shift by nb_ff is made in R because ffguess can make vary nb_ff in runtime
+    #import pdb; pdb.set_trace()
     for ili in range(nexp):
         for meas in o_meas:
             if not ir2isc[ili][meas]:
@@ -1296,6 +1298,10 @@ if (!noscale) {
         "ir2isc": join(", ", ((str(ir2isc[ili][meas][ir]+base_isc) if ir2isc[ili][meas][ir]>=0 else 1) for ir in range(len(ir2isc[ili][meas]))))
         })
             base_isc=base_isc+len(scale[ili][meas])
+            f.write("""
+   isc=ir2isc[[%(iexp)d]] != 1
+   ir2isc[[%(iexp)d]][isc]=ir2isc[[%(iexp)d]][isc]+nb_ff
+"""%{"iexp": ili+1})
 
     f.write("""
    # cumulated base for nb_sc
