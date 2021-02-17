@@ -374,7 +374,13 @@ def ftbl_parse(f):
                     # decimal point conversion
                     dic[col_names[i]]=data[i].strip() if i < len(data) else ""
                     if col_names[i] in float_conv:
-                       dic[col_names[i]]=dic[col_names[i]].replace(",", ".")
+                        oldval=dic[col_names[i]]
+                        val=oldval.replace(",", ".")
+                        try:
+                            fval=float(val)
+                            dic[col_names[i]]=val
+                        except:
+                            dic[col_names[i]]=oldval
                 except IndexError:
                     pass
             if sec_name == "NETWORK" and pathway:
@@ -2852,5 +2858,5 @@ def mkfunlabli(d):
         if i in dn[m]:
             raise Exception(f"input isotopomer '{k}' already has its labeling function")
         dn[m][i]=v
-    return "%(li)s"%{"li": "list("+", ".join("`%(m)s`=list(%(i2f)s)"%{"m": m, "i2f": ", ".join(f"`{iso}`=parse(text='{f}')" for iso,f in idi.items())} for m,idi in dn.items())+")"}
+    return "%(li)s"%{"li": "list("+", ".join("`%(m)s`=list(%(i2f)s)"%{"m": m, "i2f": ", ".join(f"`{iso}`='{f}'" for iso,f in idi.items())} for m,idi in dn.items())+")"}
     

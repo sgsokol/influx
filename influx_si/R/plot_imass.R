@@ -43,7 +43,7 @@ plot_ti=function(ti, x, m=NULL, ...) {
    }
    legend("topright", legend=nm_leg, lty=1:nb_curve, col=1:nb_curve, lwd=2, cex=0.75, bg=rgb(0.97,0.97,0.97, 0.75))
 }
-
+#browser()
 for (iexp in seq_len(nb_exp)) {
    usmf=jx_f$usmf[[iexp]] # unscaled simulated measurements
    me=measurements$vec$kin[[iexp]] # measured dynamic labeling data
@@ -70,7 +70,7 @@ for (iexp in seq_len(nb_exp)) {
    }
    # plot non measured metabs from mid
    nm_sim=rownames(mid[[iexp]])
-   nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
+   nmm=if (length(nm_sel)) unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,]) else character(0L)
    nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
    if (emu) {
       nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1)

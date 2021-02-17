@@ -177,7 +177,7 @@ if (nb_c > 0) {
 
 def netan2Rinit(netan, org, f, fullsys, emu=False, ropts=[]):
     r"""Write R code for initialization of all variables before
-cumomer system resolution by khi2 minimization.
+cumomer system resolution by chi2 minimization.
 :param netan: a collection of parsed ftbl information
 :param f: R code output pointer
 :param fullsys (logical): write a code for the full or only reduced cumomer system
@@ -253,7 +253,7 @@ cumomer system resolution by khi2 minimization.
     #    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measurements
     # Functions:
     #    lab_sim - translate param to flux and cumomer vector (initial approximation)
-    #    cumo_cost - cost function (khi2)
+    #    cumo_cost - cost function (chi2)
     #    cumo_grad - finite difference gradient
     #    fallnx2fwrv - produce fw-rv fluxes from fallnx
 

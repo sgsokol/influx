@@ -641,7 +641,7 @@ rz.pval.bi=function(x, fweight=sigmaw, ...){
    # treat only valid entries (skip NA)
    iva=!is.na(x)
    res=rep(NA, length(x))
-   if (sum(iva) == 0) {
+   if (sum(iva) < 2) {
       return(res)
    }
    x=x[iva]

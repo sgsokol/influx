@@ -593,24 +593,28 @@ param2fl_usm_rich=function(param, cjac, labargs) {
 # nm_inp cumo: "Glc:63"
 # nm_inp emu: "Glc:63+0"
  
-funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=.Machine$double.eps*2**8) {
+funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=.Machine$double.eps*2**7) {
    # lit is nested a list: met => str(isoint) => vector of legth #tp
    lit=lapply(structure(seq_along(li), names=names(li)), function(i) {m=li[[i]]; met=names(li)[[i]]; lapply(structure(names(m), names=names(m)), function(n) vapply(tp, function(t) {
       env$t=t
-      v=eval(m[[n]], env)
+      #browser()
+      v=try(eval(m[[n]], env), silent=TRUE)
+      if (inherits(v, "try-error")) {
+         stop_mes("Error in R code '", format(m[[n]][[1L]]), "' for input label '", met, "#", n, "' from '", fname, "':\n", v, file=fcerr)
+      }
       if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
          ibad=which(ibad)[1]
-         stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a non numeric value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+         stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a non numeric value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
       }
       v[v < 0. && v >= -tol]=0.
       v[v > 1. && v <= 1+tol]=1.
       if (any(ibad <- v < 0.)) {
          ibad=which(ibad)[1]
-         stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a negative value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+         stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a negative value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
       }
       if (any(ibad <- v > 1.)) {
          ibad=which(ibad)[1]
-         stop_mes("Input label '", met, ":", n, "' from '", fname, "' produced a value > 1 at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+         stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a value > 1 at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
       }
       v
    }, double(1L)))}) # time dependent isotopomers, i.e. functions applied on t

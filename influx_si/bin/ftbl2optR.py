@@ -94,7 +94,7 @@ Matrices:
 
 Functions:
    * lab_sim - translate param to flux and cumomer vector (initial approximation)
-   * cumo_cost - cost function (khi2)
+   * cumo_cost - cost function (chi2)
    * cumo_gradj - implicit derivative gradient
 """
 
@@ -328,7 +328,20 @@ tmax=c(%(tmax)s)
 dt=c(%(dt)s)
 
 # funlab list
-funlabli=list(%(funlabli)s)
+funlabli=structure(list(%(funlabli)s), names=nm_exp)
+funlabli=structure(lapply(nm_exp, function(nm) {
+   structure(lapply(names(funlabli[[nm]]), function(met) {
+      structure(lapply(names(funlabli[[nm]][[met]]), function(ni) {
+         rcode=funlabli[[nm]][[met]][[ni]]
+         v=try(parse(text=rcode), silent=TRUE)
+         if (inherits(v, "try-error"))
+            stop_mes("Error in parsing R code '", rcode, "' for label '", met, "#", ni, "' in '", nm, "':\n", v, file=fcerr)
+         v
+      }), names=names(funlabli[[nm]][[met]]))
+   }), names=names(funlabli[[nm]]))
+}), names=nm_exp)
+if (inherits(funlabli, "try-error"))
+   stop_mes(funlabli, file=fcerr)
 funlabR=paste(dirw, c(%(funlabR)s), sep="/")
 funlabR[funlabR == paste0(dirw, "/")]="" # set to "" where file names are empty
 
@@ -351,7 +364,7 @@ for (iexp in seq_len(nb_exp)) {
          flabcin[iexp]=file.path(flabcin[iexp])
       else
          flabcin[iexp]=file.path(dirw, flabcin[iexp])
-      measvecti[[iexp]]=as.matrix(read.table(flabcin[iexp], header=T, row.names=1, sep="\t", check=F, comment="#"))
+      measvecti[[iexp]]=as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep="\t", check=FALSE, comment=""))
       nm_row=rownames(measvecti[[iexp]])
       # put in the same row order as simulated measurements
       # check if nm_meas are all in rownames
@@ -517,7 +530,7 @@ measurements=list(
    mat=list(labeled=measmat, flux=ifmn, pool=measmatpool),
    one=list(labeled=memaone)
 )
-nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, outer(rownames(measvecti[[iexp]]), ti[[iexp]][-1L], paste, sep=", t="), sep=":", recycle0=TRUE))) else unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, nm_meas[[iexp]], sep=":"))), nm_fmn, nm_poolm)
+nm_resid=c(if (case_i) unlist(lapply(seq_len(nb_exp), function(iexp) {m=outer(rownames(measvecti[[iexp]]), ti[[iexp]][-1L], paste, sep=", t="); if (length(m) > 0L) paste(iexp, m, sep=":", recycle0=TRUE) else character(0L)})) else unlist(lapply(seq_len(nb_exp), function(iexp) paste(iexp, nm_meas[[iexp]], sep=":"))), nm_fmn, nm_poolm)
 nm_list$resid=nm_resid
 
 if (TIMEIT) {
@@ -1325,10 +1338,12 @@ for (irun in seq_len(nseries)) {
    colnames(jx_f$udr_dp)=nm_par
    obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
    # generalized inverse of non reduced jacobian
-   svj=svd(jx_f$udr_dp)
-   invj=svj$v%*%(t(svj$u)/svj$d)
-   dimnames(invj)=rev(dimnames(jx_f$udr_dp))
-   obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
+   if (length(jx_f$udr_dp) > 0L) {
+      svj=svd(jx_f$udr_dp)
+      invj=svj$v%*%(t(svj$u)/svj$d)
+      dimnames(invj)=rev(dimnames(jx_f$udr_dp))
+      obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
+   }
 
    labargs$getx=TRUE
    labargs$labargs2getx=TRUE
@@ -1549,100 +1564,102 @@ for (irun in seq_len(nseries)) {
    } # else use the last calculated jacobian
 
    # covariance matrix of free fluxes
-   svj=svd(jx_f$jacobian)
-   if (svj$d[1] == 0.) {
-      i=rep(TRUE, length(svj$d))
-   } else {
-      i=svj$d/svj$d[1]<1.e-10
-      if (all(!i) && svj$d[1]<1.e-10) {
-         # we could not find very small d, take just the last
-         i[length(i)]=TRUE
+   if (length(jx_f$jacobian) > 0L) {
+      svj=svd(jx_f$jacobian)
+      if (svj$d[1] == 0.) {
+         i=rep(TRUE, length(svj$d))
+      } else {
+         i=svj$d/svj$d[1]<1.e-10
+         if (all(!i) && svj$d[1]<1.e-10) {
+            # we could not find very small d, take just the last
+            i[length(i)]=TRUE
+         }
       }
-   }
-   ibad=apply(svj$v[, i, drop=FALSE], 2, which.contrib)
-   ibad=unique(unlist(ibad))
-   if (length(ibad) > 0) {
-      cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
-         paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fcerr)
-   }
-   # "square root" of covariance matrix (to preserve numerical positive definitness)
-   rtcov=(svj$u)%*%(t(svj$v)/svj$d)
-   # standart deviations of free fluxes
-   cat("linear stats\\n", file=fkvh)
-
-   # sd free+dependent+growth net-xch01 fluxes
-   nm_flfd=c(nm_ff, nm_fgr, nm_fl)
-   if (nb_ff > 0 || nb_fgr > 0) {
-      i=1:nb_param
-      i=c(head(i, nb_ff), tail(i, nb_fgr))
-      covfl=crossprod(rtcov[, i, drop=FALSE]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
-      dimnames(covfl)=list(nm_flfd, nm_flfd)
-      sdfl=sqrt(diag(covfl))
-   } else {
-      sdfl=rep(0., nb_fl)
-      covfl=matrix(0., nb_fl, nb_fl)
-   }
-   fl=c(head(param, nb_ff), fgr, flnx)
-   stats_nx=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
-   rownames(stats_nx)=nm_flfd
-   o=order(nm_flfd)
-   obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
-   obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
-
-   # sd of all fwd-rev
-   if (nb_ff > 0 || nb_fgr > 0) {
-      i=1:nb_param
-      i=c(head(i, nb_ff), tail(i, nb_fgr))
-      covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=FALSE], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
-      dimnames(covf)=list(nm_fwrv, nm_fwrv)
-      sdf=sqrt(diag(covf))
-   } else {
-      sdf=rep(0., length(fwrv))
-   }
-   mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
-   dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
-   o=order(nm_fwrv)
-   obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
-   if (nb_ff > 0 || nb_fgr > 0) {
-      obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
-   }
-   # pool -> kvh
-   sdpf=poolall
-   sdpf[]=0.
-
-   if (nb_poolf > 0) {
-      # covariance matrix of free pools
+      ibad=apply(svj$v[, i, drop=FALSE], 2, which.contrib)
+      ibad=unique(unlist(ibad))
+      if (length(ibad) > 0) {
+         cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
+            paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fcerr)
+      }
       # "square root" of covariance matrix (to preserve numerical positive definitness)
-      poolall[nm_poolf]=param[nm_poolf]
-      # cov poolf
-      covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=FALSE])
-      dimnames(covpf)=list(nm_poolf, nm_poolf)
-      sdpf[nm_poolf]=sqrt(diag(covpf))
-   }
-   if (length(poolall) > 0) {
-      mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
-      rownames(mtmp)=nm_poolall
-      o=order(nm_poolall)
-      obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
+      rtcov=(svj$u)%*%(t(svj$v)/svj$d)
+      # standart deviations of free fluxes
+      cat("linear stats\\n", file=fkvh)
+
+      # sd free+dependent+growth net-xch01 fluxes
+      nm_flfd=c(nm_ff, nm_fgr, nm_fl)
+      if (nb_ff > 0 || nb_fgr > 0) {
+         i=1:nb_param
+         i=c(head(i, nb_ff), tail(i, nb_fgr))
+         covfl=crossprod(rtcov[, i, drop=FALSE]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
+         dimnames(covfl)=list(nm_flfd, nm_flfd)
+         sdfl=sqrt(diag(covfl))
+      } else {
+         sdfl=rep(0., nb_fl)
+         covfl=matrix(0., nb_fl, nb_fl)
+      }
+      fl=c(head(param, nb_ff), fgr, flnx)
+      stats_nx=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
+      rownames(stats_nx)=nm_flfd
+      o=order(nm_flfd)
+      obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
+      obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
+
+      # sd of all fwd-rev
+      if (nb_ff > 0 || nb_fgr > 0) {
+         i=1:nb_param
+         i=c(head(i, nb_ff), tail(i, nb_fgr))
+         covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=FALSE], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
+         dimnames(covf)=list(nm_fwrv, nm_fwrv)
+         sdf=sqrt(diag(covf))
+      } else {
+         sdf=rep(0., length(fwrv))
+      }
+      mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
+      dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
+      o=order(nm_fwrv)
+      obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
+      if (nb_ff > 0 || nb_fgr > 0) {
+         obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
+      }
+      # pool -> kvh
+      sdpf=poolall
+      sdpf[]=0.
+
       if (nb_poolf > 0) {
-         o=order(nm_poolf)
-         obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+         # covariance matrix of free pools
+         # "square root" of covariance matrix (to preserve numerical positive definitness)
+         poolall[nm_poolf]=param[nm_poolf]
+         # cov poolf
+         covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=FALSE])
+         dimnames(covpf)=list(nm_poolf, nm_poolf)
+         sdpf[nm_poolf]=sqrt(diag(covpf))
+      }
+      if (length(poolall) > 0) {
+         mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
+         rownames(mtmp)=nm_poolall
+         o=order(nm_poolall)
+         obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
+         if (nb_poolf > 0) {
+            o=order(nm_poolf)
+            obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+         }
       }
    }
 
-   # khi2 test for goodness of fit
-   # goodness of fit (khi2 test)
+   # chi2 test for goodness of fit
+   # goodness of fit (chi2 test)
    if (length(jx_f$res)) {
       nvres=sum(!is.na(jx_f$res))
       if (nvres >= nb_param) {
-         khi2test=list("khi2 value"=rcost, "data points"=nvres,
+         chi2test=list("chi2 value"=rcost, "data points"=nvres,
             "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
-         khi2test$`khi2 reduced value`=khi2test$`khi2 value`/khi2test$`degrees of freedom`
-         khi2test$`p-value, i.e. P(X^2<=value)`=pchisq(khi2test$`khi2 value`, df=khi2test$`degrees of freedom`)
-         khi2test$conclusion=if (khi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
-         obj2kvh(khi2test, "goodness of fit (khi2 test)", fkvh, indent=1)
+         chi2test$`chi2 reduced value`=chi2test$`chi2 value`/chi2test$`degrees of freedom`
+         chi2test$`p-value, i.e. P(X^2<=value)`=pchisq(chi2test$`chi2 value`, df=chi2test$`degrees of freedom`)
+         chi2test$conclusion=if (chi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
+         obj2kvh(chi2test, "goodness of fit (chi2 test)", fkvh, indent=1)
       } else {
-         cat(sprintf("khi2: Measurement number %d is lower than parameter number %d. Khi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
+         cat(sprintf("chi2: Measurement number %d is lower than parameter number %d. Chi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
       }
    }
    if (prof) {
