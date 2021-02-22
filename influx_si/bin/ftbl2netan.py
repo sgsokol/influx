@@ -12,8 +12,9 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     def usage():
         print(__doc__)
 
+    me=os.path.basename(sys.argv[0])
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "emu", "clownr", "fullsys"])
+        opts,args=getopt.getopt(sys.argv[1:], "hi", ["help", "emu", "clownr", "fullsys"])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -21,10 +22,13 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     emu=False
     clownr=False
     fullsys=True
+    case_i=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit(0)
+        if o=="-i":
+            case_i=True
         elif o=="--emu":
             emu=True
         elif o=="--clownr":
@@ -38,6 +42,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
         usage()
         
     C13_ftbl.clownr=clownr
+    C13_ftbl.case_i=case_i
     fftbl=args[0]
     if fftbl and fftbl[-5:] != ".ftbl":
         fftbl+=".ftbl"
@@ -52,7 +57,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     ftbl=C13_ftbl.ftbl_parse(fftbl)
     netan=dict()
     try:
-        C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys)
+        C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys, case_i)
     except Exception as e:
         sys.stderr.write("ftbl2netan: Exception\n"+str(e)+"\n")
         tools_ssg.dict2kvh(netan, f)

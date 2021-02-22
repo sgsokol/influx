@@ -470,7 +470,7 @@ for (iexp in seq_len(nb_exp)) {
     "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
     "flabcin": join(", ", netan["opt"]["file_labcin"], '"', '"'),
     "nsubdiv_dt": join(", ", netan["opt"]["nsubdiv_dt"]),
-    "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["opt"]["funlab"])),
+    "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["funlab"])),
     "funlabR": join(", ", netan["opt"]["funlabR"], '"', '"')
 })
 

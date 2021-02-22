@@ -145,6 +145,7 @@ sys.path.append(dirx)
 from tools_ssg import *
 NaN=float("nan")
 NA=NaN
+tol=sys.float_info.epsilon*2**7
 float_conv=oset((
     "VALUE",
     "DEVIATION",
@@ -465,6 +466,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
      - measured fluxes (flux_measured)
      - variable growth fluxes (flux_vgrowth)
      - input isotopomers (iso_input)
+     - input isotopomers functions (funlab for case_i=True)
      - input cumomers (cumo_input)
      - input reduced cumomers (rcumo_input)
      - flux inequalities (flux_ineqal)
@@ -508,6 +510,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             "flux_constr":dict(),
             "flux_measured":dict(),
             "iso_input":[],
+            "funlab":[],
             "cumo_input":[],
             "rcumo_input":[],
             "emu_input":[],
@@ -1021,7 +1024,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 "dev": sdev}
     
     # proceed LABEL_INPUT
-    proc_label_input(ftbl, netan)
+    proc_label_input(ftbl, netan, case_i)
     # flux inequalities
     # list of tuples (value,comp,dict) where dict is flux:coef
     # and comp is of "<", "<=", ...
@@ -1522,7 +1525,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             if not any(f in fp for f in req_prl):
                 raise Exception("Not found label input and/or measurements in '%s'"%fn)
             netan["exp_names"].append(fp["base_name"])
-            proc_label_input(fp, netan)
+            proc_label_input(fp, netan, case_i)
             proc_label_meas(fp, netan)
             proc_peak_meas(fp, netan)
             proc_mass_meas(fp, netan)
@@ -2485,12 +2488,15 @@ def ms_frag_gath(netan):
 def ntimes(n):
     """Return charcater string 'once' for n=1, 'twice' for n=2 and 'n times' for other n"""
     return("once" if n==1 else "twice" if n==2 else "%d times"%n)
-def proc_label_input(ftbl, netan):
-    """Proceed LABEL_INPUT section in ftbl and add result to the list netan["iso_input"]
+def proc_label_input(ftbl, netan, case_i=False):
+    """Proceed LABEL_INPUT section in ftbl and add result to the list netan["iso_input"] and netan["funlab"] (case_i)
     List item is a dict {}metab;{isotop_int_index:fraction}}
     """
     ili=len(netan["iso_input"]) # label_input list index
     netan["iso_input"]+=[{}]
+    if case_i:
+        netan["funlab"]+=[{}]
+        resf=netan["funlab"][ili]
     res=netan["iso_input"][ili]
     # input isotopomers
     for row in ftbl.get("LABEL_INPUT",[]):
@@ -2502,41 +2508,53 @@ def proc_label_input(ftbl, netan):
             raise Exception("Input isotopomer `%s` is of bad length (%d). A length of %d is expected (%s: %s)."%
                 (row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), ilen,  netan["Clen"][metab], ftbl["name"], row["irow"]))
         iiso=strbit2int(row["ISOTOPOMER"])
-        if metab not in res:
-            res[metab]=dict()
-        val=eval(row["VALUE"])
-        res[metab][iiso]=val
-        if val < 0 or val > 1:
-            raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
-    # check that all isoforms sum up to 1 for all inputs
-    for metab in res:
-        le=len(res[metab])
-        nfo=2**netan["Clen"][metab]
-        su=sum(res[metab].values())
-        if su > 1.+1.e-10:
-            raise Exception("Input metabolite `%s` has label summing up to %g which is greater than 1 (%s)."%(metab, su, ftbl["name"]))
-        if le == nfo:
-            # all forms are given => must sum up to 1
-            if abs(su-1.) > 1.e-10:
-                raise Exception("Input metabolite `%s` has label summing up to %g instead of 1 (%s)."%(metab, su, ftbl["name"]))
-        elif le < nfo-1:
-            # many forms are lacking (not just one)
-            # if fully unlabeled is lacking, use it to complete to 1
-            # otherwise raise an error
-            if 0 not in res[metab]:
-                res[metab][0]=1.-su
-            elif abs(su-1.) > 1.e-10:
-                raise Exception("Input metabolite `%s` has lacking labels to sum up to 1 (we get sum=%g instead) (%s)."%(metab, su, ftbl["name"]))
-        elif le == nfo-1:
-            # just one form is lacking
-            if su != 1.:
-                # add it to complete to 1
-                la=list(oset(range(nfo))-oset(res[metab]))[0]
-                res[metab][la]=1.-su
+        res[metab]=res.get(metab, {})
+        if case_i:
+            resf[metab]=resf.get(metab, {})
+            resf[metab][iiso]=row["VALUE"]
+            res[metab][iiso]=NA
+        else:
+            val=eval(row["VALUE"])
+            if val < 0. and val >= -tol:
+                val=0.
+            if val > 1. and val <= 1.+tol:
+                val=1.
+            if val < 0 or val > 1:
+                raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
+            res[metab][iiso]=val
+    # check that all isoforms sum up to 1 for all inputs for influx_s
+    if not case_i:
+        for metab in res:
+            le=len(res[metab])
+            nfo=2**netan["Clen"][metab]
+            su=sum(res[metab].values())
+            if su > 1.+1.e-10:
+                raise Exception("Input metabolite `%s` has label summing up to %g which is greater than 1 (%s)."%(metab, su, ftbl["name"]))
+            if le == nfo:
+                # all forms are given => must sum up to 1
+                if abs(su-1.) > 1.e-10:
+                    raise Exception("Input metabolite `%s` has label summing up to %g instead of 1 (%s)."%(metab, su, ftbl["name"]))
+            elif le < nfo-1:
+                # many forms are lacking (not just one)
+                # if fully unlabeled is lacking, use it to complete to 1
+                # otherwise raise an error
+                if 0 not in res[metab]:
+                    res[metab][0]=1.-su
+                elif abs(su-1.) > 1.e-10:
+                    raise Exception("Input metabolite `%s` has lacking labels to sum up to 1 (we get sum=%g instead) (%s)."%(metab, su, ftbl["name"]))
+            elif le == nfo-1:
+                # just one form is lacking
+                if su != 1.:
+                    # add it to complete to 1
+                    la=list(oset(range(nfo))-oset(res[metab]))[0]
+                    res[metab][la]=1.-su
     if ili > 0:
         # complete absent inputs by their values from the first ftbl
         for m in oset(netan["iso_input"][0])-oset(res):
             res[m]=netan["iso_input"][0][m];
+        if case_i:
+            for m in oset(netan["funlab"][0])-oset(resf):
+                resf[m]=netan["funlab"][0][m];
     zeroc=oset(m for m,n in netan["Clen"].items() if n == 0)
     lmi=oset(res.keys())-netan["input"] # label input - input
     iml=oset(netan["input"])-zeroc-oset(res.keys()) # input - label input
@@ -2848,16 +2866,7 @@ def proc_kinopt(ftbl, netan):
     netan["opt"]["funlab"][ili]=dict((k[7:],v) for k,v in d.items() if k[:7] == "funlab:")
 
 def mkfunlabli(d):
-    "transform 'd' dict to an R function calculating labeling dependent on time 't'"
-    # d is like {'Gluc_1#100000': '{T=0; if (t >= T) 1 else NA}'}
-    # transform it to {metab: {i: code}} where 'i' is calculated from #100000
-    dn=dict()
-    for k,v in d.items():
-        m,i=k.split("#")
-        dn[m]=dn.get(m, {})
-        i=strbit2int(i)
-        if i in dn[m]:
-            raise Exception(f"input isotopomer '{k}' already has its labeling function")
-        dn[m][i]=v
-    return "%(li)s"%{"li": "list("+", ".join("`%(m)s`=list(%(i2f)s)"%{"m": m, "i2f": ", ".join(f"`{iso}`='{f}'" for iso,f in idi.items())} for m,idi in dn.items())+")"}
+    "transform 'd' dict to a string representing a body of an R function calculating labeling dependent on time 't'"
+    # d is like {'Gluc_1:{32: '{T=0; if (t >= T) 1 else NA}'}}
+    return "%(li)s"%{"li": "list("+", ".join("`%(m)s`=list(%(i2f)s)"%{"m": m, "i2f": ", ".join(f"`{iso}`='{f}'" for iso,f in idi.items())} for m,idi in d.items())+")"}
     
