@@ -144,6 +144,7 @@ sys.path.append(dirx)
 
 from tools_ssg import *
 NaN=float("nan")
+NA=NaN
 float_conv=oset((
     "VALUE",
     "DEVIATION",

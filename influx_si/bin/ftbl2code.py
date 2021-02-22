@@ -31,7 +31,6 @@ dirr=os.path.join(os.path.dirname(os.path.realpath(influx_si.__file__)), "R")
 from tools_ssg import *
 import C13_ftbl
 
-
 def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
     """
     Transform cumomer linear sytems collection (from ftbl file)
@@ -506,6 +505,7 @@ nb_f=list()
     res.update(d)
     rc_keys=list(netan["rcumo_input"][0].keys())
     emu_keys=list(netan["emu_input"][0].keys()) if emu else []
+    #import pdb; pdb.set_trace()
     f.write("""
 nb_exp=%(nb_exp)d
 nm_exp=c(%(nm_exp)s)
@@ -563,9 +563,9 @@ nb_f$x=nb_x
 """%{
     "nb_exp": len(netan["iso_input"]),
     "nm_exp": join(", ", netan["exp_names"], '"', '"'),
-    "xi": join(", ", [li[k] for li in netan["rcumo_input"] for k in rc_keys]),
+    "xi": join(", ", [li[k] if li[k]==li[k] else "NA" for li in netan["rcumo_input"] for k in rc_keys]),
     "nm_xi": join(", ", rc_keys, '"', '"'),
-    "xiemu": join(", ", [li[k] for li in netan["emu_input"] for k in emu_keys]),
+    "xiemu": join(", ", [li[k] if li[k]==li[k] else "NA" for li in netan["emu_input"] for k in emu_keys]),
     "nm_xiemu": join(", ", emu_keys, '"', '"'),
     "nm_emu": join(", ", valval(netan.get('vemu', [])), '"', '"'),
 })

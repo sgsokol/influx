@@ -364,7 +364,20 @@ for (iexp in seq_len(nb_exp)) {
          flabcin[iexp]=file.path(flabcin[iexp])
       else
          flabcin[iexp]=file.path(dirw, flabcin[iexp])
-      measvecti[[iexp]]=as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep="\t", check=FALSE, comment=""))
+      measvecti[[iexp]]=try(as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep="\t", check=FALSE, comment="#")), silent=TRUE)
+      if (inherits(measvecti[[iexp]], "try-error")) {
+         # try with comment '//'
+         tmp=try(kvh::kvh_read(flabcin[iexp], comment_str = "//", strip_white = FALSE, skip_blank = TRUE, split_str = "\t", follow_url = FALSE), silent=TRUE)
+         if (inherits(tmp, "try-error"))
+            stop_mes("Error while reading '", flabcin[iexp], "' from '", nm_exp[iexp], "':\n", tmp, file=fcerr)
+         nb_col=sapply(tmp, length)
+         if (any(ibad <- nb_col != nb_col[1]))
+            stop_mes("Column number varies in '", flabcin[iexp], "'. First row has ", nb_col[1], " columns while the following rows differ:\n\t", paste(c("row", which(ibad)), c("col_nb", nb_col[ibad]), sep="\t", collapse="\n\t"))
+         tmp=do.call(rbind, tmp)
+         tmp=structure(tmp[-1L,, drop=FALSE], dimnames=list(rownames(tmp)[-1L], tmp[1L,]))
+         suppressWarnings(storage.mode(tmp) <- "double")
+         measvecti[[iexp]]=tmp
+      }
       nm_row=rownames(measvecti[[iexp]])
       # put in the same row order as simulated measurements
       # check if nm_meas are all in rownames

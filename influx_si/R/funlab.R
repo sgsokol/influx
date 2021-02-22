@@ -9,6 +9,11 @@ steplinpath=function(tp, nu) {
     # trivial case
     if (nb_tp == 0 || nb_nu == 0)
         return(matrix(NA, nrow=nb_nu, ncol=nb_tp))
+    # test for all nu being > 0 and pairwise different
+    stopifnot(all(nu >= 0.))
+    diff_nu=outer(nu, nu, "!=")
+    diff_nu=diff_nu[lower.tri(diff_nu)]
+    stopifnot(all(diff_nu))
     # a is a list of coefficient vectors a[[imet]][knu]
     a=lapply(seq_along(nu), function(imet) sapply(seq(imet), function(knu) {v=nu[seq(imet)][-knu]; -prod(v/(v-nu[knu]))}))
     expt=exp(-nu%o%tp)
@@ -28,6 +33,11 @@ steplinpath2=function(tp, nu, init=double(length(nu)), height=1.) {
     # trivial case
     if (nb_tp == 0 || nb_nu == 0)
         return(matrix(NA, nrow=nb_nu, ncol=nb_tp))
+    # test for all nu being > 0 and pairwise different
+    stopifnot(all(nu >= 0.))
+    diff_nu=outer(nu, nu, "!=")
+    diff_nu=diff_nu[lower.tri(diff_nu)]
+    stopifnot(all(diff_nu))
     # a is a list of coefficient vectors a[[imet]][knu]
     a=Reduce(function(li, imet) {av=li[[imet-1]]*(nu[imet]/(nu[imet]-nu[seq_len(imet-1L)])); alast=init[imet]-(height+sum(av)); c(li, list(c(av, alast)))}, seq_len(nb_nu-1L)+1L, list(init[1L]-height))
     expt=exp(-nu%o%tp)
@@ -45,11 +55,16 @@ steplinpath2=function(tp, nu, init=double(length(nu)), height=1.) {
 ppulseslinpath=function(tp, nu, Tint, Hint=rep_len(c(1., 0.), length(Tint)), init=double(length(nu))) {
     stopifnot(length(Tint) == length(Hint))
     nb_tp=length(tp)
+    # test for all nu being > 0 and pairwise different
+    stopifnot(all(nu >= 0.))
+    diff_nu=outer(nu, nu, "!=")
+    diff_nu=diff_nu[lower.tri(diff_nu)]
+    stopifnot(all(diff_nu))
     # partition tp in periods. Each period is composed of intervals
     intstart=c(0., cumsum(Tint))
     nb_int=length(Tint)
     tperiod=intstart[nb_int+1L]
-    nb_period=ceiling(max(tp)/tperiod)
+    nb_period=max(ceiling(max(tp)/tperiod), 1L)
     res=NULL # will accumulate results
     for (iperiod in seq_len(nb_period)) {
         pstart=tperiod*(iperiod-1L)
@@ -61,7 +76,7 @@ ppulseslinpath=function(tp, nu, Tint, Hint=rep_len(c(1., 0.), length(Tint)), ini
             reshere=steplinpath2(tphere, nu, inithere, Hint[iint])
             colnames(reshere)=tphere+tstart
             res=cbind(res, reshere[,-length(tphere), drop=FALSE])
-            if (iperiod == nb_period && iint == nb_int && ncol(res) < length(tp))
+            if (iperiod == nb_period && iint == nb_int && ncol(res) < nb_tp)
                 res=cbind(res, reshere[,dim(reshere)[2L], drop=FALSE])
         }
     }
@@ -82,4 +97,39 @@ linterp=function(tp, knots, v) {
     # l(w)=(1-w)*y_left+w*y_right, w in [0,1]
     w=(tp-knots[il])/(knots[ir]-knots[il])
     v[il]+w*(v[ir]-v[il])
+}
+
+# periodic rectangular pulses. Duration of each time interval is defined in Tint numeric vector. Pulse amplitudes are in Hint, by defaults it's a repetition of 1 and 0 as many times as there are intervals in Tint.
+ppulses=function(tp, Tint, Hint=rep_len(c(1., 0.), length(Tint))) {
+    stopifnot(length(Tint) == length(Hint))
+    nb_tp=length(tp)
+    if (nb_tp == 0)
+        return(double(0))
+    tol=.Machine$double.eps*2**7
+    # partition tp in periods. Each period is composed of intervals
+    intstart=c(0., cumsum(Tint))
+    nb_int=length(Tint)
+    tperiod=intstart[nb_int+1L]
+    nb_period=max(ceiling(max(tp)/tperiod), 1L)
+    res=NULL # will accumulate results
+    for (iperiod in seq_len(nb_period)) {
+        #cat("ip=", iperiod, "\n")
+        pstart=tperiod*(iperiod-1L)
+        for (iint in seq_len(nb_int)) {
+            #cat("iint=", iint, "\n")
+            tstart=pstart+intstart[iint]
+            if (abs(tp[nb_tp]-tstart-Tint[iint]) < tol) {
+                tphere=tp[tp >= tstart-tol & tp <= tstart+Tint[iint]+tol]
+            } else {
+                tphere=tp[tp >= tstart & tp < tstart+Tint[iint]]
+            }
+            #cat("tph=", tphere, "\n")
+            reshere=rep_len(Hint[iint], length(tphere))
+            names(reshere)=tphere
+            res=c(res, reshere)
+            if (length(res) == nb_tp)
+                return(res)
+        }
+    }
+    stop("oops. Should not be there.")
 }
