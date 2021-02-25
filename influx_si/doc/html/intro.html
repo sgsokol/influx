@@ -4,24 +4,30 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Introduction &#8212; influx_si 5.3 documentation</title>
+    <title>Introduction &#8212; influx_si 5.4 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '5.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Change Log for influx_si" href="changelog.html" />
     <link rel="prev" title="Welcome to influx_si’s documentation!" href="index.html" /> 
-  </head><body>
+  </head>
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -37,7 +43,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to influx_si’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -48,17 +54,17 @@
             
   <div class="section" id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> are programs designed for flux and metabolite concentration estimation based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, … is also possible). <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> works with stationary data while the <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>
-is able to simulate instationary labeling (hence the <code class="docutils literal notranslate"><span class="pre">_i</span></code> in the name). Both work in metabolically stationary context. The whole project is referred as <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. Note also that the term <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is used in contexts where <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> are interchangeable.</p>
+<p><code class="docutils literal"><span class="pre">influx_s</span></code> and <code class="docutils literal"><span class="pre">influx_i</span></code> are programs designed for flux and metabolite concentration estimation based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, … is also possible). <code class="docutils literal"><span class="pre">influx_s</span></code> works with stationary data while the <code class="docutils literal"><span class="pre">influx_i</span></code>
+is able to simulate instationary labeling (hence the <code class="docutils literal"><span class="pre">_i</span></code> in the name). Both work in metabolically stationary context. The whole project is referred as <code class="docutils literal"><span class="pre">influx_si</span></code>. Note also that the term <code class="docutils literal"><span class="pre">influx_si</span></code> is used in contexts where <code class="docutils literal"><span class="pre">influx_s</span></code> and <code class="docutils literal"><span class="pre">influx_i</span></code> are interchangeable.</p>
 <div class="section" id="influx-si">
-<h2><code class="docutils literal notranslate"><span class="pre">influx_si</span></code><a class="headerlink" href="#influx-si" title="Permalink to this headline">¶</a></h2>
+<h2><code class="docutils literal"><span class="pre">influx_si</span></code><a class="headerlink" href="#influx-si" title="Permalink to this headline">¶</a></h2>
 <p>Flux and metabolite concentration values are obtained
 as a result of a fitting between simulated labeling data and the data measured
 by MS or NMR techniques. In this documentation the terms <cite>fitting</cite> and <cite>optimization</cite>
 are used as synonyms.</p>
 </div>
 <div class="section" id="influx-s">
-<h2><code class="docutils literal notranslate"><span class="pre">influx_s</span></code><a class="headerlink" href="#influx-s" title="Permalink to this headline">¶</a></h2>
+<h2><code class="docutils literal"><span class="pre">influx_s</span></code><a class="headerlink" href="#influx-s" title="Permalink to this headline">¶</a></h2>
 <p>For the theory behind flux calculations in stationary labeling context see the following papers:</p>
 <p>Wiechert, W., Möllney, M., Isermann, N., Wurzel, M., and de Graaf, A. A. (1999).
 Bidirectional reaction steps in metabolic networks: III. Explicit solution and analysis
@@ -70,18 +76,18 @@ metabolite units (EMU): a novel framework for modeling isotopic distributions.
 influx_s: increasing numerical stability and precision for
 metabolic flux analysis in isotope labeling experiment.
 <em>Bioinformatics</em>, 2012, 28, 687-693</p>
-<p>The main additional value to flux calculation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> compared to other publicly
+<p>The main additional value to flux calculation of <code class="docutils literal"><span class="pre">influx_si</span></code> compared to other publicly
 available software (<a class="reference external" href="https://www.13cflux.net">13CFlux</a>,
 <a class="reference external" href="http://openflux.sourceforge.net/">OpenFlux</a>, <a class="reference external" href="http://mfa.vueinnovations.com">INCA</a>, …) is the usage of NLSIC algorithm
 for fitting purposes. This algorithm provides:</p>
 <blockquote>
 <div><ul class="simple">
 <li>more reliable convergence which results in better numerical precision, i.e. even started from random initial points, it converges to the same solution if no local minima are present. So the spread of final solutions is close to zero.</li>
-<li>better accuracy, i.e. the found numerical solution lies closer to the theoretical solution than solutions provided by concurrent minimization algorithms. Thus, <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> provides better numerical accuracy.</li>
+<li>better accuracy, i.e. the found numerical solution lies closer to the theoretical solution than solutions provided by concurrent minimization algorithms. Thus, <code class="docutils literal"><span class="pre">influx_s</span></code> provides better numerical accuracy.</li>
 </ul>
 </div></blockquote>
-<p>For more details, see the paper on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> cited above.</p>
-<p>Moreover, <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> provides:</p>
+<p>For more details, see the paper on <code class="docutils literal"><span class="pre">influx_s</span></code> cited above.</p>
+<p>Moreover, <code class="docutils literal"><span class="pre">influx_s</span></code> provides:</p>
 <blockquote>
 <div><ul class="simple">
 <li>both cumomer and EMU frameworks for describing label distribution in the metabolites;</li>
@@ -102,8 +108,8 @@ for fitting purposes. This algorithm provides:</p>
 </div></blockquote>
 </div>
 <div class="section" id="influx-i">
-<h2><code class="docutils literal notranslate"><span class="pre">influx_i</span></code><a class="headerlink" href="#influx-i" title="Permalink to this headline">¶</a></h2>
-<p>Instationary labeling (hence the final ‘i’ in the name) is the domain of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>.
+<h2><code class="docutils literal"><span class="pre">influx_i</span></code><a class="headerlink" href="#influx-i" title="Permalink to this headline">¶</a></h2>
+<p>Instationary labeling (hence the final ‘i’ in the name) is the domain of <code class="docutils literal"><span class="pre">influx_i</span></code>.
 The theory of instationary labeling was developed for example in</p>
 <p>Katharina Nöh, Wolfgang Wiechert (2006)
 Experimental Design Principles for Isotopically Instationary 13C Labeling Experiments
@@ -111,11 +117,11 @@ Experimental Design Principles for Isotopically Instationary 13C Labeling Experi
 <p>Sokol S, Portais J-C (2015)
 Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks under Step and Periodic Inputs.
 <em>PLoS ONE</em> 10(12): e0144652. doi:10.1371/journal.pone.0144652</p>
-<p>As <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> capitalizes on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> development and shares a big part of code, <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
-Some of the advantages of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> over the concurrent software coping with instationary labeling data are:</p>
+<p>As <code class="docutils literal"><span class="pre">influx_i</span></code> capitalizes on <code class="docutils literal"><span class="pre">influx_s</span></code> development and shares a big part of code, <code class="docutils literal"><span class="pre">influx_i</span></code> presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for <code class="docutils literal"><span class="pre">influx_s</span></code>. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
+Some of the advantages of <code class="docutils literal"><span class="pre">influx_i</span></code> over the concurrent software coping with instationary labeling data are:</p>
 <blockquote>
 <div><ul class="simple">
-<li>fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, <code class="docutils literal notranslate"><span class="pre">e_coli_i</span></code> case runs in 17s while the most important part devoted to optimization takes as low as 10s);</li>
+<li>fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, <code class="docutils literal"><span class="pre">e_coli_i</span></code> case runs in 17s while the most important part devoted to optimization takes as low as 10s);</li>
 <li>parallel experiment treatment;</li>
 <li>available choice between first and second order time schemes for ODE (ordinary differential equations) resolution;</li>
 <li>unconditional stability during ODE solving.</li>
@@ -126,15 +132,15 @@ Some of the advantages of <code class="docutils literal notranslate"><span class
 <h2>Documentation organization<a class="headerlink" href="#documentation-organization" title="Permalink to this headline">¶</a></h2>
 <p>Changes brought to every new version and bug fixes are resumed at the beginning of
 the next chapter <a class="reference internal" href="changelog.html"><span class="doc">Change Log</span></a> which is also distributed as a stand alone PDF file.</p>
-<p>The rest of the documentation is organized as follows. <a class="reference internal" href="install.html"><span class="doc">Installation</span></a> chapter provides brief instructions for software installation. <a class="reference internal" href="quick.html"><span class="doc">Quick start</span></a> chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short <a class="reference internal" href="manual.html"><span class="doc">User’s manual</span></a> precedes a <a class="reference internal" href="progdoc.html"><span class="doc">Programmer’s documentation</span></a>. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. A small collection of <a class="reference internal" href="howto.html"><span class="doc">How to…</span></a> and <a class="reference internal" href="trouble.html"><span class="doc">Troubleshooting</span></a> notice conclude the documentation.</p>
+<p>The rest of the documentation is organized as follows. <a class="reference internal" href="install.html"><span class="doc">Installation</span></a> chapter provides brief instructions for software installation. <a class="reference internal" href="quick.html"><span class="doc">Quick start</span></a> chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short <a class="reference internal" href="manual.html"><span class="doc">User’s manual</span></a> precedes a <a class="reference internal" href="progdoc.html"><span class="doc">Programmer’s documentation</span></a>. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in <code class="docutils literal"><span class="pre">influx_si</span></code>. A small collection of <a class="reference internal" href="howto.html"><span class="doc">How to…</span></a> and <a class="reference internal" href="trouble.html"><span class="doc">Troubleshooting</span></a> notice conclude the documentation.</p>
 </div>
 <div class="section" id="licensing">
 <h2>Licensing<a class="headerlink" href="#licensing" title="Permalink to this headline">¶</a></h2>
-<p>The original version of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.</p>
+<p>The original version of <code class="docutils literal"><span class="pre">influx_si</span></code> software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.</p>
 <p>The software is licensed under the GNU Public License, Version
 2.0 or higher at your convenience (the “License”); you may not use this software and documentation except in compliance with the License.</p>
-<p>A file <code class="docutils literal notranslate"><span class="pre">influx_si/R/psoptim_ic.R</span></code> is based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original code is licensed under LGPL-3 terms so our modifications are licensed under the <a class="reference external" href="https://www.gnu.org/licenses/lgpl-3.0.en.html">same terms</a> .</p>
-<p>If you publish results obtained with <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> you have to cite the original paper in Bioinformatics 2012 (cf. above). A paper describing <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> is yet to publish.</p>
+<p>A file <code class="docutils literal"><span class="pre">influx_si/R/psoptim_ic.R</span></code> is based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original code is licensed under LGPL-3 terms so our modifications are licensed under the <a class="reference external" href="https://www.gnu.org/licenses/lgpl-3.0.en.html">same terms</a> .</p>
+<p>If you publish results obtained with <code class="docutils literal"><span class="pre">influx_s</span></code> you have to cite the original paper in Bioinformatics 2012 (cf. above). A paper describing <code class="docutils literal"><span class="pre">influx_i</span></code> is yet to publish.</p>
 <p>You may obtain a copy of the License <a class="reference internal" href="license.html"><span class="doc">here</span></a> or at</p>
 <p><a class="reference external" href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">https://www.gnu.org/licenses/old-licenses/gpl-2.0.html</a></p>
 <p>Unless required by applicable law or agreed to in writing, software distributed
@@ -154,12 +160,12 @@ specific language governing permissions and limitations under the License.</p>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
+  <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Introduction</a><ul>
-<li><a class="reference internal" href="#influx-si"><code class="docutils literal notranslate"><span class="pre">influx_si</span></code></a></li>
-<li><a class="reference internal" href="#influx-s"><code class="docutils literal notranslate"><span class="pre">influx_s</span></code></a></li>
-<li><a class="reference internal" href="#influx-i"><code class="docutils literal notranslate"><span class="pre">influx_i</span></code></a></li>
+<li><a class="reference internal" href="#influx-si"><code class="docutils literal"><span class="pre">influx_si</span></code></a></li>
+<li><a class="reference internal" href="#influx-s"><code class="docutils literal"><span class="pre">influx_s</span></code></a></li>
+<li><a class="reference internal" href="#influx-i"><code class="docutils literal"><span class="pre">influx_i</span></code></a></li>
 <li><a class="reference internal" href="#documentation-organization">Documentation organization</a></li>
 <li><a class="reference internal" href="#licensing">Licensing</a></li>
 </ul>
@@ -181,14 +187,12 @@ specific language governing permissions and limitations under the License.</p>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -210,12 +214,12 @@ specific language governing permissions and limitations under the License.</p>
         <li class="right" >
           <a href="index.html" title="Welcome to influx_si’s documentation!"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
     </div>
   </body>
 </html>

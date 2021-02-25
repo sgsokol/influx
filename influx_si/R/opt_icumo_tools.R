@@ -488,11 +488,13 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          dux_dp=mm_xpf(measmat[[iexp]], xpf, isel)
          #redim(xpf, c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf)))
          #dimnames(xpf)=list(nm$x, ti[[iexp]][-1], nm$par)
+         nr=nrow(measmat[[iexp]])
          if (length(ipooled[[iexp]]) > 1L) {
             redim(dux_dp, c(dim(dux_dp)[1], ntise*(nb_ff+nb_poolf)))
             dux_dp=meas2sum[[iexp]]%stm%(pwe[[iexp]]*dux_dp) # resize
+            nr=nrow(meas2sum[[iexp]])
          }
-         redim(dux_dp, c(nrow(measmat[[iexp]]), ntise, nb_ff+nb_poolf))
+         redim(dux_dp, c(nr, ntise, nb_ff+nb_poolf))
          if (length(ijpwef[[iexp]]) > 0L) {
             # derivative of pool ponderation factor
             dpw_dpf=double(nrow(measmat[[iexp]])*ntise*nb_poolf)

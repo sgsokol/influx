@@ -1297,7 +1297,7 @@ if (!noscale) {
         "ir2isc": join(", ", ((str(ir2isc[ili][meas][ir]+base_isc) if ir2isc[ili][meas][ir]>=0 else 1) for ir in range(len(ir2isc[ili][meas]))))
         })
             base_isc=base_isc+len(scale[ili][meas])
-            f.write("""
+        f.write("""
    isc=ir2isc[[%(iexp)d]] != 1
    ir2isc[[%(iexp)d]][isc]=ir2isc[[%(iexp)d]][isc]+nb_ff
 """%{"iexp": ili+1})

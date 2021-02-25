@@ -1,0 +1,61 @@
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	2box	1		17/02/2021	two internal metabolites i-dynamics in linear chain with variable input. Just simulation
+// theoretical solution for A#1 (variable input) => 1-exp(-0.5*t)
+// theoretical solution for B#1 => 1-2*exp(-0.5*t)+exp(-t)
+// theoretical solution for C#1 => 1-(8/3)*exp(-0.5*t)+2*exp(-t)-(1./3.)*exp(-2*t)
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+
+// input
+	v1	A		B
+		#a		#a
+// 
+	v2	B		C
+		#a		#a
+// output
+	v3	C		D
+		#a		#a
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+// Type of fluxes in this section
+// Free (varied by optimization)
+// Constrained (have a given value, not varied by optimization)
+// Determined (found from free fluxes)
+		v1	C	1.
+		v2	D	1.
+		v3	D	1.
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	0
+		v2	C	0
+		v3	C	0
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	A	#1	steplinpath(t, 0.5)
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+	B	1	1	0.02	#1
+	C	1	1	0.02	#1
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+	//v1	1.	0.05
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noopt --noscale --TIMEIT --clowp 1.e-9
+	dt	0.01
+	nsubdiv_dt	1
+	tmax	5 // max=1
+	metab_scale	1.
+	include_growth_flux	0
+	mu	0.01
+	//file_labcin	ex_i_2box_labcin.txt
+	posttreat_R	plot_imass.R
+METABOLITE_POOLS
+	META_NAME	META_SIZE	// size is in units of metab_scale option defined before
+	// Input and output metabolites are variable so no pool sizes for them
+	// A is skipped (input), its size is 2, i.e. nu=0.5
+	// D is skipped (output)
+	B	-1.	// ex=1.0
+	C	-0.5	// ex=0.5

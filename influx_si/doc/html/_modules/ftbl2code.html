@@ -4,22 +4,28 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>ftbl2code &#8212; influx_si 5.3 documentation</title>
+    <title>ftbl2code &#8212; influx_si 5.4 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '5.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
-  </head><body>
+  </head>
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -29,7 +35,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -58,8 +64,8 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="c1">#import pdb</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 
 <span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 <span class="n">dirx</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">me</span><span class="p">)</span>
@@ -70,9 +76,8 @@
 <span class="kn">import</span> <span class="nn">influx_si</span>
 <span class="n">dirr</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">influx_si</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s2">&quot;R&quot;</span><span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
-
 
 <div class="viewcode-block" id="netan2Abcumo_spr"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a><span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -219,7 +224,7 @@
 
 <div class="viewcode-block" id="netan2Rinit"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a><span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[]):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write R code for initialization of all variables before</span>
-<span class="sd">cumomer system resolution by khi2 minimization.</span>
+<span class="sd">cumomer system resolution by chi2 minimization.</span>
 <span class="sd">:param netan: a collection of parsed ftbl information</span>
 <span class="sd">:param f: R code output pointer</span>
 <span class="sd">:param fullsys (logical): write a code for the full or only reduced cumomer system</span>
@@ -295,7 +300,7 @@
     <span class="c1">#    measmat - measmat*x+memaone=vec of simulated not-yet-pooled and not-yet-scaled measurements</span>
     <span class="c1"># Functions:</span>
     <span class="c1">#    lab_sim - translate param to flux and cumomer vector (initial approximation)</span>
-    <span class="c1">#    cumo_cost - cost function (khi2)</span>
+    <span class="c1">#    cumo_cost - cost function (chi2)</span>
     <span class="c1">#    cumo_grad - finite difference gradient</span>
     <span class="c1">#    fallnx2fwrv - produce fw-rv fluxes from fallnx</span>
 
@@ -410,12 +415,12 @@
 <span class="s2"># cupx==0 means no upper limit =&gt; cupx=1</span>
 <span class="s2">cupx=ifelse(cupx, cupx, 1)</span>
 <span class="s2">if (cupx &lt; 0 || cupx &gt; 1) {</span>
-<span class="s2">   stop_mes(paste(&quot;Option &#39;--cupx N&#39; must have N in the interval [0,1]</span><span class="se">\n</span><span class="s2">&quot;,</span>
-<span class="s2">      &quot;Instead, the value &quot;, cupx, &quot; si given.&quot;, sep=&quot;&quot;), file=fcerr)</span>
+<span class="s2">   stop_mes(&quot;Option &#39;--cupx N&#39; must have N in the interval [0,1]</span><span class="se">\\</span><span class="s2">n&quot;,</span>
+<span class="s2">      &quot;Instead, the value &quot;, cupx, &quot; is given.&quot;, file=fcerr)</span>
 <span class="s2">}</span>
 <span class="s2">if (cinout &lt; 0) {</span>
-<span class="s2">   stop_mes(paste(&quot;Option &#39;--cinout N&#39; must have N non negative</span><span class="se">\n</span><span class="s2">&quot;,</span>
-<span class="s2">      &quot;Instead, the value &quot;, cinout, &quot; is given.&quot;, sep=&quot;&quot;), file=fcerr)</span>
+<span class="s2">   stop_mes(&quot;Option &#39;--cinout N&#39; must have N non negative</span><span class="se">\\</span><span class="s2">n&quot;,</span>
+<span class="s2">      &quot;Instead, the value &quot;, cinout, &quot; is given.&quot;, file=fcerr)</span>
 <span class="s2">}</span>
 <span class="s2"># minimization method</span>
 <span class="s2">validmethods=c(&quot;BFGS&quot;, &quot;Nelder-Mead&quot;, &quot;SANN&quot;, &quot;ipopt&quot;, &quot;nlsic&quot;, &quot;pso&quot;)</span>
@@ -469,7 +474,7 @@
 <span class="s2">   zerocross=F</span>
 <span class="s2">} else {</span>
 <span class="s2">   if (zc &lt; 0.) {</span>
-<span class="s2">      stop_mes(paste(&quot;Zero crossing value ZC must be non negative, instead &quot;, zc, &quot; is given.&quot;, sep=&quot;&quot;), file=fcerr)</span>
+<span class="s2">      stop_mes(&quot;Zero crossing value ZC must be non negative, instead &quot;, zc, &quot; is given.&quot;, file=fcerr)</span>
 <span class="s2">   }</span>
 <span class="s2">   zerocross=T</span>
 <span class="s2">}</span>
@@ -482,7 +487,7 @@
 <span class="s2">}</span>
 <span class="s2">time_order=gsub(&quot;</span><span class="se">\\\\</span><span class="s2">s&quot;, &quot;&quot;, time_order) # remove spaces if any</span>
 <span class="s2">if (!(time_order </span><span class="si">%%</span><span class="s2">in</span><span class="si">%%</span><span class="s2"> c(&quot;1&quot;, &quot;2&quot;, &quot;1,2&quot;))) {</span>
-<span class="s2">   stop_mes(sprintf(&quot;time_order must be &#39;1&#39;, &#39;2&#39; or &#39;1,2&#39;. Instead got &#39;</span><span class="si">%%</span><span class="s2">s&#39;&quot;))</span>
+<span class="s2">   stop_mes(&quot;time_order must be &#39;1&#39;, &#39;2&#39; or &#39;1,2&#39;. Instead got &#39;&quot;, time_order, &quot;&#39;&quot;, file=fcerr)</span>
 <span class="s2">}</span>
 <span class="s2">opts=commandArgs()</span>
 <span class="s2"># end command line argument proceeding</span>
@@ -497,11 +502,31 @@
 <span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
     <span class="s2">&quot;dirw&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">)),</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
     <span class="s2">&quot;dirr&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="n">dirr</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
-    <span class="s2">&quot;case_i&quot;</span><span class="p">:</span> <span class="s2">&quot;T&quot;</span> <span class="k">if</span> <span class="n">case_i</span> <span class="k">else</span> <span class="s2">&quot;F&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;case_i&quot;</span><span class="p">:</span> <span class="s2">&quot;TRUE&quot;</span> <span class="k">if</span> <span class="n">case_i</span> <span class="k">else</span> <span class="s2">&quot;FALSE&quot;</span><span class="p">,</span>
     <span class="s2">&quot;vernum&quot;</span><span class="p">:</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirr</span><span class="p">,</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;influx_version.txt&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
     <span class="s2">&quot;org&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]),</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
     <span class="s2">&quot;ropts&quot;</span><span class="p">:</span> <span class="n">ropts</span><span class="p">,</span>
 <span class="p">})</span>
+
+    <span class="c1"># parse optctrl in netan[&quot;opt&quot;]</span>
+    <span class="c1"># optctrl_maxit=100 goes to list(default=list(maxit=100))</span>
+    <span class="c1"># optctrl:bfgs:maxit=1000 goes to list(bfgs=list(maxit=1000))</span>
+    <span class="n">dctrl</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;default&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">()}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;optctrl&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span> <span class="c1"># strip &quot;optctrl&quot; part</span>
+        <span class="k">if</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;_&quot;</span><span class="p">:</span>
+            <span class="n">dctrl</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;:&quot;</span><span class="p">:</span>
+            <span class="n">li</span><span class="o">=</span><span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+            <span class="n">dctrl</span><span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">=</span><span class="n">dctrl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">())</span>
+            <span class="n">dctrl</span><span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">li</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="c1">#print(dctrl)</span>
+    <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,</span><span class="se">\n\t</span><span class="s2">&quot;</span>
+    <span class="n">tmp</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;list(</span><span class="si">{</span><span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="s1">&#39;`=list(&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">kk</span><span class="o">+</span><span class="s1">&#39;`=&#39;</span><span class="o">+</span><span class="n">vv</span> <span class="k">for</span> <span class="n">kk</span><span class="p">,</span><span class="n">vv</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;)&#39;</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span><span class="n">dd</span> <span class="ow">in</span> <span class="n">dctrl</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;control_ftbl=</span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">source(file.path(dirr, &quot;opt_icumo_tools.R&quot;))</span>
@@ -528,6 +553,7 @@
     <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
     <span class="n">rc_keys</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
     <span class="n">emu_keys</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">emu</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="c1">#import pdb; pdb.set_trace()</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">nb_exp=</span><span class="si">%(nb_exp)d</span><span class="s2"></span>
 <span class="s2">nm_exp=c(</span><span class="si">%(nm_exp)s</span><span class="s2">)</span>
@@ -585,9 +611,9 @@
 <span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
     <span class="s2">&quot;nb_exp&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">]),</span>
     <span class="s2">&quot;nm_exp&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;exp_names&quot;</span><span class="p">],</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
-    <span class="s2">&quot;xi&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rc_keys</span><span class="p">]),</span>
+    <span class="s2">&quot;xi&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;NA&quot;</span> <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rc_keys</span><span class="p">]),</span>
     <span class="s2">&quot;nm_xi&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">rc_keys</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
-    <span class="s2">&quot;xiemu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">emu_keys</span><span class="p">]),</span>
+    <span class="s2">&quot;xiemu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;NA&quot;</span> <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">emu_keys</span><span class="p">]),</span>
     <span class="s2">&quot;nm_xiemu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">emu_keys</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
     <span class="s2">&quot;nm_emu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">valval</span><span class="p">(</span><span class="n">netan</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;vemu&#39;</span><span class="p">,</span> <span class="p">[])),</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
 <span class="p">})</span>
@@ -984,18 +1010,17 @@
 <span class="s2">   rank=sum(d &gt; d[1]*1.e-10)</span>
 <span class="s2">   qrow=qr(t(afd))</span>
 <span class="s2">   rankr=qrow$rank</span>
-<span class="s2">   if (rank != rankr) {</span>
-<span class="s2">      mes=&quot;Weird error: column and row ranks are not equal.</span><span class="se">\\</span><span class="s2">n&quot;</span>
-<span class="s2">      stop_mes(mes, file=fcerr)</span>
-<span class="s2">   }</span>
+<span class="s2">   if (rank != rankr)</span>
+<span class="s2">      stop_mes(&quot;Weird error: column and row ranks are not equal.&quot;, file=fcerr)</span>
+<span class="s2">   </span>
 <span class="s2">   irows=qrow$pivot[seq_len(rankr)]</span>
 <span class="s2">   if (rank==0) {</span>
-<span class="s2">      stop_mes(&quot;Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.</span><span class="se">\\</span><span class="s2">n&quot;, file=fcerr)</span>
+<span class="s2">      stop_mes(&quot;Error: No free/dependent flux partition could be made. Stoichiometric matrix has rank=0.&quot;, file=fcerr)</span>
 <span class="s2">   }</span>
 <span class="s2">   Afl=afd[irows, qafd$pivot[1L:rank], drop=FALSE]</span>
 <span class="s2">   ka=kappa(Afl)</span>
 <span class="s2">   if (ka &gt; 1.e7) {</span>
-<span class="s2">      mes=sprintf(&quot;Error: No working free/dependent flux partition could be proposed. Stoechiometric matrix has condition number </span><span class="si">%g</span><span class="s2">.</span><span class="se">\\</span><span class="s2">n&quot;, ka)</span>
+<span class="s2">      mes=sprintf(&quot;Error: No working free/dependent flux partition could be proposed. Stoichiometric matrix has condition number </span><span class="si">%g</span><span class="s2">.</span><span class="se">\\</span><span class="s2">n&quot;, ka)</span>
 <span class="s2">      stop_mes(mes, file=fcerr)</span>
 <span class="s2">   }</span>
 <span class="s2">   p2bfl=-as.simple_triplet_matrix(afd[irows, qafd$pivot[-seq_len(rank)], drop=FALSE])</span>
@@ -1083,7 +1108,7 @@
 <span class="s2">   if (nrow(Afl) &lt;= rank) {</span>
 <span class="s2">      mes=paste(&quot;Candidate(s) for free or constrained flux(es):</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">         paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;),</span>
-<span class="s2">         &quot;</span><span class="se">\\</span><span class="s2">nFor this choice, condition number of stoechiometric matrix will be &quot;,</span>
+<span class="s2">         &quot;</span><span class="se">\\</span><span class="s2">nFor this choice, condition number of stoichiometric matrix will be &quot;,</span>
 <span class="s2">         kappa(Afl[,qrAfl$pivot[1L:nrow(Afl)],drop=FALSE]), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
 <span class="s2">   } else if (nrow(Afl) &gt; rank) {</span>
 <span class="s2">      nextra=nrow(Afl)-rank</span>
@@ -1100,7 +1125,7 @@
 <span class="s2">         if (rank &lt; ncol(Afl)) {</span>
 <span class="s2">            prop=prop</span><span class="si">%s</span><span class="s2">+%&quot;While the following dependent flux(es) should be declared free or constrained:</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="si">%s</span><span class="s2">+%join(&quot;</span><span class="se">\\</span><span class="s2">n&quot;, colnames(Afl)[-qrAfl$pivot[1L:rank]])</span><span class="si">%s</span><span class="s2">+%&quot;</span><span class="se">\\</span><span class="s2">n&quot;</span>
 <span class="s2">         }</span>
-<span class="s2">         prop=paste(prop, &quot;For this choice, condition number of stoechiometric matrix will be &quot;, ka, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
+<span class="s2">         prop=paste(prop, &quot;For this choice, condition number of stoichiometric matrix will be &quot;, ka, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
 <span class="s2">      } else {</span>
 <span class="s2">         # add constraint fluxes to candidate list</span>
 <span class="s2">         if (nb_fcn &gt; 0) {</span>
@@ -1118,7 +1143,7 @@
 <span class="s2">            join(&quot;</span><span class="se">\\</span><span class="s2">n&quot;, colnames(aextended)[-qae$pivot[1L:ranke]]), &quot;</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">            sep=&quot;&quot;)</span>
 <span class="s2">            ka=kappa(aextended[,qae$pivot[1L:ranke]])</span>
-<span class="s2">            prop=paste(prop, &quot;For this choice, condition number of stoechiometric matrix will be &quot;, ka, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
+<span class="s2">            prop=paste(prop, &quot;For this choice, condition number of stoichiometric matrix will be &quot;, ka, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
 <span class="s2">         } else {</span>
 <span class="s2">            prop=&quot;No proposal for partition dependent/free fluxes could be made.</span><span class="se">\\</span><span class="s2">n&quot;</span>
 <span class="s2">         }</span>
@@ -1130,9 +1155,9 @@
 <span class="s2">         sep=&quot;&quot;)</span>
 <span class="s2">   }&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">   stop_mes(paste(&quot;Flux matrix is not square or is singular: (&quot;, nrow(Afl), &quot;eq x &quot;, ncol(Afl), &quot;unk)</span><span class="se">\\</span><span class="s2">n&quot;,</span>
+<span class="s2">   stop_mes(&quot;Flux matrix is not square or is singular: (&quot;, nrow(Afl), &quot;eq x &quot;, ncol(Afl), &quot;unk)</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">      &quot;You have to change your choice of free fluxes in the &#39;</span><span class="si">%(n_ftbl)s</span><span class="s2">&#39; file.</span><span class="se">\\</span><span class="s2">n&quot;,</span>
-<span class="s2">      mes, sep=&quot;&quot;), file=fcerr)</span>
+<span class="s2">      mes, file=fcerr)</span>
 <span class="s2">}</span>
 
 <span class="s2"># make sure that free params choice leads to not singular matrix</span>
@@ -1304,7 +1329,9 @@
 <span class="s2">   # for corresponding rows of measure matrix</span>
 <span class="s2">   ir2isc=vector(&quot;list&quot;, </span><span class="si">%d</span><span class="s2">)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="n">nexp</span><span class="p">)</span>
-    <span class="n">base_isc</span><span class="o">=</span><span class="mi">2</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;flux_free&quot;</span><span class="p">][</span><span class="s2">&quot;net&quot;</span><span class="p">])</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;flux_free&quot;</span><span class="p">][</span><span class="s2">&quot;xch&quot;</span><span class="p">])</span>
+    <span class="c1">#base_isc=2+len(netan[&quot;flux_free&quot;][&quot;net&quot;])+len(netan[&quot;flux_free&quot;][&quot;xch&quot;])</span>
+    <span class="n">base_isc</span><span class="o">=</span><span class="mi">2</span> <span class="c1"># the shift by nb_ff is made in R because ffguess can make vary nb_ff in runtime</span>
+    <span class="c1">#import pdb; pdb.set_trace()</span>
     <span class="k">for</span> <span class="n">ili</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nexp</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">meas</span> <span class="ow">in</span> <span class="n">o_meas</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ir2isc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">]:</span>
@@ -1318,6 +1345,10 @@
         <span class="s2">&quot;ir2isc&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">ir2isc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">][</span><span class="n">ir</span><span class="p">]</span><span class="o">+</span><span class="n">base_isc</span><span class="p">)</span> <span class="k">if</span> <span class="n">ir2isc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">][</span><span class="n">ir</span><span class="p">]</span><span class="o">&gt;=</span><span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">ir</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ir2isc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">]))))</span>
         <span class="p">})</span>
             <span class="n">base_isc</span><span class="o">=</span><span class="n">base_isc</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">scale</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">])</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">   isc=ir2isc[[</span><span class="si">%(iexp)d</span><span class="s2">]] != 1</span>
+<span class="s2">   ir2isc[[</span><span class="si">%(iexp)d</span><span class="s2">]][isc]=ir2isc[[</span><span class="si">%(iexp)d</span><span class="s2">]][isc]+nb_ff</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span><span class="s2">&quot;iexp&quot;</span><span class="p">:</span> <span class="n">ili</span><span class="o">+</span><span class="mi">1</span><span class="p">})</span>
 
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">   # cumulated base for nb_sc</span>
@@ -1619,7 +1650,7 @@
 <span class="s2">   met_net=unique(matrix(unlist(strsplit(nm_rcumo, &quot;:&quot;, fixed=TRUE)), nrow=2)[1,])</span>
 <span class="s2">   net_pool=sort(setdiff(met_net, names(nm_poolall)))</span>
 <span class="s2">   if (length(net_pool) &gt; 0) {</span>
-<span class="s2">      stop_mes(&quot;The following metabolites are internal in NETWORK section but not in METABOLITE_POOLS one:</span><span class="se">\\</span><span class="s2">n&quot;</span><span class="si">%s</span><span class="s2">+%paste(net_pool, collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;), file=fcerr)</span>
+<span class="s2">      stop_mes(&quot;The following metabolites are internal in NETWORK section but not in METABOLITE_POOLS one:</span><span class="se">\\</span><span class="s2">n&quot;, paste(net_pool, collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;), file=fcerr)</span>
 <span class="s2">   }</span>
 <span class="s2">}</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
@@ -2051,14 +2082,12 @@
         <div class="sphinxsidebarwrapper">
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -2074,13 +2103,13 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
     </div>
   </body>
 </html>

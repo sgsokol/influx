@@ -1593,7 +1593,7 @@ for (irun in seq_len(nseries)) {
    } # else use the last calculated jacobian
 
    # covariance matrix of free fluxes
-   if (length(jx_f$jacobian) > 0L) {
+   if (length(jx_f$jacobian) > 0L && !all(is.na(param))) {
       svj=svd(jx_f$jacobian)
       if (svj$d[1] == 0.) {
          i=rep(TRUE, length(svj$d))

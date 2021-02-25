@@ -4,24 +4,30 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Change Log for influx_si &#8212; influx_si 5.3 documentation</title>
+    <title>Change Log for influx_si &#8212; influx_si 5.4 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '5.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Installation" href="install.html" />
     <link rel="prev" title="Introduction" href="intro.html" /> 
-  </head><body>
+  </head>
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -37,7 +43,7 @@
         <li class="right" >
           <a href="intro.html" title="Introduction"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -48,20 +54,45 @@
             
   <div class="section" id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-5-4-0">
+<h2>2021-02-26 version 5.4.0<a class="headerlink" href="#version-5-4-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>influx_i: user can add custom R expressions for label input varying in time (cf. funlabR)</li>
+<li>influx_i: explicit error message on non valid entries in label kinetic data (requested by Pierre Millard, INRAE, France)</li>
+<li>added optctrl:mumps:icntl_NN option (case reported by Albert Fina Romero, UAB, Spain)</li>
+<li>influx_i: comment string in kinetic data has changed to <code class="docutils literal"><span class="pre">//</span></code> (<code class="docutils literal"><span class="pre">#</span></code> will still work with old files)</li>
+<li>added <code class="docutils literal"><span class="pre">-i</span></code> option to ftbl2netan (for influx_i-like analysis)</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed error raising on redundant equality when <code class="docutils literal"><span class="pre">--ffguess</span></code> is used (reported by Pierre Millard, INRAE, France)</li>
+<li>fixed fatal error with scale factor infrastructure in some cases  when <code class="docutils literal"><span class="pre">--ffguess</span></code> is used</li>
+<li><code class="docutils literal"><span class="pre">plot_imass.R</span></code> is fixed for a case when there is no any MS measurement</li>
+<li>explicit error message on fail while reading label kinetic data</li>
+<li>fixed not working error messages in few utilities</li>
+<li>fixed too early closed kvh file connection</li>
+<li>fixed post-production calculations when optimization in influx_si failed</li>
+</ul>
+</dd>
+</dl>
+</div>
 <div class="section" id="version-5-3-0">
 <h2>2020-07-24 version 5.3.0<a class="headerlink" href="#version-5-3-0" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
 <li>added PSO optimization method (suggested by Pierre Millard, INRAE, Toulouse, France)</li>
-<li>now optimization methods can be chained in the same run, e.g. <code class="docutils literal notranslate"><span class="pre">--meth</span> <span class="pre">pso</span> <span class="pre">--meth</span> <span class="pre">nlsic</span></code></li>
-<li>the field <code class="docutils literal notranslate"><span class="pre">optctrl...</span></code> is now formatted to allow homonym parameters with different values for different optimization methods</li>
-<li>option <code class="docutils literal notranslate"><span class="pre">--install_rdep</span></code> becomes interactive and reproduces the behavior of R’s <code class="docutils literal notranslate"><span class="pre">install.packages()</span></code> to allow installation in a user’s R personal library  when the default directory is not writable (suggested by Matthieu Guionnet, CNRS, Toulouse, France)</li>
+<li>now optimization methods can be chained in the same run, e.g. <code class="docutils literal"><span class="pre">--meth</span> <span class="pre">pso</span> <span class="pre">--meth</span> <span class="pre">nlsic</span></code></li>
+<li>the field <code class="docutils literal"><span class="pre">optctrl...</span></code> is now formatted to allow homonym parameters with different values for different optimization methods</li>
+<li>option <code class="docutils literal"><span class="pre">--install_rdep</span></code> becomes interactive and reproduces the behavior of R’s <code class="docutils literal"><span class="pre">install.packages()</span></code> to allow installation in a user’s R personal library  when the default directory is not writable (suggested by Matthieu Guionnet, CNRS, Toulouse, France)</li>
 </ul>
 </dd>
 <dt>Bug fix:</dt>
 <dd><ul class="first last simple">
-<li><code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> is fixed for cases where NA is present in MS measurements.</li>
+<li><code class="docutils literal"><span class="pre">plot_smeas.R</span></code> is fixed for cases where NA is present in MS measurements.</li>
 </ul>
 </dd>
 </dl>
@@ -71,8 +102,8 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li><code class="docutils literal notranslate"><span class="pre">ff2ftbl</span></code> can accept an input kvh file not ending with <code class="docutils literal notranslate"><span class="pre">_res.kvh</span></code></li>
-<li><code class="docutils literal notranslate"><span class="pre">ftbl2netan</span></code> will write a partial output in case of error during FTBL parsing</li>
+<li><code class="docutils literal"><span class="pre">ff2ftbl</span></code> can accept an input kvh file not ending with <code class="docutils literal"><span class="pre">_res.kvh</span></code></li>
+<li><code class="docutils literal"><span class="pre">ftbl2netan</span></code> will write a partial output in case of error during FTBL parsing</li>
 <li>added error message if input metabolite appears in measurment FTBL sections</li>
 <li>in kvh module added optional boolean parameter ‘strip’</li>
 </ul>
@@ -157,15 +188,15 @@
 <dt>New features:</dt>
 <dd><ul class="first last simple">
 <li>converted to Python 3</li>
-<li>packaged with python distutils and Conda package management system. Now installation can be made as simple as <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">influx_si</span></code> or <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">influx_si</span></code>. Internet connection is required for both methods.</li>
-<li>auxiliary C++ routines are placed in multbxxc R packages. So, no more compilation is needed at first execution of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.</li>
+<li>packaged with python distutils and Conda package management system. Now installation can be made as simple as <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">influx_si</span></code> or <code class="docutils literal"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">influx_si</span></code>. Internet connection is required for both methods.</li>
+<li>auxiliary C++ routines are placed in multbxxc R packages. So, no more compilation is needed at first execution of <code class="docutils literal"><span class="pre">influx_si</span></code>.</li>
 </ul>
 </dd>
 <dt>Bug fix (all bugs in this release are reported by Baudoin Delépine, INSA, Toulouse, France):</dt>
 <dd><ul class="first last simple">
 <li>fixed doc about R version (now 3.4.0 or higher) and rmumps (now 5.2.1-3 or higher)</li>
 <li>fixed use of <cite>–sln</cite> option</li>
-<li>added explicit error message if <code class="docutils literal notranslate"><span class="pre">tmax</span></code> is Inf (can happen if time grid could not be read from file indicated in <code class="docutils literal notranslate"><span class="pre">file_labcin</span></code> ftbl field)</li>
+<li>added explicit error message if <code class="docutils literal"><span class="pre">tmax</span></code> is Inf (can happen if time grid could not be read from file indicated in <code class="docutils literal"><span class="pre">file_labcin</span></code> ftbl field)</li>
 </ul>
 </dd>
 </dl>
@@ -385,7 +416,7 @@
 <dd><ul class="first last simple">
 <li>influx_i.py is introduced for instationary label modeling</li>
 <li>some critical calculations are written in C++ so some compilation is needed at first execution.</li>
-<li>new optional package limSolve is used and need to be installed (as well as its dependencies) if <code class="docutils literal notranslate"><span class="pre">--lim</span></code> option is used</li>
+<li>new optional package limSolve is used and need to be installed (as well as its dependencies) if <code class="docutils literal"><span class="pre">--lim</span></code> option is used</li>
 <li>more TIMEIT points introduced for finer time control</li>
 </ul>
 </dd>
@@ -419,15 +450,15 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li><code class="docutils literal notranslate"><span class="pre">commandArgs</span></code> field in FTBL file can have comments in it and occur more than once somewhere in the <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section</li>
-<li><code class="docutils literal notranslate"><span class="pre">--DEBUG</span></code> option is removed as obsolete</li>
-<li>R package <code class="docutils literal notranslate"><span class="pre">bitops</span></code> is not required anymore to be installed (valid for R-3.0.0 or higher)</li>
+<li><code class="docutils literal"><span class="pre">commandArgs</span></code> field in FTBL file can have comments in it and occur more than once somewhere in the <code class="docutils literal"><span class="pre">OPTIONS</span></code> section</li>
+<li><code class="docutils literal"><span class="pre">--DEBUG</span></code> option is removed as obsolete</li>
+<li>R package <code class="docutils literal"><span class="pre">bitops</span></code> is not required anymore to be installed (valid for R-3.0.0 or higher)</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
-<li>fixed a bug in delivering an error message when <code class="docutils literal notranslate"><span class="pre">commandArgs</span></code> had a comment in it</li>
-<li>fixed the precedence of command line options over <code class="docutils literal notranslate"><span class="pre">commandArgs</span></code> given in FTBL</li>
+<li>fixed a bug in delivering an error message when <code class="docutils literal"><span class="pre">commandArgs</span></code> had a comment in it</li>
+<li>fixed the precedence of command line options over <code class="docutils literal"><span class="pre">commandArgs</span></code> given in FTBL</li>
 <li>fixed a bug in parsing FTBL file having a BOM (invisible utf8 encoding mark) in it (reported by Yanfen Fu, University of Washington, USA)</li>
 <li>fixed representation of growth fluxes by ftbl2xgmml.py utility</li>
 </ul>
@@ -439,13 +470,13 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li><code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> field can have several file names separated by <code class="docutils literal notranslate"><span class="pre">';</span> <span class="pre">'</span></code></li>
+<li><code class="docutils literal"><span class="pre">posttreat_R</span></code> field can have several file names separated by <code class="docutils literal"><span class="pre">';</span> <span class="pre">'</span></code></li>
 <li>added explicit error message if a valid float value is missing for free or constrained flux</li>
 <li>added explicit error message if no dependent flux is included in the balance on any metabolite (suggested by a case submitted by Marc O. Warmoes, Cornell University, USA)</li>
 <li>in the documentation, added a paragraph about consulting offer</li>
-<li>result .kvh file is greatly shortened, keeping only essential information. Custom additional information can be stored in some file via <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> option</li>
-<li>now, <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> returns a non zero code to shell if an error occurred during execution;</li>
-<li>added a parameter <code class="docutils literal notranslate"><span class="pre">monotone</span></code> to the control list of NLSIC.</li>
+<li>result .kvh file is greatly shortened, keeping only essential information. Custom additional information can be stored in some file via <code class="docutils literal"><span class="pre">posttreat_R</span></code> option</li>
+<li>now, <code class="docutils literal"><span class="pre">influx_s</span></code> returns a non zero code to shell if an error occurred during execution;</li>
+<li>added a parameter <code class="docutils literal"><span class="pre">monotone</span></code> to the control list of NLSIC.</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
@@ -454,7 +485,7 @@
 <li>fixed an error preventing from producing a message suggesting a new partition among dependent, free and constrained fluxes (reported by Stéphane Mottelet, University of Compiegne, France)</li>
 <li>fixed metabolite pooling weights (manifested in some special cases)</li>
 <li>Windows platform: fixed passing command line options to R code</li>
-<li>Windows platform: precompiled <code class="docutils literal notranslate"><span class="pre">nnls</span></code> R package (version 32 bits) can produce wrong results. Recompile it by hand or use 64 bits version.</li>
+<li>Windows platform: precompiled <code class="docutils literal"><span class="pre">nnls</span></code> R package (version 32 bits) can produce wrong results. Recompile it by hand or use 64 bits version.</li>
 </ul>
 </dd>
 </dl>
@@ -469,7 +500,7 @@
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
-<li>fixed a bug in <code class="docutils literal notranslate"><span class="pre">--emu</span></code> option (was introduced in v.2.11)</li>
+<li>fixed a bug in <code class="docutils literal"><span class="pre">--emu</span></code> option (was introduced in v.2.11)</li>
 </ul>
 </dd>
 </dl>
@@ -479,7 +510,7 @@
 <dl class="docutils">
 <dt>Bug fix:</dt>
 <dd><ul class="first last simple">
-<li>an option <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> broken in 2.11 is repaired (reported by Pierre Millard, Manchester Institute of Biotechnology, UK)</li>
+<li>an option <code class="docutils literal"><span class="pre">--noopt</span></code> broken in 2.11 is repaired (reported by Pierre Millard, Manchester Institute of Biotechnology, UK)</li>
 </ul>
 </dd>
 </dl>
@@ -489,11 +520,11 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>a joint use of the options <code class="docutils literal notranslate"><span class="pre">--fseries</span></code> and <code class="docutils literal notranslate"><span class="pre">--irand</span></code> gives a possibility to mix fixed and random values in starting points</li>
-<li>post treatment option <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> is introduced in FTBL file. A user script written in R can be used to chain flux estimation and customized data treatment, e.g. graph plotting in a pdf file or simply saving of all the environment for later use and exploring in an R interactive session</li>
-<li>added optional <code class="docutils literal notranslate"><span class="pre">INEQUALITIES/METAB</span></code> section in FTBL file. It can be helpful to limit variations of estimated metabolite concentrations (suggested by Marc Carnicer, INSA of Toulouse, France)</li>
-<li>added optional <code class="docutils literal notranslate"><span class="pre">EQUALITIES/METAB</span></code> section in FTBL file. It can be helpful to fix a ratio between varying metabolite concentrations (suggested by Marc Carnicer, idem)</li>
-<li>the default value of <code class="docutils literal notranslate"><span class="pre">btdesc</span></code> parameter in NLSIC algorithm is lowered from 0.75 to 0.1. In some cases, it can accelerate the optimization convergence.</li>
+<li>a joint use of the options <code class="docutils literal"><span class="pre">--fseries</span></code> and <code class="docutils literal"><span class="pre">--irand</span></code> gives a possibility to mix fixed and random values in starting points</li>
+<li>post treatment option <code class="docutils literal"><span class="pre">posttreat_R</span></code> is introduced in FTBL file. A user script written in R can be used to chain flux estimation and customized data treatment, e.g. graph plotting in a pdf file or simply saving of all the environment for later use and exploring in an R interactive session</li>
+<li>added optional <code class="docutils literal"><span class="pre">INEQUALITIES/METAB</span></code> section in FTBL file. It can be helpful to limit variations of estimated metabolite concentrations (suggested by Marc Carnicer, INSA of Toulouse, France)</li>
+<li>added optional <code class="docutils literal"><span class="pre">EQUALITIES/METAB</span></code> section in FTBL file. It can be helpful to fix a ratio between varying metabolite concentrations (suggested by Marc Carnicer, idem)</li>
+<li>the default value of <code class="docutils literal"><span class="pre">btdesc</span></code> parameter in NLSIC algorithm is lowered from 0.75 to 0.1. In some cases, it can accelerate the optimization convergence.</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
@@ -502,7 +533,7 @@
 <li>fixed measurement matrix when only one measurement is available</li>
 <li>fixed a fatal error when no free flux is available but at least one metabolite quantity must be estimated</li>
 <li>fixed a bug in pooled measurements. This bug was harmful only if the metabolite pooling was used in more than one type of measurements, e.g. mass <em>and</em> labeling. If only one type of measurements used pooling (e.g. mass), the bug was without effect</li>
-<li>where appropriate, a word “labeling” was replaced by “label” in the field names of the <code class="docutils literal notranslate"><span class="pre">_res.kvh</span></code> file</li>
+<li>where appropriate, a word “labeling” was replaced by “label” in the field names of the <code class="docutils literal"><span class="pre">_res.kvh</span></code> file</li>
 <li>fixed superfluous backtracking iterations present for some particular residual functions</li>
 <li>if a flux or a metabolite is present more than once in formulas of (IN)EQUALITIES sections, its coefficients are summed up instead of taking only the last one</li>
 <li>fixed a fatal error in generating inequality matrix for net fluxes</li>
@@ -515,16 +546,16 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>added an option <code class="docutils literal notranslate"><span class="pre">--tikhreg</span></code> which is an alternative for <code class="docutils literal notranslate"><span class="pre">--ln</span></code> option. In case of rank deficient Jacobian, it calculates an increment step of the smallest norm in  <em>approximative</em> way. It is done by Tikhonov regularization</li>
-<li>added an option <code class="docutils literal notranslate"><span class="pre">--ffguess</span></code> which makes to ignore the partition between free and dependent fluxes defined in FTBL file(s) and automatically guess a new free/dependent flux partition (suggested by Roland Nilsson, Karolinska Institutet, Sweden)</li>
-<li>added utility <code class="docutils literal notranslate"><span class="pre">ftbl2kvh.py</span></code> which is useful for debugging purposes only</li>
-<li>utilities <code class="docutils literal notranslate"><span class="pre">ftbl2xgmml.py</span></code>, <code class="docutils literal notranslate"><span class="pre">ftbl2cumoAb.py</span></code>, <code class="docutils literal notranslate"><span class="pre">ftbl2netan.py</span></code> and <code class="docutils literal notranslate"><span class="pre">ftbl2kvh.py</span></code> are rewritten in such a way that if no output redirection (with operands ‘&gt;’ or ‘|’) occurs on the command line, the name of the output file is automatically derived from the input one. The suffix <code class="docutils literal notranslate"><span class="pre">.ftbl</span></code> is simply replaced with <code class="docutils literal notranslate"><span class="pre">.xgmml</span></code>, <code class="docutils literal notranslate"><span class="pre">.sys</span></code>, <code class="docutils literal notranslate"><span class="pre">.netan</span></code> or <code class="docutils literal notranslate"><span class="pre">.kvh</span></code> respectively. Thus a plain drug-and-drop can work with these utilities</li>
-<li>option <code class="docutils literal notranslate"><span class="pre">--TIMEIT</span></code> reports times with subsecond precision. The actual precision depends on the platform but typically a 0.01 s precision should be available. On Windows, the precision is usually 1/60 of a second</li>
+<li>added an option <code class="docutils literal"><span class="pre">--tikhreg</span></code> which is an alternative for <code class="docutils literal"><span class="pre">--ln</span></code> option. In case of rank deficient Jacobian, it calculates an increment step of the smallest norm in  <em>approximative</em> way. It is done by Tikhonov regularization</li>
+<li>added an option <code class="docutils literal"><span class="pre">--ffguess</span></code> which makes to ignore the partition between free and dependent fluxes defined in FTBL file(s) and automatically guess a new free/dependent flux partition (suggested by Roland Nilsson, Karolinska Institutet, Sweden)</li>
+<li>added utility <code class="docutils literal"><span class="pre">ftbl2kvh.py</span></code> which is useful for debugging purposes only</li>
+<li>utilities <code class="docutils literal"><span class="pre">ftbl2xgmml.py</span></code>, <code class="docutils literal"><span class="pre">ftbl2cumoAb.py</span></code>, <code class="docutils literal"><span class="pre">ftbl2netan.py</span></code> and <code class="docutils literal"><span class="pre">ftbl2kvh.py</span></code> are rewritten in such a way that if no output redirection (with operands ‘&gt;’ or ‘|’) occurs on the command line, the name of the output file is automatically derived from the input one. The suffix <code class="docutils literal"><span class="pre">.ftbl</span></code> is simply replaced with <code class="docutils literal"><span class="pre">.xgmml</span></code>, <code class="docutils literal"><span class="pre">.sys</span></code>, <code class="docutils literal"><span class="pre">.netan</span></code> or <code class="docutils literal"><span class="pre">.kvh</span></code> respectively. Thus a plain drug-and-drop can work with these utilities</li>
+<li>option <code class="docutils literal"><span class="pre">--TIMEIT</span></code> reports times with subsecond precision. The actual precision depends on the platform but typically a 0.01 s precision should be available. On Windows, the precision is usually 1/60 of a second</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
-<li>fixed <code class="docutils literal notranslate"><span class="pre">include_growth_flux</span></code> option for <code class="docutils literal notranslate"><span class="pre">ftbl2cumoAb.py</span></code> utility (reported by Marc Carnicer, INSA of Toulouse, France)</li>
+<li>fixed <code class="docutils literal"><span class="pre">include_growth_flux</span></code> option for <code class="docutils literal"><span class="pre">ftbl2cumoAb.py</span></code> utility (reported by Marc Carnicer, INSA of Toulouse, France)</li>
 <li>fixed a bug preventing from checking for a linear dependence between rows of stoechiometric matrix if no constrained net flux is defined in the FTBL file (reported by Roland Nilsson, idem)</li>
 </ul>
 </dd>
@@ -535,17 +566,17 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>utility <code class="docutils literal notranslate"><span class="pre">ftbl2xgmml.py</span></code> replaces <code class="docutils literal notranslate"><span class="pre">ftbl2rsif.py</span></code>. Now, a standalone XGMML file describes both a network and its graphical properties instead of a collection of files where this information was spread. New graphical conventions are now used.</li>
-<li>an obsolete utility <code class="docutils literal notranslate"><span class="pre">ftbl2cytoscape.bat</span></code> is removed form the distribution.</li>
-<li>added utility <code class="docutils literal notranslate"><span class="pre">res2ftbl_meas.py</span></code> generating measurement section from a result file _res.kvh</li>
-<li>added utility <code class="docutils literal notranslate"><span class="pre">expa2ftbl.R</span></code> transforming stoechiometric information in EXPA format (<a class="reference external" href="http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis">http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis</a>) to various sections of FTBL file, namely to <code class="docutils literal notranslate"><span class="pre">EQUALITY</span></code> section where non carbon carrying fluxes can appear</li>
-<li>files generated by <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and collecting values for graphical representation (like <code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwork</span></code> and others) are renamed by adding a suffix <code class="docutils literal notranslate"><span class="pre">.attrs</span></code> to make them compatible with Cytoscape v3.0</li>
-<li>utilities <code class="docutils literal notranslate"><span class="pre">ffres2ftbl.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">ff2ftbl.py</span></code> distributed for a long time ago, are now mentioned in the documentation</li>
+<li>utility <code class="docutils literal"><span class="pre">ftbl2xgmml.py</span></code> replaces <code class="docutils literal"><span class="pre">ftbl2rsif.py</span></code>. Now, a standalone XGMML file describes both a network and its graphical properties instead of a collection of files where this information was spread. New graphical conventions are now used.</li>
+<li>an obsolete utility <code class="docutils literal"><span class="pre">ftbl2cytoscape.bat</span></code> is removed form the distribution.</li>
+<li>added utility <code class="docutils literal"><span class="pre">res2ftbl_meas.py</span></code> generating measurement section from a result file _res.kvh</li>
+<li>added utility <code class="docutils literal"><span class="pre">expa2ftbl.R</span></code> transforming stoechiometric information in EXPA format (<a class="reference external" href="http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis">http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis</a>) to various sections of FTBL file, namely to <code class="docutils literal"><span class="pre">EQUALITY</span></code> section where non carbon carrying fluxes can appear</li>
+<li>files generated by <code class="docutils literal"><span class="pre">influx_s</span></code> and collecting values for graphical representation (like <code class="docutils literal"><span class="pre">edge.netflux.mynetwork</span></code> and others) are renamed by adding a suffix <code class="docutils literal"><span class="pre">.attrs</span></code> to make them compatible with Cytoscape v3.0</li>
+<li>utilities <code class="docutils literal"><span class="pre">ffres2ftbl.sh</span></code> and <code class="docutils literal"><span class="pre">ff2ftbl.py</span></code> distributed for a long time ago, are now mentioned in the documentation</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
-<li>fixed <code class="docutils literal notranslate"><span class="pre">--fullsys</span></code> option broken in the previous release.</li>
+<li>fixed <code class="docutils literal"><span class="pre">--fullsys</span></code> option broken in the previous release.</li>
 </ul>
 </dd>
 </dl>
@@ -555,20 +586,20 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li><code class="docutils literal notranslate"><span class="pre">EQUALITY</span></code> section in FTBL file may include fluxes absent in <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section, e.g. fluxes involved in non carbon carrying reactions (suggested by Roland Nilsson, Karolinska Institutet, Sweden)</li>
+<li><code class="docutils literal"><span class="pre">EQUALITY</span></code> section in FTBL file may include fluxes absent in <code class="docutils literal"><span class="pre">NETWORK</span></code> section, e.g. fluxes involved in non carbon carrying reactions (suggested by Roland Nilsson, Karolinska Institutet, Sweden)</li>
 <li>when a meaningful partition between free and dependent fluxes cannot be made, a proposition is made as to stoechiometric equations to be eliminated by hand (suggested by Roland Nilsson, idem)</li>
-<li>when <code class="docutils literal notranslate"><span class="pre">--clownr</span></code> option is used, reduced size of cumomer system is more efficient than without this option (replace a fix in 2.6 version)</li>
+<li>when <code class="docutils literal"><span class="pre">--clownr</span></code> option is used, reduced size of cumomer system is more efficient than without this option (replace a fix in 2.6 version)</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
-<li>fixed useless memory consumption during ftbl parsing when <code class="docutils literal notranslate"><span class="pre">--emu</span></code> option is used and very long molecules (say &gt;20 carbons) are present (reported by Roland Nilsson, idem)</li>
+<li>fixed useless memory consumption during ftbl parsing when <code class="docutils literal"><span class="pre">--emu</span></code> option is used and very long molecules (say &gt;20 carbons) are present (reported by Roland Nilsson, idem)</li>
 <li>some error messages are made more explicit during FTBL parsing</li>
 <li>fixed Jacobian calculation for condensing input reaction</li>
 <li>fixed matrix constructions when no free flux is defined</li>
 <li>fixed b term for full cumomer system</li>
 <li>fixed inequality enforcement when adaptive backtracking is used in NLSIC</li>
-<li>fixed inequality precedence, now specific inequalities from FTBL file prevail on <code class="docutils literal notranslate"><span class="pre">--cupn=CUPN</span></code> option</li>
+<li>fixed inequality precedence, now specific inequalities from FTBL file prevail on <code class="docutils literal"><span class="pre">--cupn=CUPN</span></code> option</li>
 </ul>
 </dd>
 </dl>
@@ -578,19 +609,19 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>Monte-Carlo simulations are done in parallel on Windows platform too (needs R package <code class="docutils literal notranslate"><span class="pre">snow</span></code>)</li>
-<li>if the option <code class="docutils literal notranslate"><span class="pre">--seed=SEED</span></code> is used, Monte-Carlo simulations are now reproducible even if run in parallel on multiple cores</li>
+<li>Monte-Carlo simulations are done in parallel on Windows platform too (needs R package <code class="docutils literal"><span class="pre">snow</span></code>)</li>
+<li>if the option <code class="docutils literal"><span class="pre">--seed=SEED</span></code> is used, Monte-Carlo simulations are now reproducible even if run in parallel on multiple cores</li>
 <li>for rank deficient Jacobian, the inequalities are now better enforced</li>
-<li>starting value for <code class="docutils literal notranslate"><span class="pre">maxstep</span></code> parameter is set to <span class="math notranslate nohighlight">\(10||p||\)</span> instead of <span class="math notranslate nohighlight">\(||p||\)</span> where <em>p</em> is a vector of starting values for free parameters to fit.</li>
+<li>starting value for <code class="docutils literal"><span class="pre">maxstep</span></code> parameter is set to <span class="math">\(10||p||\)</span> instead of <span class="math">\(||p||\)</span> where <em>p</em> is a vector of starting values for free parameters to fit.</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
 <li>fixed a bug preventing to report partial Monte-Carlo results if some simulations failed and some not</li>
-<li>fixed a bug making to use all available cores instead of only one when <code class="docutils literal notranslate"><span class="pre">NP</span></code> was set to 1</li>
+<li>fixed a bug making to use all available cores instead of only one when <code class="docutils literal"><span class="pre">NP</span></code> was set to 1</li>
 <li>fixed a fatal error when inequality enforcement fails</li>
 <li>error and log messages during zero cross passes are made more explicit</li>
-<li>fixed sending some error messages on standard output instead of <code class="docutils literal notranslate"><span class="pre">.err</span></code> file</li>
+<li>fixed sending some error messages on standard output instead of <code class="docutils literal"><span class="pre">.err</span></code> file</li>
 <li>when cumomer matrix is singular, fixed an error message about zero fluxes</li>
 </ul>
 </dd>
@@ -601,10 +632,10 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>added option <code class="docutils literal notranslate"><span class="pre">--sln</span></code> (solution least norm) which applies ‘least norm’ to the whole solution vector of free parameters, not just to the increment vector (like <code class="docutils literal notranslate"><span class="pre">--ln</span></code> does)</li>
+<li>added option <code class="docutils literal"><span class="pre">--sln</span></code> (solution least norm) which applies ‘least norm’ to the whole solution vector of free parameters, not just to the increment vector (like <code class="docutils literal"><span class="pre">--ln</span></code> does)</li>
 <li>a parallel calculation of multiple FTBLs is moved from python to R code. In such a way, some economies of repeated R starting up and library loading are made</li>
-<li>when zero crossing is used (<code class="docutils literal notranslate"><span class="pre">--zc=ZC</span></code>) a third pass is added without any zc constraint.</li>
-<li>added an option <code class="docutils literal notranslate"><span class="pre">maxstep</span></code> to control list of nlsic(). In some situations, it can make the convergence more stable at early iterations.</li>
+<li>when zero crossing is used (<code class="docutils literal"><span class="pre">--zc=ZC</span></code>) a third pass is added without any zc constraint.</li>
+<li>added an option <code class="docutils literal"><span class="pre">maxstep</span></code> to control list of nlsic(). In some situations, it can make the convergence more stable at early iterations.</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
@@ -612,7 +643,7 @@
 <li>fixed a fatal error preventing from using BFGS optimization method</li>
 <li>fixed an error in calculating reduced size of cumomer or EMU systems. It did not impact the results (at least for well defined network) but made calculations a little bit longer (reported by Stephane Mottelet, University of Compiegne, France).</li>
 <li>a more explicit error message is generated when a given choice of free fluxes leads to a square but singular flux (stoechiometric) matrix.</li>
-<li>some error messages were printed on standard output instead of <code class="docutils literal notranslate"><span class="pre">.err</span></code> file.</li>
+<li>some error messages were printed on standard output instead of <code class="docutils literal"><span class="pre">.err</span></code> file.</li>
 </ul>
 </dd>
 </dl>
@@ -622,7 +653,7 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>an argument of the option <code class="docutils literal notranslate"><span class="pre">--np=NP</span></code> (number of processes) can be fractional, between 0 and 1 in which case the number of requested cores is calculated as NP*number_of_available_cores</li>
+<li>an argument of the option <code class="docutils literal"><span class="pre">--np=NP</span></code> (number of processes) can be fractional, between 0 and 1 in which case the number of requested cores is calculated as NP*number_of_available_cores</li>
 <li>in documentation, added a section describing some problematic cases and measures which could be undertaken to solve or to work around them. Few more field names in the output file are described (based on discussions with Yanfen Fu, University of Washington, USA)</li>
 <li>missing values in measurements (NA as Non Available) are allowed in FTBL files.</li>
 </ul>
@@ -630,8 +661,8 @@
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
 <li>fixed a fatal error if the rights of generated R file cannot be changed</li>
-<li>fixed a bug for <code class="docutils literal notranslate"><span class="pre">--ln</span></code> (least norm) option when without inequalities, increments were not of least norm (reported by Stephane Massou, INSA of Toulouse, France)</li>
-<li>fixed an algorithm used in <code class="docutils literal notranslate"><span class="pre">--ln</span></code>. Now for all inequality systems, both least residual norm and least solution norm are achieved (before, for some systems it was not the case). <strong>Due to this fix, we highly recommend to update to this version if you use</strong> <code class="docutils literal notranslate"><span class="pre">--ln</span></code> <strong>option</strong></li>
+<li>fixed a bug for <code class="docutils literal"><span class="pre">--ln</span></code> (least norm) option when without inequalities, increments were not of least norm (reported by Stephane Massou, INSA of Toulouse, France)</li>
+<li>fixed an algorithm used in <code class="docutils literal"><span class="pre">--ln</span></code>. Now for all inequality systems, both least residual norm and least solution norm are achieved (before, for some systems it was not the case). <strong>Due to this fix, we highly recommend to update to this version if you use</strong> <code class="docutils literal"><span class="pre">--ln</span></code> <strong>option</strong></li>
 <li>fixed a bug in “zero crossing” inequalities. Now, inequalities involving only constrained fluxes are canceled.</li>
 </ul>
 </dd>
@@ -642,7 +673,7 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>number of parallel processes (in case of multiple FTBL files) is limited to a number of cores or to an argument of the <code class="docutils literal notranslate"><span class="pre">--np</span></code> option</li>
+<li>number of parallel processes (in case of multiple FTBL files) is limited to a number of cores or to an argument of the <code class="docutils literal"><span class="pre">--np</span></code> option</li>
 <li>some consistency controls were added on flux names in various FTBL sections.</li>
 </ul>
 </dd>
@@ -650,7 +681,7 @@
 <dd><ul class="first last simple">
 <li>fixed a bug in formatting some error messages during FTBL parsing;</li>
 <li>fixed an accidental removing of kvh.py file from the previous release;</li>
-<li>fixed non signaling to check <code class="docutils literal notranslate"><span class="pre">.err</span></code> file while some parsing errors did produce;</li>
+<li>fixed non signaling to check <code class="docutils literal"><span class="pre">.err</span></code> file while some parsing errors did produce;</li>
 </ul>
 </dd>
 </dl>
@@ -660,12 +691,12 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>external <code class="docutils literal notranslate"><span class="pre">multicore</span></code> R package is replaced by native <code class="docutils literal notranslate"><span class="pre">parallel</span></code> package;</li>
+<li>external <code class="docutils literal"><span class="pre">multicore</span></code> R package is replaced by native <code class="docutils literal"><span class="pre">parallel</span></code> package;</li>
 <li>convergence information of Monte-Carlo simulations is reported in the result file;</li>
 <li>relative SD (rsd) in Monte-Carlo statistics is calculated as SD/abs(mean) and no more as SD/abs(estimated parameter);</li>
 <li>if the number of really calculated samples in Monte-Carlo is less than 2, statistics are not calculated;</li>
 <li>R code is self sufficient to be executed via source() function, even in parallel way;</li>
-<li>with a new option <code class="docutils literal notranslate"><span class="pre">--nocalc</span></code>, R code is generated but not executed.</li>
+<li>with a new option <code class="docutils literal"><span class="pre">--nocalc</span></code>, R code is generated but not executed.</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
@@ -694,14 +725,14 @@
 <dl class="docutils">
 <dt>New features:</dt>
 <dd><ul class="first last simple">
-<li>if more than one FTBL file is given in argument to <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>, all files are proceeded simultaneously in independent processes;</li>
+<li>if more than one FTBL file is given in argument to <code class="docutils literal"><span class="pre">influx_s</span></code>, all files are proceeded simultaneously in independent processes;</li>
 <li>outliers in measurements can be automatically detected and excluded from parameter fitting.</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
 <dd><ul class="first last simple">
-<li>fixed an error preventing Monte-Carlo results to be written if <code class="docutils literal notranslate"><span class="pre">multicore</span></code> package is not installed;</li>
-<li>fixed a documentation error about <span class="math notranslate nohighlight">\(\ln(M)\)</span> in <code class="docutils literal notranslate"><span class="pre">mynetwork.pres.csv</span></code> file;</li>
+<li>fixed an error preventing Monte-Carlo results to be written if <code class="docutils literal"><span class="pre">multicore</span></code> package is not installed;</li>
+<li>fixed a documentation error about <span class="math">\(\ln(M)\)</span> in <code class="docutils literal"><span class="pre">mynetwork.pres.csv</span></code> file;</li>
 <li>fixed warning resuming if there are many of them;</li>
 <li>fixed some error message generation on FTBL parsing.</li>
 </ul>
@@ -734,15 +765,15 @@
 <li>history of convergence during minimization can be retrieved;</li>
 <li>symbolic equations for dependent fluxes expressed as functions of free and constrained fluxes are generated by ftbl2cumoAb.py script;</li>
 <li>METAB_MEASUREMENTS section is added to FTBL format;</li>
-<li>added <span class="math notranslate nohighlight">\(\chi^2\)</span> test for evaluating the goodness of fit;</li>
-<li>removed <code class="docutils literal notranslate"><span class="pre">metab_scale</span></code> field from OPTIONS section in FTBL format;</li>
+<li>added <span class="math">\(\chi^2\)</span> test for evaluating the goodness of fit;</li>
+<li>removed <code class="docutils literal"><span class="pre">metab_scale</span></code> field from OPTIONS section in FTBL format;</li>
 <li>“dead end” internal metabolites are allowed in a network without being an output metabolite. As consequence, input-output fluxes must be explicitly declared as non reversible in the FTBL;</li>
-<li>added optional EMU framework (<code class="docutils literal notranslate"><span class="pre">--emu</span></code>);</li>
+<li>added optional EMU framework (<code class="docutils literal"><span class="pre">--emu</span></code>);</li>
 <li>added optional series of starting points, fixed or randomly generated
-(<code class="docutils literal notranslate"><span class="pre">--fseries</span></code>, <code class="docutils literal notranslate"><span class="pre">--iseries</span></code>);</li>
-<li>matrix construction is reworked and fortran code is removed. Now, no more <code class="docutils literal notranslate"><span class="pre">Rtool</span></code> installation is required for running <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>;</li>
+(<code class="docutils literal"><span class="pre">--fseries</span></code>, <code class="docutils literal"><span class="pre">--iseries</span></code>);</li>
+<li>matrix construction is reworked and fortran code is removed. Now, no more <code class="docutils literal"><span class="pre">Rtool</span></code> installation is required for running <code class="docutils literal"><span class="pre">influx_s</span></code>;</li>
 <li>some error messages are made more explicit and more precise;</li>
-<li>outdated R package <code class="docutils literal notranslate"><span class="pre">fUtilities</span></code> is no more required;</li>
+<li>outdated R package <code class="docutils literal"><span class="pre">fUtilities</span></code> is no more required;</li>
 </ul>
 </dd>
 <dt>Bug fixes:</dt>
@@ -750,7 +781,7 @@
 <li>fixed stoechiometric matrix construction when for a given metabolite;
 all fluxes are free or constrained;</li>
 <li>fixed candidate propositions for free fluxes;</li>
-<li>fixed standard deviation value for a <code class="docutils literal notranslate"><span class="pre">DD/T</span></code> field in <code class="docutils literal notranslate"><span class="pre">PEAK_MEASUREMENTS</span></code> section.</li>
+<li>fixed standard deviation value for a <code class="docutils literal"><span class="pre">DD/T</span></code> field in <code class="docutils literal"><span class="pre">PEAK_MEASUREMENTS</span></code> section.</li>
 </ul>
 </dd>
 </dl>
@@ -764,7 +795,7 @@ all fluxes are free or constrained;</li>
 <li>FTBL input format from 13CFlux project;</li>
 <li>reduced cumomer set for cumomer balance equations;</li>
 <li>sparse matrices;</li>
-<li>usage of <code class="docutils literal notranslate"><span class="pre">multicore</span></code> R package for Monte-Carlo simulations on Unix platform;</li>
+<li>usage of <code class="docutils literal"><span class="pre">multicore</span></code> R package for Monte-Carlo simulations on Unix platform;</li>
 <li>usable on platforms having Python+numpy and R+some modules;</li>
 <li>command line interface;</li>
 <li>brief user’s and programmer’s documentation;</li>
@@ -781,9 +812,10 @@ all fluxes are free or constrained;</li>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
+  <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-5-4-0">2021-02-26 version 5.4.0</a></li>
 <li><a class="reference internal" href="#version-5-3-0">2020-07-24 version 5.3.0</a></li>
 <li><a class="reference internal" href="#version-5-2-0">2020-05-28 version 5.2.0</a></li>
 <li><a class="reference internal" href="#version-5-1-0">2020-04-07 version 5.1.0</a></li>
@@ -842,14 +874,12 @@ all fluxes are free or constrained;</li>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -871,12 +901,12 @@ all fluxes are free or constrained;</li>
         <li class="right" >
           <a href="intro.html" title="Introduction"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
     </div>
   </body>
 </html>

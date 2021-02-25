@@ -92,7 +92,7 @@ def do_case(ith, icase, line):
             print('%d:%s: running "%s" ...'%(icase, nm_t, cmd))
         #pdb.set_trace()
         if not dry:
-            p = subp.run(cmd, shell=True, stdout=fd_out, stderr=fd_err).returncode
+            p = subp.run(cmd, shell=True, executable='/bin/bash', stdout=fd_out, stderr=fd_err).returncode
             if ncore > 1:
                 print('done %d:th%d:%s (%.2f s)'%(icase, ith, nm_t, time()-t0))
         else:

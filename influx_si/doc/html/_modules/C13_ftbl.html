@@ -4,22 +4,28 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>C13_ftbl &#8212; influx_si 5.3 documentation</title>
+    <title>C13_ftbl &#8212; influx_si 5.4 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '5.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
-  </head><body>
+  </head>
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -29,7 +35,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -131,19 +137,19 @@
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">codecs</span> <span class="k">import</span> <span class="n">BOM_UTF8</span><span class="p">,</span> <span class="n">BOM_UTF16_BE</span><span class="p">,</span> <span class="n">BOM_UTF16_LE</span><span class="p">,</span> <span class="n">BOM_UTF32_BE</span><span class="p">,</span> <span class="n">BOM_UTF32_LE</span>
-<div class="viewcode-block" id="oset"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset">[docs]</a><span class="k">class</span> <span class="nc">oset</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+<span class="kn">from</span> <span class="nn">codecs</span> <span class="kn">import</span> <span class="n">BOM_UTF8</span><span class="p">,</span> <span class="n">BOM_UTF16_BE</span><span class="p">,</span> <span class="n">BOM_UTF16_LE</span><span class="p">,</span> <span class="n">BOM_UTF32_BE</span><span class="p">,</span> <span class="n">BOM_UTF32_LE</span>
+<span class="k">class</span> <span class="nc">oset</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
                 <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;expected at most 1 arguments, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
-<div class="viewcode-block" id="oset.copy"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">()</span>
         <span class="n">tmp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">return</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span></div>
+        <span class="k">return</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="bp">self</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
     <span class="k">def</span> <span class="nf">difference_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
@@ -152,22 +158,22 @@
                 <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
     <span class="k">def</span> <span class="nf">difference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">return</span><span class="p">(</span><span class="bp">self</span> <span class="o">-</span> <span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-<div class="viewcode-block" id="oset.update"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">x</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
-                <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span></div>
+                <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
     <span class="k">def</span> <span class="nf">intersection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span> <span class="o">&amp;</span> <span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">oset</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tmp</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">oset</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tmp</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">tmp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">tmp</span></div>
+        <span class="k">return</span> <span class="n">tmp</span>
 
 <span class="n">BOMS</span> <span class="o">=</span> <span class="p">(</span>
     <span class="p">(</span><span class="n">BOM_UTF8</span><span class="p">,</span> <span class="s2">&quot;UTF-8&quot;</span><span class="p">),</span>
@@ -184,8 +190,10 @@
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirx</span><span class="p">)</span>
 <span class="c1">#sys.tracebacklimit=0</span>
 
-<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">NaN</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
+<span class="n">NA</span><span class="o">=</span><span class="n">NaN</span>
+<span class="n">tol</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">epsilon</span><span class="o">*</span><span class="mi">2</span><span class="o">**</span><span class="mi">7</span>
 <span class="n">float_conv</span><span class="o">=</span><span class="n">oset</span><span class="p">((</span>
     <span class="s2">&quot;VALUE&quot;</span><span class="p">,</span>
     <span class="s2">&quot;DEVIATION&quot;</span><span class="p">,</span>
@@ -416,7 +424,13 @@
                     <span class="c1"># decimal point conversion</span>
                     <span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
                     <span class="k">if</span> <span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">in</span> <span class="n">float_conv</span><span class="p">:</span>
-                       <span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                        <span class="n">oldval</span><span class="o">=</span><span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                        <span class="n">val</span><span class="o">=</span><span class="n">oldval</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">fval</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                            <span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">=</span><span class="n">val</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">=</span><span class="n">oldval</span>
                 <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
                     <span class="k">pass</span>
             <span class="k">if</span> <span class="n">sec_name</span> <span class="o">==</span> <span class="s2">&quot;NETWORK&quot;</span> <span class="ow">and</span> <span class="n">pathway</span><span class="p">:</span>
@@ -500,6 +514,7 @@
 <span class="sd">     - measured fluxes (flux_measured)</span>
 <span class="sd">     - variable growth fluxes (flux_vgrowth)</span>
 <span class="sd">     - input isotopomers (iso_input)</span>
+<span class="sd">     - input isotopomers functions (funlab for case_i=True)</span>
 <span class="sd">     - input cumomers (cumo_input)</span>
 <span class="sd">     - input reduced cumomers (rcumo_input)</span>
 <span class="sd">     - flux inequalities (flux_ineqal)</span>
@@ -543,6 +558,7 @@
             <span class="s2">&quot;flux_constr&quot;</span><span class="p">:</span><span class="nb">dict</span><span class="p">(),</span>
             <span class="s2">&quot;flux_measured&quot;</span><span class="p">:</span><span class="nb">dict</span><span class="p">(),</span>
             <span class="s2">&quot;iso_input&quot;</span><span class="p">:[],</span>
+            <span class="s2">&quot;funlab&quot;</span><span class="p">:[],</span>
             <span class="s2">&quot;cumo_input&quot;</span><span class="p">:[],</span>
             <span class="s2">&quot;rcumo_input&quot;</span><span class="p">:[],</span>
             <span class="s2">&quot;emu_input&quot;</span><span class="p">:[],</span>
@@ -1056,7 +1072,7 @@
                 <span class="s2">&quot;dev&quot;</span><span class="p">:</span> <span class="n">sdev</span><span class="p">}</span>
     
     <span class="c1"># proceed LABEL_INPUT</span>
-    <span class="n">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
+    <span class="n">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">case_i</span><span class="p">)</span>
     <span class="c1"># flux inequalities</span>
     <span class="c1"># list of tuples (value,comp,dict) where dict is flux:coef</span>
     <span class="c1"># and comp is of &quot;&lt;&quot;, &quot;&lt;=&quot;, ...</span>
@@ -1520,11 +1536,12 @@
                 <span class="c1"># degenerated equality</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Equality in &quot;</span><span class="o">+</span><span class="n">nx</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot; section: &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">eq</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; must have at least one dependent flux</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="c1"># check if this line was already entered before</span>
-            <span class="n">mqry</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">qry</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">row</span> <span class="o">==</span> <span class="n">qry</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="n">mqry</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;An equality in &quot;</span><span class="o">+</span><span class="n">nx</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot; section is redundant. eq:&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">eq</span><span class="p">)</span><span class="o">+</span>
-                        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">qry=&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">qry</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">row=&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ffguess</span><span class="p">:</span>
+                <span class="n">mqry</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">qry</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">row</span> <span class="o">==</span> <span class="n">qry</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="n">mqry</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;An equality in &quot;</span><span class="o">+</span><span class="n">nx</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">+</span><span class="s2">&quot; section is redundant. eq:&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">eq</span><span class="p">)</span><span class="o">+</span>
+                            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">qry=&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">qry</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">row=&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qry</span><span class="p">)</span>
             <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrowAfl&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;eq &quot;</span><span class="o">+</span><span class="n">nx</span><span class="o">+</span><span class="s2">&quot;: &quot;</span><span class="o">+</span><span class="n">eq</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
             <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;bfl&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;&quot;</span><span class="p">:</span><span class="n">eq</span><span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
@@ -1557,7 +1574,7 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">f</span> <span class="ow">in</span> <span class="n">fp</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">req_prl</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Not found label input and/or measurements in &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="o">%</span><span class="n">fn</span><span class="p">)</span>
             <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;exp_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fp</span><span class="p">[</span><span class="s2">&quot;base_name&quot;</span><span class="p">])</span>
-            <span class="n">proc_label_input</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
+            <span class="n">proc_label_input</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">case_i</span><span class="p">)</span>
             <span class="n">proc_label_meas</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
             <span class="n">proc_peak_meas</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
             <span class="n">proc_mass_meas</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
@@ -2520,12 +2537,15 @@
 <div class="viewcode-block" id="ntimes"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.ntimes">[docs]</a><span class="k">def</span> <span class="nf">ntimes</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return charcater string &#39;once&#39; for n=1, &#39;twice&#39; for n=2 and &#39;n times&#39; for other n&quot;&quot;&quot;</span>
     <span class="k">return</span><span class="p">(</span><span class="s2">&quot;once&quot;</span> <span class="k">if</span> <span class="n">n</span><span class="o">==</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;twice&quot;</span> <span class="k">if</span> <span class="n">n</span><span class="o">==</span><span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> times&quot;</span><span class="o">%</span><span class="n">n</span><span class="p">)</span></div>
-<div class="viewcode-block" id="proc_label_input"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_input">[docs]</a><span class="k">def</span> <span class="nf">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed LABEL_INPUT section in ftbl and add result to the list netan[&quot;iso_input&quot;]</span>
+<div class="viewcode-block" id="proc_label_input"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_input">[docs]</a><span class="k">def</span> <span class="nf">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Proceed LABEL_INPUT section in ftbl and add result to the list netan[&quot;iso_input&quot;] and netan[&quot;funlab&quot;] (case_i)</span>
 <span class="sd">    List item is a dict {}metab;{isotop_int_index:fraction}}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ili</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">])</span> <span class="c1"># label_input list index</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
+    <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
+        <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;funlab&quot;</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
+        <span class="n">resf</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;funlab&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">]</span>
     <span class="n">res</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">]</span>
     <span class="c1"># input isotopomers</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ftbl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LABEL_INPUT&quot;</span><span class="p">,[]):</span>
@@ -2537,41 +2557,53 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input isotopomer `</span><span class="si">%s</span><span class="s2">` is of bad length (</span><span class="si">%d</span><span class="s2">). A length of </span><span class="si">%d</span><span class="s2"> is expected (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span>
                 <span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;META_NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">+</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ISOTOPOMER&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">ilen</span><span class="p">,</span>  <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">],</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
         <span class="n">iiso</span><span class="o">=</span><span class="n">strbit2int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ISOTOPOMER&quot;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">metab</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
-            <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
-        <span class="n">val</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;VALUE&quot;</span><span class="p">])</span>
-        <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="n">iiso</span><span class="p">]</span><span class="o">=</span><span class="n">val</span>
-        <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input isotopomer `</span><span class="si">%s</span><span class="s2">` has a value (</span><span class="si">%g</span><span class="s2">) out of range [0; 1] (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;META_NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">+</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ISOTOPOMER&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">val</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
-    <span class="c1"># check that all isoforms sum up to 1 for all inputs</span>
-    <span class="k">for</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
-        <span class="n">le</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">])</span>
-        <span class="n">nfo</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">]</span>
-        <span class="n">su</span><span class="o">=</span><span class="nb">sum</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">su</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="o">+</span><span class="mf">1.e-10</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input metabolite `</span><span class="si">%s</span><span class="s2">` has label summing up to </span><span class="si">%g</span><span class="s2"> which is greater than 1 (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="n">le</span> <span class="o">==</span> <span class="n">nfo</span><span class="p">:</span>
-            <span class="c1"># all forms are given =&gt; must sum up to 1</span>
-            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">su</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-10</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input metabolite `</span><span class="si">%s</span><span class="s2">` has label summing up to </span><span class="si">%g</span><span class="s2"> instead of 1 (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span>
-        <span class="k">elif</span> <span class="n">le</span> <span class="o">&lt;</span> <span class="n">nfo</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># many forms are lacking (not just one)</span>
-            <span class="c1"># if fully unlabeled is lacking, use it to complete to 1</span>
-            <span class="c1"># otherwise raise an error</span>
-            <span class="k">if</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]:</span>
-                <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mf">1.</span><span class="o">-</span><span class="n">su</span>
-            <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">su</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-10</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input metabolite `</span><span class="si">%s</span><span class="s2">` has lacking labels to sum up to 1 (we get sum=</span><span class="si">%g</span><span class="s2"> instead) (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span>
-        <span class="k">elif</span> <span class="n">le</span> <span class="o">==</span> <span class="n">nfo</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># just one form is lacking</span>
-            <span class="k">if</span> <span class="n">su</span> <span class="o">!=</span> <span class="mf">1.</span><span class="p">:</span>
-                <span class="c1"># add it to complete to 1</span>
-                <span class="n">la</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">oset</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nfo</span><span class="p">))</span><span class="o">-</span><span class="n">oset</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="n">la</span><span class="p">]</span><span class="o">=</span><span class="mf">1.</span><span class="o">-</span><span class="n">su</span>
+        <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
+            <span class="n">resf</span><span class="p">[</span><span class="n">metab</span><span class="p">]</span><span class="o">=</span><span class="n">resf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">resf</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="n">iiso</span><span class="p">]</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;VALUE&quot;</span><span class="p">]</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="n">iiso</span><span class="p">]</span><span class="o">=</span><span class="n">NA</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;VALUE&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mf">0.</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="n">tol</span><span class="p">:</span>
+                <span class="n">val</span><span class="o">=</span><span class="mf">0.</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mf">1.</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">&lt;=</span> <span class="mf">1.</span><span class="o">+</span><span class="n">tol</span><span class="p">:</span>
+                <span class="n">val</span><span class="o">=</span><span class="mf">1.</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input isotopomer `</span><span class="si">%s</span><span class="s2">` has a value (</span><span class="si">%g</span><span class="s2">) out of range [0; 1] (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;META_NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">+</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ISOTOPOMER&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">val</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="n">iiso</span><span class="p">]</span><span class="o">=</span><span class="n">val</span>
+    <span class="c1"># check that all isoforms sum up to 1 for all inputs for influx_s</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">case_i</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+            <span class="n">le</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">])</span>
+            <span class="n">nfo</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">]</span>
+            <span class="n">su</span><span class="o">=</span><span class="nb">sum</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">su</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="o">+</span><span class="mf">1.e-10</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input metabolite `</span><span class="si">%s</span><span class="s2">` has label summing up to </span><span class="si">%g</span><span class="s2"> which is greater than 1 (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="n">le</span> <span class="o">==</span> <span class="n">nfo</span><span class="p">:</span>
+                <span class="c1"># all forms are given =&gt; must sum up to 1</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">su</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-10</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input metabolite `</span><span class="si">%s</span><span class="s2">` has label summing up to </span><span class="si">%g</span><span class="s2"> instead of 1 (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span>
+            <span class="k">elif</span> <span class="n">le</span> <span class="o">&lt;</span> <span class="n">nfo</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># many forms are lacking (not just one)</span>
+                <span class="c1"># if fully unlabeled is lacking, use it to complete to 1</span>
+                <span class="c1"># otherwise raise an error</span>
+                <span class="k">if</span> <span class="mi">0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]:</span>
+                    <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="mf">1.</span><span class="o">-</span><span class="n">su</span>
+                <span class="k">elif</span> <span class="nb">abs</span><span class="p">(</span><span class="n">su</span><span class="o">-</span><span class="mf">1.</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.e-10</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Input metabolite `</span><span class="si">%s</span><span class="s2">` has lacking labels to sum up to 1 (we get sum=</span><span class="si">%g</span><span class="s2"> instead) (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">su</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span>
+            <span class="k">elif</span> <span class="n">le</span> <span class="o">==</span> <span class="n">nfo</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># just one form is lacking</span>
+                <span class="k">if</span> <span class="n">su</span> <span class="o">!=</span> <span class="mf">1.</span><span class="p">:</span>
+                    <span class="c1"># add it to complete to 1</span>
+                    <span class="n">la</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">oset</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nfo</span><span class="p">))</span><span class="o">-</span><span class="n">oset</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">res</span><span class="p">[</span><span class="n">metab</span><span class="p">][</span><span class="n">la</span><span class="p">]</span><span class="o">=</span><span class="mf">1.</span><span class="o">-</span><span class="n">su</span>
     <span class="k">if</span> <span class="n">ili</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="c1"># complete absent inputs by their values from the first ftbl</span>
         <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">oset</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">-</span><span class="n">oset</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
             <span class="n">res</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="n">m</span><span class="p">];</span>
+        <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">oset</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;funlab&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">-</span><span class="n">oset</span><span class="p">(</span><span class="n">resf</span><span class="p">):</span>
+                <span class="n">resf</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;funlab&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="n">m</span><span class="p">];</span>
     <span class="n">zeroc</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span><span class="n">n</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">lmi</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">-</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span> <span class="c1"># label input - input</span>
     <span class="n">iml</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span><span class="o">-</span><span class="n">zeroc</span><span class="o">-</span><span class="n">oset</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="c1"># input - label input</span>
@@ -2850,29 +2882,43 @@
         <span class="p">}</span></div>
 
 <div class="viewcode-block" id="proc_kinopt"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_kinopt">[docs]</a><span class="k">def</span> <span class="nf">proc_kinopt</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt</span>
+    <span class="sd">&quot;&quot;&quot;Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt, funlab</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># default values (used when absent in ftbl)</span>
-    <span class="n">de</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;file_labcin&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dt&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;tmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span> <span class="s2">&quot;nsubdiv_dt&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="n">de</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;file_labcin&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dt&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;tmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span> <span class="s2">&quot;nsubdiv_dt&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;funlabR&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">}</span>
     <span class="k">if</span> <span class="s2">&quot;opt&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">:</span>
         <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="p">[])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">de</span><span class="p">)</span>
     <span class="c1"># get ftbl OPTIONS -&gt; d</span>
     <span class="n">d</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ftbl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OPTIONS&quot;</span><span class="p">,[]):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">d</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_NAME&quot;</span><span class="p">]]</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_VALUE&quot;</span><span class="p">])</span>
-        <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_NAME&quot;</span><span class="p">][:</span><span class="mi">7</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;funlab:&quot;</span><span class="p">:</span>
             <span class="n">d</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_NAME&quot;</span><span class="p">]]</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_VALUE&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_NAME&quot;</span><span class="p">]]</span><span class="o">=</span><span class="nb">eval</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_VALUE&quot;</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_NAME&quot;</span><span class="p">]]</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;OPT_VALUE&quot;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">de</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">]:</span>
             <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
-        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">type</span><span class="p">([]):</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
             <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span> <span class="c1"># if already set to a value, reset to a list</span>
         <span class="n">ili</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">])</span>
         <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
         <span class="n">res</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
-        <span class="n">res</span><span class="p">[</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">de</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
+        <span class="n">res</span><span class="p">[</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">de</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+    <span class="c1"># append funval entries</span>
+    <span class="k">if</span> <span class="s2">&quot;funlab&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">]:</span>
+        <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;funlab&quot;</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+    <span class="n">ili</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;funlab&quot;</span><span class="p">])</span>
+    <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;funlab&quot;</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
+    <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;funlab&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">[</span><span class="mi">7</span><span class="p">:],</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="p">[:</span><span class="mi">7</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;funlab:&quot;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="mkfunlabli"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.mkfunlabli">[docs]</a><span class="k">def</span> <span class="nf">mkfunlabli</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="s2">&quot;transform &#39;d&#39; dict to a string representing a body of an R function calculating labeling dependent on time &#39;t&#39;&quot;</span>
+    <span class="c1"># d is like {&#39;Gluc_1:{32: &#39;{T=0; if (t &gt;= T) 1 else NA}&#39;}}</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%(li)s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">{</span><span class="s2">&quot;li&quot;</span><span class="p">:</span> <span class="s2">&quot;list(&quot;</span><span class="o">+</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;`</span><span class="si">%(m)s</span><span class="s2">`=list(</span><span class="si">%(i2f)s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">{</span><span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="s2">&quot;i2f&quot;</span><span class="p">:</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">iso</span><span class="si">}</span><span class="s2">`=&#39;</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">iso</span><span class="p">,</span><span class="n">f</span> <span class="ow">in</span> <span class="n">idi</span><span class="o">.</span><span class="n">items</span><span class="p">())}</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span><span class="n">idi</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot;)&quot;</span><span class="p">}</span></div>
+    
 </pre></div>
 
           </div>
@@ -2882,14 +2928,12 @@
         <div class="sphinxsidebarwrapper">
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -2905,13 +2949,13 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
     </div>
   </body>
 </html>

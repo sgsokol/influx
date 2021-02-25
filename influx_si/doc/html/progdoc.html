@@ -4,24 +4,30 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.3 documentation</title>
+    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.4 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '5.4',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="How to …" href="howto.html" />
     <link rel="prev" title="User’s manual" href="manual.html" /> 
-  </head><body>
+  </head>
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -37,7 +43,7 @@
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -48,7 +54,7 @@
             
   <div class="section" id="programmer-s-documentation-for-influx-s">
 <span id="progdoc"></span><h1>Programmer’s documentation for influx_s<a class="headerlink" href="#programmer-s-documentation-for-influx-s" title="Permalink to this headline">¶</a></h1>
-<p>In this chapter, Application Programming Interface (API) docs are collected. It can be helpful for programmers desiring to extend some features of <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> or to fix some bugs. This chapter can be safely skipped by users aiming at simple usage of <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> for biological research.</p>
+<p>In this chapter, Application Programming Interface (API) docs are collected. It can be helpful for programmers desiring to extend some features of <code class="docutils literal"><span class="pre">influx_s</span></code> or to fix some bugs. This chapter can be safely skipped by users aiming at simple usage of <code class="docutils literal"><span class="pre">influx_s</span></code> for biological research.</p>
 <div class="section" id="module-C13_ftbl">
 <span id="c13-ftbl"></span><h2>C13_ftbl<a class="headerlink" href="#module-C13_ftbl" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -207,6 +213,7 @@ all above items are in named sets</li>
 <li>measured fluxes (flux_measured)</li>
 <li>variable growth fluxes (flux_vgrowth)</li>
 <li>input isotopomers (iso_input)</li>
+<li>input isotopomers functions (funlab for case_i=True)</li>
 <li>input cumomers (cumo_input)</li>
 <li>input reduced cumomers (rcumo_input)</li>
 <li>flux inequalities (flux_ineqal)</li>
@@ -328,6 +335,12 @@ Return a list of (or a single for str) tuples (metab (str), coef (real)).</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="C13_ftbl.mkfunlabli">
+<code class="descclassname">C13_ftbl.</code><code class="descname">mkfunlabli</code><span class="sig-paren">(</span><em>d</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#mkfunlabli"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.mkfunlabli" title="Permalink to this definition">¶</a></dt>
+<dd><p>transform ‘d’ dict to a string representing a body of an R function calculating labeling dependent on time ‘t’</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="C13_ftbl.ms_frag_gath">
 <code class="descclassname">C13_ftbl.</code><code class="descname">ms_frag_gath</code><span class="sig-paren">(</span><em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#ms_frag_gath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.ms_frag_gath" title="Permalink to this definition">¶</a></dt>
 <dd><p>gather metabolite fragments necessary to obtain a given set of data
@@ -339,24 +352,6 @@ The fragment mask is encoded in the same way as cumomers, Met:7 &lt;=&gt; Met#(0
 <dt id="C13_ftbl.ntimes">
 <code class="descclassname">C13_ftbl.</code><code class="descname">ntimes</code><span class="sig-paren">(</span><em>n</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#ntimes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.ntimes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return charcater string ‘once’ for n=1, ‘twice’ for n=2 and ‘n times’ for other n</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="C13_ftbl.oset">
-<em class="property">class </em><code class="descclassname">C13_ftbl.</code><code class="descname">oset</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#oset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.oset" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="C13_ftbl.oset.copy">
-<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a shallow copy of D<a class="reference internal" href="_modules/C13_ftbl.html#oset.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.oset.copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="C13_ftbl.oset.update">
-<code class="descname">update</code><span class="sig-paren">(</span><span class="optional">[</span><em>E</em>, <span class="optional">]</span><em>**F</em><span class="sig-paren">)</span> &#x2192; None.  Update D from dict/iterable E and F.<a class="reference internal" href="_modules/C13_ftbl.html#oset.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.oset.update" title="Permalink to this definition">¶</a></dt>
-<dd><p>If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
-If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
-In either case, this is followed by: for k in F:  D[k] = F[k]</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="function">
@@ -379,13 +374,13 @@ The returned result is a dict (mat,vec,dev)</p>
 <dl class="function">
 <dt id="C13_ftbl.proc_kinopt">
 <code class="descclassname">C13_ftbl.</code><code class="descname">proc_kinopt</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_kinopt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_kinopt" title="Permalink to this definition">¶</a></dt>
-<dd><p>Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt</p>
+<dd><p>Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt, funlab</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="C13_ftbl.proc_label_input">
-<code class="descclassname">C13_ftbl.</code><code class="descname">proc_label_input</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_label_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_label_input" title="Permalink to this definition">¶</a></dt>
-<dd><p>Proceed LABEL_INPUT section in ftbl and add result to the list netan[“iso_input”]
+<code class="descclassname">C13_ftbl.</code><code class="descname">proc_label_input</code><span class="sig-paren">(</span><em>ftbl</em>, <em>netan</em>, <em>case_i=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#proc_label_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.proc_label_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed LABEL_INPUT section in ftbl and add result to the list netan[“iso_input”] and netan[“funlab”] (case_i)
 List item is a dict {}metab;{isotop_int_index:fraction}}</p>
 </dd></dl>
 
@@ -470,22 +465,6 @@ return numpy array of size (n,2**n)</p>
 <dd><p>Transpose a matrix defined as a dict.</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="C13_ftbl.werr">
-<code class="descclassname">C13_ftbl.</code><code class="descname">werr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#C13_ftbl.werr" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write string to stream.
-Returns the number of characters written (which is always equal to
-the length of the string).</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="C13_ftbl.wout">
-<code class="descclassname">C13_ftbl.</code><code class="descname">wout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#C13_ftbl.wout" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write string to stream.
-Returns the number of characters written (which is always equal to
-the length of the string).</p>
-</dd></dl>
-
 </div>
 <div class="section" id="module-ftbl2code">
 <span id="ftbl2code"></span><h2>ftbl2code<a class="headerlink" href="#module-ftbl2code" title="Permalink to this headline">¶</a></h2>
@@ -532,7 +511,7 @@ for more details cf. netan2Rinit()</p>
 <dt id="ftbl2code.netan2Rinit">
 <code class="descclassname">ftbl2code.</code><code class="descname">netan2Rinit</code><span class="sig-paren">(</span><em>netan</em>, <em>org</em>, <em>f</em>, <em>fullsys</em>, <em>emu=False</em>, <em>ropts=[]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2Rinit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2code.netan2Rinit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write R code for initialization of all variables before
-cumomer system resolution by khi2 minimization.
+cumomer system resolution by chi2 minimization.
 :param netan: a collection of parsed ftbl information
 :param f: R code output pointer
 :param fullsys (logical): write a code for the full or only reduced cumomer system
@@ -562,8 +541,8 @@ usage: ftbl2netan.py network[.ftbl] [&gt; network.netan]</p>
 <div class="section" id="module-ftbl2optR">
 <span id="ftbl2optr"></span><h2>ftbl2optR<a class="headerlink" href="#module-ftbl2optR" title="Permalink to this headline">¶</a></h2>
 <p>Transform an ftbl to R code which will solve an optimization of flux analysis
-problem <span class="math notranslate nohighlight">\(\arg \min_{\Theta} S\)</span>, where <span class="math notranslate nohighlight">\(S=||\mathrm{Predicted}-\mathrm{Observed}||^{2}_{\Sigma}\)</span>
-and <span class="math notranslate nohighlight">\(\Theta\)</span> is a vector of parameters to fit: free fluxes (net+xch), scaling parameters and metabolite concentrations
+problem <span class="math">\(\arg \min_{\Theta} S\)</span>, where <span class="math">\(S=||\mathrm{Predicted}-\mathrm{Observed}||^{2}_{\Sigma}\)</span>
+and <span class="math">\(\Theta\)</span> is a vector of parameters to fit: free fluxes (net+xch), scaling parameters and metabolite concentrations
 pools.
 Two variants of R code can be generated: “s” and “i” for stationary and isotopically
 nonstationary labeling.
@@ -574,7 +553,7 @@ pools (in case of pooling) and scale factor (for stationary case only),
 boths coming from ftbl file. Observed values vector xo is extracted from ftbl
 file for “s” case and from special text file for “i” case.
 It is composed of flux, label measurements and metabolite pools.
-<span class="math notranslate nohighlight">\(\Sigma^2\)</span>, covariance diagonal matrices sigma[flux|mass|label|peak|metab.pool]
+<span class="math">\(\Sigma^2\)</span>, covariance diagonal matrices sigma[flux|mass|label|peak|metab.pool]
 is orginated from the ftbl file.</p>
 <p>usage: ./ftbl2optR.py [opts] organism
 where organism is the ftbl informative part of file name
@@ -675,7 +654,7 @@ collection</li>
 <dt>Functions:</dt>
 <dd><ul class="first last simple">
 <li>lab_sim - translate param to flux and cumomer vector (initial approximation)</li>
-<li>cumo_cost - cost function (khi2)</li>
+<li>cumo_cost - cost function (chi2)</li>
 <li>cumo_gradj - implicit derivative gradient</li>
 </ul>
 </dd>
@@ -860,11 +839,11 @@ of a dictionnary are silently overwritten</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span><span class="n">tot</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">))</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">cumsum</span><span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span><span class="n">tot</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">))</span>
 <span class="go">[&#39;&#39;, &#39;a&#39;, &#39;ab&#39;, &#39;abc&#39;]</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">cumsum</span><span class="p">(</span><span class="n">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">)))</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">cumsum</span><span class="p">(</span><span class="n">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">)))</span>
 <span class="go">[0, 1, 3, 6, 10]</span>
 </pre></div>
 </div>
@@ -1005,7 +984,7 @@ of a dictionnary are silently overwritten</p>
 <dl class="function">
 <dt id="tools_ssg.strbit2int">
 <code class="descclassname">tools_ssg.</code><code class="descname">strbit2int</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#strbit2int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.strbit2int" title="Permalink to this definition">¶</a></dt>
-<dd><p>translate a string of 0’s and 1’s interpreted as bits to an integer all characters different from 0,1 are silently ignored</p>
+<dd><p>translate a string of 0’s and 1’s interpreted as bits to an integer all characters different from 0,1 are silently ignored.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1088,7 +1067,7 @@ of a dictionnary are silently overwritten</p>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table of Contents</a></h3>
+  <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Programmer’s documentation for influx_s</a><ul>
 <li><a class="reference internal" href="#module-C13_ftbl">C13_ftbl</a></li>
@@ -1117,14 +1096,12 @@ of a dictionnary are silently overwritten</p>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
-    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -1146,12 +1123,12 @@ of a dictionnary are silently overwritten</p>
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.3 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.4.
+        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
     </div>
   </body>
 </html>

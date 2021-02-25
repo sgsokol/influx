@@ -2,6 +2,25 @@
 Change Log for influx_si
 ========================
 
+2021-02-26 version 5.4.0
+------------------------
+New features:
+ - influx_i: user can add custom R expressions for label input varying in time (cf. funlabR)
+ - influx_i: explicit error message on non valid entries in label kinetic data (requested by Pierre Millard, INRAE, France)
+ - added optctrl:mumps:icntl_NN option (case reported by Albert Fina Romero, UAB, Spain)
+ - influx_i: comment string in kinetic data has changed to ``//`` (``#`` will still work with old files)
+ - added ``-i`` option to ftbl2netan (for influx_i-like analysis)
+ 
+Bug fix:
+ - fixed error raising on redundant equality when ``--ffguess`` is used (reported by Pierre Millard, INRAE, France)
+ - fixed fatal error with scale factor infrastructure in some cases  when ``--ffguess`` is used
+ - ``plot_imass.R`` is fixed for a case when there is no any MS measurement
+ - explicit error message on fail while reading label kinetic data
+ - fixed not working error messages in few utilities
+ - fixed too early closed kvh file connection
+ - fixed post-production calculations when optimization in influx_si failed
+
+
 2020-07-24 version 5.3.0
 ------------------------
 New features:

@@ -1,0 +1,223 @@
+// Network topology is taken from supplementary files (mmc7.docx) for an article
+// "13C metabolic flux analysis of microbial and mammalian systems
+// is enhanced with GC-MS measurements of glycogen and RNA labeling"
+// Christopher P. Long, Jennifer Au, Jacqueline E. Gonzalez, Maciek R. Antoniewicz
+// Metabolic Engineering 38 (2016) 65–72
+// The data are synthetic, by our selves.
+
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	e_coli_GX	1		2016-10-25	converted by txt2ftbl.py from 'e_coli_GX.txt'
+
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// ﻿Metabolic network model for 13C-MFA of E. coli (upper metabolism with xylose)
+//
+// Glycolysis
+	v1	Gluc.ext	PEP	G6P	Pyr
+		#abcdef	#ghi	#abcdef	#ghi
+	v2	G6P		F6P
+		#abcdef		#abcdef
+	v3	F6P		FBP
+		#abcdef		#abcdef
+	v4	FBP		DHAP	GAP
+		#abcdef		#cba	#def
+	v5	DHAP		GAP
+		#abc		#abc
+	v6	GAP		3PG
+		#abc		#abc
+	v7	3PG		PEP
+		#abc		#abc
+	v8	PEP		Pyr
+		#abc		#abc
+//
+// Pentose Phosphate Pathway
+	v9	G6P		6PG
+		#abcdef		#abcdef
+	v10	6PG		Ru5P	CO2
+		#abcdef		#bcdef	#a
+	v11	Ru5P		X5P
+		#abcde		#abcde
+	v12	Ru5P		R5P
+		#abcde		#abcde
+	v13	X5P		TK-C2	GAP
+		#abcde		#ab	#cde
+	v14	F6P		TK-C2	E4P
+		#abcdef		#ab	#cdef
+	v15	S7P		TK-C2	R5P
+		#abcdefg		#ab	#cdefg
+	v16	F6P		TA-C3	GAP
+		#abcdef		#abc	#def
+	v17	S7P		TA-C3	E4P
+		#abcdefg		#abc	#defg
+//
+// Entner-Doudoroff Pathway
+	v18	6PG		KDPG
+		#abcdef		#abcdef
+	v19	KDPG		Pyr	GAP
+		#abcdef		#abc	#def
+//
+// Xylose Metabolism
+	v20	Xyl.ext		Xyl
+		#abcde		#abcde
+	v21	Xyl		X5P
+		#abcde		#abcde
+//
+// Out-fluxes
+	v22	PEP	PEP	Phe	CO2
+		#abc	#def	#abcefghij	#d
+	v22	E4P		
+		#ghij		
+
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+	v23	Pyr = LowerMetabolism
+	v24	2.040*G6P+0.536*F6P+7.463*R5P+0.612*GAP+1.400*E4P+1.156*Phe = Biomass
+
+EQUALITIES
+	NET
+		VALUE	FORMULA
+	XCH
+		VALUE	FORMULA
+
+FLUXES	// free fluxe values are from mmc11.xlsx, column K
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	23.3316
+		v2	F	-3.08397
+		v3	D	0.2E0
+		v4	D	0.2E0
+		v5	D	0.2E0
+		v6	D	0.2E0
+		v7	D	0.2E0
+		v8	F	157.344
+		v9	D	0.2E0
+		v10	D	0.2E0
+		v11	D	0.2E0
+		v12	D	0.2E0
+		v13	D	0.2E0
+		v14	D	0.2E0
+		v15	D	0.2E0
+		v16	D	0.2E0
+		v17	D	0.2E0
+		v18	D	0.2E0
+		v19	D	0.2E0
+		v20	C	100
+		v21	D	0.2E0
+		v22	D	0.2E0
+		v23	F	181.588
+		v24	D	0.2E0
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	0
+		v2	F	0.01E0
+		v3	C	0
+		v4	F	0.01E0
+		v5	F	0.01E0
+		v6	F	0.01E0
+		v7	F	0.01E0
+		v8	C	0
+		v9	C	0
+		v10	C	0
+		v11	F	0.01E0
+		v12	F	0.01E0
+		v13	F	0.01E0
+		v14	F	0.01E0
+		v15	F	0.01E0
+		v16	F	0.01E0
+		v17	F	0.01E0
+		v18	C	0
+		v19	C	0
+		v20	C	0
+		v21	C	0
+		v22	C	0
+		v23	C	0
+		v24	C	0
+
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	Gluc.ext	#000000	1
+	Xyl.ext	#11111	1
+
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+	XCH
+		VALUE	COMP	FORMULA
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+//	R5P	4,5	0	0.969892288020036	0.01 // commented out to make different MS set in prl_exp
+//			1	-0.00712455198318879	0.01
+//			2	0.00716265599384746	0.01
+	G6P	5,6	0	1.00651799804646	0.01
+			1	0.00529959958794417	0.01
+			2	-0.0184526180686629	0.01
+	Phe	1~9	0	0.978254033239503	0.01
+			1	0.000500443325014088	0.01
+			2	0.00120868793100916	0.01
+			3	0.0287794160135499	0.01
+			4	-5.85360391337562e-05	0.01
+			5	-0.00607551842780685	0.01
+			6	-0.00278514802327815	0.01
+			7	0.00309855699706943	0.01
+			8	-0.0102025095165974	0.01
+			9	0.00387228982919788	0.01
+	R5P	1~4	0	0.975189491466373	0.01
+			1	0.0211566247007603	0.01
+			2	-0.00551588316915651	0.01
+			3	-0.0033807445982553	0.01
+			4	0.0178921038424669	0.01
+	Phe	1,2	0	0.98484247877851	0.01
+			1	-0.00892152228220921	0.01
+			2	0.0225623469079685	0.01
+	Phe	2~9	0	0.973405125129345	0.01
+			1	-0.0162734522434391	0.01
+			2	0.0314683886378029	0.01
+			3	0.0234043085284669	0.01
+			4	0.0140896167176807	0.01
+			5	-0.00428845453862701	0.01
+			6	-0.00731469924005986	0.01
+			7	6.27560683131504e-05	0.01
+			8	0.00434478164491292	0.01
+	G6P	1~5	0	0.995517562253539	0.01
+			1	-0.00283464946963938	0.01
+			2	0.00939540537087784	0.01
+			3	-0.0284088103819837	0.01
+			4	-0.00651663665474501	0.01
+			5	-0.00300626832565537	0.01
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+	PEP	50
+	TA-C3	50
+	6PG	50
+	FBP	50
+	R5P	50
+	3PG	50
+	Ru5P	50
+	E4P	50
+	X5P	50
+	TK-C2	50
+	Pyr	50
+	Phe	1
+	GAP	50
+	DHAP	50
+	S7P	50
+	G6P	50
+	Xyl	50
+	KDPG	50
+	F6P	50
+
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noscale --TIMEIT --time_order=2
+	dt	1
+	tmax	30
+	nsubdiv_dt	4
+	file_labcin	e_coli_GX_X_MS.txt
+	posttreat_R	save_all.R; plot_imass.R

@@ -1446,15 +1446,14 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         #    raise Exception("Stocheometric equation is zero for metab "+metab+"\n"+str(lr)+"\n"+str(coefs))
         #    continue
         # check if this line was already entered before
-        if not ffguess:
-            for (i,row) in enumerate(res):
-                if row == qry or (np.array(row) == mqry).all():
-                    wout("Warning: when trying to add a balance equation for metabolite '"+metab+
-                        "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
-                    wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
-                    wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
-                    wout(metab+":\t"+join("\t", qry)+"\n")
-                    break
+        for (i,row) in enumerate(res):
+            if not ffguess and (row == qry or (np.array(row) == mqry).all()):
+                wout("Warning: when trying to add a balance equation for metabolite '"+metab+
+                    "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
+                wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
+                wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
+                wout(metab+":\t"+join("\t", qry)+"\n")
+                break
         else:
             # identique row is not found, add it
             res.append(qry)

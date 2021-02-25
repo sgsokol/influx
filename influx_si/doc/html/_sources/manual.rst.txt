@@ -633,11 +633,15 @@ There is only one exclusive option that can be given on a command line:
 Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
 
  ``file_labcin``
-	 gives the name of the text file with label kinetics. If the file name starts with a "/", it is considered as 
+	 gives the name of the text file with label kinetics. If the file name starts with a "/", it is considered as an absolute path.
 	 
 	 The values must be organized in a matrix where each row corresponds to a measured isotopomer/cumomer/mass-isotopologue while each column corresponds to a given time point. First column gives the names of labeled measured species and the first row contains time points.
 	 
-	 Matrix must be written one row per line and its entries (cells) must be separated by tabulations. Missing data can be signaled as ``NA`` or just an empty cell. Comments are allowed and must start with ``#`` sign. The rest of the line after ``#`` is simply ignored.
+	 Matrix must be written one row per line and its entries (cells) must be separated by tabulations. Missing data can be signaled as ``NA`` or just an empty cell. Comments are allowed and must start with ``//`` string. The rest of the line after ``//`` is simply ignored.
+     
+	 .. note::
+	  In versions of ``influx_i`` previous to v5.4. A character delimiting comments was ``#``. Those files will continue to work as before. However, for new files of labeling kinetics it is safer to use ``//`` for comments.
+     
 	 Empty lines are ignored. In such a way, comments can help to annotate the data and empty lines can help to format the file for better human readability.
 	 All lines (a part from blank lines and comments) must have the same number of cells.
 	 
@@ -663,6 +667,10 @@ Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
 	 There can be fictitious time points without any data in them. This feature can be used to increase the time resolution at some time intervals. The simulation of label propagation will be done and reported at these fictitious time points but the fitting will be obviously done only at time points having real data in them. For a regular time interval sub-division, it is more practical to use a parameter ``nsubdiv_dt`` (cf. hereafter) instead of fictitious time point in this file.
 	 
 	 If this field is empty or absent in the FTBL file then no fit can be done and a simple label simulation is calculated as if ``--noopt`` option were activated. Such simulation can be done only if a time grid is defined with the help of two other parameters: ``dt`` and ``tmax`` (cf. hereafter).
+
+	 .. note::
+	  Option ``--noscale`` must be always activated for instationary calculations. So that for example, MS measurements must be always composed of fully measured fragments (i.e. with all isotopologues present) and normalized to sum up to 1.
+
  ``nsubdiv_dt``
 	 integer number of sub-intervals by which every time interval is divided to increase the precision of time resolution.
 	 
@@ -676,14 +684,58 @@ Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
 	 a real positive number, defines the end of a regular time grid if the field ``file_labcin`` is empty or absent. Parameters ``dt`` and ``tmax`` must be defined in such a way that there will be at least 2 time points greater then 0 in the time grid.
 	 
 	 If a file with label kinetics is well present then this parameter can be used to limit time grid on which simulations are done. If the value in ``tmax`` is greater then the maximal time value defined in the kinetics file then this parameter has no effect.
-	 
-.. note::
-	It is very important that the values for time, flux and metabolite concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.
+
+	 .. note::
+	  It is very important that the values for time, flux and metabolite concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.
 	
-	For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.
+	  For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.
 	
-.. note::
-	Option ``--noscale`` must be always activated for instationary calculations. So that for example, MS measurements must be always composed of fully measured fragments (i.e. with all isotopologues present) and normalized to sum up to 1.
+ ``funlabR``
+	 since v5.4, ``influx_i`` is able to simulate label propagation in metabolically stationary network from a label input varying in time. User can supply R expressions which will calculate fractions of different input label components as functions of time ``t``. Those expressions can be provided in the LABEL_INPUT section but they can need some helper functions. Few of them are defined in a file ``funlab.R`` included in ``influx_si`` but user can need more of them. Thanks to this field, he can define them in a custom R file who's name can be provided here. There can be given only one file. However, if user-defined functions are spread over several files they can be included via ``source()`` function called in this one. For this purpose, a predefined variable ``dirw`` pointing to the current working directory can be useful. It is worth mentioning that the file defined in this field will be executed in a particular environment so that variables created during its execution won't affect ``influx_si``'s ones. The path of the file provided in this field is relative to the FTBL's one. Example:
+     
+	 .. code-block:: text
+     
+		OPTIONS
+			OPT_NAME	OPT_VALUE
+			funlabR 	e_coli_iv_funlab.R     // the file 'e_coli_iv_funlab.R' is in the same directory that 'e_coli_iv.ftbl'
+            
+	 Functions that are included in ``funlab.R`` are following:
+     
+	  ``ppulses(tp, Tint, Hint=rep_len(c(1., 0.), length(Tint)))``
+	    computes a signal in the form of periodic rectangular pulses in time points ``tp``. Each period is composed of one or several intervals whose length in time is given in numeric vector ``Tint`` and heights of signals are given in optional numeric vector ``Hint``. By default, ``Hint`` is a sequence of 1's and 0's. The very first period starts at t=0. Returns a numeric vector of the same length as ``tp``.
+	  ``linterp(tp, knots, v)``
+	    computes a signal in the form of continuous linear piece-wise functions in time points ``tp``. The limits of linear intervals are defined in numeric vector ``knots`` and values at limits must be given in numeric vector ``v``. All ``tp`` values must lie between ``min(knots)`` and ``max(knots)``. Returns a numeric vector of the same length as ``tp``.
+	  ``steplinpath(tp, nu)``
+	    computes labeling in a linear pathway of non reversible reactions under step labeling with fully unlabeled initial state, i.e. starting from 0. The signal is calculated in time points ``tp``. The pathway is defined by numeric vector ``nu`` which represents turn-over rates (i.e. a ratio Flux/Metabolite_Concentration). All values in ``nu`` must be pairwise different. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp). So, for example, if a signal only of the third metabolite is required, the function can be called as ``steplinpath(tp, nu)[3,]``
+	  ``steplinpath2(tp, nu, init=double(length(nu)), height=1.)``
+	    The same as ``steplinpath()`` above but initial state can be different from 0. It can be defined in numeric vector ``init`` of the same length as ``nu``. The label amplitude can be given in a scalar ``height``.
+	  ``ppulseslinpath(tp, nu, Tint, Hint=rep_len(c(1., 0.), length(Tint)), init=double(length(nu)))``
+	    computes labeling of linear non reversible pathway under input composed of periodic rectangular pulses. Labeling for all metabolites is calculated in time points ``tp``. Each period is composed of one or several intervals whose length in time is given in numeric vector ``Tint`` and heights of signals are given in optional numeric vector ``Hint``. By default, ``Hint`` is a sequence of 1's and 0's. Initial label levels can be defined in numeric vector ``init``. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp).
+ ``LABEL_INPUT``, ``VALUE`` column
+	 in this field, user can provide R expression calculating fractions of input label as function of time. While for ``influx_s`` it can only be a constant or python expression evaluating to a scalar at compilation time. Such R expressions can refer to a scalar variable ``t`` representing current time point and should return a scalar value representing label level between 0 and 1. The sum of all label levels relative to a given metabolite must be 1 if a full set of isotopomer is provided by user. If one or many isotopomers are lacking, usual conventions apply for completion to 1 (cf. `Convention evolution`_).
+
+	 .. code-block:: text
+     
+		LABEL_INPUT
+			META_NAME	ISOTOPOMER	VALUE
+			Gluc_U		#111111		ppulses(t, c(T1,T2))   // periodic pulses composed of intervals of length T1 ("labeled") and T2 ("unlabeled")
+			//		#000000		1-ppulses(t, c(T1,T2)) // complete to 1 (not necessary, "the rest is unlabeled" convention applies here)
+			Gluc_1		#100000		ppulses(t, c(T1,T2))
+			//		#000000		1-ppulses(t, c(T1,T2))
+		OPTIONS
+			OPT_NAME	OPT_VALUE
+			funlabR 	e_coli_iv_funlab.R  // in this R file variables T1 and T2 are defined
+            
+	 Input isotopomers that are absent in such ``funlab`` fields are supposed to be 0 all the time (except for above mentioned conventions).
+          
+	 If a label level cannot be calculated in one arithmetic operation, several R statements can be placed between curled braces ``{}`` separated by semicolon ``;``. The last operation must be the searched result. In the example above, we could exclude usage of helper file ``e_coli_iv_funlab.R`` by defining ``T1`` and ``T2`` directly in the expressions:
+
+	 .. code-block:: text
+     
+		LABEL_INPUT
+			META_NAME	ISOTOPOMER	VALUE
+			Gluc_U		#111111		{T1=2; T2=2; ppulses(t, c(T1,T2))}
+			Gluc_1		#100000		{T1=2; T2=2; ppulses(t, c(T1,T2))}
 
 Result file fields
 ------------------
@@ -968,7 +1020,7 @@ Graphical conventions used in the generated XGMML are the following:
 * simple (one to one) reaction are represented by simple edges;
 * condensing and/or splitting reactions are represented by edges converging and/or diverging from additional almost invisible node having a label with the reaction name;
 * all nodes and edges have tool tips, i.e. when a pointer is put over, their name (metabolite or reaction) appears in a tiny pop-up window;
-* non reversible reaction are represented by a single solid line, have an arrow on the target end (i.e. produced metabolite) and nothing on the source end (i.e. consumed metabolite);
+* non reversible reactions are represented by a single solid line, have an arrow on the target end (i.e. produced metabolite) and nothing on the source end (i.e. consumed metabolite);
 * reversible reactions are represented by a double parallel line and have a solid circle on the source end;
 * color code for arrows:
 
