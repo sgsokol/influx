@@ -967,12 +967,12 @@ if (ffguess) {
    
    irows=qrow$pivot[seq_len(rankr)]
    if (rank==0) {
-      stop_mes("Error: No free/dependent flux partition could be made. Stoechiometric matrix has rank=0.", file=fcerr)
+      stop_mes("Error: No free/dependent flux partition could be made. Stoichiometric matrix has rank=0.", file=fcerr)
    }
    Afl=afd[irows, qafd$pivot[1L:rank], drop=FALSE]
    ka=kappa(Afl)
    if (ka > 1.e7) {
-      mes=sprintf("Error: No working free/dependent flux partition could be proposed. Stoechiometric matrix has condition number %g.\\n", ka)
+      mes=sprintf("Error: No working free/dependent flux partition could be proposed. Stoichiometric matrix has condition number %g.\\n", ka)
       stop_mes(mes, file=fcerr)
    }
    p2bfl=-as.simple_triplet_matrix(afd[irows, qafd$pivot[-seq_len(rank)], drop=FALSE])
@@ -1060,7 +1060,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    if (nrow(Afl) <= rank) {
       mes=paste("Candidate(s) for free or constrained flux(es):\\n",
          paste(colnames(Afl)[-qrAfl$pivot[1L:nrow(Afl)]], collapse="\\n"),
-         "\\nFor this choice, condition number of stoechiometric matrix will be ",
+         "\\nFor this choice, condition number of stoichiometric matrix will be ",
          kappa(Afl[,qrAfl$pivot[1L:nrow(Afl)],drop=FALSE]), "\\n", sep="")
    } else if (nrow(Afl) > rank) {
       nextra=nrow(Afl)-rank
@@ -1077,7 +1077,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          if (rank < ncol(Afl)) {
             prop=prop%s+%"While the following dependent flux(es) should be declared free or constrained:\\n"%s+%join("\\n", colnames(Afl)[-qrAfl$pivot[1L:rank]])%s+%"\\n"
          }
-         prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
+         prop=paste(prop, "For this choice, condition number of stoichiometric matrix will be ", ka, "\\n", sep="")
       } else {
          # add constraint fluxes to candidate list
          if (nb_fcn > 0) {
@@ -1095,7 +1095,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
             join("\\n", colnames(aextended)[-qae$pivot[1L:ranke]]), "\\n",
             sep="")
             ka=kappa(aextended[,qae$pivot[1L:ranke]])
-            prop=paste(prop, "For this choice, condition number of stoechiometric matrix will be ", ka, "\\n", sep="")
+            prop=paste(prop, "For this choice, condition number of stoichiometric matrix will be ", ka, "\\n", sep="")
          } else {
             prop="No proposal for partition dependent/free fluxes could be made.\\n"
          }

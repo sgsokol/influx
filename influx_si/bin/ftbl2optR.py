@@ -793,7 +793,7 @@ for (irun in seq_len(nseries)) {
             # fatal error occured
             cat("put_inside", runsuf, ": ", attr(pinside, "mes"), "\n",
                file=fcerr, sep="")
-            close(fkvh)
+            #close(fkvh)
             retcode[irun]=attr(pinside, "err")
             next;
          }
@@ -912,14 +912,14 @@ for (irun in seq_len(nseries)) {
          capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
          if (!is.null(rres$err) && rres$err) {
             cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-            close(fkvh)
+            #close(fkvh)
             retcode[irun]=rres$err
             next
          }
          if (sum(is.infinite(rres$res))) {
             cat("Infinite values appeared in residual vector (at init scale values)", file=fcerr)
             retcode[irun]=1
-            close(fkvh)
+            #close(fkvh)
             next
          }
          for (iexp in seq_len(nb_exp)) {
@@ -988,14 +988,14 @@ for (irun in seq_len(nseries)) {
       capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-         close(fkvh)
+         #close(fkvh)
          retcode[irun]=rres$err
          next
       }
       if (sum(is.infinite(rres$res))) {
          cat("Infinite values appeared in residual vector (at starting point)", file=fcerr)
          retcode[irun]=1
-         close(fkvh)
+         #close(fkvh)
          next
       }
    }
@@ -1029,13 +1029,13 @@ for (irun in seq_len(nseries)) {
          if (sum(is.infinite(rres$res))) {
             cat("Infinite values appeared in residual vector (at identifiability check)", file=fcerr)
             retcode[irun]=1
-            close(fkvh)
+            #close(fkvh)
             next
          }
          if (any(is.infinite(rres$jacobian))) {
             cat("Infinite values appeared in Jacobian (at identifiability check)", file=fcerr)
             retcode[irun]=1
-            close(fkvh)
+            #close(fkvh)
             next
          }
          qrj=qr(jx_f$dr_dff, LAPACK=T)
@@ -1044,7 +1044,7 @@ for (irun in seq_len(nseries)) {
          if (is.na(qrj$rank)) {
             cat("Rank of starting jacobian could not be estimated.", file=fcerr)
             retcode[irun]=1
-            close(fkvh)
+            #close(fkvh)
             next
          }
          if (qrj$rank) {
@@ -1060,7 +1060,7 @@ for (irun in seq_len(nseries)) {
                paste(nm_uns, sep=", ", collapse=", ")),
                file=fcerr)
             obj2kvh(jx_f$dr_dff, "Jacobian dr_dff", fkvh, indent=0)
-            close(fkvh)
+            #close(fkvh)
             retcode[irun]=1
             next
          }
@@ -1084,7 +1084,7 @@ for (irun in seq_len(nseries)) {
             res$retres$jx_f=NULL # to avoid writing of huge data
             obj2kvh(res, "failed first pass optimization process information", fkvh)
             cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
-            close(fkvh)
+            #close(fkvh) # some additional information can be written into fkvh
             retcode[irun]=max(res$err, 1)
             next
          }
@@ -1256,9 +1256,11 @@ for (irun in seq_len(nseries)) {
       cat("postopt : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
    }
    # active constraints
-   ine=as.numeric(abs(ui%*%param-ci))<tol_ineq
-   if (any(ine)) {
-      obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
+   if (!all(is.na(param))) {
+      ine=as.numeric(abs(ui%*%param-ci))<tol_ineq
+      if (any(ine)) {
+         obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
+      }
    }
    poolall[nm_poolf]=param[nm_poolf]
 
@@ -1416,7 +1418,7 @@ for (irun in seq_len(nseries)) {
 
    # keep last jx_f in jx_f_last
 #browser()
-   while (sensitive=="mc") {
+   while (sensitive=="mc" && !all(is.na(param))) {
       if (TIMEIT) {
          cat("monte-ca: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
       }

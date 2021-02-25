@@ -1446,14 +1446,15 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         #    raise Exception("Stocheometric equation is zero for metab "+metab+"\n"+str(lr)+"\n"+str(coefs))
         #    continue
         # check if this line was already entered before
-        for (i,row) in enumerate(res):
-            if not ffguess and (row == qry or (np.array(row) == mqry).all()):
-                wout("Warning: when trying to add a balance equation for metabolite '"+metab+
-                    "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
-                wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
-                wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
-                wout(metab+":\t"+join("\t", qry)+"\n")
-                break
+        if not ffguess:
+            for (i,row) in enumerate(res):
+                if row == qry or (np.array(row) == mqry).all():
+                    wout("Warning: when trying to add a balance equation for metabolite '"+metab+
+                        "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
+                    wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
+                    wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
+                    wout(metab+":\t"+join("\t", qry)+"\n")
+                    break
         else:
             # identique row is not found, add it
             res.append(qry)
@@ -1488,11 +1489,12 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                 # degenerated equality
                 raise Exception("Equality in "+nx.upper()+" section: "+str(eq)+" must have at least one dependent flux\n")
             # check if this line was already entered before
-            mqry=-np.array(qry)
-            for row in res:
-                if row == qry or (np.array(row) == mqry).all():
-                    raise Exception("An equality in "+nx.upper()+" section is redundant. eq:"+str(eq)+
-                        "\nqry="+str(qry)+"\nrow="+str(row))
+            if not ffguess:
+                mqry=-np.array(qry)
+                for row in res:
+                    if row == qry or (np.array(row) == mqry).all():
+                        raise Exception("An equality in "+nx.upper()+" section is redundant. eq:"+str(eq)+
+                            "\nqry="+str(qry)+"\nrow="+str(row))
             res.append(qry)
             netan["vrowAfl"].append("eq "+nx+": "+eq[2])
             netan["bfl"].append({"":eq[0]})
