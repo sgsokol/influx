@@ -691,7 +691,7 @@ Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
 	  For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.
 	
  ``funlabR``
-	 since v5.4, ``influx_i`` is able to simulate label propagation in metabolically stationary network from a label input varying in time (not only from a step labeling constant in time as before). User can supply R expressions which will calculate fractions of different input label components as functions of time ``t``. Those expressions can be provided in the fields described hereafter but they can need some helper functions. Few of them are defined in a file ``funlab.R`` included in ``influx_si`` package but user can need more of them. Thanks to this field, he can define them in a custom file who's name can be provided here. There can be given only one file. However, if user-defined functions are spread over several files they can be included via ``source()`` function called in this one. For this purpose, a predefined variable ``dirw`` pointing to the current working directory can be useful. It is worth mentioning that file defined in this field will be executed in a particular environment so that variables created during its execution won't affect ``influx_si``'s ones. The path of the file provided in this field is relative to the FTBL's one. Example:
+	 since v5.4, ``influx_i`` is able to simulate label propagation in metabolically stationary network from a label input varying in time. User can supply R expressions which will calculate fractions of different input label components as functions of time ``t``. Those expressions can be provided in the LABEL_INPUT section but they can need some helper functions. Few of them are defined in a file ``funlab.R`` included in ``influx_si`` but user can need more of them. Thanks to this field, he can define them in a custom R file who's name can be provided here. There can be given only one file. However, if user-defined functions are spread over several files they can be included via ``source()`` function called in this one. For this purpose, a predefined variable ``dirw`` pointing to the current working directory can be useful. It is worth mentioning that the file defined in this field will be executed in a particular environment so that variables created during its execution won't affect ``influx_si``'s ones. The path of the file provided in this field is relative to the FTBL's one. Example:
      
 	 .. code-block:: text
      
@@ -710,31 +710,33 @@ Other options occur as fields in the section ``OPTIONS`` of the FTBL file.
 	  ``steplinpath2(tp, nu, init=double(length(nu)), height=1.)``
 	    The same as ``steplinpath()`` above but initial state can be different from 0. It can be defined in numeric vector ``init`` of the same length as ``nu``. The label amplitude can be given in a scalar ``height``.
 	  ``ppulseslinpath(tp, nu, Tint, Hint=rep_len(c(1., 0.), length(Tint)), init=double(length(nu)))``
-	    computes labeling of linear non reversible pathway under input in the form of periodic rectangular pulses. Labeling for all metabolites is calculated in time points ``tp``. Each period is composed of one or several intervals whose length in time is given in numeric vector ``Tint`` and heights of signals are given in optional numeric vector ``Hint``. By default, ``Hint`` is a sequence of 1's and 0's. Initial label levels can be defined in numeric vector ``init``. Returns a numeric matrix of size m x n, where m=length(nu) and n=length(tp).
- ``funlab:Glc#111111``
-	 in fields of such kind, user can provide R expressions calculating fractions of input label for particular isotopomer (here ``Glc`` having 6 carbon atoms, all labeled ``#111111``). Such expressions can refer to a scalar variable ``t`` representing current time point and should return a scalar value representing label level between 0 and 1. The sum of all label levels relative to a given metabolite must be 1 if a full set of isotopomer is provided by user. If one or many isotopomers are lacking, usual conventions apply (cf. `Convention evolution`_)
+	    computes labeling of linear non reversible pathway under input composed of periodic rectangular pulses. Labeling for all metabolites is calculated in time points ``tp``. Each period is composed of one or several intervals whose length in time is given in numeric vector ``Tint`` and heights of signals are given in optional numeric vector ``Hint``. By default, ``Hint`` is a sequence of 1's and 0's. Initial label levels can be defined in numeric vector ``init``. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp).
+ ``LABEL_INPUT``, ``VALUE`` column
+	 in this field, user can provide R expression calculating fractions of input label as function of time. While for ``influx_s`` it can only be a constant or python expression evaluating to a scalar at compilation time. Such R expressions can refer to a scalar variable ``t`` representing current time point and should return a scalar value representing label level between 0 and 1. The sum of all label levels relative to a given metabolite must be 1 if a full set of isotopomer is provided by user. If one or many isotopomers are lacking, usual conventions apply for completion to 1 (cf. `Convention evolution`_).
 
 	 .. code-block:: text
      
+		LABEL_INPUT
+			META_NAME	ISOTOPOMER	VALUE
+			Gluc_U		#111111		ppulses(t, c(T1,T2))   // periodic pulses composed of intervals of length T1 ("labeled") and T2 ("unlabeled")
+			//		#000000		1-ppulses(t, c(T1,T2)) // complete to 1 (not necessary, "the rest is unlabeled" convention applies here)
+			Gluc_1		#100000		ppulses(t, c(T1,T2))
+			//		#000000		1-ppulses(t, c(T1,T2))
 		OPTIONS
-			OPT_NAME		OPT_VALUE
-			funlabR 		e_coli_iv_funlab.R         // in this R file variables T1 and T2 are defined
-			funlab:Glc#111111	ppulses(t, c(T1, T2))      // periodic pulses composed of intervals of length T1 ("labeled") and T2 ("unlabeled")
-			//funlab:Glc#000000	1 - ppulses(t, c(T1, T2))  // complete to 1 (not necessary, "the rest is unlabeled" convention applies here)
+			OPT_NAME	OPT_VALUE
+			funlabR 	e_coli_iv_funlab.R  // in this R file variables T1 and T2 are defined
             
 	 Input isotopomers that are absent in such ``funlab`` fields are supposed to be 0 all the time (except for above mentioned conventions).
-     
-	 Metabolites present in ``funlab`` fields must be input ones, i.e. they must be also present in ``LABEL_INPUT`` section. However, particular values given in the latter section are overwritten by expressions given in ``funlab``. So to avoid any ambiguity, in ``LABEL_SECTION`` the values can be set to ``NA``. But this is not mandatory.
-     
-	 If a label level cannot be calculated in one arithmetic operation, several R statements can be placed between curled braces ``{}`` separated by semicolon ``;``. The last operation must be the searched result. In the example above, we could exclude usage of helper file ``e_coli_iv_funlab.R`` by defining T1 and T2 directly in the expressions:
+          
+	 If a label level cannot be calculated in one arithmetic operation, several R statements can be placed between curled braces ``{}`` separated by semicolon ``;``. The last operation must be the searched result. In the example above, we could exclude usage of helper file ``e_coli_iv_funlab.R`` by defining ``T1`` and ``T2`` directly in the expressions:
 
 	 .. code-block:: text
      
-		OPTIONS
-			OPT_NAME		OPT_VALUE
-			funlab:Glc#111111	{T1=2; T2=2; ppulses(t, c(T1, T2))}    // periodic pulses composed of intervals of length T1 (labeled) and T2 (unlabeled)
-			//funlab:Glc#000000	{T1=2; T2=2; 1-ppulses(t, c(T1, T2))}  // complete to 1 (not necessary, "the rest is unlabeled" convention applies here)
-            
+		LABEL_INPUT
+			META_NAME	ISOTOPOMER	VALUE
+			Gluc_U		#111111		{T1=2; T2=2; ppulses(t, c(T1,T2))}
+			Gluc_1		#100000		{T1=2; T2=2; ppulses(t, c(T1,T2))}
+
 Result file fields
 ------------------
 

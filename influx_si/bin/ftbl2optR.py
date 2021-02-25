@@ -396,7 +396,21 @@ for (iexp in seq_len(nb_exp)) {
          }
          measvecti[[iexp]]=measvecti[[iexp]][im,,drop=FALSE]
          #stopifnot(all(!is.na(measvecti)))
-         stopifnot(typeof(measvecti[[iexp]])=="double" || all(is.na(measvecti[[iexp]])))
+#browser()
+         if (typeof(measvecti[[iexp]])!="double") {
+            # check for weird  entries
+            tmp=measvecti[[iexp]]
+            suppressWarnings(storage.mode(tmp) <- "double")
+            if (any(ibad <- is.na(tmp) & !is.na(measvecti[[iexp]]))) {
+               ibad=which(ibad)[1L]
+               stop_mes("This entry '", measvecti[[iexp]][ibad], "' could not be converted to real number (", flabcin[iexp], ")", file=fcerr)
+            } else {
+               stop_mes("Entries in file '", flabcin[iexp], "' could not be converted to real numbers", file=fcerr)
+            }
+         }
+         if (all(is.na(measvecti[[iexp]]))) {
+            stop_mes("All entries in file '", flabcin[iexp], "' are NA (non available).", file=fcerr)
+         }
       }
       ti[[iexp]]=as.double(colnames(measvecti[[iexp]]))
       if (any(is.na(ti[[iexp]]))) {
