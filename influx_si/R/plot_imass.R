@@ -27,7 +27,7 @@ plot_ti=function(ti, x, m=NULL, ...) {
    }
    plot(range(ti, tim), range(c(x,m[inna])), t="n", ylab="Label", xlab="Time", ...)
    if (!is.null(x))
-      matplot(ti, t(x), t="l", lty=seq_len(nb_curve), col=seq_len(nb_curve), lwd=2, add=T, ...)
+      matplot(ti, t(x), t="l", lty=seq_len(nb_curve), col=seq_len(nb_curve), lwd=2, add=TRUE, ...)
    if (!is.null(m)) {
       # plot measured points
       for (i in seq_len(nrow(m))) {
@@ -54,7 +54,7 @@ for (iexp in seq_len(nb_exp)) {
    }
 
    # get unique fragment names
-   nm_sel=grep("^m:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=T)
+   nm_sel=grep("^m:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE)
    nm_sel=sort(nm_sel)
    pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]))
    if (length(nm_sel) > 0) {
@@ -62,9 +62,9 @@ for (iexp in seq_len(nb_exp)) {
       text(0.5, 0.05, lab="MS measurements", cex=2)
       nmf=unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":"))
       for (metf in nmf) {
-         i=grep(sprintf("m:%s:", metf), nm_sel, fix=T, v=T)
+         i=grep(sprintf("m:%s:", metf), nm_sel, fix=TRUE, v=TRUE)
          #isim=pmatch(sapply(strsplit(i, ":", fixed=TRUE), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
-         isim=grep(sprintf("m:%s:", metf), rownames(usmf), fix=T, v=T)
+         isim=grep(sprintf("m:%s:", metf), rownames(usmf), fix=TRUE, v=TRUE)
          plot_ti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=FALSE], main=strsplit(metf, ":")[[1]][1], ylim=0:1)
       }
    }
@@ -82,17 +82,17 @@ for (iexp in seq_len(nb_exp)) {
    }
    for (met in nmp) {
       if (emu) {
-         i=grep(sprintf("^%s:", met), nm_sim, v=T)
+         i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
          # take fragments
          fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
          for (f in fr) {
-            i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=T)
+            i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
             fi=as.integer(f)
             mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
             plot_ti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=mainlab, ylim=0:1)
          }
       } else {
-         i=grep(sprintf("^%s\\+", met), nm_sim, v=T)
+         i=grep(sprintf("^%s\\+", met), nm_sim, v=TRUE)
          plot_ti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
       }
    }

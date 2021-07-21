@@ -98,19 +98,22 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     def usage():
         sys.stderr.write(__doc__)
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "hf", ["help", "force"])
+        opts,args=getopt.getopt(sys.argv[1:], "hfi", ["help", "force"])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err)+"\n")
         usage()
         sys.exit(1)
     cost=False
     force=False
+    case_i=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit()
         if o in ("-f", "--force"):
             force=True
+        if o in ("-i",):
+            case_i=True
     #aff("args", args);##
     if len(args) != 1:
         sys.stderr("Expecting exactly one ftbl file name\n")
@@ -144,7 +147,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     # Analyse the network
     netan=dict()
     try:
-        ftbl_netan(ftbl, netan)
+        ftbl_netan(ftbl, netan, case_i=case_i)
     except:
         if force:
             werr(str(sys.exc_info()[1])+"\n")
@@ -190,18 +193,24 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
 <graph id="1" label="%s" directed="1" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:cy="http://www.cytoscape.org" xmlns="http://www.cs.rpi.edu/XGMML">
   <att name="layoutAlgorithm" value="Grid Layout" type="string" cy:hidden="1"/>
   <graphics>
-    <att name="network_center_x_location" value="0.0" type="string"/>
-    <att name="network_scale_factor" value="1" type="string"/>
-    <att name="network_edge_selection" value="true" type="string"/>
-    <att name="network_center_y_location" value="0.0" type="string"/>
-    <att name="network_node_selection" value="true" type="string"/>
-    <att name="xnetwork_height" value="%f" type="string"/>
-    <att name="network_background_paint" value="#ffffff" type="string"/>
-    <att name="network_depth" value="0.0" type="string"/>
-    <att name="xnetwork_width" value="%f" type="string"/>
-    <att name="network_center_z_location" value="0.0" type="string"/>
+    <att name="NETWORK_CENTER_Z_LOCATION" value="0.0" type="string" cy:type="String"/>
+    <att name="NETWORK_EDGE_SELECTION" value="true" type="string" cy:type="String"/>
+    <att name="NETWORK_NODE_SELECTION" value="true" type="string" cy:type="String"/>
+    <att name="NETWORK_WIDTH" value="816.0" type="string" cy:type="String"/>
+    <att name="NETWORK_HEIGHT" value="488.0" type="string" cy:type="String"/>
+    <att name="NETWORK_SCALE_FACTOR" value="1.0" type="string" cy:type="String"/>
+    <att name="NETWORK_DEPTH" value="0.0" type="string" cy:type="String"/>
+    <att name="NETWORK_NODE_LABEL_SELECTION" value="false" type="string" cy:type="String"/>
+    <att name="NETWORK_ANNOTATION_SELECTION" value="false" type="string" cy:type="String"/>
+    <att name="NETWORK_BACKGROUND_PAINT" value="#FFFFFF" type="string" cy:type="String"/>
+    <att name="NETWORK_CENTER_X_LOCATION" value="0.0" type="string" cy:type="String"/>
+    <att name="NETWORK_TITLE" value="%s" type="string" cy:type="String"/>
+    <att name="NETWORK_FORCE_HIGH_DETAIL" value="false" type="string" cy:type="String"/>
+    <att name="NETWORK_CENTER_Y_LOCATION" value="0.0" type="string" cy:type="String"/>
+    <att name="xnetwork_width" value="%f" type="string" cy:type="String"/>
+    <att name="xnetwork_height" value="%f" type="string" cy:type="String"/>
   </graphics>
-"""%(short_ftbl, gr_h, gr_w))
+"""%(short_ftbl, short_ftbl, gr_h, gr_w))
     # write metab nodes
     for (m, d) in nodes["metabs"].items():
         fout.write("""
