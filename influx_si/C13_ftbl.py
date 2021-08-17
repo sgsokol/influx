@@ -10,6 +10,36 @@ Restrictions:
      in measurements it can be metab1+metab2+...
   
 """
+            # # normalize or not?
+            # collab=sorted(v for li in labs for v in li) # will be collapsed labels.
+            # # the group is normalizable if collapsed labs is composed of only "x"
+            # while True:
+                # collab=sorted(collab) # if there are two collapsible labs, they will be neighbors
+                # found=False
+                # for i in range(len(collab)):
+                    # if i == len(collab)-1:
+                        # break
+                    # s=np.array(list(collab[i])) if i == 0 else n # string
+                    # n=np.array(list(collab[i+1])) # next
+                    # cdif=s != n
+                    # if cdif.sum() == 1:
+                        # idif=np.where(cdif)[0][0]
+                        # found=s[idif] == "0" and n[idif] == "1"
+                        # if found:
+                            # s[idif]="x"
+                            # collab[i]="".join(s)
+                            # del(collab[i+1])
+                            # break
+                # if not found or len(collab) == 1:
+                    # break
+            # if len(collab) == 1 and collab[0] == "x"*len(collab) and all(val == val):
+                # s=sum(val)
+                # val=val/s
+                # sdv=sdv/s
+                # norma=True
+            # else:
+                # norma=False
+
 # 2008-01-22 sokol: ftbl_parse(f)
 # 2008-01-25 sokol: ftbl_netan(ftbl)
 # 2008-01-30 sokol: sto_r_m is added to the result of ftbl_netan()

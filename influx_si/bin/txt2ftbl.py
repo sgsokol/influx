@@ -21,12 +21,87 @@ OPTIONS
 
 :returns: mynetwork.ftbl -- file of the network definition in FTBL format
 
-Copyright 2015, INRA, France
+Copyright 2021, INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
-License: Gnu Public License (GPL) v3 http://www.gnu.org/licenses/gpl.html
+License: Gnu Public License (GPL) v2 http://www.gnu.org/licenses/gpl.html
 """
 
 import re
+import os
+import sys
+from pathlib import Path
+import pandas as pa
+import numpy as np
+import stat
+import getopt
+import datetime as dt
+from scipy import linalg
+from numpy import diag
+vsadd=np.core.defchararray.add # vector string add
+
+version="1.0"
+me=os.path.basename(sys.argv[0] or "txt2ftbl")
+LOCAL_TIMEZONE=dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
+invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
+
+def dtstamp():
+    "formatted date-time stamp"
+    return dt.datetime.now(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z %z')
+def werr(mes):
+    raise Exception(f"{me}: {mes}")
+def usage():
+    sys.stderr.write(__doc__+"\n")
+def itvl2li(v):
+    "convert interval like '2-5'  to ['2', '3', '4', '5']"
+    li=v.split("-")
+    if len(li) == 1:
+        return [str(int(li[0]))]
+    else:
+        return [str(i) for i in range(int(li[0]), int(li[1])+1)]
+def dsec2out(dsec, fout):
+    "write lines from dsec to fout"
+    for k,li in dsec.items():
+        for item in li:
+            if type(item) == dict:
+                dsec2out(item, fout)
+            else:
+                fout.write(item+"\n")
+def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"):
+    "Read file 'f' as TSV and return a DataFrame. Separator is 'sep', comment char is 'comment', blank lines are skept, header is in the first row, file line numbers are stored in a column 'line_nb' if there is no a column with this name"
+    if type(f) == str or type(f) == type(Path()):
+        li=Path(f).open().read().splitlines()
+    else:
+        li=f.readlines
+    rows=np.array([], dtype=object)
+    irow=0
+    cnm=[] # col names
+    for ili,row in enumerate(li):
+        # remove comments
+        if comment:
+            row=re.sub("%s.*$"%comment, "", row)
+        if skip_blank_lines and not row.strip():
+            continue
+        if not cnm:
+            cnm=[v.strip() for v in row.split(sep)]
+            ncol=len(cnm)
+            if append_iline:
+                if not any(v==append_iline for v in cnm):
+                    cnm.append(append_iline)
+                else:
+                    append_iline=False
+            rows=np.empty((0, len(cnm)), dtype=object)
+            continue
+        # append rows
+        li=[v.strip() for v in row.split(sep)]
+        if len(li) != ncol:
+            raise Exception("tsv2df: wrong column number %d, expected %d (%s: %d)"%(len(li), ncol))
+        if append_iline:
+            li.append(ili+1)
+        rows=np.vstack((rows, li))
+    df=pa.DataFrame(rows)
+    df.columns=cnm
+    return df
+
 def txt_parse(fname, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$")):
     """Parse txt file from fname which is in format:
@@ -50,12 +125,13 @@ i.e. "->>" for non reversible reaction or "<->>" for reversible reaction. This
 reaction with imposed sens will have an inequality "reac_name >= 0" in
 FTBL/INEQUAITIES/NET section.
 
-Retrun a list with four items:
+Retrun a list with following items:
 - a list of carbon exchange reactions
 - a list of non carbon echanging reactions
 - a list of equalities net and xch
 - a list of flux tuples (reac, rev, imposed_sens)
 - a list of two lists: left and right metabolites [(metab, clen),]
+- a carbon length dictionary {met: N}
 
 the first item is a list of:
 plain string == just a comments
@@ -68,14 +144,16 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     ineqs=[[], []] # lists (net & xch) of inequalities: tuple (value, comp_sign, formula)
     fluxes=[] # list of tuples (nm_reac, rev)
     resnotr=[] # list of reaction without tracer (like biomass)
+    dclen={}
     comment=""
     
     open_here=False
-    if isstr(fname):
+    if type(fname) == type(Path()):
         open_here=True
-        fc=open(fname, "r")
+        fc=fname.open("r")
     else:
     	fc=fname
+    fshort=os.path.basename(fc.name)
     m_left={} # metab sources
     m_right={} # metab products
     sto={} # stoechiometric matrix dictionary {flux:{metab: coef}}}
@@ -118,6 +196,18 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         # we cannot just split by "+" because of possible scrambling patterns having "+" in them
         lr=[[(c, m, [elab for lab in t.split("+") for elab in re_labpat.findall(lab)]) for (c, m, t) in re_metab.findall(io) if m != "+"] for io in in_out]
         tr_reac=len([1 for side in lr for (c, m, t) in side if t and t[0]]) # it exists carbon transition
+        #import pdb; pdb.set_trace();
+        if tr_reac:
+            # gather carbon lengths
+            for side in lr:
+                for c,m,t in side:
+                    if m in dclen:
+                        if not dclen[m] == len(t[0]):
+                            raise Exception("txt_parse: metabolite '%s' has different label lengths %d and %d. The last is in '%s': %d"%(m, dclen[m], len(t[0]), fshort, iline))
+                    else:
+                        dclen[m]=len(t[0])
+                        
+            [[[(c,m,t[0]) ] ]]
         if any(len(t) == 0 for side in lr for c,m,t in side):
             raise Exception("Wrong format for labeling pattern on row %d."%iline)
         if not tr_reac:
@@ -175,7 +265,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             m_left.update((m,clen) for m, clen in es.items() if m not in m_left)
             m_right.update((m,clen) for m, clen in ps.items() if m not in m_right)
             rgr=[] # reaction group (for possible long reactions)
-            r=[(nm_r, rev, imposed_sens), [], []] # lace for elementary reaction (no more than 2 metabs on each side)
+            r=[(nm_r, rev, imposed_sens), [], []] # place for elementary reaction (no more than 2 metabs on each side)
             fluxes.append((nm_r, rev, imposed_sens, "D" if ilr else "F"))
             if ilr:
                 teq=(0, "%s - %s"%(nm_reac+"_1", nm_r))
@@ -208,205 +298,586 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         
     if open_here:
         fc.close()
-    return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto]
+    return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto, dclen]
+def parse_miso(fmiso, clen):
+    "Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak"
+    if "name" in dir(fmiso):
+        fname=fmiso.name
+    else:
+        fname=fmiso
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(fmiso)
+    case_i=sum(df["Time"] != "") > 0
+    if case_i:
+        raise Excpetion("parse_miso: instationary case (i.e. 'Time' column is not empty) is not yet implemented")
+    res={"ms": [], "lab": []}
+    # split into kind of measurements: ms, peak, lab
+    for kgr, ligr in df.groupby(["Metabolite", "Fragment", "Dataset"]).groups.items():
+        #print("gr=", kgr, ligr)
+        met,frag,dset=kgr
+        if not met:
+            raise Exception("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.iloc[ligr[0], :])))
+        ist=ligr[0]+2
+        iend=ligr[-1]+2
+        mets=np.array([v.strip() for v in met.split("+")]) # met can be A+B+C, take just the first name
+        ibad=np.array([v not in clen for v in mets])
+        if ibad.any():
+            raise Exception("parse_miso: metabolite '%s' was not seen in label transitions, '%s': %d "%(", ".join(mets[ibad]), fname, ist))
+        # label length in metabolite(s)
+        mlen=sorted(clen[v] for v in mets)
+        if mlen[0] != mlen[-1]:
+            raise Exception("parse_miso: metabolites of different lengths (%s) are present in '%s', '%s': %d"%(", ".join(str(v) for v in np.unique(mlen)), met, fname, ist))
+        mlen=mlen[0]
+        # standard fragment form: 1,2,...
+        if frag:
+            frag=np.unique(np.sort(np.array([i for v in frag.split(",") for i in itvl2li(v)]).astype(int)))
+            ifr=frag-1;
+            frag=",".join(frag.astype(str))
+        else:
+            ifr=np.arange(mlen)
+        # common sanity check
+        #if len(ligr) == 1 and df.loc[ligr, "Species"].iloc[0] != "mean":
+        #    raise Exception("parse_miso: a group %s of length 1 is not valid, '%s': %d"%(kgr, fname, ligr[0]+2))
+        flen=len(ifr)
+        if flen > mlen:
+            raise Exception("parse_miso: in group %s, fragment length %d is greater than metabolite length %d in '%s'"%(kgr, flen, mlen, fname))
+        if not dset:
+            raise Exception("parse_miso: dataset name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.iloc[ligr[0], :])))
+        if ligr[-1]-ligr[0]+1 != len(ligr):
+            raise Exception("parse_miso: measurements %s are not contiguous in '%s'. They occupy rows: %s"%(kgr, fname, ", ".join((ligr+2).astype(str))))
+        val=df.loc[ligr, "Value"].to_numpy()
+        sdv=df.loc[ligr, "SD"].to_numpy()
+        # detect kind of species
+        spec=df.loc[ligr, "Species"]
+        if all(spec.str.match("^ *M\d+ *$")):
+            kind="ms"
+        elif all(spec.str.match("^[ 01x+]+$")):
+            kind="lab"
+        elif all(spec.str.contains("->")):
+            sep="->"
+            kind="peak"
+        elif all(spec.str.contains("→")):
+            sep="→"
+            kind="peak"
+        elif len(ligr) == 1 and spec.iloc[0] == "mean":
+            kind="mean"
+        else:
+            raise Exception("parse_miso: unknown Species '%s' in group %s in '%s': %d-%d"%(kgr, ", '".join(spec), fname, ist, iend))
+        if kind == "ms":
+            # ms group here, like M0, M1
+            #print("ms gr=", kgr)
+            w=np.char.lstrip(df.loc[ligr, "Species"].to_numpy().astype("str"), " M").astype(int)
+            # ms sanity check
+            if any(w > flen):
+                raise Exception("parse_miso: invalid MS weight '%s' in group %s in '%s':%d-%d"%(w[w>flen].astype(str)[0], kgr, fname, ist, iend))
+            if len(ligr) > flen+1:
+                raise Excpetion("parse_miso: too many MS entries %d (max %d expected) in group %s in '%s':%d-%d"%(kgr, len(ligr) , flen+1, fname, ist, iend))
+            # add this group to results
+            res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
+            res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %d"%(fname, ligr[i]) for i in range(1, len(ligr))]
+        elif kind == "lab" or kind == "peak" or kind == "mean":
+            # label group (like 01x+1x1)
+            if kind == "lab":
+                labs=[[vv.strip() for vv in v.split("+")] for v in df.loc[ligr, "Species"]]
+            elif kind == "peak":
+                b=np.ones(mlen, str) # base where lab will be injected
+                b.fill("x")
+                b[ifr]="0"
+                labs=[]
+                for peak in spec:
+                    li=np.array([v.strip() for v in peak.replace(sep, ",").split(",") if v.strip()]).astype(int)-1
+                    tmp=b.copy()
+                    tmp[li]="1"
+                    labs.append(["".join(tmp[ifr])])
+                #import pdb; pdb.set_trace()
+            elif kind == "mean":
+                b=np.ones(mlen, str) # base where lab will be injected
+                b.fill("x")
+                labs=[["x"*i+"1"+"x"*(flen-i-1) for i in range(flen)]]
+                if flen > 1:
+                    val[val != 'NA'] = vsadd(vsadd("(", val[val != 'NA']), ")*"+str(flen))
+                    sdv = vsadd(vsadd("(", sdv), ")*"+str(flen))
+            # label sanity check
+            for i,li in enumerate(labs):
+                for v in li:
+                    if len(v) != flen:
+                        raise Exception("parse_miso: entry '%s' has length %d different from fragment length %d, '%s': %d"%(v, len(v), flen, fname, ligr[i]+2))
+            # inject fragment species into full molecule
+            if flen < mlen:
+                b=np.ones(mlen, str) # base where lab will be injected
+                b.fill("x")
+                for li in labs:
+                    for i in range(len(li)):
+                        tmp=b.copy()
+                        tmp[ifr]=list(li[i])
+                        li[i]="".join(tmp)
+            # normalize or not?
+            collab=sorted(v for li in labs for v in li) # will be collapsed labels.
+            # the group is normalizable if collapsed labs is composed of only "x"
+            while True:
+                collab=sorted(collab) # if there are two collapsible labs, they will be neighbors
+                found=False
+                for i in range(len(collab)):
+                    if i == len(collab)-1:
+                        break
+                    s=np.array(list(collab[i])) if i == 0 else n # string
+                    n=np.array(list(collab[i+1])) # next
+                    cdif=s != n
+                    if cdif.sum() == 1:
+                        idif=np.where(cdif)[0][0]
+                        found=s[idif] == "0" and n[idif] == "1"
+                        if found:
+                            s[idif]="x"
+                            collab[i]="".join(s)
+                            del(collab[i+1])
+                            break
+                if not found or len(collab) == 1:
+                    break
+            if len(collab) == 1 and collab[0] == "x"*len(collab) and not any(val == "NA"):
+                norma=True
+            else:
+                norma=False
+            # add this group to results
+            #	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS						
+            res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
+            res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %d"%(fname, ligr[i]+2) for i in range(1, len(ligr))]
+    return res
+def parse_linp(f, clen={}):
+    "Parse label input TSV file. Return a list of lines to add to ftbl"
+    if "name" in dir(f):
+        fname=f.name
+    else:
+        fname=f
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(f)
+    #print("df=", df)
+    res=[]
+    for met, ligr in df.groupby(["Metabolite"]).groups.items():
+        mlen=clen.get(met)
+        il=df.loc[ligr, "iline"].to_numpy() # strings
+        # sanity check
+        if clen:
+            if mlen is None:
+                raise Exception("parse_linp: metabolite '%s' was not seen in label transitions, '%s': %s"%(met, fname, ", ".join(il)))
+            ibad=np.where([len(v) != mlen for v in df.loc[ligr, "Isotopomer"]])[0]
+            if len(ibad):
+                raise Exception("parse_linp: for metabolite '%s', isotopomer length(s) (%s) differ from its labeling atom length %d in '%s': %s"%(met, ", ".join(str(len(v)) for v in df.loc[ligr[ibad], "Isotopomer"]), mlen, fname, ", ".join(il)))
+            if len(ligr) > 2**mlen:
+                raise Exception("parse_linp: too many isotopomers %d for metabolite '%s' in '%s':%s-%s"%(len(ligr), met, fname, il[0], il[-1]))
+        if len(ligr) != ligr[-1]-ligr[0]+1:
+            raise Exception("parse_linp: for metabolite '%s', label input is not continguous in '%s': %s-%s"%(met, fname, il[0], il[-1]))
+        res.append("\t%s\t#%s\t%s   // %s: %s"%(met, df.loc[ligr[0], "Isotopomer"], df.loc[ligr[0], "Value"], fname, il[0]))
+        res += ["\t\t#%s\t%s   // %s: %s"%(df.loc[ligr[i], "Isotopomer"], df.loc[ligr[i], "Value"], fname, il[i]) for i in range(1, len(ligr))]
+    return res
+def parse_mflux(f, dfl={}):
+    "Parse flux measurements TSV file. Return a list of lines to add to ftbl"
+    if "name" in dir(f):
+        fname=f.name
+    else:
+        fname=f
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(f)
+    #print("df=", df)
+    res=[]
+    for flux,ligr in df.groupby(["Flux"]).groups.items():
+        il=df.loc[ligr, "iline"].to_numpy() # strings
+        # sanity check
+        if len(ligr) > 1:
+            raise Exception("parse_mflux: flux '%s' has more than 1 measurement in '%s': %s"%(flux, ", ".join(il)))
+        if dfl and flux not in dfl:
+            raise Exception("parse_mflux: flux '%s' was not seen in metabolic network, '%s': %s"%(flux, il[0]))
+        res.append("\t%s\t%s\t%s   // %s: %s"%(flux, df.loc[ligr[0], "Value"], df.loc[ligr[0], "SD"], fname, il[0]))
+    return res
+def parse_opt(f):
+    "Parse options TSV file. Return a list of lines to add to ftbl"
+    if "name" in dir(f):
+        fname=f.name
+    else:
+        fname=f
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(f).loc[:, ["Name", "Value"]].to_numpy().astype(str)
+    res=vsadd(vsadd("\t", vsadd(df[:,0], "\t")), df[:,1]).tolist()
+    return res
+def parse_tvar(f, dfl={}, itnl_met={()}):
+    "Parse variable type TSV file. Return a tuple of a dict and a list with lines to add to ftbl"
+    if "name" in dir(f):
+        fname=f.name
+    else:
+        fname=f
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(f)
+    #print("df=", df)
+    fl={}
+    mets=[]
+    for kgr,ligr in df.groupby(["Kind", "Name"]).groups.items():
+        il=df.loc[ligr, "iline"].to_numpy() # strings
+        kind,nm=kgr
+        # sanity check
+        if kind not in ("NET", "XCH", "METAB"):
+            raise Exception("parse_tvar: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, ", ".join(il)))
+        if len(ligr) > 1:
+            raise Exception("parse_tvar: groupe '%s' has more than 1 entry in '%s': %s"%(kgr, ", ".join(il)))
+        val=df.loc[ligr[0], "Value"]
+        ty=df.loc[ligr[0], "Type"]
+        if ty not in ("F", "C", "D"):
+            raise Exception("parse_tvar: type '%s' is not valid (expected one of F, D or C) in '%s': %s"%(ty, il[0]))
+        if ty != "D" and not val:
+            raise Exception("parse_tvar: type '%s' supposes non empty value in '%s': %s"%(ty, il[0]))
+        if kind == "METAB":
+            if itnl_met and nm not in itnl_met:
+                raise Exception("parse_tvar: metabolite '%s' was not seen in internal metabolites, '%s': %s"%(nm, il[0]))
+            if ty != "C":
+                val="-"+val
+            mets.append("\t%s\t%s\t%s   // %s: %s"%(nm, ty, val, fname, il[0]))
+        else:
+            if dfl and nm not in dfl:
+                raise Exception("parse_tvar: flux '%s' was not seen in metabolic network, '%s': %s"%(nm, il[0]))
+            fl[kind]=fl.get(kind, [])
+            fl[kind].append("\t\t%s\t%s\t%s   // %s: %s"%(nm, ty, val, fname, il[0]))
+    return (fl, mets)
+def parse_cnstr(f):
+    "Parse constraint TSV file. Return a tuple of 2 dicts (eq, ineq) with lines to add to ftbl"
+    if "name" in dir(f):
+        fname=f.name
+    else:
+        fname=f
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(f)
+    #print("df=", df)
+    eq={}
+    ineq={}
+    for kgr,ligr in df.groupby(["Kind", "Formula", "Operator"]).groups.items():
+        il=df.loc[ligr, "iline"].to_numpy() # strings
+        kind,frml,op=kgr
+        # sanity check
+        if op != "==" and not op in invcomp:
+            raise Exception("parse_cnstr: operator '%s' is unknown in '%s': %s"%(op, ", ".join(il)))
+        if kind not in ("NET", "XCH", "METAB"):
+            raise Exception("parse_cnstr: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, ", ".join(il)))
+        if len(ligr) > 1:
+            raise Exception("parse_cnstr: formula '%s' has more than 1 entry in '%s': %s"%(frml, ", ".join(il)))
+        val=df.loc[ligr[0], "Value"]
+        if op == "==":
+            eq[kind]=eq.get(kind, [])
+            eq[kind].append("\t\t%s\t%s   // %s: %s"%(val, frml, fname, il[0]))
+        else:
+            op=invcomp[op]
+            ineq[kind]=ineq.get(kind, [])
+            ineq[kind].append("\t\t%s\t%s\t%s   // %s: %s"%(val, op, frml, fname, il[0]))
+    return (eq, ineq)
+def parse_mmet(f, smet={()}):
+    "Parse metabolite concentration measurements TSV file. Return a list of lines to add to ftbl"
+    if "name" in dir(f):
+        fname=f.name
+    else:
+        fname=f
+    fname=os.path.basename(fname)
+    
+    df=tsv2df(f)
+    #print("df=", df)
+    res=[]
+    for met,ligr in df.groupby(["Metabolite"]).groups.items():
+        il=df.loc[ligr, "iline"].to_numpy() # strings
+        # sanity check
+        if len(ligr) > 1:
+            raise Exception("parse_mmet: metabolite '%s' has more than 1 measurement in '%s': %s"%(met, ", ".join(il)))
+        if smet and met not in smet:
+            raise Exception("parse_mmet: metabolite '%s' was not seen in internal metabolites of network, '%s': %s"%(met, il[0]))
+        res.append("\t%s\t%s\t%s   // %s: %s"%(met, df.loc[ligr[0], "Value"], df.loc[ligr[0], "SD"], fname, il[0]))
+    return res
 
-if __name__ == "__main__" or __name__ == "influx_si.cli":
-    import sys
-    import os
-    import stat
-    import getopt
-    import re
-    import math
-    import datetime as dt
-    from scipy import linalg
-    from numpy import diag
+def compile(mtf, cmd):
+    "Compile FTBL content from mtf names: netw, miso etc. Return a dict of ftbl lines"
+    # dict of ftbl sections. Contains list of lines to be completed by compilation
+    dsec={
+        "proj": [
+            "PROJECT",
+            "	NAME	VERSION	FORMAT	DATE	COMMENT",
+        ],
+        "netw": [
+            "NETWORK",
+            "	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2",
+        ],
+        "notr": [
+            "NOTRACER_NETWORK",
+            "	FLUX_NAME	EQUATION",
+        ],
+       "flux": [
+            "FLUXES",
+            {
+                "NET": [
+                    "	NET",
+                    "		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)",
+                ],
+                "XCH": [
+                    "	XCH",
+                    "		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)",
+                ],
+            },
+        ],
+        "met_pool": [
+            "METABOLITE_POOLS",
+            "	META_NAME	META_SIZE",
+        ],
+        "eq": [
+            "EQUALITIES",
+            {
+                "NET": [
+                    "	NET",
+                    "		VALUE	FORMULA",
+                ],
+                "XCH": [
+                    "	XCH",
+                    "		VALUE	FORMULA",
+                ],
+                "METAB": [
+                    "	METAB",
+                    "		VALUE	FORMULA",
+                ],
+            },
+        ],
+        "ineq": [
+            "INEQUALITIES",
+            {
+                "NET": [
+                    "	NET",
+                    "		VALUE	COMP	FORMULA",
+                ],
+                "XCH": [
+                    "	XCH",
+                    "		VALUE	COMP	FORMULA",
+                ],
+                "METAB": [
+                    "	METAB",
+                    "		VALUE	COMP	FORMULA",
+                ],
+            },
+        ],
+        "linp": [
+            "LABEL_INPUT",
+            "	META_NAME	ISOTOPOMER	VALUE",
+        ],
+        "mflux": [
+            "FLUX_MEASUREMENTS",
+            "	FLUX_NAME	VALUE	DEVIATION",
+        ],
+        "meas_lab": [
+            "LABEL_MEASUREMENTS",
+            "	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS",
+        ],
+        "meas_peak": [
+            "PEAK_MEASUREMENTS",
+            "	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T",
+        ],
+        "meas_ms": [
+            "MASS_SPECTROMETRY",
+            "	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION",
+        ],
+        "mmet": [
+            "METAB_MEASUREMENTS",
+            "	META_NAME	VALUE	DEVIATION",
+        ],
+        "opt": [
+            "OPTIONS",
+            "	OPT_NAME	OPT_VALUE",
+        ],
+    }
+    # Parse netw file if not empty
+    if "netw" in mtf:
+        (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto, dclen)=txt_parse(mtf["netw"])
+        # build afl matrix: each row is a balance on an internal metabolite, each column is a flux values
+        nb_flux=len(sto)
+        nm_flux=sorted(sto.keys())
+        m_l=set(m_left.keys())
+        m_r=set(m_right.keys())
+        m_inp=m_l-m_r
+        m_out=m_r-m_l
+        itnal_met=(m_l|m_r) - m_inp - m_out
+        nm_met=sorted(itnal_met)
+        fl2i=dict((fl, i) for i, fl in enumerate(nm_flux))
+        met2i=dict((m, i) for i, m in enumerate(nm_met))
+        afl=np.zeros((len(nm_met)+len(eqs[0]), len(nm_flux)))
+        for fl, row in sto.items():
+            for m, c in row.items():
+                if m not in met2i:
+                    continue
+                afl[met2i[m], fl2i[fl]]=c
+        # add netw equations
+        for i,eq in enumerate(eqs[0]):
+            fls=eq[1].split(" - ")
+            afl[len(nm_met)+i, fl2i[fls[0]]]=1.
+            afl[len(nm_met)+i, fl2i[fls[1]]]=-1.
+        if nb_flux > 1:
+            # qr(afl)
+            q,r,p=linalg.qr(afl, pivoting=True)
+            d=diag(r)
+            if d[0] == 0.:
+                raise Exception("Stoechiometrix matrix is 0")
+            rank=sum(abs(d/d[0]) > 1.e-10)
+            # free fluxes are the last in pivots
+            ff=set(nm_flux[i] for i in p[rank:])
+        else:
+            ff=[]
+        # prepare header
+        base=mtf["netw"].name
+        dsec["proj"] += ["	%s	%s			command='%s'"%(base, version, cmd)]
+        # prepare the ftbl content
+        for row in netw:
+            if type(row) == str:
+                dsec["netw"] += ["%s"%row.strip("\n\r")]
+                continue
+            dsec["netw"] += ["\t%s"%row[0][0]] # reac name
+            # input metabs
+            carbs="\t"
+            imetab=0
+            for (coef, metab, carb) in row[1]:
+                imetab=imetab+1
+                dsec["netw"][-1] += "\t%s%s"%(coef+"*" if coef and coef != "1" else "", metab)
+                carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
+            if imetab==1:
+                # complete by empty metabolite
+                dsec["netw"][-1] += "\t"
+                carbs=carbs+"\t"
+            # output metabs
+            imetab=0
+            for (coef, metab, carb) in row[2]:
+                imetab=imetab+1
+                dsec["netw"][-1] += "\t%s"%metab
+                carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
+            dsec["netw"] += ["%s"%carbs]
+        for row in notr_netw:
+            if type(row) == str:
+                dsec["notr"] += ["%s"%row]
+                continue
+            dsec["notr"] += ["\t%s\t%s"%(row[0][0], " = ".join("+".join((c+"*" if c and c != "1" else "")+m  for c,m,t in side) for side in row[1:3]))]
+        for e in eqs[0]:
+            dsec["eq"][1]["NET"] += ["\t\t%s\t%s"%e]
+        for e in eqs[1]:
+            dsec["eq"][1]["XCH"] += ["\t\t%s\t%s"%e]
+        for ine in ineqs[0]:
+            dsec["ineq"][1]["NET"] += ["\t\t%s\t%s\t%s"%ine]
+    else:
+        dclen={}
+        itnal_met={()}
+        sto={}
+        fluxes=[]
+    if "miso" in mtf:
+        meas=parse_miso(Path(mtf["miso"]), dclen)
+        dsec["meas_lab"] += meas["lab"]
+        dsec["meas_ms"] += meas["ms"]
+    # simple sections
+    if "linp" in mtf:
+        dsec["linp"] += parse_linp(Path(mtf["linp"]), dclen)
+    if "mflux" in mtf:
+        dsec["mflux"] += parse_mflux(Path(mtf["mflux"]), sto)
+    if "mmet" in mtf:
+        dsec["mmet"] += parse_mmet(Path(mtf["mmet"]), itnal_met)
+    if "opt" in mtf:
+        dsec["opt"] += parse_opt(Path(mtf["opt"]))
+    # with subsections NET/XCH/...
+    if "tvar" in mtf:
+        # f, rev, imposed_sens, fd=tpl
+        dtnet=dict((tpl[0], "\t\t%s\t%s\t0.2E0"%(tpl[0], "F" if tpl[0] in ff else "D")) for tpl in fluxes)
+        dtxch=dict((tpl[0], "\t\t%s\t%s"%(tpl[0], "%s\t0.01E0"%tpl[3])) for tpl in fluxes if not tpl[1])
+        snrev={()} # set of non reversible fluxes
+        for tpl in fluxes:
+            f, rev, imposed_sens, fd=tpl
+            if not rev:
+                dsec["flux"][1]["XCH"] += ["\t\t%s\tC\t0"%f]
+                snrev.add(f)
 
-    import influx_si
-    from tools_ssg import *
-
-    werr=sys.stderr.write
-    #stoe_coeff=Exception("Stoechiometric coefficient is different from 1")
-
+        tf,tm=parse_tvar(Path(mtf["tvar"]))
+        stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
+        badf=stvar["XCH"] & snrev
+        if badf:
+            werr("following fluxes should not appear in '%s', with 'XCH' kind as they are non reversible in '%s':\n\t'%s'"%(mtf["tvar"], mtf["netw"], "'\n\t'".join(badf)))
+        dsec["flux"][1]["NET"] += tf["NET"]
+        dsec["flux"][1]["XCH"] += tf["XCH"]
+        dsec["met_pool"] += tm
+        # fluxes that are not in tvar are completed from dtnet and dtxch
+        dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", {()})]
+        dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in (stvar.get("XCH", {()}) | snrev)]
+        #import pdb; pdb.set_trace()
+    if "cnstr" in mtf:
+        ce,ci=parse_cnstr(Path(mtf["cnstr"]))
+        for k,v in ce.items():
+            dsec["eq"][1][k] += v
+        for k,v in ci.items():
+            dsec["ineq"][1][k] += v
+    return dsec
+def main(argv=sys.argv[1:]):
     # get arguments
-    me=os.path.basename(sys.argv[0])
-    def usage():
-        werr(__doc__)
-    try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help"])
-    except getopt.GetoptError as err:
-        werr(str(err)+"\n")
-        usage()
-        sys.exit(1)
+    opts,args=getopt.getopt(argv, "h", ["help", "mtf=", "dmtf=", "prefix=", "out=", "force"])
+    # default values
+    mtfsuf={"netw", "linp", "miso", "mflux", "mmet", "tvar", "cnstr", "opt"}
+    mtf={} # multiplex tsv files to compile
+    out=""
+    force=False
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
-            sys.exit()
+            return
+        elif o == "--mtf":
+            # make dict {"miso": <file_path>, "netw": ...}
+            # a is like "f.netw,exp1.miso,...."
+            mtf.update(dict((Path(v).suffix[1:], v) for v in a.split(",") if v.strip()))
+        elif o == "--dmtf":
+            # a is like "netf=a.txt,miso=exp1.txt,..."
+            mtf.update(dict((v.split("=")) for v in a.split(",") if v.strip()))
+        elif o == "--prefix":
+            # a is like "/some/path/file_stem"
+            f=Path(a)
+            if f.is_dir():
+                d=f
+                stem="*"
+            else:
+                d=f.parent
+                stem=f.name
+            for suf in mtfsuf:
+                li=list(d.glob(stem+"."+suf))
+                if len(li) > 1:
+                    werr("multiple .%s files found:\n\t'%s'"%(suf, "'\n\t'".join(str(v) for v in li)))
+                if li:
+                    mtf[suf]=str(li[0])
+        elif o == "--out":
+            out=sys.stdout if a == "-" else Path(a).with_suffix(".ftbl")
+        elif o == "--force":
+            force=True
     if len(args) > 1:
-        werr("Expecting exactly one txt file name\n")
-        usage()
-        exit(1)
+        werr("Expecting exactly one argument file name, %d given. Args=\n\t'%s'\n"%(len(args), "'\n\t'".join(args)))
     elif len(args) == 0:
-        # read on stdin
-        path_txt=sys.stdin
-        fout=sys.stdout
-        base="network"
+        if "netw" not in mtf:
+            # read on stdin
+            mtf["netw"]=sys.stdin
+            out=out or "network.ftbl"
     else:
-        base=args[0]
-        if base[-4:]==".txt":
-            base=base[:-4]
-        path_txt=base+".txt"
-        #-->
-        
-        # what kind of output we have?
-        mode=os.fstat(1).st_mode
-        fout=sys.stdout if stat.S_ISFIFO(mode) or stat.S_ISREG(mode) else  open(path_txt[:-3]+"ftbl", "w")
+        # we have 1 arg
+        mtf["netw"]=args[0] # overwrite previous setting if any
+    if "netw" in mtf and mtf["netw"] != sys.stdin:
+        mtf["netw"]=Path(mtf["netw"])
+    # what kind of output we have?
+    out=out or Path(mtf["netw"]).with_suffix(".ftbl")
+    cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
+    scre=f"// Created by '{cmd}'"
+    # check if we can overwrite
+    if not force and type(out) == type(Path()):
+        if out.is_file() and out.stat().st_size > 0:
+            with out.open() as fc:
+                 if scre[:23] != fc.read(23):
+                     werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
 
-        # define where to read and write
-        # input file is an argument
-        fdir=os.path.dirname(base) or "."
-        base=os.path.basename(base)
-
-    # Parse .txt file
-    try:
-        (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto)=txt_parse(path_txt)
-    except Exception as inst:
-        werr(str(inst)+"\n")
-        raise
-    # build afl matrix: each row is a balance on an internal metabolite, each column is a flux values
-    nb_flux=len(sto)
-    nm_flux=sorted(sto.keys())
-    m_l=set(m_left.keys())
-    m_r=set(m_right.keys())
-    m_inp=m_l-m_r
-    m_out=m_r-m_l
-    nm_met=sorted((m_l|m_r) - m_inp - m_out)
-    fl2i=dict((fl, i) for i, fl in enumerate(nm_flux))
-    met2i=dict((m, i) for i, m in enumerate(nm_met))
-    afl=np.zeros((len(nm_met)+len(eqs[0]), len(nm_flux)))
-    for fl, row in sto.items():
-        for m, c in row.items():
-            if m not in met2i:
-                continue
-            afl[met2i[m], fl2i[fl]]=c
-    # store matrix for R reading
-    fmat=open("sto_mat.txt", "w")
-    fmat.write("\t".join(["row_col"]+nm_flux)+"\n")
-    for ir in range(len(nm_met)):
-        fmat.write(nm_met[ir]+"\t"+"\t".join(str(v) for v in afl[ir,:])+"\n")
-    fmat.close()
-    # add net equations
-    for i,eq in enumerate(eqs[0]):
-        fls=eq[1].split(" - ")
-        afl[len(nm_met)+i, fl2i[fls[0]]]=1.
-        afl[len(nm_met)+i, fl2i[fls[1]]]=-1.
-    if nb_flux > 1:
-        # qr(afl)
-        q,r,p=linalg.qr(afl, pivoting=True)
-        d=diag(r)
-        if d[0] == 0.:
-            raise Exception("Stoechiometrix matrix is 0")
-        rank=sum(abs(d/d[0]) > 1.e-10)
-        # free fluxes are the last in pivots
-        ff=set(nm_flux[i] for i in p[rank:])
-    else:
-        ff=[]
-    # write header
-    fout.write(
-"""PROJECT
-	NAME	VERSION	FORMAT	DATE	COMMENT
-	%s	1		%s	converted by txt2ftbl.py from '%s'
-
-NETWORK
-	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
-"""%(base, dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d"), path_txt if path_txt != sys.stdin else "stdin"))
-
-    # write the ftbl content
-    for row in netw:
-        if isstr(row):
-            fout.write("%s"%row)
-            continue
-        fout.write("\t%s"%row[0][0]) # reac name
-        # input metabs
-        carbs="\t"
-        imetab=0
-        for (coef, metab, carb) in row[1]:
-            imetab=imetab+1
-            fout.write("\t%s%s"%(coef+"*" if coef and coef != "1" else "", metab))
-            carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
-        if imetab==1:
-            # complete by empty metabolite
-            fout.write("\t")
-            carbs=carbs+"\t"
-        # output metabs
-        imetab=0
-        for (coef, metab, carb) in row[2]:
-            imetab=imetab+1
-            fout.write("\t%s"%metab)
-            carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
-        fout.write("\n%s\n"%carbs)
-    if notr_netw:
-        fout.write(
-"""
-NOTRACER_NETWORK
-	FLUX_NAME	EQUATION
-""")
-        for row in notr_netw:
-            if isstr(row):
-                fout.write("%s"%row)
-                continue
-            fout.write("\t%s\t%s\n"%(row[0][0], " = ".join("+".join((c+"*" if c and c != "1" else "")+m  for c,m,t in side) for side in row[1:3])))
-    fout.write("""
-EQUALITIES
-	NET
-		VALUE	FORMULA
-""")
-    for e in eqs[0]:
-        fout.write("\t\t%s\t%s\n"%e)
-    fout.write("""	XCH
-		VALUE	FORMULA
-""")
-    for e in eqs[1]:
-        fout.write("\t\t%s\t%s\n"%e)
-    fout.write("""
-FLUXES
-	NET
-		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
-""")
-    for f, rev, imposed_sens, fd in fluxes:
-        fout.write("\t\t%s\t%s\t0.2E0\n"%(f, "F" if f in ff else "D"))
-    fout.write("""	XCH
-		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
-""")
-    for f, rev, imposed_sens, fd in fluxes:
-        fout.write("\t\t%s\t%s\n"%(f, "C\t0" if not rev else "%s\t0.01E0"%fd))
-    fout.write("""
-LABEL_INPUT
-	META_NAME	ISOTOPOMER	VALUE
-""")
-    for m in sorted(m_inp):
-        clen=m_left[m]
-        if clen == 0:
-            continue
-        fout.write("\t%s\t#%s\t1\n"%(m, "1"*clen))
-    # print footer: empty sections (to complete manually by user)
-    fout.write("""
-INEQUALITIES
-	NET
-		VALUE	COMP	FORMULA
-""")
-    for ine in ineqs[0]:
-        fout.write("\t\t%s\t%s\t%s\n"%ine)
-    fout.write("""	XCH
-		VALUE	COMP	FORMULA
-FLUX_MEASUREMENTS
-	FLUX_NAME	VALUE	DEVIATION
-LABEL_MEASUREMENTS
-	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
-PEAK_MEASUREMENTS
-	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
-MASS_SPECTROMETRY
-	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
-OPTIONS
-	OPT_NAME	OPT_VALUE
-""")
-    fout.close()
+    # compile ftbl dict
+    dsec=compile(mtf, cmd)
+    # output ftbl
+    out=out.open("w") if type(out) == type(Path()) else out
+    out.write(scre+f" at {dtstamp()}\n")
+    dsec2out(dsec, out)
+    return 0
+if __name__ == "__main__" or __name__ == "influx_si.cli":
+    main()
