@@ -754,7 +754,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
 }
 for (irun in seq_len(nseries)) {
    if (TIMEIT) {
-      cat(sprintf("run %4d: %s cpu=%g\n", irun, format(Sys.time()), proc.time()[1], "\n", sep=""), file=fclog)
+      cat(sprintf("run %4d: %s cpu=%g\n", irun, format(Sys.time()), proc.time()[1]), "\n", sep="", file=fclog)
    }
    param[nm_pseries]=pstart[nm_pseries, irun]
 #browser()

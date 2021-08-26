@@ -298,7 +298,7 @@ def parse_miso(fmiso, clen, case_i=False):
         df_kin=pa.DataFrame()
     else:
         if sum(df["Time"] == "") == 0:
-            werr("parse_miso: stationary case is active but 'Time' column is not empty in '%s'"%fname)
+            werr("parse_miso: we are in stationary case but 'Time' column is not empty in '%s'"%fname)
         df=df[df["Time"] == ""]
     res={"ms": [], "lab": []}
     # split into kind of measurements: ms, peak, lab
@@ -356,9 +356,11 @@ def parse_miso(fmiso, clen, case_i=False):
         if case_i:
             dsp=dict() # {specie: times indexes}, e.g. "M0": vec("0.1", "0.2", ...)
             spli=[]
+            ii0=[]
             for sp, spi in df.iloc[ligr,:].groupby(["Species"]).groups.items():
                 dsp[sp]=spi
                 spli.append(sp)
+                ii0.append(np.where(ligr == spi[0])[0][0])
                 # check that all SD are the same for all time points
                 u=np.unique(df.loc[spi, "SD"])
                 if len(u) != 1:
@@ -375,7 +377,7 @@ def parse_miso(fmiso, clen, case_i=False):
             # add this group to results
             if case_i:
                 res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
-                res["ms"] += [f"\t\t\t{df.loc[dsp[spli[i]][0], 'Species'][1:]}\tNA\t{df.loc[dsp[spli[i]][0], 'SD']}"+"   // %s: %s"%(fname, df.loc[dsp[spli[i]][0], "iline"]) for i in range(1, len(spli))]
+                res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 for sp,spi in dsp.items():
                     #import pdb; pdb.set_trace()
                     df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{frag}:{sp[1:]}:NA"]))
@@ -408,7 +410,7 @@ def parse_miso(fmiso, clen, case_i=False):
             for i,li in enumerate(labs):
                 for v in li:
                     if len(v) != flen:
-                        werr("parse_miso: entry '%s' has length %d different from fragment length %d, '%s': %d"%(v, len(v), flen, fname, ligr[i]+2))
+                        werr("parse_miso: entry '%s' has length %d different from fragment length %d, '%s': %s"%(v, len(v), flen, fname, df.loc[ligr[i], "iline"]))
             # inject fragment species into full molecule
             if flen < mlen:
                 b=np.ones(mlen, str) # base where lab will be injected
@@ -446,8 +448,15 @@ def parse_miso(fmiso, clen, case_i=False):
                 norma=False
             # add this group to results
             #	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS						
-            res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
-            res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %d"%(fname, ligr[i]+2) for i in range(1, len(ligr))]
+            if case_i:
+                res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
+                res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[ii])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
+                for i,(sp,spi) in enumerate(dsp.items()):
+                    #import pdb; pdb.set_trace()
+                    df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{'+'.join('#'+v for v in labs[i])}:NA"]))
+            else:
+                res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
+                res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
     return (res, df_kin) if case_i else res
 def parse_linp(f, clen={}):
     "Parse label input TSV file. Return a list of lines to add to ftbl"
