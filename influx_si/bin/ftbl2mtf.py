@@ -267,7 +267,9 @@ def main(argv=sys.argv[1:]):
             header="Id\tComment\tName\tKind\tType\tValue\n"
             for nx in ("NET", "XCH"):
                 for d in ftbl["FLUXES"][nx]:
-                    if nx == "XCH" and ((d["FCD"] == "C" and float(d['VALUE(F/C)']) == 0.) or (d["FCD"] == "D" and d["NAME"] in netan["flux_inout"])):
+                    #if d['NAME'] == "BM":
+                    #    import pdb; pdb.set_trace()
+                    if nx == "XCH" and ((d["FCD"] == "C" and float(d['VALUE(F/C)']) == 0. and d['NAME'] in netan["sto_r_m"]) or (d["FCD"] == "D" and d["NAME"] in netan["flux_inout"])):
                         continue
                     res += f"\t\t{d['NAME']}\t{nx}\t{d['FCD']}\t{d['VALUE(F/C)']}\n"
             for d in ftbl.get("METABOLITE_POOLS", []):
