@@ -20,6 +20,8 @@ import datetime as dt
 from scipy import linalg
 from numpy import diag
 vsadd=np.core.defchararray.add # vector string add
+import influx_si
+from C13_ftbl import formula2dict
 
 version="1.0"
 me=os.path.basename(sys.argv[0] or "txt2ftbl")
@@ -501,9 +503,9 @@ def parse_mflux(f, dfl={}):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
         if len(ligr) > 1:
-            werr("parse_mflux: flux '%s' has more than 1 measurement in '%s': %s"%(flux, ", ".join(il)))
+            werr("parse_mflux: flux '%s' has more than 1 measurement in '%s': %s"%(flux, fname, ", ".join(il)))
         if dfl and flux not in dfl:
-            werr("parse_mflux: flux '%s' was not seen in metabolic network, '%s': %s"%(flux, il[0]))
+            werr("parse_mflux: flux '%s' was not seen in metabolic network, '%s': %s"%(flux, fname, il[0]))
         res.append("\t%s\t%s\t%s   // %s: %s"%(flux, df.loc[ligr[0], "Value"], df.loc[ligr[0], "SD"], fname, il[0]))
     return res
 def parse_opt(f):
@@ -585,7 +587,7 @@ def parse_cnstr(f):
             op=invcomp[op]
             ineq[kind]=ineq.get(kind, [])
             ineq[kind].append("\t\t%s\t%s\t%s   // %s: %s"%(val, op, frml, fname, il[0]))
-    return (eq, ineq)
+    return (eq, ineq, df)
 def parse_mmet(f, smet=set()):
     "Parse metabolite concentration measurements TSV file. Return a list of lines to add to ftbl"
     if "name" in dir(f):
@@ -782,6 +784,17 @@ def compile(mtf, cmd, case_i=False):
         itnal_met=set()
         sto={}
         fluxes=[]
+    if "cnstr" in mtf:
+        ce,ci,df=parse_cnstr(Path(mtf["cnstr"]))
+        for k,v in ce.items():
+            dsec["eq"][1][k] += v
+        for k,v in ci.items():
+            dsec["ineq"][1][k] += v
+        # complete flux set by those from eq:net
+        sfl=set(sto.keys()) # set of fluxes
+        #import pdb; pdb.set_trace()
+        for eq in df[(df["Kind"] == "NET") & (df["Operator"] == "==")]["Formula"]:
+            sfl |= set(formula2dict(eq).keys())
     if "miso" in mtf:
         if case_i:
             meas, df_kin=parse_miso(Path(mtf["miso"]), dclen, case_i)
@@ -796,7 +809,7 @@ def compile(mtf, cmd, case_i=False):
     if "linp" in mtf:
         dsec["linp"] += parse_linp(Path(mtf["linp"]), dclen)
     if "mflux" in mtf:
-        dsec["mflux"] += parse_mflux(Path(mtf["mflux"]), sto)
+        dsec["mflux"] += parse_mflux(Path(mtf["mflux"]), sfl)
     if "mmet" in mtf:
         dsec["mmet"] += parse_mmet(Path(mtf["mmet"]), itnal_met)
     if "opt" in mtf:
@@ -828,12 +841,6 @@ def compile(mtf, cmd, case_i=False):
     dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", set())]
     dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in (stvar.get("XCH", set()) | snrev)]
     #import pdb; pdb.set_trace()
-    if "cnstr" in mtf:
-        ce,ci=parse_cnstr(Path(mtf["cnstr"]))
-        for k,v in ce.items():
-            dsec["eq"][1][k] += v
-        for k,v in ci.items():
-            dsec["ineq"][1][k] += v
     return dsec if not case_i else (dsec, df_kin)
 def main(argv=sys.argv[1:]):
     ord_args=[]

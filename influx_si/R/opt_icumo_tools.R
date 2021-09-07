@@ -646,7 +646,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=.Machine$double.eps*
          lit[[met]][["0"]]=1.-su
       } else if (length(m) == 2**clen[met]-1) {
          # "guess the lacking one"
-         nm_all=as.character(seq(2**len[met])-1)
+         nm_all=as.character(seq(2**clen[met])-1)
          lack=nm_all[which(!nm_all %in% names(m))]
          lit[[met]][[lack]]=1.-su
       } else if (any(ibad <- su < 1-tol)) {

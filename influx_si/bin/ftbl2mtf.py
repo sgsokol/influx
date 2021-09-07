@@ -9,7 +9,7 @@ Otherwise, the writing is aborted with a warning. Other files may continue to be
 To force the overwriting, use '--force'.
 
 Output files will have following extensions/meanings:
- .netw: stoechiometric equations and carbon transitions in the meatabolic network;
+ .netw: stoichiometric equations and label transitions in the metabolic network;
  .linp: label input;
  .miso: isotopic measurements (MS, label, peak);
  .mflux: flux measurements;
@@ -21,7 +21,7 @@ Output files will have following extensions/meanings:
 Copyright 2021 INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol [at] insa-toulouse [dot] fr)
 
-usage: ftbl2mtf.py [--out OUT] [--inst] network[.ftbl]
+usage: ftbl2mtf.py [--out OUT] [--inst] [--force] network[.ftbl]
 """
 import sys, os, getopt, stat, io
 import datetime
