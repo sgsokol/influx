@@ -32,6 +32,7 @@ setup(
       'influx_si/bin/influx_i.py',
       'influx_si/bin/res2ftbl_meas.py',
       'influx_si/bin/txt2ftbl.py',
+      'influx_si/bin/ftbl2mtf.py',
    ],
    entry_points={
       "console_scripts": [
@@ -47,6 +48,7 @@ setup(
          "influx_i = influx_si.cli:cli",
          "res2ftbl_meas = influx_si.cli:cli",
          "txt2ftbl = influx_si.cli:cli",
+         "ftbl2mft = influx_si.cli:cli"
       ],
    },
    classifiers=[

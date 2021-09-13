@@ -2776,8 +2776,6 @@ def proc_mass_meas(ftbl, netan):
     for row in ftbl.get("MASS_SPECTROMETRY",[]):
         #print row;##
         metabs=row["META_NAME"] or metabs
-        if row["META_NAME"]:
-            irow=int(row["irow"])
         # metabs can be metab1[+metab2[+...]]
         metabl=metabs.split("+")
         if (len(metabl) > 1):
@@ -2797,6 +2795,10 @@ def proc_mass_meas(ftbl, netan):
         if not metab0 in netan["metabs"]:
             raise Exception("Unknown metabolite name '%s' in MASS_MEASUREMENTS (%s: %s)"%(metab0, ftbl["name"], row["irow"]))
         clen0=netan["Clen"][metab0] if metab0 else 0
+        if row["META_NAME"]:
+            irow=int(row["irow"])
+            frag=",".join(str(i+1) for i in range(clen0))
+            mask=(1<<clen0)-1
         frag=row["FRAGMENT"] or frag
         for metab in metabl:
             clen=netan["Clen"][metab]

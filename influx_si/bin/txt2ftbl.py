@@ -76,15 +76,38 @@ def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"
             rows=np.empty((0, len(cnm)), dtype=object)
             continue
         # append rows
-        li=[v.strip() for v in row.split(sep)]
-        if len(li) != ncol:
-            werr("tsv2df: wrong column number %d, expected %d (%s: %d)"%(len(li), ncol))
+        rli=[v.strip() for v in row.split(sep)]
+        if len(rli) != ncol:
+            werr("tsv2df: wrong column number %d, expected %d (%s: %d)"%(len(rli), ncol, f, ili+1))
         if append_iline:
-            li.append(ili+1)
-        rows=np.vstack((rows, li))
+            rli.append(ili+1)
+        rows=np.vstack((rows, rli))
     df=pa.DataFrame(rows)
     df.columns=cnm
     return df
+def try_ext(f, li):
+    """See if file 'f' exists, if not try with extensions from 'li'.
+    The first found is returned as Path() otherwise f returned 'as is'."""
+    if type(f) in (type(Path()), str):
+        # check if we need to add an extension
+        pth=Path(f)
+        if not pth.is_file():
+            for suf in li:
+                if not suf.startswith("."):
+                    suf="."+suf
+                npth=pth.with_suffix(suf)
+                if npth.is_file():
+                    return npth
+                npth=pth.parent/(pth.name+suf)
+                if npth.is_file():
+                    return npth
+            else:
+                return pth
+        else:
+            return pth
+    else:
+        return f
+
 
 def txt_parse(ftxt, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$")):
@@ -294,16 +317,17 @@ def parse_miso(fmiso, clen, case_i=False):
     
     df=tsv2df(fmiso)
     if case_i:
-        if sum(df["Time"] != "") == 0:
+        if "Time" not in df or sum(df["Time"] != "") == 0:
             werr("parse_miso: instationary option is activated but 'Time' column is empty in '%s'"%fname)
         df=df[df["Time"] != ""]
         df_kin=pa.DataFrame()
     else:
-        if sum(df["Time"] == "") == 0:
+        if "Time" in df and sum(df["Time"] == "") == 0:
             werr("parse_miso: we are in stationary case but 'Time' column is not empty in '%s'"%fname)
-        df=df[df["Time"] == ""]
+        df=df[df["Time"] == ""] if "Time" in df else df
     res={"ms": [], "lab": []}
     # split into kind of measurements: ms, peak, lab
+    last_met=last_frag=last_dset=""
     for kgr, ligr in df.groupby(["Metabolite", "Fragment", "Dataset"]).groups.items():
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
@@ -457,8 +481,15 @@ def parse_miso(fmiso, clen, case_i=False):
                     #import pdb; pdb.set_trace()
                     df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{'+'.join('#'+v for v in labs[i])}:NA"]))
             else:
-                res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
-                res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
+                if met != last_met or frag != last_frag:
+                    cgr=1
+                    last_met=met
+                    last_frag=frag
+                elif dset != last_dset:
+                    cgr += 1
+                    last_dset=dset
+                res["lab"] += [f"\t{met}\t{cgr}\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
+                res["lab"] += [f"\t\t{i+cgr if norma else 1}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
     return (res, df_kin) if case_i else res
 def parse_linp(f, clen={}):
     "Parse label input TSV file. Return a list of lines to add to ftbl"
@@ -603,9 +634,9 @@ def parse_mmet(f, smet=set()):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
         if len(ligr) > 1:
-            werr("parse_mmet: metabolite '%s' has more than 1 measurement in '%s': %s"%(met, ", ".join(il)))
-        if smet and met not in smet:
-            werr("parse_mmet: metabolite '%s' was not seen in internal metabolites of network, '%s': %s"%(met, il[0]))
+            werr("parse_mmet: metabolite '%s' has more than 1 measurement in '%s': %s"%(met, fname, ", ".join(il)))
+        if smet and (met not in smet):
+            werr("parse_mmet: metabolite '%s' was not seen in internal metabolites of network, '%s': %s"%(met, fname, il[0]))
         res.append("\t%s\t%s\t%s   // %s: %s"%(met, df.loc[ligr[0], "Value"], df.loc[ligr[0], "SD"], fname, il[0]))
     return res
 
@@ -707,7 +738,8 @@ def compile(mtf, cmd, case_i=False):
     }
     # Parse netw file if not empty
     if "netw" in mtf:
-        (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto, dclen)=txt_parse(mtf["netw"])
+        pth=try_ext(mtf["netw"], ["netw", "txt"])
+        (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto, dclen)=txt_parse(pth)
         # build afl matrix: each row is a balance on an internal metabolite, each column is a flux values
         nb_flux=len(sto)
         nm_flux=sorted(sto.keys())
@@ -785,7 +817,8 @@ def compile(mtf, cmd, case_i=False):
         sto={}
         fluxes=[]
     if "cnstr" in mtf:
-        ce,ci,df=parse_cnstr(Path(mtf["cnstr"]))
+        pth=try_ext(mtf["cnstr"], ["cntsr", "tsv", "txt"])
+        ce,ci,df=parse_cnstr(pth)
         for k,v in ce.items():
             dsec["eq"][1][k] += v
         for k,v in ci.items():
@@ -796,10 +829,11 @@ def compile(mtf, cmd, case_i=False):
         for eq in df[(df["Kind"] == "NET") & (df["Operator"] == "==")]["Formula"]:
             sfl |= set(formula2dict(eq).keys())
     if "miso" in mtf:
+        pth=try_ext(mtf["miso"], ["miso", "tsv", "txt"])
         if case_i:
-            meas, df_kin=parse_miso(Path(mtf["miso"]), dclen, case_i)
+            meas, df_kin=parse_miso(pth, dclen, case_i)
         else:
-            meas=parse_miso(Path(mtf["miso"]), dclen)
+            meas=parse_miso(pth, dclen)
         dsec["meas_lab"] += meas["lab"]
         dsec["meas_ms"] += meas["ms"]
     else:
@@ -807,16 +841,20 @@ def compile(mtf, cmd, case_i=False):
             df_kin=pa.DataFrame() # return empty data frame for kinetic measurements
     # simple sections
     if "linp" in mtf:
-        dsec["linp"] += parse_linp(Path(mtf["linp"]), dclen)
+        pth=try_ext(mtf["linp"], ["linp", "tsv", "txt"])
+        dsec["linp"] += parse_linp(pth, dclen)
     if "mflux" in mtf:
-        dsec["mflux"] += parse_mflux(Path(mtf["mflux"]), sfl)
+        pth=try_ext(mtf["mflux"], ["mflux", "tsv", "txt"])
+        dsec["mflux"] += parse_mflux(pth, sfl)
     if "mmet" in mtf:
-        dsec["mmet"] += parse_mmet(Path(mtf["mmet"]), itnal_met)
+        pth=try_ext(mtf["mmet"], ["mmet", "tsv", "txt"])
+        dsec["mmet"] += parse_mmet(pth, itnal_met)
     if "opt" in mtf:
         dsec["opt"] += parse_opt(Path(mtf["opt"]))
     # with subsections NET/XCH/...
     if "tvar" in mtf:
-        tf,tm=parse_tvar(Path(mtf["tvar"]))
+        pth=try_ext(mtf["tvar"], ["tvar", "tsv", "txt"])
+        tf,tm=parse_tvar(pth)
         stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
         dsec["flux"][1]["NET"] += tf["NET"]
         dsec["flux"][1]["XCH"] += tf["XCH"]
@@ -851,70 +889,103 @@ def main(argv=sys.argv[1:]):
     parser=argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--mtf", action=ordAction, help=
 """MTF is a coma separated list of files with following extensions/meanings:
- .netw: a text files with stoechiometric reactions and label transitions (one per line)
-    Comments starts with '#' but those starting with '###' introduce pathways which are numbered
-    as well as reactions in them. Reaction name can precede the reaction itself and is separated by ":"
-    If no explicit name is given, reactions in FTBL file will be named according a pattern
-    'rX.Y' where X is pathway number and Y is reaction number in the
-    pathway. But it is highly recommended to give explicit names to reactions.
+ netw: a text file with stoichiometric reactions and label transitions (one per line)
+    Comments starts with '#' but those starting with '###' introduce 
+    pathways which are numbered as well as reactions in them. Reaction 
+    name can precede the reaction itself and is separated by ":" If no 
+    explicit name is given, reactions in FTBL file will be named 
+    according a pattern 'rX.Y' where X is pathway number and Y is 
+    reaction number in the pathway. But it is highly recommended to 
+    give explicit names to reactions.
     Symbols "+", "(", ")" and ":" are not allowed in metabolite neither reaction names
     Example of reaction and label transition:
        edd: Gnt6P (ABCDEF) -> Pyr (ABC) + GA3P (DEF)
     Non reversible reactions are signaled with '->' (as in the example above).
     A sign '<->' can be used for reversible reactions.
- .linp: label inputs (starting from this extensions, TSV files are assumed)
- .miso: isotopic measurements (NMR (label, peak) and MS)
- .mflux: flux measurements
- .mmet: metabolite concentration measurements
- .tvar: type of variables (NET or XCH , free or dependent, starting values, ...)
- .cnstr: equality and inequality constraints on fluxes and concentrations
- .opt: options
-Only first 3 files are necessary to obtain a workable FTBL file, others are optional.
-Example: '--mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux'
-NB: no space is allowed around comas.
-""")
-    parser.add_argument("--dmtf", action=ordAction, help=
-"""like --mtf except any file extensions can be used (e.g. .txt or .tsv).
-The meaning of each file is given in a 'prefix=', e.g.
-'--dmtf netw=ecoli.txt,linp=glu08C1_02U.tsv,miso=cond1_ms.tsv,mflux=cond1_growth.tsv'
-NB. No space is allowed around comas neither equal '=' sign.
+    If 'netw' name is equal to '-', then its content is read from standard input, e.g.
+      '--mtf netw=-'
+ linp: label inputs (starting from this extensions, TSV files are assumed)
+ miso: isotopic measurements (NMR (label, peak) and MS)
+ mflux: flux measurements
+ mmet: metabolite concentration measurements
+ tvar: type of variables (NET or XCH , free or dependent, starting values, ...)
+ cnstr: equality and inequality constraints on fluxes and concentrations
+ opt: options
+ ftbl: name of output FTBL file. If not given, it will be equal to 'netw'
+   stem with '.ftbl' extension. If it is equal to '-', then the result 
+   will be written to standard output, e.g.
+     'txt2ftbl --mtf ftbl=-,ecoli.netw'
+ vmtf: variable part of mtf approach.
+   If a series of FTBL files has to be generated partially with 
+   information common to all files (constant part) and partially with 
+   sections proper to each FTBL (variable part) then files containing 
+   variable sections (e.g. 'miso') can be given in a special file 
+   having an extension (or prefix, cf. hereafter) 'vmtf'. In such a 
+   way, each FTBL file will be produced from combination of MTF files 
+   given directly in this option (constant part) and files given on a 
+   corresponding row of 'vmtf' file. vmtf file is a TSV file with 
+   columns using the same names: 'netw', 'linp', etc. Each row contains 
+   file names that will be used to produce an FTBL file. Thus each row 
+   must have 'ftbl' column with unique and non empty name. When 'vmtf' 
+   is used, 'ftbl' cannot be present on the command line. If a file 
+   type is present both in column names of 'vmtf' and in '--mtf' option 
+   then the content of 'vmtf' file will take precedence. Empty values 
+   in 'vmtf' file are ignored. All file paths in 'vmtf' file are 
+   considered relative to the the location of 'vmtf' file itself.
+Only first 3 files are necessary to obtain a workable FTBL file, others 
+are optional.
+Example: 'txt2ftbl --mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux'
+NB: no space is allowed around comas. If a file path has a spaces in 
+its name, it must be enclosed into quotes or double quotes.
+If an entry file cannot be renamed to have some of these extensions, then
+they can be used as prefixes followed by a '=' sign, e.g.
+  'txt2ftbl --mtf netw=ecoli.txt,linp=glu08C1_02U.tsv,cond1.miso,cond1.mflux'
+As you can see from this example, both naming schemes can be mixed.
+If for some reason, the same type of file is indicated several times
+(no matter with extension or prefix), the last occurrence supersedes
+all precedent ones.
 """)
     parser.add_argument("--prefix", action=ordAction, help=
-"""If all input files have the same name pattern and are different only in extensions then
-the pattern can be given as PREFIX, e.g.
+"""If all input files have the same name pattern and are different only 
+in extensions then the pattern can be given as PREFIX, e.g.
 '--prefix somedir/ecoli'
-Then in 'somedir', we suppose to have 'ecoli.netw', 'ecoli.linp' and other input files having names
-starting with 'ecoli' and ending with corresponding extensions.
-NB. If some file is given in more than one option '--prefix', '--mtf' or '--dmtf' then
-the last appeared occurrence overrides precedent ones.
-NB2. If netw file is not given in any option, it is 
+Then in 'somedir', we suppose to have 'ecoli.netw', 'ecoli.linp' and 
+other input files having names starting with 'ecoli' and ending with 
+corresponding extensions.
+NB. If some file is given in more than one option: '--prefix' and/or 
+'--mtf' then the last occurrence overrides precedent ones.
 """)
     parser.add_argument("--inst", action="store_true", default=False, help=
-"""Prepare FTBL for instationary case. File '.netw' is supposed to have column 'Time' non empty. Isotopic kinetic data will be written to a TSV file with '.ikin' extension. Its name will be the same as in FTBL file.
-""")
-    parser.add_argument("-o", "--out", help=
-"""output file name. An extension '.ftbl' is automatically appended if not present.
-A dash '-' is equivalent to standard output. If not given, the netw file stem is used
-with '.ftbl' extension. In case netw file is not given, standard output is used.
-Examples: '--out=-' (write the result to standard output),
-          '-o ecoli' (write to 'ecoli.ftbl')
+"""Prepare FTBL for instationary case. File 'netw' is supposed to have 
+column 'Time' non empty. Isotopic kinetic data will be written to a TSV 
+file with 'ikin' extension. Its name will be the same as in FTBL file, 
+and FTBL field 'OPTIONS/file_labcin' will contain 'ikin' file name.
 """)
     parser.add_argument("--force", action="store_true", default=False, help=
 """Overwrite an existent result file not produced by this script.
-NB. If a result file exists and is actually produced by this script, then it is silently
-overwritten even without this option. The script detects if it was the creator of a file
-by searching for a string "// Created by 'txt2ftbl" at the first line of the file.
-By removing this comment, user can protect a file from a silent overwriting.
+NB. If a result file exists and is actually produced by this script, 
+then it is silently overwritten even without this option. The script 
+detects if it was the creator of a file by searching for a string "// 
+Created by 'txt2ftbl" at the first line of the file. By removing or 
+editing this comment, user can protect a file from a silent 
+overwriting.
 """)
-    parser.add_argument("netw", default="", nargs="?")
+    parser.add_argument("netw", default="", nargs="?", help="""
+If 'netw' file is not given in any option (neither --mtf nor --prefix), it 
+can be given as the only argument NETW, e.g.
+  txt2ftbl ecoli.txt
+or
+  txt2ftbl --mtf ms_nmr_data.miso,glucose.linp ecoli.txt
+If 'netw' file name is given both in any option and as an argument, it 
+is the argument value that will take precedence.
+""")
     #print("opts=", vars(opts))
     #print("ord=", ord_args)
     # default values
-    mtfsuf={"netw", "linp", "miso", "mflux", "mmet", "tvar", "cnstr", "opt"}
+    mtfsuf={"netw", "linp", "miso", "mflux", "mmet", "tvar", "cnstr", "opt", "vmtf", "ftbl"}
     mtf={} # multiplex tsv files to compile
     # get arguments
     opts = parser.parse_args(argv)
-    out=opts.out
     force=opts.force
     netw=opts.netw
     case_i=opts.inst
@@ -922,10 +993,15 @@ By removing this comment, user can protect a file from a silent overwriting.
         if o == "mtf":
             # make dict {"miso": <file_path>, "netw": ...}
             # a is like "f.netw,exp1.miso,...."
-            mtf.update(dict((Path(v).suffix[1:], v) for v in a.split(",") if v.strip()))
-        elif o == "dmtf":
-            # a is like "netf=a.txt,miso=exp1.txt,..."
-            mtf.update(dict((v.split("=")) for v in a.split(",") if v.strip()))
+            for v in a.split(","):
+                v=v.strip()
+                if not v:
+                    continue
+                if "=" in v:
+                    ty,nm=v.split("=", 1)
+                    mtf[ty]=nm
+                else:
+                    mtf[Path(v).suffix[1:]]=v
         elif o == "prefix":
             # a is like "/some/path/file_stem"
             f=Path(a)
@@ -935,58 +1011,102 @@ By removing this comment, user can protect a file from a silent overwriting.
             else:
                 d=f.parent
                 stem=f.name
-            for suf in mtfsuf:
+            if not d.is_dir():
+                werr("directory '%s' form --prefix does not exist"%str(s))
+            nfound=0
+            for suf in mtfsuf-{"ftbl"}:
                 li=list(d.glob(stem+"."+suf))
                 if len(li) > 1:
                     werr("multiple .%s files found:\n\t'%s'"%(suf, "'\n\t'".join(str(v) for v in li)))
                 if li:
                     mtf[suf]=str(li[0])
-    if not netw:
-        if "netw" not in mtf:
-            # read on stdin
-            mtf["netw"]=sys.stdin
-            out=out or sys.stdout
-    else:
-        # we have 1 arg
+                    nfound += 1
+            if nfound == 0:
+                werr("No MTF file found with prefix '%s'"%a)
+    if "vmtf" in mtf and "ftbl" in mtf:
+        werr("'ftbl' and 'vmtf' cannot be simultaneously present in '--mtf' option")
+    if netw:
         mtf["netw"]=netw # overwrite previous setting if any
-    if "netw" in mtf and mtf["netw"] != sys.stdin:
-        mtf["netw"]=Path(mtf["netw"])
+    if "netw" in mtf:
+        if mtf["netw"] == "-":
+            mtf["netw"]=sys.stdin
+        else:
+            mtf["netw"]=Path(mtf["netw"])
     # what kind of output we have?
-    if out == "-":
-        out=sys.stdin
-    elif type(out)==str:
-        out=Path(out).with_suffix(".ftbl")
-    elif "netw" in mtf:
-        out=Path(mtf["netw"]).with_suffix(".ftbl")
-    else:
-        out=sys.stdin
+    if "ftbl" in mtf:
+        p=Path(mtf["ftbl"])
+        if p.suffix == ".ftbl":
+            mtf["ftbl"]=p
+        elif mtf["ftbl"] == "-":
+            mtf["ftbl"]=sys.stdout
+        else:
+            mtf["ftbl"]=p.parent/(p.name+".ftbl")
+    elif "netw" in mtf and not "vmtf" in mtf:
+        if mtf["netw"] == sys.stdin:
+            mtf["ftbl"]=sys.stdout
+        else:
+            mtf["ftbl"]=mtf["netw"].with_suffix(".ftbl")
+    elif not "vmtf" in mtf:
+        mtf["ftbl"]=sys.stdout
     cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
     scre=f"// Created by '{cmd}'"
-    # check if we can overwrite
-    if not force and type(out) == type(Path()):
-        if out.is_file() and out.stat().st_size > 0:
-            with out.open() as fc:
-                 if scre[:23] != fc.read(23):
-                     werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-
-    # compile ftbl dict
-    if case_i:
-        #import pdb; pdb.set_trace()
-        dsec,df_kin=compile(mtf, cmd, case_i)
-        fkin=out.with_suffix(".ikin")
-        with fkin.open("w") as fc:
-            fc.write(scre+f" at {dtstamp()}\nrow_col")
-            df_kin.to_csv(fc, sep="\t")
-        for i,v in enumerate(dsec["opt"]):
-            if v.startswith("\tfile_labcin\t"):
-                dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-        dsec["opt"].append("\tfile_labcin\t"+fkin.name)
+    
+    if "vmtf" in mtf:
+        vdf=tsv2df(mtf["vmtf"])
+        dftbl=Path(mtf["vmtf"]).parent
     else:
-        dsec=compile(mtf, cmd)
-    # output ftbl
-    out=out.open("w") if type(out) == type(Path()) else out
-    out.write(scre+f" at {dtstamp()}\n")
-    dsec2out(dsec, out)
+        vdf=pa.DataFrame({"ftbl": [mtf["ftbl"]]})
+        dftbl=None
+        del(mtf["ftbl"])
+    if "ftbl" not in vdf:
+        werr("'ftbl' column must be present in '%s'"%mtf["vmtf"])
+    # run through all ftbls
+    if dftbl is not None:
+        # add dftbl to all fields in vmtf
+        vdf[vdf != ""]=[dftbl/v for v in vdf[vdf != ""].values.flatten() if v == v]
+        
+    for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
+        il=vdf.loc[ligr, "iline"].to_numpy() # strings
+        # sanity check
+        if len(ligr) > 1:
+            werr("'ftbl' column has repeated values in '%s': %s"%(mtf["vmtf"], ", ".join(il)))
+        # prepare running mtf, full mtf for one row
+        rmtf=mtf.copy()
+        rmtf.update((k,v) for k,v in vdf.iloc[ligr[0], :].to_dict().items() if v)
+
+        # what kind of output we have?
+        if ftbl != sys.stdout:
+            p=Path(ftbl)
+            if p.suffix == ".ftbl":
+                ftbl=p
+            elif ftbl == "-":
+                ftbl=sys.stdout
+            else:
+                ftbl=p.parent/(p.name+".ftbl")
+        # check if we can overwrite
+        if not force and ftbl != sys.stdout:
+            if ftbl.is_file() and ftbl.stat().st_size > 0:
+                with ftbl.open() as fc:
+                     if scre[:23] != fc.read(23):
+                         werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+        # compile ftbl dict 'dsec'
+        if case_i:
+            #import pdb; pdb.set_trace()
+            dsec,df_kin=compile(rmtf, cmd, case_i)
+            fkin=ftbl.with_suffix(".ikin")
+            with fkin.open("w") as fc:
+                fc.write(scre+f" at {dtstamp()}\nrow_col")
+                df_kin.to_csv(fc, sep="\t")
+            for i,v in enumerate(dsec["opt"]):
+                if v.startswith("\tfile_labcin\t"):
+                    dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
+            dsec["opt"].append("\tfile_labcin\t"+fkin.name)
+        else:
+            dsec=compile(rmtf, cmd)
+        # output ftbl
+        out=ftbl.open("w") if type(ftbl) == type(Path()) else ftbl
+        out.write(scre+f" at {dtstamp()}\n")
+        dsec2out(dsec, out)
     return 0
 if __name__ == "__main__" or __name__ == "influx_si.cli":
     main()
