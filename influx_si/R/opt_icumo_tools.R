@@ -195,7 +195,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    # calculate all fluxes from free fluxes
    fgr=numeric(nb_f$nb_fgr)
    names(fgr)=nm$nm_fgr
-   fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
+   if (nb_f$nb_fgr) {
+      fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
+   }
    lf=param2fl(param, labargs)
    fwrv=lf$fwrv
    nb_fwrv=length(lf$fwrv)
