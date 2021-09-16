@@ -1,7 +1,8 @@
-import os, sys
+import sys
+from pathlib import Path
 if sys.version_info[0] < 3:
-    raise Exception("Must be using Python 3 or higher")
-dirmod=os.path.dirname(os.path.realpath(__file__))
-sys.path.append(dirmod)
-with open(os.path.join(dirmod, "influx_version.txt"), "r") as f:
-    __version__ = f.read().rstrip()
+    raise Exception("MPython 3 or higher required")
+dirmod=Path(__file__).resolve().parent
+sys.path.append(str(dirmod))
+__version__ = (dirmod/"influx_version.txt").read_text().rstrip()
+del(dirmod)

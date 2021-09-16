@@ -24,7 +24,8 @@ import influx_si
 from C13_ftbl import formula2dict
 
 version="1.0"
-me=os.path.basename(sys.argv[0] or "txt2ftbl")
+#me=os.path.basename(sys.argv[0] or "txt2ftbl")
+me="txt2ftbl"
 LOCAL_TIMEZONE=dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
 invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
 
@@ -880,7 +881,7 @@ def compile(mtf, cmd, case_i=False):
     dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in (stvar.get("XCH", set()) | snrev)]
     #import pdb; pdb.set_trace()
     return dsec if not case_i else (dsec, df_kin)
-def main(argv=sys.argv[1:]):
+def main(argv=sys.argv[1:], res_ftbl=None):
     ord_args=[]
     class ordAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
@@ -979,6 +980,9 @@ or
 If 'netw' file name is given both in any option and as an argument, it 
 is the argument value that will take precedence.
 """)
+    if len(argv) == 0:
+        parser.print_usage(sys.stderr)
+        return 1
     #print("opts=", vars(opts))
     #print("ord=", ord_args)
     # default values
@@ -1014,8 +1018,10 @@ is the argument value that will take precedence.
             if not d.is_dir():
                 werr("directory '%s' form --prefix does not exist"%str(s))
             nfound=0
+            #print("d=", d, "\tstem=", stem)
             for suf in mtfsuf-{"ftbl"}:
                 li=list(d.glob(stem+"."+suf))
+                #print("suf=", suf, "\tli=", li)
                 if len(li) > 1:
                     werr("multiple .%s files found:\n\t'%s'"%(suf, "'\n\t'".join(str(v) for v in li)))
                 if li:
@@ -1055,7 +1061,7 @@ is the argument value that will take precedence.
         vdf=tsv2df(mtf["vmtf"])
         dftbl=Path(mtf["vmtf"]).parent
     else:
-        vdf=pa.DataFrame({"ftbl": [mtf["ftbl"]]})
+        vdf=pa.DataFrame({"ftbl": [mtf["ftbl"]], "iline":["NA"]})
         dftbl=None
         del(mtf["ftbl"])
     if "ftbl" not in vdf:
@@ -1107,6 +1113,9 @@ is the argument value that will take precedence.
         out=ftbl.open("w") if type(ftbl) == type(Path()) else ftbl
         out.write(scre+f" at {dtstamp()}\n")
         dsec2out(dsec, out)
+        if res_ftbl is not None:
+            res_ftbl.append(out.name)
+        out.close()
     return 0
 if __name__ == "__main__" or __name__ == "influx_si.cli":
     main()
