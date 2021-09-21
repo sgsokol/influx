@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse ftbl file from from first parameter or from stdin (if input file is '-')
+"""Parse ftbl file from first parameter or from stdin (if input file is '-')
 and write a series of mtf (multiple TSV files).
 The file stem ('network' in 'network.ftbl') is used as file name basis
 for produced files, e.g. 'network.miso'. Parameter --out can be used to change it.
@@ -54,13 +54,23 @@ def main(argv=sys.argv[1:]):
     force=False
     invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
     # parse options
+    # put arg at the end ov argv
+    #print("argv=", argv)
+    if argv and not argv[0].startswith("-"):
+        i=[i for i,v in enumerate(argv) if v.startswith("-")]
+        if i:
+            i=i[0]
+            argv=argv[i:]+argv[:i]
+    #print("post argv=", argv)
     opts,args=getopt.getopt(argv, "hio:", ["help", "force", "inst", "out="])
+    #print("opts=", opts)
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             return 0
         if o == "--out" or o == "-o":
             out=a
+            #print("a=", a)
         elif o == "--inst":
             case_i=True;
         elif o == "--force":
@@ -82,6 +92,9 @@ def main(argv=sys.argv[1:]):
             out=fftbl.parent/fftbl.stem
         else:
             out=Path("mtf")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    #print("out=", out)
+    #sys.exit(1)
     ftbl=C13_ftbl.ftbl_parse(str(fftbl))
     #print("ftbl parsed=", ftbl)
     #import pdb; pdb.set_trace()
@@ -96,12 +109,21 @@ def main(argv=sys.argv[1:]):
         header=""
         if suff == ".netw":
             # metab network
+            #import pdb; pdb.set_trace()
             ltr=ftbl["long_trans"]
             for rnm,reac in ftbl["long_reac"].items():
                 for lr in ("left", "right"):
                     dloc[lr]=" + ".join(f"{str(tmet[1])+'*' if tmet[1] != 1 else ''}{tmet[0]} {'('+ltr[rnm][lr][i][1:]+')' if ltr[rnm][lr][i] else ''}" for i,tmet in enumerate(reac[lr]))
                 s=f"{rnm}:\t{dloc['left']} {'<' if rnm not in netan['notrev'] else ''}-> {dloc['right']}\n"
                 res += s
+            # reactions without label transitions
+            for rnm in sorted(set(netan["sto_r_m"].keys())-set(ftbl["long_reac"].keys())):
+                reac=netan["sto_r_m"][rnm]
+                for lr in ("left", "right"):
+                    dloc[lr]=" + ".join(f"{str(tmet[1])+'*' if tmet[1] != 1 else ''}{tmet[0]}" for i,tmet in enumerate(reac[lr]))
+                s=f"{rnm}:\t{dloc['left']} {'<' if rnm not in netan['notrev'] else ''}-> {dloc['right']}\n"
+                res += s
+                
         elif suff == ".linp":
             # label input
             header="Id\tComment\tMetabolite\tIsotopomer\tValue\n"
@@ -299,7 +321,7 @@ def main(argv=sys.argv[1:]):
                          continue
             if not cout.parent.exists():
                 cout.parent.mkdir(parents=True)
-            print("cout=", str(cout))
+            print(str(cout))
             cout.write_text(f"{scre} at {dtstamp()}\n"+header+res)
     return 0
 
