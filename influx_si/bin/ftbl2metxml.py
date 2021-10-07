@@ -70,6 +70,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     allmetabs.update(netan["input"])
     allmetabs.update(netan["metabs"])
     allmetabs.update(netan["output"])
+    minout=netan["input"] | netan["output"]
     
     # sbml building starts here
     try:
@@ -81,45 +82,56 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     
     # get list of compartments, i.e. the last "_smth": (idc,c)
     li_compart=set((("_" if c[0].isdigit() else "")+c,c) for m in allmetabs for li in (m.split("_"),) if len(li) > 1 for c in (li[len(li)-1],))
+    li_compart=set() # for the moment ignore "metab_compartname" convention
     li_compart.add(("_def", "_def")) # add default compartment
     for idc,compart in li_compart:
         c1=model.createCompartment()
         check(c1, "create compartement %s"%compart)
-        check(c1.setId(str(idc)), "set compartment id %s"%idc)
-        check(c1.setName(str(compart)), "set compartment name %s"%compart)
+        check(c1.setId(str(idc)), "set compartment 'id' attribute %s"%idc)
+        check(c1.setName(str(compart)), "set compartment 'name' attribute %s"%compart)
+        check(c1.setConstant(True), "set compartment 'constant' attribute %s"%compart)
     # get dict of species: {mc: (metab, compart)}
-    dmc=dict((mc, (m, c)) for mc in allmetabs for li in (mc.split("_"),) for (m,c) in ((("_".join(li[:len(li)-1]),li[len(li)-1]) if len(li) > 1 else (mc, "_def")),))
+    #dmc=dict((mc, (m, c)) for mc in allmetabs for li in (mc.split("_"),) for (m,c) in ((("_".join(li[:len(li)-1]),li[len(li)-1]) if len(li) > 1 else (mc, "_def")),))
+    dmc=dict((mc, (mc, "_def", mc, "_def")) for mc in allmetabs)
     # add id which can be different from mc if starts with a digit
-    dmc=dict((mc,(m,c,("_" if mc[0].isdigit() else "")+mc, ("_" if c[0].isdigit() else "")+c) ) for mc,(m,c) in dmc.items())
+    #dmc=dict((mc,(m,c,("_" if mc[0].isdigit() else "")+mc, ("_" if c[0].isdigit() else "")+c) ) for mc,(m,c) in dmc.items())
     for mc,(m,c,idm,idc) in dmc.items():
         s=model.createSpecies()
         check(s, "create specie %s"%mc)
-        check(s.setId(str(idm)), "set id specie %s"%idm)
-        check(s.setCompartment(str(idc)), "set compartment %s for specie %s"%(idc, mc))
-        check(s.setName(str(m)), "set name %s for specie %s"%(m, mc))
+        check(s.setId(str(idm)), "set 'id' specie %s"%idm)
+        check(s.setCompartment(str(idc)), "set 'compartment' %s for specie %s"%(idc, mc))
+        check(s.setName(str(m)), "set 'name' %s for specie %s"%(m, mc))
+        check(s.setBoundaryCondition(m in minout), "set 'bounaryCondition' for specie %s"%(mc,))
+        check(s.setHasOnlySubstanceUnits(True), "set 'hasOnlySubstanceUnits' for specie %s"%(mc,))
+        check(s.setConstant(mc in minout), "set 'constant' for specie %s"%(mc,))
+        check(s.setInitialConcentration(1.), "set 'initialConcentration' for specie %s"%(mc,))
     # create reactions
     for reac,di in netan["sto_r_m"].items():
         r=model.createReaction()
         check(r, "create reaction %s"%r)
-        check(r.setId(str(reac)), "set reaction id %s"%reac)
-        check(r.setName(str(reac)), "set reaction name %s"%reac)
-        check(r.setReversible(reac not in netan["notrev"]), "set reversibility in reaction %s"%reac)
+        check(r.setId(str(reac)), "set reaction 'id' %s"%reac)
+        check(r.setName(str(reac)), "set reaction 'name' %s"%reac)
+        check(r.setReversible(reac not in netan["notrev"]), "set 'reversible' in reaction %s"%reac)
+        check(r.setFast(False), "set reaction 'fast' %s"%reac)
         # create reactants (i.e. left part of reaction)
         for mc,co in di["left"]:
             mref=r.createReactant()
-            check(mref, "create reactant %s in reaction %s"%(mc,reac))
-            check(mref.setSpecies(str(dmc[mc][2])), "assign reactant %s in reaction %s"%(mc, reac))
-            check(mref.setStoichiometry(co), "set stoichiometry %f for reactant %s in reaction %s"%(co, mc, reac))
+            check(mref, "create 'reactant' %s in reaction %s"%(mc,reac))
+            check(mref.setSpecies(str(dmc[mc][2])), "assign 'reactant' %s in reaction %s"%(mc, reac))
+            check(mref.setStoichiometry(co), "set 'stoichiometry' %f for reactant %s in reaction %s"%(co, mc, reac))
+            check(mref.setConstant(mc in minout), "set 'constant' for reactant %s in reaction %s"%(mc, reac))
         # create products (i.e. right part of reaction)
         for mc,co in di["right"]:
             mref=r.createProduct()
             check(mref, "create product %s in reaction %s"%(mc,reac))
-            check(mref.setSpecies(str(dmc[mc][2])), "assign product %s in reaction %s"%(mc, reac))
+            check(mref.setSpecies(str(dmc[mc][2])), "assign 'product' %s in reaction %s"%(mc, reac))
             check(mref.setStoichiometry(co), "set stoichiometry %f for product %s in reaction %s"%(co, mc, reac))
+            check(mref.setConstant(mc in minout), "set 'constant' for product %s in reaction %s"%(mc, reac))
     # add pathway tags
     docu=[]
     for l in writeSBMLToString(document).split("\n"):
         docu.append(l)
+        continue # pathway is not part of SBML3, so skip it
         g=re.match('( *)<reaction id="([^"]+)"[^>]*>$', l)
         if g:
             pathway=netan["reac2path"].get(g.groups()[1])
@@ -132,22 +144,25 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     # get fluxes from kvh if present
     fkvh=fftbl[:-5]+"_res.kvh"
     if not os.path.exists(fkvh):
-        sys.stderr.write("Warning: file '%s' is not found. No flux value is written in txt files.\n"%fkvh)
+        sys.stderr.write("Warning: file '%s' is not found. No flux value is written in output files.\n"%fkvh)
         sys.exit(0)
     dkvh=kvh.kvh2dict(fkvh, strip=True)
     if not "linear stats" in dkvh or not "fwd-rev fluxes (sorted by name)" in dkvh["linear stats"]:
-        sys.stderr.write("Warning: field 'linear stats/fwd-rev fluxes (sorted by name)' is not found in file '%s'. No flux value is written in txt files.\n"%fkvh)
+        sys.stderr.write("Warning: field 'linear stats/fwd-rev fluxes (sorted by name)' is not found in file '%s'. No flux value is written in output file.\n"%fkvh)
         sys.exit(0)
     table=dkvh["linear stats"]["fwd-rev fluxes (sorted by name)"]
     fwdfl=dict((fl[4:], v.split("\t")[0]) for fl,v in table.items() if fl[:4] == "fwd.")
     revfl=dict((fl[4:], v.split("\t")[0]) for fl,v in table.items() if fl[:4] == "rev.")
     f=open(fftbl[:-5]+"_net.txt", "w")
+    f.write("Identifier\t%s\n"%fftbl[:-5])
     f.write("\n".join(fl+"\t"+str(float(v)-float(revfl[fl])) for fl,v in fwdfl.items())+"\n")
     f.close()
     f=open(fftbl[:-5]+"_fwd.txt", "w")
+    f.write("Identifier\t%s\n"%fftbl[:-5])
     f.write("\n".join("\t".join((fl,v)) for fl,v in fwdfl.items())+"\n")
     f.close()
     f=open(fftbl[:-5]+"_rev.txt", "w")
+    f.write("Identifier\t%s\n"%fftbl[:-5])
     f.write("\n".join("\t".join((fl,v)) for fl,v in revfl.items())+"\n")
     f.close()
     sys.exit(0)
