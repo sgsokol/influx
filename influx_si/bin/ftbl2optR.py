@@ -404,11 +404,11 @@ for (iexp in seq_len(nb_exp)) {
             if (any(ibad <- is.na(tmp) & !is.na(measvecti[[iexp]]))) {
                ibad=which(ibad)[1L]
                stop_mes("This entry '", measvecti[[iexp]][ibad], "' could not be converted to real number (", flabcin[iexp], ")", file=fcerr)
-            } else {
+            } else if (!noopt) {
                stop_mes("Entries in file '", flabcin[iexp], "' could not be converted to real numbers", file=fcerr)
             }
          }
-         if (all(is.na(measvecti[[iexp]]))) {
+         if (!noopt && all(is.na(measvecti[[iexp]]))) {
             stop_mes("All entries in file '", flabcin[iexp], "' are NA (non available).", file=fcerr)
          }
       }
@@ -1317,6 +1317,7 @@ for (irun in seq_len(nseries)) {
             names(simul[["labeled data"]])=nm_exp
          } else {
             simul[["labeled data"]]=jx_f$usm
+            names(simul[["labeled data"]])=nm_exp
          }
       }
    } else {
@@ -1326,6 +1327,7 @@ for (irun in seq_len(nseries)) {
             names(simlab)=nm_exp
          } else {
             simlab=jx_f$simlab
+            names(simlab)=nm_exp
          }
          if (nb_sc_tot > 0) {
             simul[["labeled data (unscaled)"]]=jx_f$usimlab
