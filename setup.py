@@ -24,7 +24,6 @@ setup(
       'influx_si/bin/ftbl2code.py',
       'influx_si/bin/ftbl2cumoAb.py',
       'influx_si/bin/ftbl2kvh.py',
-      'influx_si/bin/ftbl2metxml.py',
       'influx_si/bin/ftbl2netan.py',
       'influx_si/bin/ftbl2optR.py',
       'influx_si/bin/ftbl2xgmml.py',
@@ -33,6 +32,7 @@ setup(
       'influx_si/bin/res2ftbl_meas.py',
       'influx_si/txt2ftbl.py',
       'influx_si/ftbl2mtf.py',
+      'influx_si/ftbl2metxml.py',
    ],
    entry_points={
       "console_scripts": [
@@ -40,7 +40,6 @@ setup(
          "ftbl2code = influx_si.cli:cli",
          "ftbl2cumoAb = influx_si.cli:cli",
          "ftbl2kvh = influx_si.cli:cli",
-         "ftbl2metxml = influx_si.cli:cli",
          "ftbl2netan = influx_si.cli:cli",
          "ftbl2optR = influx_si.cli:cli",
          "ftbl2xgmml = influx_si.cli:cli",
@@ -48,7 +47,8 @@ setup(
          "influx_i = influx_si.cli:cli",
          "res2ftbl_meas = influx_si.cli:cli",
          "txt2ftbl = influx_si.txt2ftbl:main",
-         "ftbl2mtf = influx_si.ftbl2mtf:main"
+         "ftbl2mtf = influx_si.ftbl2mtf:main",
+         "ftbl2metxml = influx_si.ftbl2metxml:main",
       ],
    },
    classifiers=[

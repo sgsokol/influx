@@ -404,11 +404,11 @@ for (iexp in seq_len(nb_exp)) {
             if (any(ibad <- is.na(tmp) & !is.na(measvecti[[iexp]]))) {
                ibad=which(ibad)[1L]
                stop_mes("This entry '", measvecti[[iexp]][ibad], "' could not be converted to real number (", flabcin[iexp], ")", file=fcerr)
-            } else {
+            } else if (!noopt) {
                stop_mes("Entries in file '", flabcin[iexp], "' could not be converted to real numbers", file=fcerr)
             }
          }
-         if (all(is.na(measvecti[[iexp]]))) {
+         if (!noopt && all(is.na(measvecti[[iexp]]))) {
             stop_mes("All entries in file '", flabcin[iexp], "' are NA (non available).", file=fcerr)
          }
       }
