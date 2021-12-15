@@ -329,6 +329,7 @@ def parse_miso(fmiso, clen, case_i=False):
     res={"ms": [], "lab": []}
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
+    cgr=1
     for kgr, ligr in df.groupby(["Metabolite", "Fragment", "Dataset"]).groups.items():
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
@@ -483,14 +484,13 @@ def parse_miso(fmiso, clen, case_i=False):
                     df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{'+'.join('#'+v for v in labs[i])}:NA"]))
             else:
                 if met != last_met or frag != last_frag:
-                    cgr=1
                     last_met=met
                     last_frag=frag
                 elif dset != last_dset:
-                    cgr += 1
                     last_dset=dset
                 res["lab"] += [f"\t{met}\t{cgr}\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
-                res["lab"] += [f"\t\t{i+cgr if norma else 1}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
+                res["lab"] += [f"\t\t{i+cgr if norma else cgr}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
+                cgr += len(ligr) if norma else 1
     return (res, df_kin) if case_i else res
 def parse_linp(f, clen={}):
     "Parse label input TSV file. Return a list of lines to add to ftbl"
@@ -818,6 +818,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         itnal_met=set()
         sto={}
         fluxes=[]
+    sfl=set(sto.keys()) # set of fluxes
     if "cnstr" in mtf:
         pth=try_ext(mtf["cnstr"], ["cntsr", "tsv", "txt"])
         ce,ci,df=parse_cnstr(pth)
@@ -826,7 +827,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         for k,v in ci.items():
             dsec["ineq"][1][k] += v
         # complete flux set by those from eq:net
-        sfl=set(sto.keys()) # set of fluxes
+        
         #import pdb; pdb.set_trace()
         for eq in df[(df["Kind"] == "NET") & (df["Operator"] == "==")]["Formula"]:
             sfl |= set(formula2dict(eq).keys())
@@ -858,11 +859,14 @@ def compile(mtf, cmd, case_i=False, clen=None):
         pth=try_ext(mtf["tvar"], ["tvar", "tsv", "txt"])
         tf,tm=parse_tvar(pth)
         stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
-        dsec["flux"][1]["NET"] += tf["NET"]
-        dsec["flux"][1]["XCH"] += tf["XCH"]
+        if "NET" in tf:
+            dsec["flux"][1]["NET"] += tf["NET"]
+        if "XCH" in tf:
+            dsec["flux"][1]["XCH"] += tf["XCH"]
         dsec["met_pool"] += tm
     else:
         stvar={"NET": set(), "XCH": set()}
+        dsec["met_pool"] += ["\t"+m+"\t0.1" for m in itnal_met]
 
     snrev=set() # set of non reversible fluxes
     for tpl in fluxes:
@@ -870,7 +874,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         if not rev:
             dsec["flux"][1]["XCH"] += ["\t\t%s\tC\t0"%f]
             snrev.add(f)
-    badf=stvar["XCH"] & snrev
+    badf=stvar.get("XCH", set()) & snrev
     if badf:
         werr("following fluxes should not appear in '%s', with 'XCH' kind as they are non reversible in '%s':\n\t'%s'"%(mtf["tvar"], mtf["netw"], "'\n\t'".join(badf)))
     # f, rev, imposed_sens, fd=tpl
@@ -1184,7 +1188,7 @@ is the argument value that will take precedence.
                 out=p.open("w")
                 out.write(scre+f" at {dtstamp()}\n")
                 dsec2out(dsec_prl, out)
-                prl_li.append(str(p.relative_to(wd))) # todo: make relative to main ftbl path
+                prl_li.append(str(p.relative_to(wd)))
                 out.close()
             if prl_li:
                 for i,v in enumerate(dsec["opt"]):

@@ -45,64 +45,9 @@ def warn(mes):
     sys.stderr.write(f"{me}: "+mes+"\n")
 def werr(mes):
     raise Exception(f"{me}: "+mes)
-def main(argv=sys.argv[1:]):
-    # init values
-    #sys.tracebacklimit=None
-    fftbl=""
-    out=""
-    case_i=False
-    force=False
+def ftbl2suff(ftbl, case_i, netan, force, out, scre, suffs):
     invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
-    # parse options
-    # put arg at the end ov argv
-    #print("argv=", argv)
-    if argv and not argv[0].startswith("-"):
-        i=[i for i,v in enumerate(argv) if v.startswith("-")]
-        if i:
-            i=i[0]
-            argv=argv[i:]+argv[:i]
-    #print("post argv=", argv)
-    opts,args=getopt.getopt(argv, "hio:", ["help", "force", "inst", "out="])
-    #print("opts=", opts)
-    for o,a in opts:
-        if o in ("-h", "--help"):
-            usage()
-            return 0
-        if o == "--out" or o == "-o":
-            out=a
-            #print("a=", a)
-        elif o == "--inst":
-            case_i=True;
-        elif o == "--force":
-            force=True
-    if not args:
-        usage()
-        werr("Expecting ftbl file name")
-        
-    fftbl=Path(args[0]) if args[0] != "-" else sys.stdin
-    if type (fftbl) == type(Path()) and not fftbl.is_file():
-        fftbl = fftbl.with_suffix(".ftbl")
-        if not fftbl.is_file():
-            raise Exception(me+": file '"+str(fftbl)+"' does not exist.\n")
-    # prepare out
-    if out:
-        out=Path(out)
-    else:
-        if type (fftbl) == type(Path()):
-            out=fftbl.parent/fftbl.stem
-        else:
-            out=Path("mtf")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    #print("out=", out)
-    #sys.exit(1)
-    ftbl=C13_ftbl.ftbl_parse(str(fftbl))
-    #print("ftbl parsed=", ftbl)
-    #import pdb; pdb.set_trace()
-    netan=dict()
-    C13_ftbl.ftbl_netan(ftbl, netan)
-    bsl="\\" # backslash
-    scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
-    for suff in (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"):
+    for suff in suffs:
         cout=out.with_suffix(suff) # current output
         dloc={} # local dictionary
         res=""
@@ -188,6 +133,7 @@ def main(argv=sys.argv[1:]):
                         labset += 1
                     res += f"\t\t{met}\t\tLAB-{labset}\t{d['CUM_CONSTRAINTS'].replace('#', '')}\t{d['VALUE']}\t{d['DEVIATION']}\t\n"
             # peak
+            # ps, pdm, pdp = peak singlet, d-, d+
             if case_i:
                 # pick "p:..." in df_cin
                 ir=np.where(np.char.startswith(vrc, "p:"))[0]
@@ -201,8 +147,10 @@ def main(argv=sys.argv[1:]):
                     ps=str(ps)
                     if ps == "1":
                         frag="1,2"
+                    elif atom == netan["Clen"][met]:
+                        frag="%s,%s"%(pdm, ps)
                     else:
-                        frag="%s,%s,%s"%(pdm,ps,pdp) # todo: make sure that pdp is not out of molecule
+                        frag="%s,%s,%s"%(pdm,ps,pdp)
                     if met != last_met or atom != last_atom:
                         pset += 1
                         last_met,last_atom=met,atom
@@ -224,14 +172,17 @@ def main(argv=sys.argv[1:]):
                 for d in ftbl["PEAK_MEASUREMENTS"]:
                     met=d["META_NAME"] if d["META_NAME"] else met
                     pset += 1
-                    ps=int(d["PEAK_NO"])
+                    atom=int(d["PEAK_NO"])
+                    ps=atom
                     pdm=str(ps-1)
                     pdp=str(ps+1)
                     ps=str(ps)
                     if ps == "1":
                         frag="1,2"
+                    elif atom == netan["Clen"][met]:
+                        frag="%s,%s"%(pdm, ps)
                     else:
-                        frag="%s,%s,%s"%(pdm,ps,pdp) # todo: make sure that pdp is not out of molecule
+                        frag="%s,%s,%s"%(pdm,ps,pdp)
                     for p in ("S", "D-", "D+", "DD", "T"):
                         val=d.get("VALUE_"+p)
                         if not val:
@@ -273,7 +224,7 @@ def main(argv=sys.argv[1:]):
                     frag=d["FRAGMENT"] if mset == 0 or d["FRAGMENT"] else frag
                     if d["META_NAME"] or d["FRAGMENT"]:
                         mset += 1
-                    res += f"\t\t{met}\t{frag.replace('~', '-')}\tMS-{mset}\tM{d['WEIGHT']}\t{d['VALUE']}\t{d['DEVIATION']}\t\n" # todo: case_i -> true time
+                    res += f"\t\t{met}\t{frag.replace('~', '-')}\tMS-{mset}\tM{d['WEIGHT']}\t{d['VALUE']}\t{d['DEVIATION']}\t\n"
         elif suff == ".mflux":
             # flux measurements
             header="Id\tComment\tFlux\tValue\tSD\n"
@@ -323,6 +274,66 @@ def main(argv=sys.argv[1:]):
                 cout.parent.mkdir(parents=True)
             print(str(cout))
             cout.write_text(f"{scre} at {dtstamp()}\n"+header+res)
+
+def main(argv=sys.argv[1:]):
+    # init values
+    #sys.tracebacklimit=None
+    fftbl=""
+    out=""
+    case_i=False
+    force=False
+    # parse options
+    # put arg at the end ov argv
+    #print("argv=", argv)
+    if argv and not argv[0].startswith("-"):
+        i=[i for i,v in enumerate(argv) if v.startswith("-")]
+        if i:
+            i=i[0]
+            argv=argv[i:]+argv[:i]
+    #print("post argv=", argv)
+    opts,args=getopt.getopt(argv, "hio:", ["help", "force", "inst", "out="])
+    #print("opts=", opts)
+    for o,a in opts:
+        if o in ("-h", "--help"):
+            usage()
+            return 0
+        if o == "--out" or o == "-o":
+            out=a
+            #print("a=", a)
+        elif o == "--inst":
+            case_i=True;
+        elif o == "--force":
+            force=True
+    if not args:
+        usage()
+        werr("Expecting ftbl file name")
+        
+    fftbl=Path(args[0]) if args[0] != "-" else sys.stdin
+    if type (fftbl) == type(Path()) and not fftbl.is_file():
+        fftbl = fftbl.with_suffix(".ftbl")
+        if not fftbl.is_file():
+            raise Exception(me+": file '"+str(fftbl)+"' does not exist.\n")
+    # prepare out
+    if out:
+        out=Path(out)
+        if out.is_dir() and type (fftbl) == type(Path()):
+            out=out/fftbl.stem
+    else:
+        if type (fftbl) == type(Path()):
+            out=fftbl.parent/fftbl.stem
+        else:
+            out=Path("mtf")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    #print("out=", out)
+    #sys.exit(1)
+    ftbl=C13_ftbl.ftbl_parse(str(fftbl))
+    #print("ftbl parsed=", ftbl)
+    #import pdb; pdb.set_trace()
+    netan=dict()
+    C13_ftbl.ftbl_netan(ftbl, netan)
+    bsl="\\" # backslash
+    scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
+    ftbl2suff(ftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
     return 0
 
 if __name__ == "__main__" or __name__ == "influx_si.cli":

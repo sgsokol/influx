@@ -317,6 +317,7 @@ opts = parser.parse_args()
 #print ("ord_args=", ord_args)
 dict_opts=vars(opts)
 #print ("dict_opts=", dict_opts)
+#import pdb; pdb.set_trace()
 
 do_exit=False
 if dict_opts["copy_doc"]:
@@ -384,7 +385,9 @@ if len(args) > 0:
 if ord_args:
     li_ftbl=[]
     mtf_opts=[v for t in ord_args for v in t]
-    print("mtf_opts=", mtf_opts)
+    if case_i:
+        mtf_opts += ["--inst"]
+    #print("mtf_opts=", mtf_opts)
     txt2ftbl.main(mtf_opts, li_ftbl)
     args += li_ftbl
     
