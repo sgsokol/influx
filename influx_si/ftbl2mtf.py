@@ -31,7 +31,7 @@ import numpy as np
 import influx_si
 import tools_ssg as tls
 import C13_ftbl
-from txt2ftbl import tsv2df
+from txt2ftbl import tsv2df, try_ext
 
 LOCAL_TIMEZONE=datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo;
 me=os.path.basename(sys.argv[0] or "ftbl2mtf")
@@ -45,8 +45,9 @@ def warn(mes):
     sys.stderr.write(f"{me}: "+mes+"\n")
 def werr(mes):
     raise Exception(f"{me}: "+mes)
-def ftbl2suff(ftbl, case_i, netan, force, out, scre, suffs):
+def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
     invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
+    out.parent.mkdir(parents=True, exist_ok=True)
     for suff in suffs:
         cout=out.with_suffix(suff) # current output
         dloc={} # local dictionary
@@ -312,7 +313,7 @@ def main(argv=sys.argv[1:]):
     if type (fftbl) == type(Path()) and not fftbl.is_file():
         fftbl = fftbl.with_suffix(".ftbl")
         if not fftbl.is_file():
-            raise Exception(me+": file '"+str(fftbl)+"' does not exist.\n")
+            werr("file '"+str(fftbl)+"' does not exist.\n")
     # prepare out
     if out:
         out=Path(out)
@@ -323,7 +324,6 @@ def main(argv=sys.argv[1:]):
             out=fftbl.parent/fftbl.stem
         else:
             out=Path("mtf")
-    out.parent.mkdir(parents=True, exist_ok=True)
     #print("out=", out)
     #sys.exit(1)
     ftbl=C13_ftbl.ftbl_parse(str(fftbl))
@@ -331,9 +331,20 @@ def main(argv=sys.argv[1:]):
     #import pdb; pdb.set_trace()
     netan=dict()
     C13_ftbl.ftbl_netan(ftbl, netan)
+    if not case_i and "OPTIONS" in ftbl and netan["opt"].get("file_labcin", ""):
+        werr("we are in stationary case but ftbl file has 'file_labcin' option")
     bsl="\\" # backslash
     scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
-    ftbl2suff(ftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
+    ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
+    #import pdb; pdb.set_trace()
+    if "OPTIONS" in ftbl and "prl_exp" in netan["opt"]:
+        for pftbl in netan["opt"]["prl_exp"].split(";"):
+            pftbl=pftbl.strip()
+            if not pftbl:
+                continue
+            fpftbl=try_ext(fftbl.parent/pftbl, ["ftbl"])
+            dftbl=C13_ftbl.ftbl_parse(str(fpftbl))
+            ftbl2suff(dftbl, fpftbl, case_i, netan, force, out.parent/pftbl, scre, (".linp", ".miso"))
     return 0
 
 if __name__ == "__main__" or __name__ == "influx_si.cli":

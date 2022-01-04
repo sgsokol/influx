@@ -38,6 +38,10 @@ def check(value, message):
        raise Exception(err_msg)
    else:
      return
+def valid_id(s):
+    "Replace invalid chars in s by '_' thus producing a valid id name"
+    return re.sub(r"[^a-zA-Z0-9_.:-]", "_", str(s))
+    
 def main(argv=sys.argv[1:]):
     sys.tracebacklimit=None
 
@@ -50,7 +54,11 @@ def main(argv=sys.argv[1:]):
 
     args=parser.parse_args(argv)
     cstart=args.cstart
+    if type(cstart) == list:
+        cstart=cstart[0]
     cend=args.cend
+    if type(cend) == list:
+        cend=cend[0]
     cdef=args.cdef
     scale=args.scale
     fli=args.ftbl
@@ -104,20 +112,20 @@ def main(argv=sys.argv[1:]):
             dmc=dict((mc,(mc,cdef)) for mc in allmetabs)
         # declare compartments
         for compart in li_compart:
-            idc=compart
+            idc=valid_id(compart)
             c1=model.createCompartment()
             check(c1, "create compartement %s"%compart)
-            check(c1.setId(str(idc)), "set compartment 'id' attribute %s"%idc)
+            check(c1.setId(idc), "set compartment 'id' attribute %s"%idc)
             check(c1.setName(str(compart)), "set compartment 'name' attribute %s"%compart)
             check(c1.setConstant(True), "set compartment 'constant' attribute %s"%compart)
         # declare species
         for mc,(m,c) in dmc.items():
-            idm=mc
-            idc=c
+            idm=valid_id(mc)
+            idc=valid_id(c)
             s=model.createSpecies()
             check(s, "create specie %s"%mc)
-            check(s.setId(str(idm)), "set 'id' specie '%s'"%idm)
-            check(s.setCompartment(str(idc)), "set 'compartment' %s for specie '%s'"%(idc, mc))
+            check(s.setId(idm), "set 'id' specie '%s'"%idm)
+            check(s.setCompartment(idc), "set 'compartment' %s for specie '%s'"%(idc, mc))
             check(s.setName(str(m)), "set 'name' %s for specie '%s'"%(m, mc))
             check(s.setBoundaryCondition(mc in minout), "set 'bounaryCondition' for specie '%s'"%(mc,))
             check(s.setHasOnlySubstanceUnits(True), "set 'hasOnlySubstanceUnits' for specie '%s'"%(mc,))
@@ -134,28 +142,31 @@ def main(argv=sys.argv[1:]):
             for r in rli:
                 member=group.createMember()
                 check(member, "create member for reaction '%s'"%r)
-                check(member.setIdRef(r), "set idRef for reaction '%s'"%s)
+                check(member.setIdRef(valid_id(r)), "set idRef for reaction '%s'"%r)
                 
         # declare reactions
         for reac,di in netan["sto_r_m"].items():
+            vreac=valid_id(reac)
             r=model.createReaction()
-            check(r, "create reaction %s"%r)
-            check(r.setId(str(reac)), "set reaction 'id' %s"%reac)
+            check(r, "create reaction %s"%reac)
+            check(r.setId(vreac), "set reaction 'id' %s"%reac)
             check(r.setName(str(reac)), "set reaction 'name' %s"%reac)
             check(r.setReversible(reac not in netan["notrev"]), "set 'reversible' in reaction %s"%reac)
             check(r.setFast(False), "set reaction 'fast' %s"%reac)
             # create reactants (i.e. left part of reaction)
             for mc,co in di["left"]:
+                vmc=valid_id(mc)
                 mref=r.createReactant()
                 check(mref, "create 'reactant' %s in reaction %s"%(mc,reac))
-                check(mref.setSpecies(str(dmc[mc][0])), "assign 'reactant' %s in reaction %s"%(mc, reac))
+                check(mref.setSpecies(vmc), "assign 'reactant' %s in reaction %s"%(mc, reac))
                 check(mref.setStoichiometry(co), "set 'stoichiometry' %f for reactant %s in reaction %s"%(co, mc, reac))
                 check(mref.setConstant(mc in minout), "set 'constant' for reactant %s in reaction %s"%(mc, reac))
             # create products (i.e. right part of reaction)
             for mc,co in di["right"]:
+                vmc=valid_id(mc)
                 mref=r.createProduct()
                 check(mref, "create product %s in reaction %s"%(mc,reac))
-                check(mref.setSpecies(str(dmc[mc][0])), "assign 'product' %s in reaction %s"%(mc, reac))
+                check(mref.setSpecies(vmc), "assign 'product' %s in reaction %s"%(mc, reac))
                 check(mref.setStoichiometry(co), "set stoichiometry %f for product %s in reaction %s"%(co, mc, reac))
                 check(mref.setConstant(mc in minout), "set 'constant' for product %s in reaction %s"%(mc, reac))
 

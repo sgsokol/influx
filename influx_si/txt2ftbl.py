@@ -964,7 +964,7 @@ NB. If some file is given in more than one option: '--prefix' and/or
 """)
     parser.add_argument("--eprl", action="append", help=
 """Parallel experiments can be given with this option. It must
-introduce a couple of linp/miso files and optional ftbl name. These files
+introduce a couple of linp/miso files and optional auxiliary ftbl name. These files
 correspond to a given parallel experiment. This option can be repeated as
 many times as there are additional parallel experiments, e.g.
   'txt2ftbl --mtf ec.netw,glc6.linp,glc6.miso --eprl glc1.linp,glc1.miso --eprl glc4.linp,glc4.miso'
@@ -976,6 +976,9 @@ option, the name of miso file will be used for this. If intermediate
 directories in ftbl path are non existent they will be silently created.
 Auxiliary ftbl names will be put in 'OPTIONS/prl_exp' field on the main ftbl file.
 These names will be written there in a form relative to the main ftbl.
+To shorten the writings, it is possible to indicate only one of two .miso/.linp files.
+The other one will be guessed if it has canonical extension. If extension is omitted then .miso and .linp files are searched with these extensions. In this case, several parallel experiments can be given with one --eprl option. So that above example can be shorten to:
+  'txt2ftbl --mtf ec.netw,glc6.linp,glc6.miso --eprl glc1,glc4'
 """)
     parser.add_argument("--inst", action="store_true", default=False, help=
 """Prepare FTBL for instationary case. File 'netw' is supposed to have 
@@ -1082,8 +1085,8 @@ is the argument value that will take precedence.
         mtf["ftbl"]=sys.stdout
     # prepare prl
     for t in opts.eprl:
-        d={}
         for v in t.split(","):
+            d={}
             v=v.strip()
             if not v:
                 continue
@@ -1093,24 +1096,27 @@ is the argument value that will take precedence.
                 ty=Path(v).suffix[1:]
                 nm=v
             if ty not in ("linp", "miso", "ftbl"):
-                werr("option --eprl expects in argument a list of linp, miso and optionally ftbl files instead got type '%s' in '%s'"%(ty, t))
+                nm=try_ext(v, ["miso"])
+                if not nm.is_file():
+                    werr("option --eprl expects in argument a list of linp, miso and optionally auxiliary ftbl files instead got type '%s' in '%s"%(ty, t))
+                ty="miso"
             d[ty]=nm
-        if "linp" not in d:
-            p=Path(d.get("miso", "")).with_suffix(".linp")
-            if p.is_file():
-                d["linp"]=p
-            else:
-                werr("'linp' file was not found for --eprl option '%s'"%t)
-        if "miso" not in d:
-            p=Path(d.get("linp", "")).with_suffix(".miso")
-            if p.is_file():
-                d["miso"]=p
-            else:
-                werr("'miso' file was not found for --eprl option '%s'"%t)
-        if "ftbl" not in d:
-            d["ftbl"]=str(Path(d["miso"]).with_suffix(".ftbl"))
-        d["ftbl"]=Path(d["ftbl"]).with_suffix(".ftbl")
-        prl.append(d)
+            if "linp" not in d:
+                p=Path(d.get("miso", "")).with_suffix(".linp")
+                if p.is_file():
+                    d["linp"]=p
+                else:
+                    werr("'linp' file was not found for --eprl option '%s'"%t)
+            if "miso" not in d:
+                p=Path(d.get("linp", "")).with_suffix(".miso")
+                if p.is_file():
+                    d["miso"]=p
+                else:
+                    werr("'miso' file was not found for --eprl option '%s'"%t)
+            if "ftbl" not in d:
+                d["ftbl"]=str(Path(d["miso"]).with_suffix(".ftbl"))
+            d["ftbl"]=Path(d["ftbl"]).with_suffix(".ftbl")
+            prl.append(d)
     #print("prl=", prl)
 
     cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
@@ -1164,14 +1170,49 @@ is the argument value that will take precedence.
         if case_i:
             #import pdb; pdb.set_trace()
             dsec,dclen,df_kin=compile(rmtf, cmd, case_i)
-            fkin=ftbl.with_suffix(".ikin")
+            p=Path(ftbl).resolve()
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if p.is_file() and not force:
+                with p.open() as fc:
+                    if scre[:23] != fc.read(23):
+                         werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+            fkin=p.with_suffix(".ikin")
             with fkin.open("w") as fc:
                 fc.write(scre+f" at {dtstamp()}\nrow_col")
                 df_kin.to_csv(fc, sep="\t")
             for i,v in enumerate(dsec["opt"]):
                 if v.startswith("\tfile_labcin\t"):
                     dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-            dsec["opt"].append("\tfile_labcin\t"+fkin.name)
+            dsec["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
+            # prl
+            prl_li=[]
+            for d in prl:
+                dsec_prl,dclen,df_kin_prl=compile(d, cmd, case_i, clen=dclen)
+                # output ftbl
+                p=Path(d["ftbl"]).resolve()
+                p.parent.mkdir(parents=True, exist_ok=True)
+                if p.is_file() and not force:
+                    with p.open() as fc:
+                        if scre[:23] != fc.read(23):
+                             werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+                fkin=p.with_suffix(".ikin")
+                with fkin.open("w") as fc:
+                    fc.write(scre+f" at {dtstamp()}\nrow_col")
+                    df_kin_prl.to_csv(fc, sep="\t")
+                for i,v in enumerate(dsec_prl["opt"]):
+                    if v.startswith("\tfile_labcin\t"):
+                        dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
+                out=p.open("w")
+                out.write(scre+f" at {dtstamp()}\n")
+                dsec_prl["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
+                dsec2out(dsec_prl, out)
+                prl_li.append(str(p.relative_to(wd)))
+                out.close()
+            if prl_li:
+                for i,v in enumerate(dsec["opt"]):
+                    if v.startswith("\tprl_exp\t"):
+                        dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
+                dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
         else:
             dsec,dclen=compile(rmtf, cmd)
             # prl
@@ -1194,7 +1235,7 @@ is the argument value that will take precedence.
                 for i,v in enumerate(dsec["opt"]):
                     if v.startswith("\tprl_exp\t"):
                         dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
-            dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
+                dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
         # output ftbl
         out=ftbl.open("w") if type(ftbl) == type(Path()) else ftbl
         out.write(scre+f" at {dtstamp()}\n")

@@ -1804,7 +1804,7 @@ def iso2emu(netan, inmetab, mask, mpi, e):
         d=netan["iso_input"][ili][inmetab]
         netan["emu_input"][ili][e]=sum([val for (frag, val) in d.items() if sumbit(frag&mask) == mpi])
 
-def formula2dict(f, pterm=re.compile(r'\W*([+-])\W*'), pflux=re.compile(r'(?P<coef>\d+\.?\d*|^)?\s*\*?\s*(?P<var>[a-zA-Z_[\]()][\w\. -\[\]]*)\W*')):
+def formula2dict(f, pterm=re.compile(r'([+-])'), pflux=re.compile(r'(?P<coef>\d+\.?\d*|^)?\s*\*?\s*(?P<var>[a-zA-Z_[\]()][\w\. -\[\]]*)\W*')):
     """parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
     positive number and f_i is a string starting by non-digit and not white
     character (# is allowed). Output is a dict f_i:[+-]a_i"""

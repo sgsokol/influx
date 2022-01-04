@@ -281,6 +281,8 @@ parser.add_argument(
 parser.add_argument(
 "--prefix", action=ordAction, help="option passed to txt2ftbl. See help there.")
 parser.add_argument(
+"--eprl", action=ordAction, help="option passed to txt2ftbl. See help there.")
+parser.add_argument(
 "--force", action=ordAction, help="option passed to txt2ftbl. See help there.")
 
 # install helper actions
