@@ -34,6 +34,8 @@ def dtstamp():
     return dt.datetime.now(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z %z')
 def werr(mes):
     raise Exception(f"{me}: {mes}")
+def warn(mes):
+    sys.stderr.write(f"Warning! {me}: {mes}\n")
 def usage():
     sys.stderr.write(__doc__+"\n")
 def itvl2li(v):
@@ -319,17 +321,19 @@ def parse_miso(fmiso, clen, case_i=False):
     df=tsv2df(fmiso)
     if case_i:
         if "Time" not in df or sum(df["Time"] != "") == 0:
-            werr("parse_miso: instationary option is activated but 'Time' column is empty in '%s'"%fname)
-        df=df[df["Time"] != ""]
+            warn("parse_miso: instationary option is activated but 'Time' column is empty in '%s'. Only simulations can be run on result file, not fitting."%fname)
+        else:
+            df=df[df["Time"] != ""]
         df_kin=pa.DataFrame()
     else:
         if "Time" in df and sum(df["Time"] == "") == 0:
             werr("parse_miso: we are in stationary case but 'Time' column is not empty in '%s'"%fname)
         df=df[df["Time"] == ""] if "Time" in df else df
-    res={"ms": [], "lab": []}
+    res={"ms": [], "lab": []} # 'peak' and 'mean' are transformed into lab
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
     cgr=1
+    #import pdb; pdb.set_trace()
     for kgr, ligr in df.groupby(["Metabolite", "Fragment", "Dataset"]).groups.items():
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
@@ -385,7 +389,8 @@ def parse_miso(fmiso, clen, case_i=False):
             dsp=dict() # {specie: times indexes}, e.g. "M0": vec("0.1", "0.2", ...)
             spli=[]
             ii0=[]
-            for sp, spi in df.iloc[ligr,:].groupby(["Species"]).groups.items():
+            dfgr=df.iloc[ligr,:]
+            for sp, spi in dfgr[dfgr["Time"] != ""].groupby(["Species"]).groups.items():
                 dsp[sp]=spi
                 spli.append(sp)
                 ii0.append(np.where(ligr == spi[0])[0][0])
@@ -1176,14 +1181,15 @@ is the argument value that will take precedence.
                 with p.open() as fc:
                     if scre[:23] != fc.read(23):
                          werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-            fkin=p.with_suffix(".ikin")
-            with fkin.open("w") as fc:
-                fc.write(scre+f" at {dtstamp()}\nrow_col")
-                df_kin.to_csv(fc, sep="\t")
-            for i,v in enumerate(dsec["opt"]):
-                if v.startswith("\tfile_labcin\t"):
-                    dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-            dsec["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
+            if len(df_kin) > 0:
+                fkin=p.with_suffix(".ikin")
+                with fkin.open("w") as fc:
+                    fc.write(scre+f" at {dtstamp()}\nrow_col")
+                    df_kin.to_csv(fc, sep="\t")
+                for i,v in enumerate(dsec["opt"]):
+                    if v.startswith("\tfile_labcin\t"):
+                        dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
+                dsec["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
             # prl
             prl_li=[]
             for d in prl:
@@ -1195,16 +1201,17 @@ is the argument value that will take precedence.
                     with p.open() as fc:
                         if scre[:23] != fc.read(23):
                              werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-                fkin=p.with_suffix(".ikin")
-                with fkin.open("w") as fc:
-                    fc.write(scre+f" at {dtstamp()}\nrow_col")
-                    df_kin_prl.to_csv(fc, sep="\t")
-                for i,v in enumerate(dsec_prl["opt"]):
-                    if v.startswith("\tfile_labcin\t"):
-                        dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-                out=p.open("w")
-                out.write(scre+f" at {dtstamp()}\n")
-                dsec_prl["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
+                if len(df_kin_prl) > 0:
+                    fkin=p.with_suffix(".ikin")
+                    with fkin.open("w") as fc:
+                        fc.write(scre+f" at {dtstamp()}\nrow_col")
+                        df_kin_prl.to_csv(fc, sep="\t")
+                    for i,v in enumerate(dsec_prl["opt"]):
+                        if v.startswith("\tfile_labcin\t"):
+                            dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
+                    out=p.open("w")
+                    out.write(scre+f" at {dtstamp()}\n")
+                    dsec_prl["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
                 dsec2out(dsec_prl, out)
                 prl_li.append(str(p.relative_to(wd)))
                 out.close()

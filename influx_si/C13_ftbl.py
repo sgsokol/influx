@@ -2545,13 +2545,17 @@ def proc_label_input(ftbl, netan, case_i=False):
             resf[metab][iiso]=row["VALUE"]
             res[metab][iiso]=NA
         else:
-            val=eval(row["VALUE"])
-            if val < 0. and val >= -tol:
-                val=0.
-            if val > 1. and val <= 1.+tol:
-                val=1.
-            if val < 0 or val > 1:
-                raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
+            try:
+                val=eval(row["VALUE"])
+            except:
+                val=row["VALUE"]
+            if type(val) in (float, int):
+                if val < 0. and val >= -tol:
+                    val=0.
+                if val > 1. and val <= 1.+tol:
+                    val=1.
+                if val < 0 or val > 1:
+                    raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
             res[metab][iiso]=val
     # check that all isoforms sum up to 1 for all inputs for influx_s
     if not case_i:

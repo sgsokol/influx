@@ -56,7 +56,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     
     ftbl=C13_ftbl.ftbl_parse(fftbl)
     netan=dict()
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     try:
         C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys, case_i)
         

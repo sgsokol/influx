@@ -42,7 +42,7 @@ def dtstamp():
 def usage():
     print(__doc__)
 def warn(mes):
-    sys.stderr.write(f"{me}: "+mes+"\n")
+    sys.stderr.write(f"Warning! {me}: "+mes+"\n")
 def werr(mes):
     raise Exception(f"{me}: "+mes)
 def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
@@ -69,7 +69,6 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                     dloc[lr]=" + ".join(f"{str(tmet[1])+'*' if tmet[1] != 1 else ''}{tmet[0]}" for i,tmet in enumerate(reac[lr]))
                 s=f"{rnm}:\t{dloc['left']} {'<' if rnm not in netan['notrev'] else ''}-> {dloc['right']}\n"
                 res += s
-                
         elif suff == ".linp":
             # label input
             header="Id\tComment\tMetabolite\tIsotopomer\tValue\n"
@@ -84,24 +83,25 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                 #import pdb; pdb.set_trace()
                 flabcin=[d["OPT_VALUE"] for d in ftbl.get("OPTIONS", []) if d["OPT_NAME"] == "file_labcin"]
                 if not flabcin:
-                    werr("option ''--inst' was activated but a field 'file_labcin' was not found in OPTIONS in '%s'"%fftbl.name)
-                if len(flabcin) > 1:
-                    werr("option ''--inst' was activated but a field 'file_labcin' is not unique in OPTIONS in '%s'"%fftbl.name)
-                flabcin=fftbl.parent/flabcin[0]
-                # read flabcin
-                try:
-                    # default comment='#'
-                    df_cin=tsv2df(flabcin, append_iline=None)
-                except:
-                    df_cin=tsv2df(flabcin, comment="//", append_iline=None)
-                # get netan measurements
-                vrc=df_cin.iloc[:, 0].to_numpy().astype(str)
-                if "measures" not in netan:
-                    measures=dict()
-                    for meas in ("label", "mass", "peak"):
-                        measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas)
+                    warn("option '--inst' was activated but a field 'file_labcin' was not found in OPTIONS in '%s'. Only simulations will be possible (not fitting)."%fftbl.name)
+                else:
+                    if len(flabcin) > 1:
+                        werr("option ''--inst' was activated but a field 'file_labcin' is not unique in OPTIONS of '%s'"%fftbl.name)
+                    flabcin=fftbl.parent/flabcin[0]
+                    # read flabcin
+                    try:
+                        # default comment='#'
+                        df_cin=tsv2df(flabcin, append_iline=None)
+                    except:
+                        df_cin=tsv2df(flabcin, comment="//", append_iline=None)
+                    # get netan measurements
+                    vrc=df_cin.iloc[:, 0].to_numpy().astype(str)
+            if "measures" not in netan:
+                measures=dict()
+                for meas in ("label", "mass", "peak"):
+                    measures[meas]=eval("C13_ftbl.%s_meas2matrix_vec_dev(netan)"%meas)
             # label
-            if case_i:
+            if case_i and flabcin:
                 # pick "l:..." in df_cin
                 ir=np.where(np.char.startswith(vrc, "l:"))[0]
                 last_met=last_cgr=""
@@ -124,8 +124,9 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                     for ti in df_cin.columns[1:]:
                         res += f"\t\t{met}\t\tLAB-{labset}\t{cgr.replace('#', '')}\t{df_cin.loc[i, ti]}\t{sdv}\t{ti}\n"
             else:
+                #import pdb; pdb.set_trace()
                 labset=0
-                for d in ftbl["LABEL_MEASUREMENTS"]:
+                for d in ftbl.get("LABEL_MEASUREMENTS", {}):
                     met=d["META_NAME"] if d["META_NAME"] else met
                     if d["META_NAME"]:
                         labset += 1
@@ -135,7 +136,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                     res += f"\t\t{met}\t\tLAB-{labset}\t{d['CUM_CONSTRAINTS'].replace('#', '')}\t{d['VALUE']}\t{d['DEVIATION']}\t\n"
             # peak
             # ps, pdm, pdp = peak singlet, d-, d+
-            if case_i:
+            if case_i and flabcin:
                 # pick "p:..." in df_cin
                 ir=np.where(np.char.startswith(vrc, "p:"))[0]
                 last_met=last_atom=""
@@ -170,7 +171,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                         res += f"\t\t{met}\t{frag}\tPEAK-{pset}\t{spec}\t{df_cin.loc[i, ti]}\t{sdv}\t{ti}\n"
             else:
                 pset=0
-                for d in ftbl["PEAK_MEASUREMENTS"]:
+                for d in ftbl.get("PEAK_MEASUREMENTS", {}):
                     met=d["META_NAME"] if d["META_NAME"] else met
                     pset += 1
                     atom=int(d["PEAK_NO"])
@@ -195,7 +196,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                         sdv=dsdv or sdv
                         res += f"\t\t{met}\t{frag}\tPEAK-{pset}\t{spec}\t{val}\t{sdv}\t\n"
             # ms
-            if case_i:
+            if case_i and flabcin:
                 # pick "m:..." in df_cin
                 ir=np.where(np.char.startswith(vrc, "m:"))[0]
                 last_met=last_frag=""
@@ -220,7 +221,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                         res += f"\t\t{met}\t{frag.replace('~', '-')}\tMS-{mset}\tM{w}\t{df_cin.loc[i, ti]}\t{sdv}\t{ti}\n"
             else:
                 mset=0
-                for d in ftbl["MASS_SPECTROMETRY"]:
+                for d in ftbl.get("MASS_SPECTROMETRY", {}):
                     met=d["META_NAME"] if d["META_NAME"] else met
                     frag=d["FRAGMENT"] if mset == 0 or d["FRAGMENT"] else frag
                     if d["META_NAME"] or d["FRAGMENT"]:
@@ -330,7 +331,7 @@ def main(argv=sys.argv[1:]):
     #print("ftbl parsed=", ftbl)
     #import pdb; pdb.set_trace()
     netan=dict()
-    C13_ftbl.ftbl_netan(ftbl, netan)
+    C13_ftbl.ftbl_netan(ftbl, netan, case_i=case_i)
     if not case_i and "OPTIONS" in ftbl and netan["opt"].get("file_labcin", ""):
         werr("we are in stationary case but ftbl file has 'file_labcin' option")
     bsl="\\" # backslash
