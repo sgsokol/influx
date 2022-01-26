@@ -408,11 +408,13 @@ def parse_miso(fmiso, clen, case_i=False):
             if not case_i and len(ligr) > flen+1:
                 raise Excpetion("parse_miso: too many MS entries %d (max %d expected) in group %s in '%s':%d-%d"%(kgr, len(ligr) , flen+1, fname, ist, iend))
             # add this group to results
+            if frag == "":
+                frag=",".join(str(i) for i in range(1,flen+1))
             if case_i:
                 res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
+                #import pdb; pdb.set_trace()
                 for sp,spi in dsp.items():
-                    #import pdb; pdb.set_trace()
                     df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{frag}:{sp[1:]}:NA"]))
             else:
                 res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
@@ -480,13 +482,14 @@ def parse_miso(fmiso, clen, case_i=False):
             else:
                 norma=False
             # add this group to results
-            #	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS						
+            #	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
             if case_i:
+                #import pdb; pdb.set_trace()
                 res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
-                res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[ii])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
+                res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[i0])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 for i,(sp,spi) in enumerate(dsp.items()):
                     #import pdb; pdb.set_trace()
-                    df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{'+'.join('#'+v for v in labs[i])}:NA"]))
+                    df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"]))
             else:
                 if met != last_met or frag != last_frag:
                     last_met=met

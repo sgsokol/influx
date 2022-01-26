@@ -332,8 +332,8 @@ def main(argv=sys.argv[1:]):
     #import pdb; pdb.set_trace()
     netan=dict()
     C13_ftbl.ftbl_netan(ftbl, netan, case_i=case_i)
-    if not case_i and "OPTIONS" in ftbl and netan["opt"].get("file_labcin", ""):
-        werr("we are in stationary case but ftbl file has 'file_labcin' option")
+    if (not case_i) and ("OPTIONS" in ftbl and netan["opt"].get("file_labcin", [""])[0]):
+        warn("we are in stationary case but ftbl file has 'file_labcin' option")
     bsl="\\" # backslash
     scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
     ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
