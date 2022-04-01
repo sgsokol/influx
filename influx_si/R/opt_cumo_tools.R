@@ -649,7 +649,7 @@ cumo_jacob=function(param, labargs) {
    return(NULL)
 }
 
-fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getA=T, getb=T, emu=F) {
+fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getA=TRUE, getb=TRUE, emu=FALSE) {
    # calculate sparse A and b (in A*x=b where x is cumomer vector)
    # from fields of the list spAbr
    # return a list(A, b)
@@ -672,8 +672,8 @@ fwrv2Abr=function(fwrv, spAbr, incu, nm_rcumo, getA=T, getb=T, emu=F) {
 #cat("fwrv2Abr 1\n")
    nb_c=spAbr$nb_c
    if (nb_c == 0) {
-      A=simple_triplet_zero_matrix(nb_c, nb_c)
-      b=simple_triplet_zero_matrix(nb_c, 1)
+      A=spAbr$a
+      b=spAbr$b
       return(list(A=if (getA) A else NULL, b=if (getb) b else NULL))
    }
    if (getA) {
@@ -1215,7 +1215,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
             ind_bx=rbind(ind_bx, tmp[,c(1:3,ix+3,3+iprodx[-ix])]) # move diff var to ic1 place
          }
          if (length(ind_bx)) {
-            colnames(ind_bx)=c("iwe", "indf", "irow", "ic1", sprintf("indx%%d", seq_len(nprodx-1)))
+            colnames(ind_bx)=c("iwe", "indf", "irow", "ic1", sprintf("indx%d", seq_len(nprodx-1)))
             ind_bx[,"ic1"]=ind_bx[,"ic1"]-ba_e
             ind_bx[,"irow"]=ind_bx[,"irow"]+(ind_bx[,"iwe"]-1)*nb_c
          }
@@ -1435,8 +1435,11 @@ stm_pm=function(e1, e2, pm=c("+", "-"), pos=if (e1$nrow*e1$ncol < 22517998136852
 sparse2spa=function(spa) {
    for (ispa in seq_along(spa)) {
       l=spa[[ispa]];
-      if (l$nb_c == 0)
+      if (l$nb_c == 0) {
+         l$a=Rmumps$new(integer(0), integer(0), double(0), l$nb_c)
+         l$b=simple_triplet_matrix(i=integer(0), j=integer(0), v=double(0), nrow=l$nb_c, ncol=1)
          next
+      }
       l$l=l;
       with(l, {
 #browser();

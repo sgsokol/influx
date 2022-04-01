@@ -29,6 +29,9 @@ me="txt2ftbl"
 LOCAL_TIMEZONE=dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
 invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
 
+def natural_sort_key(s, _re=re.compile(r'(\d+)')):
+    # last 2 fields are inverted for sorting
+    return [int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li[:-3]+li[-1:]+li[-2:-4:-1])]
 def dtstamp():
     "formatted date-time stamp"
     return dt.datetime.now(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z %z')
@@ -317,7 +320,7 @@ def parse_miso(fmiso, clen, case_i=False):
     else:
         fname=fmiso
     fname=os.path.basename(fname)
-    
+#    import pdb; pdb.set_trace()
     df=tsv2df(fmiso)
     if case_i:
         if "Time" not in df or sum(df["Time"] != "") == 0:
@@ -334,9 +337,12 @@ def parse_miso(fmiso, clen, case_i=False):
     last_met=last_frag=last_dset=""
     cgr=1
     #import pdb; pdb.set_trace()
+    meas_seen=set()
     for kgr, ligr in df.groupby(["Metabolite", "Fragment", "Dataset"]).groups.items():
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
+        #if met == "M_accoa_c":
+        #    import pdb; pdb.set_trace()
         if not met:
             werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.iloc[ligr[0], :])))
         ist=int(df.loc[ligr[0], "iline"])
@@ -398,6 +404,7 @@ def parse_miso(fmiso, clen, case_i=False):
                 u=np.unique(df.loc[spi, "SD"])
                 if len(u) != 1:
                     werr(f"parse_miso: SD must be the same at all time points for {kgr}, {sp}: '{fname}': "+", ".join(df.loc[spi, "iline"]))
+            ii0=sorted(ii0)
         if kind == "ms":
             # ms group here, like M0, M1
             #print("ms gr=", kgr)
@@ -415,10 +422,10 @@ def parse_miso(fmiso, clen, case_i=False):
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 #import pdb; pdb.set_trace()
                 for sp,spi in dsp.items():
-                    df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{frag}:{sp[1:]}:NA"]))
+                    df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{frag}:{sp[1:]}:{df.loc[spi[0],'iline']}"])])
             else:
                 res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
-                res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %d"%(fname, ligr[i]) for i in range(1, len(ligr))]
+                res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
         elif kind == "lab" or kind == "peak" or kind == "mean":
             # label group (like 01x+1x1)
             if kind == "lab":
@@ -489,7 +496,7 @@ def parse_miso(fmiso, clen, case_i=False):
                 res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[i0])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 for i,(sp,spi) in enumerate(dsp.items()):
                     #import pdb; pdb.set_trace()
-                    df_kin=df_kin.append(pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"]))
+                    df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"])])
             else:
                 if met != last_met or frag != last_frag:
                     last_met=met
@@ -1188,7 +1195,9 @@ is the argument value that will take precedence.
                 fkin=p.with_suffix(".ikin")
                 with fkin.open("w") as fc:
                     fc.write(scre+f" at {dtstamp()}\nrow_col")
-                    df_kin.to_csv(fc, sep="\t")
+                    #import pdb; pdb.set_trace()
+                    #df_kin.reindex(index=sorted(df_kin.index, key=natural_sort_key))
+                    df_kin.loc[sorted(df_kin.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
                 for i,v in enumerate(dsec["opt"]):
                     if v.startswith("\tfile_labcin\t"):
                         dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
@@ -1203,12 +1212,12 @@ is the argument value that will take precedence.
                 if p.is_file() and not force:
                     with p.open() as fc:
                         if scre[:23] != fc.read(23):
-                             werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+                            werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
                 if len(df_kin_prl) > 0:
                     fkin=p.with_suffix(".ikin")
                     with fkin.open("w") as fc:
                         fc.write(scre+f" at {dtstamp()}\nrow_col")
-                        df_kin_prl.to_csv(fc, sep="\t")
+                        df_kin_prl[sorted(df_kin_prl.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
                     for i,v in enumerate(dsec_prl["opt"]):
                         if v.startswith("\tfile_labcin\t"):
                             dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
@@ -1250,6 +1259,10 @@ is the argument value that will take precedence.
         out=ftbl.open("w") if type(ftbl) == type(Path()) else ftbl
         out.write(scre+f" at {dtstamp()}\n")
         dsec2out(dsec, out)
+        out.close()
+        if case_i and type(ftbl) == type(Path()):
+            from ftbl2labcin import main as renum
+            renum([str(ftbl)])
         if res_ftbl is not None:
             res_ftbl.append(out.name)
         out.close()

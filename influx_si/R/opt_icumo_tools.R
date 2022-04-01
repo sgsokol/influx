@@ -298,6 +298,8 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       for (iw in seq_len(nb_w)) {
          emuw=ifelse(emu, iw, 1L)
          nb_c=spa[[iw]]$nb_c
+         if (nb_c == 0)
+            next
 #browser()
          ixw=nbc_x[iw]+seq_len(nb_x[iw])
          inxw=(1L+nb_xi)+ixw

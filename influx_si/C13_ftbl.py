@@ -568,6 +568,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             "nx2dfcg":dict(),
             "metab_measured":dict(),
         })
+    netan["emu"]=emu_framework
     res="";     # auxiliary short-cut to current result
     netan["exp_names"]=[ftbl["base_name"]]
     netan["fullsys"]=fullsys
@@ -1810,7 +1811,7 @@ def formula2dict(f, pterm=re.compile(r'([+-])'), pflux=re.compile(r'(?P<coef>\d+
     character (# is allowed). Output is a dict f_i:[+-]a_i"""
     res=dict()
     sign=1
-    l=(i for i in pterm.split(str(f)))
+    l=(i.strip() for i in pterm.split(str(f)))
     for term in l:
         try:
             next_sign=next(l)
@@ -1923,6 +1924,7 @@ def mass_meas2matrix_vec_dev(netan):
     scale name is defined as "metab;fragment_mask"
     The returned result is a dict (mat,vec,dev)
     """
+    emu=netan["emu"]
     # mass[metab][frag_mask][weight]={val:x, dev:y}
     # weight has to be transformed in cumomer linear combination
     nexp=len(netan["iso_input"])
@@ -1953,20 +1955,24 @@ def mass_meas2matrix_vec_dev(netan):
                     str1="1"*n
                     fmask0x=setcharbit(strx,"0",fmask)
                     fmask01=setcharbit(str0,"1",fmask)
-                    # for a given weight construct bcumo sum: #x10x+#x01x+...
-                    bcumos=["#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
-                            for iw in range(1<<nmask) if sumbit(iw)==weight]
-    #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
-                    res=dict()
-                    for cumostr in bcumos:
-                        #print cumostr;##
-                        decomp=bcumo_decomp(cumostr)
-                        for icumo in decomp["+"]:
-                            res.setdefault(icumo,0)
-                            res[icumo]+=1
-                        for icumo in decomp["-"]:
-                            res.setdefault(icumo,0)
-                            res[icumo]-=1
+                    if not emu:
+                        # for a given weight construct bcumo sum: #x10x+#x01x+...
+                        bcumos=["#"+setcharbit(fmask0x,"1",expandbit(iw,onepos))
+                                for iw in range(1<<nmask) if sumbit(iw)==weight]
+        #                aff("bcumos for met,fmask,w "+", ".join((metab,strbit(fmask),str(weight))), [b for b in bcumos]);##
+                        res=dict()
+                        for cumostr in bcumos:
+                            #print cumostr;##
+                            decomp=bcumo_decomp(cumostr)
+                            for icumo in decomp["+"]:
+                                res.setdefault(icumo,0)
+                                res[icumo]+=1
+                            for icumo in decomp["-"]:
+                                res.setdefault(icumo,0)
+                                res[icumo]-=1
+                    else:
+                        bcumos=None
+                        res=None
                     emuco={str(fmask)+"+"+str(weight): 1}
                     if len(row["pooled"]) > 1:
                         # init index list

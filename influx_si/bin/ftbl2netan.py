@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Parse ftbl file from stdin or from first parameter
 and write netan in kvh format on stdout
-usage: ftbl2netan.py network[.ftbl] [> network.netan]
+usage: ftbl2netan.py network[.ftbl] [-h] [-i] [--emu] [--clownr] [--fullsys]  [> network.netan]
 """
 if __name__ == "__main__" or __name__ == "influx_si.cli":
     import sys, os, getopt, stat
@@ -21,7 +21,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
         sys.exit(1)
     emu=False
     clownr=False
-    fullsys=True
+    fullsys=False
     case_i=False
     for o,a in opts:
         if o in ("-h", "--help"):

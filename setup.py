@@ -33,6 +33,7 @@ setup(
       'influx_si/txt2ftbl.py',
       'influx_si/ftbl2mtf.py',
       'influx_si/ftbl2metxml.py',
+      'influx_si/ftbl2labcin.py',
    ],
    entry_points={
       "console_scripts": [
@@ -49,6 +50,7 @@ setup(
          "txt2ftbl = influx_si.txt2ftbl:main",
          "ftbl2mtf = influx_si.ftbl2mtf:main",
          "ftbl2metxml = influx_si.ftbl2metxml:main",
+         "ftbl2labcin = influx_si.ftbl2labcin:main",
       ],
    },
    classifiers=[

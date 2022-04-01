@@ -86,7 +86,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                     warn("option '--inst' was activated but a field 'file_labcin' was not found in OPTIONS in '%s'. Only simulations will be possible (not fitting)."%fftbl.name)
                 else:
                     if len(flabcin) > 1:
-                        werr("option ''--inst' was activated but a field 'file_labcin' is not unique in OPTIONS of '%s'"%fftbl.name)
+                        werr("option '--inst' was activated but a field 'file_labcin' is not unique in OPTIONS of '%s'"%fftbl.name)
                     flabcin=fftbl.parent/flabcin[0]
                     # read flabcin
                     try:

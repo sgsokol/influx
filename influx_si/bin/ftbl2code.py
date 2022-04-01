@@ -297,7 +297,8 @@ baseshort="%(org)s"
 fcerr=file(file.path(dirw, sprintf("%%s.err", baseshort)), "ab")
 fclog=file(file.path(dirw, sprintf("%%s.log", baseshort)), "ab")
 
-options(warn=1)
+if (options()$warn == 0)
+    options(warn=1)
 options(digits.secs=2)
 
 case_i=%(case_i)s

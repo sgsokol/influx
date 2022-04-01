@@ -381,12 +381,12 @@ for (iexp in seq_len(nb_exp)) {
       nm_row=rownames(measvecti[[iexp]])
       # put in the same row order as simulated measurements
       # check if nm_meas are all in rownames
-      if (all(nm_meas %%in%% nm_row)) {
-         measvecti[[iexp]]=measvecti[[iexp]][nm_meas,,drop=FALSE]
+      if (all(nm_meas[[iexp]] %%in%% nm_row)) {
+         measvecti[[iexp]]=measvecti[[iexp]][nm_meas[[iexp]],,drop=FALSE]
       } else {
          # try to strip row number from measure id
          nm_strip=sapply(strsplit(nm_meas[[iexp]], ":"), function(v) {
-            paste(v[-length(v)], sep="", collapse=":")
+            paste(c(v[-length(v)], ""), sep="", collapse=":")
          })
          im=pmatch(nm_strip, nm_row)
          ina=is.na(im)
