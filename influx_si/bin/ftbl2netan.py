@@ -63,7 +63,8 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     except Exception as e:
         sys.stderr.write("ftbl2netan: Exception\n"+str(e)+"\n")
         tools_ssg.dict2kvh(netan, f)
-        sys.exit(1)
+        raise e
+        #sys.exit(1)
     #import pdb; pdb.set_trace()
     tools_ssg.dict2kvh(netan, f)
     # calculate measure matrices

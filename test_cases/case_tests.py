@@ -61,7 +61,7 @@ def do_case(ith, icase, line):
     fields=line.split("\t")
     if len(fields) == 3:
         fields.append("")
-    try: # capture excpetion to log them in err.txt
+    try: # capture exception to log them in err.txt
         #import pdb; pdb.set_trace()
         if len(fields) != 4:
             raise Exception("%s: Three or four fields separated by tabs are expected.\nInstead %d fields are found (%s: %d).\nThe row was '%s'"%(me, len(fields), fcases, icase, line))

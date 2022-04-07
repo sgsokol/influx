@@ -520,8 +520,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         netan.update({
             "input":oset(),
             "output":oset(),
+            "deadend":oset(),
             "subs":oset(),
             "prods":oset(),
+            "left":oset(),
+            "right":oset(),
             "metabs":oset(),
             "reac":oset(),
             "notrev":oset(),
@@ -626,6 +629,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         
         # all reactions A+B=C or C=A+B or A+B=C+D
         netan["reac"].add(reac)
+        netan["left"].update(es)
+        netan["right"].update(ps)
         netan["subs"].update(es)
         netan["prods"].update(ps)
         netan["metabs"].update(ms)
@@ -735,6 +740,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         for m in ms:
             if m not in netan["Clen"]:
                 netan["Clen"][m]=0
+        netan["left"].update(es)
+        netan["right"].update(ps)
         netan["subs"].update(es)
         netan["prods"].update(ps)
         netan["metabs"].update(ms)
@@ -751,6 +758,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     #import pdb; pdb.set_trace()
     netan["input"].update(netan["subs"]-netan["prods"])
     netan["output"].update(netan["prods"]-netan["subs"])
+    netan["deadend"].update(((netan["left"]-netan["right"]) | (netan["right"]-netan["left"])) - netan["input"]-netan["output"])
     # internal metabs
     netan["metabint"]=netan["metabs"].copy()
     netan["metabint"].difference_update(netan["input"] | netan["output"])

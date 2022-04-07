@@ -79,3 +79,5 @@ ftbl2mtf	True	ftbl2mtf cases/e_coli -o cases/e_mtf
 mtf2ftbl	True	txt2ftbl --prefix cases/e_mtf
 # long molecule with emu
 emu25	True	influx_i --prefix cases/Coli_core --emu --ffguess --noscale --ln
+# deadend in netan
+deadend	True	rm -f cases/ex_deadend.netan && ftbl2netan cases/ex_deadend > cases/ex_deadend.netan	None==setvar("res", open("cases/ex_deadend.netan", "r").read()); "deadend\n\tD\t1" in res

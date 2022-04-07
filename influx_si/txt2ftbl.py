@@ -171,6 +171,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     m_left={} # metab sources
     m_right={} # metab products
     sto={} # stoechiometric matrix dictionary {flux:{metab: coef}}}
+    mconn=[] # list of connected metabolite sets. Should be only one
     ireac=0
     ipath=1
     iline=0
@@ -187,6 +188,10 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             continue
         # parse reaction
         ireac=ireac+1
+        # strip possible end-line comment
+        li=l.split("#", 1)
+        if len(li)==2:
+            l=li[0].strip()
         li=l.split(":", 1)
         if len(li)==2:
             nm_reac=li[0].strip()
@@ -265,7 +270,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             nm_r=nm_reac+("_"+str(ilr+1) if len(lrs) > 1 else "")
             # add a row to stoechimetric matrix
             if nm_r in sto:
-                werr("txt_parse: reaction name '%s' was already used (''%s: %d)"%(nm_r, fname, iline))
+                werr("txt_parse: reaction name '%s' was already used ('%s': %d)"%(nm_r, fname, iline))
             d={}
             d.update((m, -(float(c) if c else 1.)+d.get(m, 0.)) for c,m,t in lr[0])
             d.update((m, (float(c) if c else 1.)+d.get(m, 0.)) for c,m,t in lr[1])
@@ -276,6 +281,15 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             if rev:
                 es.update(ps)
                 ps.update(es)
+            # update connected metabolite sets
+            ise=[i for i,s in enumerate(mconn) if any(m in s for m in es)]
+            if not ise:
+                mconn.append(set())
+                ise=len(mconn)-1
+            else:
+                ise=ise[0]
+            mconn[ise].update(es.keys())
+            mconn[ise].update(ps.keys())
             m_left.update((m,clen) for m, clen in es.items() if m not in m_left)
             m_right.update((m,clen) for m, clen in ps.items() if m not in m_right)
             rgr=[] # reaction group (for possible long reactions)
@@ -312,6 +326,17 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         
     if open_here:
         fc.close()
+    # collapse rightmost connected metab set
+    rmc=range(len(mconn)-1, 0, -1)
+    for i in rmc:
+        for j in range(0, i):
+            if mconn[j] & mconn[i]:
+                mconn[j].update(mconn[i])
+                del(mconn[i])
+    if len(mconn) > 1:
+        mconn=sorted(mconn, key=lambda s: len(s), reverse=True)
+        werr("txt_parse: detected %d disconnected sub-networks in '%s':\n\t%s"%(len(mconn)-1, fname, "\n\t".join(str(i+1)+": "+", ".join(s) for i,s in enumerate(mconn[1:]))))
+    #import pdb; pdb.set_trace()
     return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto, dclen]
 def parse_miso(fmiso, clen, case_i=False):
     "Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak"
@@ -828,6 +853,10 @@ def compile(mtf, cmd, case_i=False, clen=None):
             dsec["eq"][1]["XCH"] += ["\t\t%s\t%s"%e]
         for ine in ineqs[0]:
             dsec["ineq"][1]["NET"] += ["\t\t%s\t%s\t%s"%ine]
+        if not "linp" in mtf:
+            # add default full label input
+            for m in sorted(m_inp):
+                dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, "1"*dclen[m])]
     else:
         dclen={} if clen is None else clen
         itnal_met=set()
@@ -886,9 +915,13 @@ def compile(mtf, cmd, case_i=False, clen=None):
     snrev=set() # set of non reversible fluxes
     for tpl in fluxes:
         f, rev, imposed_sens, fd=tpl
+        #if f == "R_FORt":
+        #    import pdb; pdb.set_trace()
         if not rev:
             dsec["flux"][1]["XCH"] += ["\t\t%s\tC\t0"%f]
             snrev.add(f)
+        elif not "tvar" in mtf:
+            dsec["flux"][1]["XCH"] += ["\t\t%s\tF\t0.01"%f]
     badf=stvar.get("XCH", set()) & snrev
     if badf:
         werr("following fluxes should not appear in '%s', with 'XCH' kind as they are non reversible in '%s':\n\t'%s'"%(mtf["tvar"], mtf["netw"], "'\n\t'".join(badf)))
@@ -1172,8 +1205,8 @@ is the argument value that will take precedence.
         # check if we can overwrite
         if not force and ftbl != sys.stdout:
             if ftbl.is_file() and ftbl.stat().st_size > 0:
-                with ftbl.open() as fc:
-                     if scre[:23] != fc.read(23):
+                with ftbl.open(mode="rb") as fc:
+                     if scre[:23] != fc.read(23).decode():
                          werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
         ftbl.parent.mkdir(parents=True, exist_ok=True)
         # compile ftbl dict 'dsec'
@@ -1188,8 +1221,8 @@ is the argument value that will take precedence.
             p=Path(ftbl).resolve()
             p.parent.mkdir(parents=True, exist_ok=True)
             if p.is_file() and not force:
-                with p.open() as fc:
-                    if scre[:23] != fc.read(23):
+                with p.open(mode="rb") as fc:
+                    if scre[:23] != fc.read(23).decode():
                          werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
             if len(df_kin) > 0:
                 fkin=p.with_suffix(".ikin")
