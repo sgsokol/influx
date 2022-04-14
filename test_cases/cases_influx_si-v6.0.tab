@@ -77,7 +77,7 @@ linspl	True	influx_i --pref cases/ex_i_2box_lin
 ftbl2mtf	True	ftbl2mtf cases/e_coli -o cases/e_mtf
 # convert mtf to ftbl
 mtf2ftbl	True	txt2ftbl --prefix cases/e_mtf
-# long molecule with emu
-emu25	True	influx_i --prefix cases/Coli_core --emu --ffguess --noscale --ln
+# disconnected sub-net
+err_sub_net	False	influx_i --prefix cases/Coli_core --emu --ffguess --noscale --ln
 # deadend in netan
 deadend	True	rm -f cases/ex_deadend.netan && ftbl2netan cases/ex_deadend > cases/ex_deadend.netan	None==setvar("res", open("cases/ex_deadend.netan", "r").read()); "deadend\n\tD\t1" in res

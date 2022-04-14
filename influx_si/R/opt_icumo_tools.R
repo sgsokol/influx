@@ -599,7 +599,7 @@ param2fl_usm_rich=function(param, cjac, labargs) {
 # nm_inp cumo: "Glc:63"
 # nm_inp emu: "Glc:63+0"
  
-funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=.Machine$double.eps*2**7) {
+funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double.eps)) {
    # lit is nested a list: met => str(isoint) => vector of legth #tp
    lit=lapply(structure(seq_along(li), names=names(li)),
    function(i) {
@@ -643,7 +643,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=.Machine$double.eps*
       su=Reduce("+", m)
       if (any(ibad <- su > 1+tol)) {
          ibad=which(ibad)[1L]
-         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], ": '", su[ibad], "'.", file=fcerr)
+         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], "sum-1=", su[ibad]-1., ".", file=fcerr)
       }
       if (!"0" %in% names(m)) {
          # "the rest is unlabeled"

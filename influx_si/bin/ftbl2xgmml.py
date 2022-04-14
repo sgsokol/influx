@@ -58,8 +58,9 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     }
     nc={
         'm': '255,255,255',    # metabolite colour
-        'i': '0,255,0',        # input colour (uptake)
-        'o': '255,0,0',        # output colour (escape)
+        'i': '80,255,80',      # input colour (uptake)
+        'o': '255,80,80',      # output colour (escape)
+        'd': '255,120,60',      # dead-end colour
         'r': '127,127,127'     # reaction colour
     }
     et={
@@ -163,7 +164,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     nodes={"metabs": {}, "reacs": {}}
     nodes["metabs"].update((metab,
         {"label": metab, "id": i+1, "shape": ns["m"],
-        "color": nc["i"] if metab in netan["input"] else nc["o"] if metab in netan["output"] else nc["m"]})
+        "color": nc["i"] if metab in netan["input"] else nc["o"] if metab in netan["output"] else nc["d"] if metab in netan["deadend"] else nc["m"]})
         for (i, metab) in enumerate(netan["metabs"]))
     # reacs -> nodes
     nodes["reacs"].update((reac,

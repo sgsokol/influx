@@ -333,6 +333,8 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             if mconn[j] & mconn[i]:
                 mconn[j].update(mconn[i])
                 del(mconn[i])
+                break
+            
     if len(mconn) > 1:
         mconn=sorted(mconn, key=lambda s: len(s), reverse=True)
         werr("txt_parse: detected %d disconnected sub-networks in '%s':\n\t%s"%(len(mconn)-1, fname, "\n\t".join(str(i+1)+": "+", ".join(s) for i,s in enumerate(mconn[1:]))))
