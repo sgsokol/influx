@@ -37,7 +37,9 @@ plot_ti=function(ti, x, m=NULL, ...) {
          points(tim[inna], m[i,inna], col=i, cex=0.5, t="b", lwd=0.5, ...)
          if (nrow(m) == nb_curve && !is.null(x)) {
             # draw filled polygons between simulation and data
-            polygon(c(ti,rev(tim[inna])), c(x[i,], rev(m[i,inna])), col=rgb(red=t(col2rgb(i)), alpha=31, max=255), bord=F, ...)
+            tmax=max(tim[inna])
+            iti=which(ti <= tmax)
+            polygon(c(ti[iti],rev(tim[inna])), c(x[i,iti], rev(m[i,inna])), col=rgb(red=t(col2rgb(i)), alpha=31, max=255), bord=FALSE, ...)
          }
       }
    }
@@ -71,9 +73,9 @@ for (iexp in seq_len(nb_exp)) {
    # plot non measured metabs from mid
    nm_sim=rownames(mid[[iexp]])
    nmm=if (length(nm_sel)) unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,]) else character(0L)
-   nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
+   nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1L))
    if (emu) {
-      nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1)
+      nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1L)
    }
    nmp=sort(setdiff(nmmid, nmm))
    if (length(nmp)) {
@@ -84,7 +86,7 @@ for (iexp in seq_len(nb_exp)) {
       if (emu) {
          i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
          # take fragments
-         fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
+         fr=unique(sapply(strsplit(i, "[+:]"), "[", 2L))
          for (f in fr) {
             i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
             fi=as.integer(f)

@@ -364,7 +364,7 @@ for (iexp in seq_len(nb_exp)) {
          flabcin[iexp]=file.path(flabcin[iexp])
       else
          flabcin[iexp]=file.path(dirw, flabcin[iexp])
-      measvecti[[iexp]]=try(as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep="\t", check=FALSE, comment="#")), silent=TRUE)
+      measvecti[[iexp]]=try(as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep="\t", check=FALSE, comment="#", strip.white=TRUE)), silent=TRUE)
       if (inherits(measvecti[[iexp]], "try-error")) {
          # try with comment '//'
          tmp=try(kvh::kvh_read(flabcin[iexp], comment_str = "//", strip_white = FALSE, skip_blank = TRUE, split_str = "\t", follow_url = FALSE), silent=TRUE)
@@ -373,6 +373,7 @@ for (iexp in seq_len(nb_exp)) {
          nb_col=sapply(tmp, length)
          if (any(ibad <- nb_col != nb_col[1]))
             stop_mes("Column number varies in '", flabcin[iexp], "'. First row has ", nb_col[1], " columns while the following rows differ:\n\t", paste(c("row", which(ibad)), c("col_nb", nb_col[ibad]), sep="\t", collapse="\n\t"))
+         tmp=lapply(tmp, trimws)
          tmp=do.call(rbind, tmp)
          tmp=structure(tmp[-1L,, drop=FALSE], dimnames=list(rownames(tmp)[-1L], tmp[1L,]))
          suppressWarnings(storage.mode(tmp) <- "double")
