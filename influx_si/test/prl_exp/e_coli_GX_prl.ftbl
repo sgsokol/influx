@@ -223,10 +223,10 @@ METABOLITE_POOLS
 
 OPTIONS
 	OPT_NAME	OPT_VALUE
-	commandArgs	--noscale --TIMEIT --time_order=2
+	commandArgs	--noscale --TIMEIT --time_order=1
 	dt	1
 	tmax	30
 	nsubdiv_dt	4
 	file_labcin	e_coli_GX_MS.txt
 	prl_exp	e_coli_GX_X
-	posttreat_R	save_all.R; plot_imass.R
+	posttreat_R	plot_ilab.R

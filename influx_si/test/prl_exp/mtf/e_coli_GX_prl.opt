@@ -1,0 +1,9 @@
+# Created by 'ftbl2mtf ../e_coli_GX_prl -o .' at 2022-05-20 17:42:21 CEST +0200
+Id	Comment	Name	Value
+		commandArgs	--noscale --TIMEIT --time_order=1
+		dt	1
+		tmax	30
+		nsubdiv_dt	4
+		file_labcin	e_coli_GX_MS.txt
+		prl_exp	e_coli_GX_X
+		posttreat_R	plot_ilab.R

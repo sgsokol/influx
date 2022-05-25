@@ -16,11 +16,11 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
 
 .. note:: In command examples to run, we use script names with extension `.py`. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without '.py'. For example, commands: ::
 
- $ influx_s.py e_coli
+ $ influx_s.py --prefix e_coli
  
  and ::
 
- $ influx_s e_coli
+ $ influx_s --prefix e_coli
  
  are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
 
@@ -90,28 +90,30 @@ Copy distributed test directory to the current directory by running ::
 
  $ influx_s.py --copy_test
  
-then you can get in the newly created directory ``test`` and run some tests ::
+then you can get in the newly created directory ``test`` and run some tests:
 
- $ cd test
- $ influx_s.py e_coli.ftbl
+   .. code-block:: shell
+ 
+     $ cd test/mtf
+     $ influx_s.py --prefix e_coli
 
 If everything was correctly installed, you should see in your shell window an
 output looking like:
 
 .. code-block:: text
 
- "/home/sokol/.local/bin/influx_s.py" "e_coli.ftbl"
- code gen: 2019-12-11 16:12:17
- calcul  : 2019-12-11 16:12:17
- end     : 2019-12-11 16:12:22
+ "/home-local/sokol/.local/bin/influx_s" "--prefix" "e_coli"
+ code gen: 2022-05-25 12:10:53
+ calcul  : 2022-05-25 12:10:53
+ end     : 2022-05-25 12:10:55
 
-The meaning of this output is quit simple. First, an R code is generated from FTBL file then it is executed till it ends. Time moments at which these three events occur are reported.
+The meaning of this output is quit simple. First, an R code is generated from input MTF files (cf. :ref:`MTF format <mtf>` for more details) then it is executed till it ends. Time moments at which these three events occur are reported.
 
 The calculation result will be written in ``e_coli_res.kvh``.
-It should be almost identical to the same file in ``ok/`` subdirectory.
+It should be almost identical to the same file in ``ok/mtf`` subdirectory.
 On Unix you can do ::
 
-$ diff e_coli_res.kvh ok/e_coli_res.kvh
+$ diff e_coli_res.kvh ../ok/mtf/e_coli_res.kvh
 
 to see if there is any difference. Some small differences in numerical
 values can be ok. They might come from variations in versions of R and
@@ -120,46 +122,48 @@ underlying numerical libraries (BLAS, LAPACK and so on).
 If something went wrong, check the error messages in ``e_coli.err``,
 interpret them, try to figure out why the errors occurred and correct them.
 
-In high throughput context, you can find useful to run ``influx_si`` in parallel on many FTBL files. It can be done just by providing more than one FTBL file in argument. For example, with two of FTBLs provided with the package you can run: ::
+In high throughput context, you can find useful to run ``influx_si`` in parallel on many independent MTF sets. It can be done by providing more than one ``--prefix`` options. For example, with two of cases provided with the package you can run: ::
  
- $ influx_s.py e_coli.ftbl e_coli_growth.ftbl
+ $ influx_s.py --prefix e_coli --prefix e_coli_growth
  
 
 In this case, the output looks sightly different than in one by one run:
 
 .. code-block:: text
 
-  "/home/sokol/.local/bin/influx_s.py" "e_coli" "e_coli_growth"
-  e_coli: code gen: 2019-12-11 16:22:27
-  e_coli_growth: code gen: 2019-12-11 16:22:27
-  //calcul: 2019-12-11 16:22:28
-  //end   : 2019-12-11 16:22:31
+  "/home-local/sokol/.local/bin/influx_s" "--pref" "e_coli" "--pref" "e_coli_growth"
+  e_coli_growth: code gen: 2022-05-25 14:44:56
+  e_coli: code gen: 2022-05-25 14:44:56
+  //calcul: 2022-05-25 14:44:57
+  //end   : 2022-05-25 14:44:58
  
-The time moments for code generation is preceded by a short version of FTBL file names. The symbol ``//`` means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.
+The time moments for code generation is preceded by a short version of file names. The symbol ``//`` means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.
 
 It is the operating system that dispatches and equilibrates the charge
 among available CPUs and cores, not ``influx_si`` who simply launches these processes.
 
+One of the main interest of MTF format is an ability to multiplex constant and variable parts of information describing a set of experiments. In this case, many calculations can run in parallel on inter-dependent input files, cf. ``.vmtf`` description in :ref:`MTF format <mtf>`.
+
 For a quick test of ``influx_i``, you can run in the same directory: ::
 
-  $ influx_i.py e_coli_i
+  $ influx_i.py --prefix e_coli_i
 
 Normal output looks like
 
 .. code-block:: text
 
-  "/home/sokol/.local/bin/influx_i.py" "e_coli_i"
-  code gen: 2019-12-11 16:25:38
-  calcul  : 2019-12-11 16:25:38
-  end     : 2019-12-11 16:25:54
+  "/home-local/sokol/.local/bin/influx_i.py" "--pref" "e_coli_i"
+  code gen: 2022-05-25 14:50:51
+  calcul  : 2022-05-25 14:50:52
+  end     : 2022-05-25 14:51:02
 
-Calculation results are written in ``e_coli_i_res.kvh`` and they can be compared with the same file in the ``ok/`` sub-directory. You can also visually check a generated graphic file ``e_coli_i.pdf`` to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.
+Calculation results are written in ``e_coli_i_res.kvh`` and they can be compared with the same file in the ``ok/mtf`` sub-directory. You can also visually check a generated graphic file ``e_coli_i.pdf`` to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.
 
 *****************************
 Installation of documentation
 *****************************
 
-``influx_si`` is distributed with its documentation. To get it easily accessible from your personnal disk space you can run somewhere in your directory tree: ::
+``influx_si`` is distributed with its documentation. To get it locally accessible from your personal disk space you can run: ::
 
  $ influx_s.py --copy_doc
 

@@ -1,0 +1,4 @@
+# Created by 'ftbl2mtf.py --inst -o ./influx_si/test/mtf/ ./influx_si/test/ex_i_2box_var.ftbl' at 2022-01-10 16:27:24 CET +0100
+Id	Comment	Metabolite	Fragment	Dataset	Species	Value	SD	Time
+		B		LAB-1	1	1	0.02	
+		C		LAB-2	1	1	0.02	

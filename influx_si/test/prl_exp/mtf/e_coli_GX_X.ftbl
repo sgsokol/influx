@@ -1,0 +1,87 @@
+// Created by 'txt2ftbl --prefix e_coli_GX_prl --inst' at 2022-05-25 09:33:54 CEST +0200
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+EQUALITIES
+	NET
+		VALUE	FORMULA
+	XCH
+		VALUE	FORMULA
+	METAB
+		VALUE	FORMULA
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+	XCH
+		VALUE	COMP	FORMULA
+	METAB
+		VALUE	COMP	FORMULA
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	Gluc.ext	#000000	1   // e_coli_GX_X.linp: 3
+	Xyl.ext	#11111	1   // e_coli_GX_X.linp: 4
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+	G6P	1~5	0	NA	0.01   // e_coli_GX_X.miso: 633
+			1	NA	0.01   // e_coli_GX_X.miso: 654
+			2	NA	0.01   // e_coli_GX_X.miso: 675
+			3	NA	0.01   // e_coli_GX_X.miso: 696
+			4	NA	0.01   // e_coli_GX_X.miso: 717
+			5	NA	0.01   // e_coli_GX_X.miso: 738
+	G6P	5,6	0	NA	0.01   // e_coli_GX_X.miso: 3
+			1	NA	0.01   // e_coli_GX_X.miso: 24
+			2	NA	0.01   // e_coli_GX_X.miso: 45
+	Phe	1,2	0	NA	0.01   // e_coli_GX_X.miso: 381
+			1	NA	0.01   // e_coli_GX_X.miso: 402
+			2	NA	0.01   // e_coli_GX_X.miso: 423
+	Phe		0	NA	0.01   // e_coli_GX_X.miso: 66
+			1	NA	0.01   // e_coli_GX_X.miso: 87
+			2	NA	0.01   // e_coli_GX_X.miso: 108
+			3	NA	0.01   // e_coli_GX_X.miso: 129
+			4	NA	0.01   // e_coli_GX_X.miso: 150
+			5	NA	0.01   // e_coli_GX_X.miso: 171
+			6	NA	0.01   // e_coli_GX_X.miso: 192
+			7	NA	0.01   // e_coli_GX_X.miso: 213
+			8	NA	0.01   // e_coli_GX_X.miso: 234
+			9	NA	0.01   // e_coli_GX_X.miso: 255
+	Phe	2~9	0	NA	0.01   // e_coli_GX_X.miso: 444
+			1	NA	0.01   // e_coli_GX_X.miso: 465
+			2	NA	0.01   // e_coli_GX_X.miso: 486
+			3	NA	0.01   // e_coli_GX_X.miso: 507
+			4	NA	0.01   // e_coli_GX_X.miso: 528
+			5	NA	0.01   // e_coli_GX_X.miso: 549
+			6	NA	0.01   // e_coli_GX_X.miso: 570
+			7	NA	0.01   // e_coli_GX_X.miso: 591
+			8	NA	0.01   // e_coli_GX_X.miso: 612
+	R5P	1~4	0	NA	0.01   // e_coli_GX_X.miso: 276
+			1	NA	0.01   // e_coli_GX_X.miso: 297
+			2	NA	0.01   // e_coli_GX_X.miso: 318
+			3	NA	0.01   // e_coli_GX_X.miso: 339
+			4	NA	0.01   // e_coli_GX_X.miso: 360
+METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noscale --TIMEIT --time_order=2
+	dt	1
+	tmax	30
+	nsubdiv_dt	4
+	//file_labcin	e_coli_GX_X_MS.txt
+	posttreat_R	save_all.R; plot_imass.R
+	file_labcin	e_coli_GX_X.ikin

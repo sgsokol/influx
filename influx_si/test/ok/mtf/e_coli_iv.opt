@@ -1,0 +1,15 @@
+# Created by 'ftbl2mtf e_coli_iv.ftbl -o mtf/' at 2022-05-25 17:04:36 CEST +0200
+Id	Comment	Name	Value
+		commandArgs	--noscale --TIMEIT --time_order=2 --zc=0 --clowp 1.e-9 --noopt
+		dt	1
+		nsubdiv_dt	4
+		tmax	10
+		funlabR	e_coli_iv_funlab.R
+		optctrl_errx	1.e-3
+		optctrl_maxit	50
+		optctrl_btmaxit	16
+		optctrl_btstart	1
+		optctrl_btfrac	0.5
+		optctrl_adaptbt	1
+		optctrl_monotone	1
+		posttreat_R	plot_ilab.R

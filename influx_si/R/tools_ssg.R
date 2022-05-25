@@ -219,14 +219,14 @@ smooth025=function(v, repet=1) {
       return(smooth025(v, repet-1))
    }
 }
-smooth725=function(v, repet=1) {
+smooth725=function(v, repet=1L) {
    # smooth by convolution with 0.25;0.5;0.25
-   # NB: the returned vector have the same length as original one.
-   # Extream points have weights 0.75, 0.25 on left and 0.25;0.75 on right
+   # NB: the returned vector has the same length as original one.
+   # Extreme points have weights 0.75, 0.25 on left and 0.25;0.75 on right
    v=as.vector(v)
    n=NROW(v)
 #cat("n=", n, "\n", sep="")
-   if (n<2 || repet < 1) {
+   if (n<2L || repet < 1L) {
       # the vector is too short or no smoothing is asked
       # send it back as is
       return(v)
@@ -241,10 +241,31 @@ smooth725=function(v, repet=1) {
    ve[nar+2L]=v[nar]
    ve=head(ve,-1)+ve[-1L]
    ve=0.25*(head(ve,-1)+ve[-1L])
-   if (repet<=1) {
+   if (repet<=1L) {
       return(ve)
    } else {
-      return(smooth725(ve, repet-1))
+      return(smooth725(ve, repet-1L))
+   }
+}
+smooth725dx=function(m, dx=rep(1., NROW(m)-1L), repet=1L) {
+   # smooth columns of 'm' on a grid 'x' with weights w1*x1+(w1+w2)*x2+w2*x3
+   # where w1=0.5*dx2/(dx1+dx2) and w2=0.5-w1
+   # NA are not permitted
+   resmat=is.matrix(m) || is.data.frame(m)
+   m=as.matrix(m)
+   nr=nrow(m)
+   # sum of neighbors nrow=nr+1
+   sn=rbind(m[1L,,drop=FALSE], m)+rbind(m, m[nr,,drop=FALSE])
+   dxe=c(0, dx, 0)
+   # weighted sum, nrow=nr
+   res=c(dx, dx[nr-1L])*sn[-nr-1L,,drop=FALSE] +
+      c(dx[1L],dx)*sn[-1L,,drop=FALSE]
+   sdx_inv=0.5/c(2*dx[1L],dx[-1L]+dx[-nr+1L],2*dx[nr-1L])
+   res=sdx_inv*res
+   if (repet > 1L) {
+      smooth725dx(res, dx, repet-1L)
+   } else {
+      if (resmat) res else as.vector(res)
    }
 }
 smdec=function(v) {
@@ -333,12 +354,12 @@ refine2x1d=function(zc,nf1,nf2) {
 }
 
 ipeaks=function(y, decreasing=TRUE) {
-   # return a vector of indexes correponding to peaks in a vector y
+   # return a vector of indexes corresponding to peaks in a vector y
    # By default, the peaks are sorted in decreasing order.
-   # The peaks are searched only in the form /\ (mountain) and not in /-\ (plato)
+   # The peaks are searched only in the form /\ (mountain) and not in /-\ (plateau)
    d=sign(diff(y))
    # make the same length as y (linear extrapolation)
-   d=c(1,d,-1); # doute benefice on the ends
+   d=c(1,d,-1); # doubt benefice on the ends
    d=diff(d)
    ip=which(d==-2)
    o=order(y[ip], decreasing=decreasing)
@@ -1204,8 +1225,9 @@ stop_mes=function(..., file=stderr()) {
    if (isatty(stdin()) && file!=stderr()) {
       stop(..., call.=FALSE)
    }
-   if (!isatty(stdin()))
+   if (!isatty(stdin())) {
       q("no", status=1)
+   }
 }
 lusolve=function(lua, b, perm=NULL) {
    # solve a normal system a*x=b when lu(a) is already available.
@@ -1407,5 +1429,124 @@ mat2ccs=function(a, tol=.Machine$double.eps*64) {
    i=row(a)[inz]-1L
    p=c(0L, cumsum(colSums(inz)))
    return(list(i=row(a)[inz]-1L, p=c(0L, cumsum(colSums(inz))), x=a[inz], nrow=nrow(a), ncol=ncol(a), dimnames=dimnames(a)))
+}
+sort.simple_triplet_matrix=function(a) {
+   o=order(a$i+a$j*a$nrow)
+   a$i=a$i[o]
+   a$j=a$j[o]
+   a$v=a$v[o]
+   a
+}
+as.function.character=function(x, envir=parent.frame()) match.fun(x)
+as.function.name=function(x, envir=parent.frame()) match.fun(x)
+as.function.formula=function(f, envir=parent.frame()) {
+   f=as.formula(f)
+   switch(length(f),
+      stop("Invalid formula"),
+      {
+         rhs=f[[2]]
+         arg=all.vars(rhs)
+      },
+      {
+         rhs=f[[3]]
+         arg=if (is.character(f[[2]])) strsplit(f[[2]], ",")[[1]] else all.vars(f[[2]])
+      }
+   )
+   arg=if (length(arg)) eval(parse(text=paste0("alist(", paste0(paste0(arg, "="),collapse=", "), ")"))) else alist()
+   as.function(c(arg, rhs), envir=envir)
+}
+as.function.call=function(f, envir=parent.frame()) {
+   f=as.call(f)
+   switch(as.character(f[[1]]),
+      "~"=return(as.function(as.formula(f), envir)),
+      "expression"=return(as.function(f[[2L]], envir)),
+      "quote"=return(as.function(f[[2L]], envir)),
+      "as.function"=return(eval(f, envir))
+   )
+   arg=all.vars(f)
+   arg=if (length(arg)) eval(parse(text=paste0("alist(", paste0(paste0(arg, "="),collapse=", "), ")"))) else alist()
+   as.function(c(arg, f), envir=envir)
+}
+as.function.expression=function(f, envir=parent.frame()) {
+   f=as.expression(f)
+   as.function(f[[1L]])
+}
+wrap_fun=function(app, envir=parent.frame()) {
+   fn=substitute(app)
+   nm=deparse(fn)
+   stopifnot(is.name(fn))
+   la=args(app)
+   li=as.list(la)
+   li[[length(li)]]=bquote({mc=match.call(.(fn)); mc[[1]]=as.name(.(nm)); if ("FUN" %in% names(mc)) mc[["FUN"]]=as.function(mc[["FUN"]], .(envir)); eval(mc, .(envir))})
+   #print(envir)
+   as.function(li, envir=envir)
+}
+sliderfn=function(param, minp=0, maxp=1, delta=1, fn=function(x) x, ...) {
+   nm_p=names(param)
+   nb_p=length(param)
+   ld=list(...)
+   rep0=double(nb_p)
+   minp=minp+rep0
+   maxp=maxp+rep0
+   delta=delta+rep0
+   if (is.null(nm_p)) {
+      nm_p=paste("p", seq_len(nb_p), sep="")
+   }
+   refresh.code<-function(...){
+      p=sapply(seq_len(nb_p), function(i) aplpack::slider(no=i))
+      do.call(fn, c(list(p), ld))
+   }
+   library(tcltk)
+   aplpack::slider(refresh.code, sl.names=nm_p, sl.mins=minp, sl.maxs=maxp, sl.deltas=delta, sl.defaults=param, prompt=TRUE)
+   fn(param, ...)
+}
+trim=function(x, trim=0., na.rm=FALSE) {
+   # extracted from base::mean.default()
+   if (na.rm) 
+        x <- x[!is.na(x)]
+   n <- length(x)
+   if (trim > 0 && n) {
+        if (is.complex(x)) 
+            stop("trimmed means are not defined for complex data")
+        if (anyNA(x)) 
+            return(NA_real_)
+        if (trim >= 0.5) 
+            return(stats::median(x, na.rm = FALSE))
+        lo <- floor(n * trim) + 1
+        hi <- n + 1 - lo
+        x <- sort.int(x, partial = unique(c(lo, hi)))[lo:hi]
+    }
+    x
+}
+natorder=function(s, ...) {
+   # natural ordering: 1,2,11 (not 1,11,2)
+   # ... are passed to order()
+   if (length(s) == 0L)
+      return(integer(0))
+   # split to have numbers (vn) and not numbers (vs) form a list then order
+   vn=strsplit(s, "[^0-9]+")
+   vs=strsplit(s, "[0-9]+")
+   len=max(lengths(vn))
+   if (len == 0L)
+      return(order(s, ...))
+   vn=t(sapply(vn, function(v) c(v, rep.int("", len-length(v)))))
+   storage.mode(vn)="integer"
+   vn[is.na(vn)]=-1L
+   dim(vn)=c(length(vn)/len, len)
+   lens=max(lengths(vs))
+   vs=t(sapply(vs, function(v) c(v, rep.int("", lens-length(v)))))
+   dim(vs)=c(length(vs)/lens, lens)
+   # interleave vs and vn
+   vi=c()
+   for (i in seq_len(max(len ,lens))) {
+      if (i <= lens)
+         vi=c(vi, list(vs[,i]))
+      if (i <= len)
+         vi=c(vi, list(vn[,i]))
+   }
+   return(do.call(base::order, c(vi, ...)))
+}
+natsort=function(s, ...) {
+   s[natorder(s, ...)]
 }
 vgrep=base::Vectorize(base::grep, "pattern")

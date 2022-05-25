@@ -51,7 +51,7 @@ OPTIONS
 	include_growth_flux	0
 	mu	0.01
 	//file_labcin	ex_i_2box_labcin.txt
-	posttreat_R	plot_imass.R
+	posttreat_R	plot_ilab.R
 METABOLITE_POOLS
 	META_NAME	META_SIZE	// size is in units of metab_scale option defined before
 	// Input and output metabolites are variable so no pool sizes for them

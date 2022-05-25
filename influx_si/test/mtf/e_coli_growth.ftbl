@@ -1,0 +1,325 @@
+// Created by 'txt2ftbl --prefix influx_si/test/mtf/e_coli_growth' at 2022-05-25 14:44:56 CEST +0200
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	e_coli_growth.netw	1.0			command='txt2ftbl --prefix influx_si/test/mtf/e_coli_growth'
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// Created by 'ftbl2mtf ../e_coli_growth -o .' at 2022-05-25 12:27:04 CEST +0200
+	Glucupt_1	Gluc_1		Glc
+		#ABCDEF		#ABCDEF
+	Glucupt_U	Gluc_U		Glc
+		#ABCDEF		#ABCDEF
+	Glucupt	Glc		Glc6P
+		#ABCDEF		#ABCDEF
+	CO2upt	CO2_ext		CO2
+		#A		#A
+	pgi	Glc6P		Fru6P
+		#ABCDEF		#ABCDEF
+	pfk	Fru6P		FruBP
+		#ABCDEF		#ABCDEF
+	ald	FruBP		GA3P	GA3P
+		#ABCDEF		#CBA	#DEF
+	pgk	GA3P		PGA
+		#ABC		#ABC
+	eno	PGA		PEP
+		#ABC		#ABC
+	pyk	PEP		Pyr
+		#ABC		#ABC
+	zwf	Glc6P		Gnt6P
+		#ABCDEF		#ABCDEF
+	gnd	Gnt6P		CO2	Rub5P
+		#ABCDEF		#A	#BCDEF
+	rib	Rub5P		Rib5P
+		#ABCDE		#ABCDE
+	xul	Rub5P		Xul5P
+		#ABCDE		#ABCDE
+	edd	Gnt6P		Pyr	GA3P
+		#ABCDEF		#ABC	#DEF
+	HR1	GA3P	E2	Xul5P	
+		#CDE	#AB	#ABCDE	
+	HR2	Fru6P		Ery4P	E2
+		#ABCDEF		#CDEF	#AB
+	HR3	Fru6P		GA3P	E3
+		#ABCDEF		#DEF	#ABC
+	HR4	Sed7P		Rib5P	E2
+		#abABCDE		#ABCDE	#ab
+	HR5	Ery4P	E3	Sed7P	
+		#ABCD	#abc	#abcABCD	
+	pdh	Pyr		AcCoA	CO2
+		#ABC		#BC	#A
+	citsynth	AcCoA	OAA	Cit	
+		#AB	#abcd	#dcbaBA	
+	idh	Cit		AKG	CO2
+		#ABCDEF		#ABCEF	#D
+	akgdh	AKG		Suc	CO2
+		#ABCDE		#BCDE	#A
+	fum_a	Suc		Mal
+		#ABCD		#ABCD
+	fum_b	Suc		Mal
+		#ABCD		#DCBA
+	maldh	Mal		OAA
+		#ABCD		#ABCD
+	ppc	PEP	CO2	OAA	
+		#ABC	#a	#ABCa	
+	bs_glc6P	Glc6P		BM_Glc6P
+		#ABCDEF		#ABCDEF
+	bs_fru6P	Fru6P		BM_Fru6P
+		#ABCDEF		#ABCDEF
+	bs_pga	PGA		BM_PGA
+		#ABC		#ABC
+	bs_DHAP	GA3P		Glp
+		#ABC		#ABC
+	bs_pyr	Pyr		BM_Pyr
+		#ABC		#ABC
+	bs_e4p	Ery4P		BM_Ery4P
+		#ABCD		#ABCD
+	bs_rib5P	Rib5P		BM_Rib5P
+		#ABCDE		#ABCDE
+	bs_pep	PEP		BM_PEP
+		#ABC		#ABC
+	bs_accoa	AcCoA		BM_AcCoA
+		#AB		#AB
+	bs_akg	AKG		BM_AKG
+		#ABCDE		#ABCDE
+	bs_oaa	OAA		BM_OAA
+		#ABCD		#ABCD
+	out_co2	CO2		CO2_out
+		#A		#A
+	out_Ac	AcCoA		Acetate
+		#AB		#AB
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		Glucupt	D	   // e_coli_growth.tvar: 5
+		Glucupt_U	D	   // e_coli_growth.tvar: 4
+		akgdh	D	   // e_coli_growth.tvar: 26
+		ald	D	   // e_coli_growth.tvar: 9
+		bs_DHAP	C	0.0083   // e_coli_growth.tvar: 34
+		bs_accoa	C	0.1895   // e_coli_growth.tvar: 39
+		bs_akg	C	0.0692   // e_coli_growth.tvar: 40
+		bs_oaa	C	0.1146   // e_coli_growth.tvar: 41
+		bs_pep	C	0.0461   // e_coli_growth.tvar: 38
+		bs_pga	C	0.0958   // e_coli_growth.tvar: 33
+		bs_pyr	C	0.1818   // e_coli_growth.tvar: 35
+		citsynth	D	   // e_coli_growth.tvar: 24
+		edd	F	0.1   // e_coli_growth.tvar: 15
+		eno	D	   // e_coli_growth.tvar: 11
+		fum_a	D	   // e_coli_growth.tvar: 27
+		fum_b	D	   // e_coli_growth.tvar: 28
+		gnd	D	   // e_coli_growth.tvar: 14
+		idh	D	   // e_coli_growth.tvar: 25
+		maldh	D	   // e_coli_growth.tvar: 29
+		out_Ac	F	0.48   // e_coli_growth.tvar: 43
+		pdh	D	   // e_coli_growth.tvar: 23
+		pfk	D	   // e_coli_growth.tvar: 8
+		pgi	F	0.1   // e_coli_growth.tvar: 7
+		pgk	D	0.1   // e_coli_growth.tvar: 10
+		ppc	D	   // e_coli_growth.tvar: 30
+		pyk	D	1.21144   // e_coli_growth.tvar: 12
+		rib	D	   // e_coli_growth.tvar: 16
+		xul	D	   // e_coli_growth.tvar: 17
+		zwf	D	0.4   // e_coli_growth.tvar: 13
+		bs_e4p	C	0.0247   // e_coli_growth.tvar: 36
+		bs_fru6P	C	0.0045   // e_coli_growth.tvar: 32
+		bs_glc6P	C	0.0132   // e_coli_growth.tvar: 31
+		bs_rib5P	C	0.0576   // e_coli_growth.tvar: 37
+		CO2upt	C	0.77   // e_coli_growth.tvar: 6
+		Glucupt_1	F	0.8128   // e_coli_growth.tvar: 3
+		HR1	D	   // e_coli_growth.tvar: 18
+		HR2	D	   // e_coli_growth.tvar: 19
+		HR3	D	   // e_coli_growth.tvar: 20
+		HR4	D	   // e_coli_growth.tvar: 21
+		HR5	D	   // e_coli_growth.tvar: 22
+		out_co2	D	0.1   // e_coli_growth.tvar: 42
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		ald	F	0.4   // e_coli_growth.tvar: 46
+		eno	F	0.99   // e_coli_growth.tvar: 48
+		fum_a	C	0.01   // e_coli_growth.tvar: 58
+		fum_b	D	   // e_coli_growth.tvar: 59
+		maldh	C	0.42   // e_coli_growth.tvar: 60
+		pdh	C	0.01   // e_coli_growth.tvar: 57
+		pfk	F	0.01   // e_coli_growth.tvar: 45
+		pgi	F	0.4   // e_coli_growth.tvar: 44
+		pgk	F	0.99   // e_coli_growth.tvar: 47
+		ppc	F	0.2   // e_coli_growth.tvar: 61
+		pyk	F	0.4   // e_coli_growth.tvar: 49
+		rib	C	0.99   // e_coli_growth.tvar: 50
+		xul	F	0   // e_coli_growth.tvar: 51
+		HR1	C	0.24   // e_coli_growth.tvar: 52
+		HR2	F	0.0151117   // e_coli_growth.tvar: 53
+		HR3	F	0.14   // e_coli_growth.tvar: 54
+		HR4	C	0.04   // e_coli_growth.tvar: 55
+		HR5	F	0.02   // e_coli_growth.tvar: 56
+		Glucupt_1	C	0
+		Glucupt_U	C	0
+		Glucupt	C	0
+		CO2upt	C	0
+		zwf	C	0
+		gnd	C	0
+		edd	C	0
+		citsynth	C	0
+		idh	C	0
+		akgdh	C	0
+		bs_glc6P	C	0
+		bs_fru6P	C	0
+		bs_pga	C	0
+		bs_DHAP	C	0
+		bs_pyr	C	0
+		bs_e4p	C	0
+		bs_rib5P	C	0
+		bs_pep	C	0
+		bs_accoa	C	0
+		bs_akg	C	0
+		bs_oaa	C	0
+		out_co2	C	0
+		out_Ac	C	0
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+	Cit	-0.001630397300073748   // e_coli_growth.tvar: 66
+	FruBP	-0.0004927839907571225   // e_coli_growth.tvar: 68
+	Mal	-0.0006054470296805187   // e_coli_growth.tvar: 63
+	PEP	-5.501298486110693e-05   // e_coli_growth.tvar: 64
+	PGA	-0.0005008619523631337   // e_coli_growth.tvar: 65
+	Suc	-0.0014849826568155515   // e_coli_growth.tvar: 62
+	Fru6P	-0.00010006707551232429   // e_coli_growth.tvar: 69
+	Glc6P	-0.0004905098655004916   // e_coli_growth.tvar: 70
+	Gnt6P	-0.00014480899018442714   // e_coli_growth.tvar: 67
+	Rib5P	1e-07   // e_coli_growth.tvar: 72
+	Rub5P	-5.172415742935172e-05   // e_coli_growth.tvar: 71
+	Xul5P	-0.0002068966297174069   // e_coli_growth.tvar: 73
+EQUALITIES
+	NET
+		VALUE	FORMULA
+		1	Glucupt_1+Glucupt_U   // e_coli_growth.cnstr: 4
+		0	fum_a-fum_b   // e_coli_growth.cnstr: 3
+	XCH
+		VALUE	FORMULA
+		0	fum_a-fum_b   // e_coli_growth.cnstr: 5
+	METAB
+		VALUE	FORMULA
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+		0	<=	akgdh   // e_coli_growth.cnstr: 11
+		0	<=	edd   // e_coli_growth.cnstr: 6
+		0	<=	gnd   // e_coli_growth.cnstr: 7
+		0	<=	idh   // e_coli_growth.cnstr: 10
+		0	<=	ppc   // e_coli_growth.cnstr: 9
+		0	<=	zwf   // e_coli_growth.cnstr: 8
+	XCH
+		VALUE	COMP	FORMULA
+	METAB
+		VALUE	COMP	FORMULA
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	CO2_ext	#0	0.9893   // e_coli_growth.linp: 16
+		#1	0.0107   // e_coli_growth.linp: 17
+	Gluc_1	#100000	0.9465   // e_coli_growth.linp: 10
+		#110000	0.0107   // e_coli_growth.linp: 11
+		#101000	0.0107   // e_coli_growth.linp: 12
+		#100100	0.0107   // e_coli_growth.linp: 13
+		#100010	0.0107   // e_coli_growth.linp: 14
+		#100001	0.0107   // e_coli_growth.linp: 15
+	Gluc_U	#111111	0.952   // e_coli_growth.linp: 3
+		#011111	0.008   // e_coli_growth.linp: 4
+		#101111	0.008   // e_coli_growth.linp: 5
+		#110111	0.008   // e_coli_growth.linp: 6
+		#111011	0.008   // e_coli_growth.linp: 7
+		#111101	0.008   // e_coli_growth.linp: 8
+		#111110	0.008   // e_coli_growth.linp: 9
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+	out_Ac	0.497	0.04   // e_coli_growth.mflux: 3
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+	AcCoA	1	0.495	0.02	#00   // e_coli_growth.miso: 3
+	AcCoA	2	0.303	0.02	#01   // e_coli_growth.miso: 4
+	AcCoA	3	0.012	0.02	#10   // e_coli_growth.miso: 5
+	AcCoA	4	0.190	0.02	#11   // e_coli_growth.miso: 6
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+	Cit		1	0.322208057034832	0.03   // e_coli_growth.miso: 61
+			2	0.288291305558056	0.03   // e_coli_growth.miso: 62
+			3	0.212855540659154	0.03   // e_coli_growth.miso: 63
+			4	0.117626468347467	0.03   // e_coli_growth.miso: 64
+			5	0.0484839619377435	0.03   // e_coli_growth.miso: 65
+			6	0.0105346664627478	0.03   // e_coli_growth.miso: 66
+	Fru6P		0	0.04716	0.01   // e_coli_growth.miso: 54
+			1	0.623343333333333	0.0106878170518274   // e_coli_growth.miso: 55
+			2	0.0820266666666667	0.01   // e_coli_growth.miso: 56
+			3	0.03604	0.01   // e_coli_growth.miso: 57
+			4	0.0315766666666667	0.01   // e_coli_growth.miso: 58
+			5	0.0149133333333333	0.01   // e_coli_growth.miso: 59
+			6	0.164943333333333	0.0111688555068697   // e_coli_growth.miso: 60
+	FruBP		0	0.0853733333333333	0.02   // e_coli_growth.miso: 34
+			1	0.482283333333333	0.02   // e_coli_growth.miso: 35
+			2	0.140086666666667	0.02   // e_coli_growth.miso: 36
+			3	0.0953466666666667	0.02   // e_coli_growth.miso: 37
+			4	0.09712	0.02   // e_coli_growth.miso: 38
+			5	0.0120166666666667	0.02   // e_coli_growth.miso: 39
+			6	0.0877666666666667	0.02   // e_coli_growth.miso: 40
+	Glc6P		0	0.0167633333333333	0.01   // e_coli_growth.miso: 47
+			1	0.716826666666667	0.01   // e_coli_growth.miso: 48
+			2	0.0578233333333333	0.01   // e_coli_growth.miso: 49
+			3	0.0122433333333333	0.01   // e_coli_growth.miso: 50
+			4	0.01151	0.01   // e_coli_growth.miso: 51
+			5	0.01089	0.01   // e_coli_growth.miso: 52
+			6	0.173946666666667	0.01   // e_coli_growth.miso: 53
+	Gnt6P		0	0.0195533333333333	0.01   // e_coli_growth.miso: 19
+			1	0.72562	0.0120547874307264   // e_coli_growth.miso: 20
+			2	0.0571233333333333	0.01   // e_coli_growth.miso: 21
+			3	0.0135033333333333	0.01   // e_coli_growth.miso: 22
+			4	0.01331	0.01   // e_coli_growth.miso: 23
+			5	0.0131033333333333	0.01   // e_coli_growth.miso: 24
+			6	0.157793333333333	0.01   // e_coli_growth.miso: 25
+	Mal		1	0.587391867374382	0.0493159626907812   // e_coli_growth.miso: 7
+			2	0.216493214407424	0.0306546571894417   // e_coli_growth.miso: 8
+			3	0.159494782909672	0.03   // e_coli_growth.miso: 9
+			4	0.0366201353085213	0.03   // e_coli_growth.miso: 10
+	PEP		0	0.462166666666667	0.01   // e_coli_growth.miso: 11
+			1	0.340003333333333	0.01   // e_coli_growth.miso: 12
+			2	0.0273166666666667	0.01   // e_coli_growth.miso: 13
+			3	0.170513333333333	0.01   // e_coli_growth.miso: 14
+	PGA		0	0.447066666666667	0.0180848260520618   // e_coli_growth.miso: 15
+			1	0.34127	0.018075350619006   // e_coli_growth.miso: 16
+			2	0.02441	0.01   // e_coli_growth.miso: 17
+			3	0.187253333333333	0.01   // e_coli_growth.miso: 18
+	Rib5P+Xul5P+Rub5P		0	0.433956666666667	0.0115292555411585   // e_coli_growth.miso: 41
+			1	0.215956666666667	0.01   // e_coli_growth.miso: 42
+			2	0.09658	0.01   // e_coli_growth.miso: 43
+			3	0.129033333333333	0.01   // e_coli_growth.miso: 44
+			4	0.0272733333333333	0.01   // e_coli_growth.miso: 45
+			5	0.0971933333333333	0.01   // e_coli_growth.miso: 46
+	Sed7P		0	0.272433333333333	0.0122309539012022   // e_coli_growth.miso: 26
+			1	0.23752	0.01   // e_coli_growth.miso: 27
+			2	0.180446666666667	0.01   // e_coli_growth.miso: 28
+			3	0.12744	0.01   // e_coli_growth.miso: 29
+			4	0.06321	0.01   // e_coli_growth.miso: 30
+			5	0.0839233333333333	0.01   // e_coli_growth.miso: 31
+			6	0.01751	0.01   // e_coli_growth.miso: 32
+			7	0.0175266666666667	0.01   // e_coli_growth.miso: 33
+METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION
+	Cit	17.4452511107891*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 7
+	Fru6P	1.07071770798187*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 10
+	FruBP	5.27278870110121*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 9
+	Glc6P	5.24845556085526*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 11
+	Gnt6P	1.54945619497337*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 8
+	Mal	6.47828321758155*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 4
+	PEP	0.588638938013844*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 5
+	PGA	5.35922289028553*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 6
+	Rub5P+Rib5P+Xul5P	1.66034545348219*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 12
+	Suc	15.8893144279264*1.e-3/10.7	1.e-2   // e_coli_growth.mmet: 3
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	MATLAB_FOR_FLUX_EQ_CONSTR_MATR	1
+	include_growth_flux	1
+	mu	0.8
+	optctrl_maxit	50
+	commandArgs	--TIMEIT
+	posttreat_R	plot_smeas.R

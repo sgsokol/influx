@@ -45,7 +45,7 @@ For more details, see the paper on ``influx_s`` cited above.
 Moreover, ``influx_s`` provides:
 
  - both cumomer and EMU frameworks for describing label distribution in the metabolites;
- - parallel experiment treatment;
+ - parallel experiment treatment both in stationary and instationary modes;
  - metabolite concentration estimation in particular stationary contexts (since v2.0. A methodology behind metabolite concentration evaluation is not yet published at the moment of this writing.); 
  - a possibility to deal with metabolite pool confusion appearing either in compartmentation or in coelution;
  - taking into account non carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;
@@ -115,4 +115,4 @@ Software and documentation author:
 
   Serguei SOKOL, INRAE, France <sokol [at] insa-toulouse.fr>
 
-Copyright 2011-2020, INRAE/CNRS/INSA
+Copyright 2011-2022, INRAE/CNRS/INSA

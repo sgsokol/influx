@@ -101,8 +101,9 @@ for (iexp in seq_len(nb_exp)) {
    }
 
    # get unique MS fragment names
-   nm_selm=sort(grep("^m:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE))
+   nm_selm=natsort(grep("^m:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE))
    pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]))
+   #browser()
    if (length(nm_selm) > 0) {
       plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="MS measurements", cex=2)
@@ -111,7 +112,16 @@ for (iexp in seq_len(nb_exp)) {
          i=grep(sprintf("m:%s:", metf), nm_selm, fix=TRUE, v=TRUE)
          #isim=pmatch(sapply(strsplit(i, ":", fixed=TRUE), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
          isim=grep(sprintf("m:%s:", metf), rownames(usmf), fix=TRUE, v=TRUE)
-         plot_mti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=FALSE], main=strsplit(metf, ":")[[1]][1], ylim=0:1)
+         mf=strsplit(metf, ":", fixed=TRUE)[[1L]]
+         met=mf[1L]
+         fr=mf[2L]
+         metlen=clen[strsplit(met, "+", fixed=TRUE)[[1]][1]]
+         if (is.na(fr) || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
+            mainlab=met
+         } else {
+            mainlab=sprintf("%s:%s", met, fr)
+         }
+         plot_mti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=FALSE], main=mainlab, ylim=0:1)
       }
    }
    # plot non measured MS from mid
@@ -121,7 +131,7 @@ for (iexp in seq_len(nb_exp)) {
    if (emu) {
       nmmid=sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1L)
    }
-   nmp=sort(setdiff(nmmid, nmm))
+   nmp=natsort(setdiff(nmmid, nmm))
    if (length(nmp)) {
       plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="MS simulations", cex=2)
@@ -134,7 +144,7 @@ for (iexp in seq_len(nb_exp)) {
          for (f in fr) {
             i=grep(sprintf("^%s:%s\\+", met, f), nm_simm, v=TRUE)
             fi=as.integer(f)
-            mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
+            mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s:%s", met, fr)
             plot_mti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=mainlab, ylim=0:1)
          }
       } else {
@@ -143,7 +153,7 @@ for (iexp in seq_len(nb_exp)) {
       }
    }
    # get unique label (!=MS) fragment names
-   nm_sell=sort(grep("^[^m]:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE))
+   nm_sell=natsort(grep("^[^m]:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE))
    if (length(nm_sell) > 0) {
       plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="NMR measurements", cex=2)
@@ -152,7 +162,16 @@ for (iexp in seq_len(nb_exp)) {
          i=grep(sprintf("%s:", metf), nm_sell, fix=TRUE, v=TRUE)
          #isim=pmatch(sapply(strsplit(i, ":", fixed=TRUE), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
          isim=grep(sprintf("%s:", metf), rownames(usmf), fix=TRUE, v=TRUE)
-         plot_lti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=FALSE], main=strsplit(metf, ":")[[1L]][2L], ylim=0:1)
+         mf=strsplit(metf, ":", fixed=TRUE)[[1L]]
+         met=mf[2L]
+         fr=mf[3L]
+         metlen=clen[strsplit(met, "+", fixed=TRUE)[[1]][1]]
+         if (is.na(fr) || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
+            mainlab=met
+         } else {
+            mainlab=sprintf("%s:%s", met, fr)
+         }
+         plot_lti(tifull[[iexp]][-1L], usmf[isim,,drop=FALSE], me[i,,drop=FALSE], main=mainlab, ylim=0:1)
       }
    }
    dev.off()

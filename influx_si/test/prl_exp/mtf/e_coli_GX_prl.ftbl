@@ -1,0 +1,209 @@
+// Created by 'txt2ftbl --prefix e_coli_GX_prl --inst' at 2022-05-25 09:33:54 CEST +0200
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	e_coli_GX_prl.netw	1.0			command='txt2ftbl --prefix e_coli_GX_prl --inst'
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// Created by 'ftbl2mtf ../e_coli_GX_prl -o .' at 2022-05-20 17:42:21 CEST +0200
+	v1	Gluc.ext	PEP	G6P	Pyr
+		#abcdef	#ghi	#abcdef	#ghi
+	v2	G6P		F6P
+		#abcdef		#abcdef
+	v3	F6P		FBP
+		#abcdef		#abcdef
+	v4	FBP		DHAP	GAP
+		#abcdef		#cba	#def
+	v5	DHAP		GAP
+		#abc		#abc
+	v6	GAP		3PG
+		#abc		#abc
+	v7	3PG		PEP
+		#abc		#abc
+	v8	PEP		Pyr
+		#abc		#abc
+	v9	G6P		6PG
+		#abcdef		#abcdef
+	v10	6PG		Ru5P	CO2
+		#abcdef		#bcdef	#a
+	v11	Ru5P		X5P
+		#abcde		#abcde
+	v12	Ru5P		R5P
+		#abcde		#abcde
+	v13	X5P		TK-C2	GAP
+		#abcde		#ab	#cde
+	v14	F6P		TK-C2	E4P
+		#abcdef		#ab	#cdef
+	v15	S7P		TK-C2	R5P
+		#abcdefg		#ab	#cdefg
+	v16	F6P		TA-C3	GAP
+		#abcdef		#abc	#def
+	v17	S7P		TA-C3	E4P
+		#abcdefg		#abc	#defg
+	v18	6PG		KDPG
+		#abcdef		#abcdef
+	v19	KDPG		Pyr	GAP
+		#abcdef		#abc	#def
+	v20	Xyl.ext		Xyl
+		#abcde		#abcde
+	v21	Xyl		X5P
+		#abcde		#abcde
+	v22	PEP	PEP	Phe	CO2
+		#abc	#def	#abcefghij	#d
+	v22	E4P		
+		#ghij		
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+	v23	Pyr = LowerMetabolism
+	v24	2.04*G6P+0.536*F6P+7.463*R5P+0.612*GAP+1.4*E4P+1.156*Phe = Biomass
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	23.3316   // e_coli_GX_prl.tvar: 3
+		v2	F	-3.08397   // e_coli_GX_prl.tvar: 4
+		v3	D	0.2E0   // e_coli_GX_prl.tvar: 5
+		v4	D	0.2E0   // e_coli_GX_prl.tvar: 6
+		v5	D	0.2E0   // e_coli_GX_prl.tvar: 7
+		v6	D	0.2E0   // e_coli_GX_prl.tvar: 8
+		v7	D	0.2E0   // e_coli_GX_prl.tvar: 9
+		v8	F	157.344   // e_coli_GX_prl.tvar: 10
+		v9	D	0.2E0   // e_coli_GX_prl.tvar: 11
+		v10	D	0.2E0   // e_coli_GX_prl.tvar: 12
+		v11	D	0.2E0   // e_coli_GX_prl.tvar: 13
+		v12	D	0.2E0   // e_coli_GX_prl.tvar: 14
+		v13	D	0.2E0   // e_coli_GX_prl.tvar: 15
+		v14	D	0.2E0   // e_coli_GX_prl.tvar: 16
+		v15	D	0.2E0   // e_coli_GX_prl.tvar: 17
+		v16	D	0.2E0   // e_coli_GX_prl.tvar: 18
+		v17	D	0.2E0   // e_coli_GX_prl.tvar: 19
+		v18	D	0.2E0   // e_coli_GX_prl.tvar: 20
+		v19	D	0.2E0   // e_coli_GX_prl.tvar: 21
+		v20	C	100   // e_coli_GX_prl.tvar: 22
+		v21	D	0.2E0   // e_coli_GX_prl.tvar: 23
+		v22	D	0.2E0   // e_coli_GX_prl.tvar: 24
+		v23	F	181.588   // e_coli_GX_prl.tvar: 25
+		v24	D	0.2E0   // e_coli_GX_prl.tvar: 26
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v2	F	0.01E0   // e_coli_GX_prl.tvar: 27
+		v4	F	0.01E0   // e_coli_GX_prl.tvar: 28
+		v5	F	0.01E0   // e_coli_GX_prl.tvar: 29
+		v6	F	0.01E0   // e_coli_GX_prl.tvar: 30
+		v7	F	0.01E0   // e_coli_GX_prl.tvar: 31
+		v11	F	0.01E0   // e_coli_GX_prl.tvar: 32
+		v12	F	0.01E0   // e_coli_GX_prl.tvar: 33
+		v13	F	0.01E0   // e_coli_GX_prl.tvar: 34
+		v14	F	0.01E0   // e_coli_GX_prl.tvar: 35
+		v15	F	0.01E0   // e_coli_GX_prl.tvar: 36
+		v16	F	0.01E0   // e_coli_GX_prl.tvar: 37
+		v17	F	0.01E0   // e_coli_GX_prl.tvar: 38
+		v1	C	0
+		v3	C	0
+		v8	C	0
+		v9	C	0
+		v10	C	0
+		v18	C	0
+		v19	C	0
+		v20	C	0
+		v21	C	0
+		v22	C	0
+		v23	C	0
+		v24	C	0
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+	DHAP	50.0   // e_coli_GX_prl.tvar: 52
+	FBP	50.0   // e_coli_GX_prl.tvar: 42
+	GAP	50.0   // e_coli_GX_prl.tvar: 51
+	KDPG	50.0   // e_coli_GX_prl.tvar: 56
+	PEP	50.0   // e_coli_GX_prl.tvar: 39
+	Phe	1.0   // e_coli_GX_prl.tvar: 50
+	Pyr	50.0   // e_coli_GX_prl.tvar: 49
+	Xyl	50.0   // e_coli_GX_prl.tvar: 55
+	3PG	50.0   // e_coli_GX_prl.tvar: 44
+	6PG	50.0   // e_coli_GX_prl.tvar: 41
+	E4P	50.0   // e_coli_GX_prl.tvar: 46
+	F6P	50.0   // e_coli_GX_prl.tvar: 57
+	G6P	50.0   // e_coli_GX_prl.tvar: 54
+	R5P	50.0   // e_coli_GX_prl.tvar: 43
+	Ru5P	50.0   // e_coli_GX_prl.tvar: 45
+	S7P	50.0   // e_coli_GX_prl.tvar: 53
+	TA-C3	50.0   // e_coli_GX_prl.tvar: 40
+	TK-C2	50.0   // e_coli_GX_prl.tvar: 48
+	X5P	50.0   // e_coli_GX_prl.tvar: 47
+EQUALITIES
+	NET
+		VALUE	FORMULA
+	XCH
+		VALUE	FORMULA
+	METAB
+		VALUE	FORMULA
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+	XCH
+		VALUE	COMP	FORMULA
+	METAB
+		VALUE	COMP	FORMULA
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	Gluc.ext	#111111	1   // e_coli_GX_prl.linp: 3
+	Xyl.ext	#00000	1   // e_coli_GX_prl.linp: 4
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+	G6P	1~5	0	NA	0.01   // e_coli_GX_prl.miso: 993
+			1	NA	0.01   // e_coli_GX_prl.miso: 1023
+			2	NA	0.01   // e_coli_GX_prl.miso: 1053
+			3	NA	0.01   // e_coli_GX_prl.miso: 1083
+			4	NA	0.01   // e_coli_GX_prl.miso: 1113
+			5	NA	0.01   // e_coli_GX_prl.miso: 1143
+	G6P	5,6	0	NA	0.01   // e_coli_GX_prl.miso: 93
+			1	NA	0.01   // e_coli_GX_prl.miso: 123
+			2	NA	0.01   // e_coli_GX_prl.miso: 153
+	Phe	1,2	0	NA	0.01   // e_coli_GX_prl.miso: 633
+			1	NA	0.01   // e_coli_GX_prl.miso: 663
+			2	NA	0.01   // e_coli_GX_prl.miso: 693
+	Phe		0	NA	0.01   // e_coli_GX_prl.miso: 183
+			1	NA	0.01   // e_coli_GX_prl.miso: 213
+			2	NA	0.01   // e_coli_GX_prl.miso: 243
+			3	NA	0.01   // e_coli_GX_prl.miso: 273
+			4	NA	0.01   // e_coli_GX_prl.miso: 303
+			5	NA	0.01   // e_coli_GX_prl.miso: 333
+			6	NA	0.01   // e_coli_GX_prl.miso: 363
+			7	NA	0.01   // e_coli_GX_prl.miso: 393
+			8	NA	0.01   // e_coli_GX_prl.miso: 423
+			9	NA	0.01   // e_coli_GX_prl.miso: 453
+	Phe	2~9	0	NA	0.01   // e_coli_GX_prl.miso: 723
+			1	NA	0.01   // e_coli_GX_prl.miso: 753
+			2	NA	0.01   // e_coli_GX_prl.miso: 783
+			3	NA	0.01   // e_coli_GX_prl.miso: 813
+			4	NA	0.01   // e_coli_GX_prl.miso: 843
+			5	NA	0.01   // e_coli_GX_prl.miso: 873
+			6	NA	0.01   // e_coli_GX_prl.miso: 903
+			7	NA	0.01   // e_coli_GX_prl.miso: 933
+			8	NA	0.01   // e_coli_GX_prl.miso: 963
+	R5P	1~4	0	NA	0.01   // e_coli_GX_prl.miso: 483
+			1	NA	0.01   // e_coli_GX_prl.miso: 513
+			2	NA	0.01   // e_coli_GX_prl.miso: 543
+			3	NA	0.01   // e_coli_GX_prl.miso: 573
+			4	NA	0.01   // e_coli_GX_prl.miso: 603
+	R5P	4,5	0	NA	0.01   // e_coli_GX_prl.miso: 3
+			1	NA	0.01   // e_coli_GX_prl.miso: 33
+			2	NA	0.01   // e_coli_GX_prl.miso: 63
+METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noscale --TIMEIT --time_order=1
+	dt	1
+	tmax	30
+	nsubdiv_dt	4
+	//file_labcin	e_coli_GX_MS.txt
+	//prl_exp	e_coli_GX_X
+	posttreat_R	plot_ilab.R
+	file_labcin	e_coli_GX_prl.ikin
+	prl_exp	e_coli_GX_X.ftbl

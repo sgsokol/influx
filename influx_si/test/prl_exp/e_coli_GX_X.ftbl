@@ -220,4 +220,4 @@ OPTIONS
 	tmax	30
 	nsubdiv_dt	4
 	file_labcin	e_coli_GX_X_MS.txt
-	posttreat_R	save_all.R; plot_imass.R
+	posttreat_R	plot_ilab.R

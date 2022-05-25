@@ -1,0 +1,4 @@
+# Created by 'ftbl2mtf --inst ex_i_2box_var -o mtf/' at 2022-05-25 17:06:10 CEST +0200
+v1:	A (a) -> B (a)
+v2:	B (a) -> C (a)
+v3:	C (a) -> D (a)

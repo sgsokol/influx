@@ -1,0 +1,10 @@
+# Created by 'ftbl2mtf --inst ex_i_2box_var -o mtf/' at 2022-05-25 17:06:10 CEST +0200
+Id	Comment	Name	Value
+		commandArgs	--noopt --noscale --TIMEIT --clowp 1.e-9
+		dt	0.01
+		nsubdiv_dt	1
+		tmax	5
+		metab_scale	1.
+		include_growth_flux	0
+		mu	0.01
+		posttreat_R	plot_ilab.R

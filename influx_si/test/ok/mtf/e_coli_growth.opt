@@ -1,0 +1,8 @@
+# Created by 'ftbl2mtf e_coli_growth.ftbl -o mtf/' at 2022-05-25 17:04:35 CEST +0200
+Id	Comment	Name	Value
+		MATLAB_FOR_FLUX_EQ_CONSTR_MATR	1
+		include_growth_flux	1
+		mu	0.8
+		optctrl_maxit	50
+		commandArgs	--TIMEIT
+		posttreat_R	plot_smeas.R

@@ -2815,7 +2815,8 @@ def proc_mass_meas(ftbl, netan):
         clen0=netan["Clen"][metab0] if metab0 else 0
         if row["META_NAME"]:
             irow=int(row["irow"])
-            frag=",".join(str(i+1) for i in range(clen0))
+            frag=""
+            #frag=",".join(str(i+1) for i in range(clen0))
             mask=(1<<clen0)-1
         frag=row["FRAGMENT"] or frag
         for metab in metabl:

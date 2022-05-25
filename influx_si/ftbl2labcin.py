@@ -25,7 +25,7 @@ def werr(mes):
 def warn(mes):
     sys.stderr.write(f"Warning! {me}: "+str(mes)+"\n")
 
-def ftbl_id(ftbl, d, netan):
+def ftbl_id(ftbl, d, netan, iprl=0):
     "make row id in labcin equal to those in ftbl"
     #import pdb; pdb.set_trace()
     # read labcin
@@ -52,10 +52,10 @@ def ftbl_id(ftbl, d, netan):
     # get id in ftbl
     fid = [row["id"]
         for mtype in ('label_meas', 'peak_meas', 'mass_meas')
-        for dit in netan[mtype][0].values()
+        for dit in netan[mtype][iprl].values()
         for d2 in dit.values()
         for row in d2.values()
-    ] # todo: see prl_exp indexes
+    ]
     # partial id without last field
     fidp=[":".join(li[:-1]) for v in fid for li in (v.split(":"),)]
     sid=set(fid) # for fast literal presence test
@@ -101,13 +101,15 @@ def main(argv=sys.argv):
         ftbl_netan(d, netan, case_i=True)
         ftbl_id(ftbl, d, netan)
         if "OPTIONS" in d and "prl_exp" in netan["opt"]:
+            iprl=1 # the main ftbl has 0 index
             for pftbl in netan["opt"]["prl_exp"].split(";"):
                 pftbl = pftbl.strip()
                 if not pftbl:
                     continue
                 fpftbl = try_ext(ftbl.parent/pftbl, ["ftbl"])
                 dftbl = ftbl_parse(str(fpftbl))
-                ftbl_id(fpftbl, dftbl, netan)
+                ftbl_id(fpftbl, dftbl, netan, iprl)
+                iprl += 1
     return 0
 if __name__ == "__main__":
     main()

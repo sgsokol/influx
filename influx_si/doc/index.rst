@@ -7,13 +7,14 @@ Welcome to influx_si's documentation!
 =====================================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 0
    
    Introduction <intro>
    Change Log <changelog>
    Installation <install>
    Quick Start <quick>
    User's manual <manual>
+   FTBL format evolution <ftblevo>
    Programmer's documentation <progdoc>
    How to ...? <howto>
    Troubleshooting <trouble>

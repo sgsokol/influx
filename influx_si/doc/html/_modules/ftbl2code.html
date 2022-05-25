@@ -5,13 +5,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>ftbl2code &#8212; influx_si 5.4 documentation</title>
+    <title>ftbl2code &#8212; influx_si 5.99 documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '5.4',
+        VERSION:     '5.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.4 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.99 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
     </div>  
@@ -64,8 +64,8 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="c1">#import pdb</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">groupby</span>
 
 <span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 <span class="n">dirx</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">me</span><span class="p">)</span>
@@ -76,7 +76,7 @@
 <span class="kn">import</span> <span class="nn">influx_si</span>
 <span class="n">dirr</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">influx_si</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s2">&quot;R&quot;</span><span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="k">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
 
 <div class="viewcode-block" id="netan2Abcumo_spr"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a><span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
@@ -345,7 +345,8 @@
 <span class="s2">fcerr=file(file.path(dirw, sprintf(&quot;</span><span class="si">%%</span><span class="s2">s.err&quot;, baseshort)), &quot;ab&quot;)</span>
 <span class="s2">fclog=file(file.path(dirw, sprintf(&quot;</span><span class="si">%%</span><span class="s2">s.log&quot;, baseshort)), &quot;ab&quot;)</span>
 
-<span class="s2">options(warn=1)</span>
+<span class="s2">if (options()$warn == 0)</span>
+<span class="s2">    options(warn=1)</span>
 <span class="s2">options(digits.secs=2)</span>
 
 <span class="s2">case_i=</span><span class="si">%(case_i)s</span><span class="s2"></span>
@@ -524,8 +525,8 @@
             <span class="n">dctrl</span><span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">li</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="c1">#print(dctrl)</span>
     <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,</span><span class="se">\n\t</span><span class="s2">&quot;</span>
-    <span class="n">tmp</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;list(</span><span class="si">{</span><span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="s1">&#39;`=list(&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">kk</span><span class="o">+</span><span class="s1">&#39;`=&#39;</span><span class="o">+</span><span class="n">vv</span> <span class="k">for</span> <span class="n">kk</span><span class="p">,</span><span class="n">vv</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;)&#39;</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span><span class="n">dd</span> <span class="ow">in</span> <span class="n">dctrl</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="si">}</span><span class="s2">)&quot;</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;control_ftbl=</span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">tmp</span><span class="o">=</span><span class="n">f</span><span class="s2">&quot;list({sep.join(&#39;`&#39;+m+&#39;`=list(&#39;+&#39;, &#39;.join(&#39;`&#39;+kk+&#39;`=&#39;+vv for kk,vv in dd.items())+&#39;)&#39; for m,dd in dctrl.items())})&quot;</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;control_ftbl=</span><span class="si">{tmp}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
@@ -2103,7 +2104,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.4 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 5.99 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>

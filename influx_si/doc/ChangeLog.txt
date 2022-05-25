@@ -2,6 +2,19 @@
 Change Log for influx_si
 ========================
 
+2022-05-16 version 6.0
+----------------------
+New features:
+ - introduced new front-end MTF format (cf. ftbl2mtf, txt2ftbl)
+ - added plot_ilab.R for plotting instationary MS/NMR measurements and simulations (replaces plot_imass.R)
+ - ftbl2xgmml: added orange color for dead-end metabolites
+ - txt2ftbl: added detection of disconnected sub-networks
+ - ftbl2netan: dead-ends are reported
+ - ftbl2metxml: added pathway information and compartment treatment
+ 
+Bug fix:
+ - fixed MS measurements on long molecules in --emu mode
+
 2021-02-26 version 5.4.0
 ------------------------
 New features:

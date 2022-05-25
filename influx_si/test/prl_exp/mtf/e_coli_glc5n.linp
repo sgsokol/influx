@@ -1,0 +1,4 @@
+# Created by 'ftbl2mtf e_coli_glc1-6n.ftbl -o mtf/e_coli_glc1-6n' at 2022-05-18 15:33:55 CEST +0200
+Id	Comment	Specie	Isotopomer	Value
+		CO2.unlabeled	0	1
+		Gluc.ext	000010	0.996

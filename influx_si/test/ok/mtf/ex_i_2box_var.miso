@@ -1,0 +1,4 @@
+# Created by 'ftbl2mtf --inst ex_i_2box_var -o mtf/' at 2022-05-25 17:06:10 CEST +0200
+Id	Comment	Specie	Fragment	Dataset	Isospecies	Value	SD	Time
+		B		LAB-1	1	1	0.02	
+		C		LAB-2	1	1	0.02	

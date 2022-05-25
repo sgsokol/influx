@@ -5,13 +5,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.4 documentation</title>
+    <title>Programmer’s documentation for influx_s &#8212; influx_si 5.99 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '5.4',
+        VERSION:     '5.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="How to …" href="howto.html" />
-    <link rel="prev" title="User’s manual" href="manual.html" /> 
+    <link rel="prev" title="FTBL format evolution" href="ftblevo.html" /> 
   </head>
   <body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -41,9 +41,9 @@
           <a href="howto.html" title="How to …"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="manual.html" title="User’s manual"
+          <a href="ftblevo.html" title="FTBL format evolution"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -54,7 +54,7 @@
             
   <div class="section" id="programmer-s-documentation-for-influx-s">
 <span id="progdoc"></span><h1>Programmer’s documentation for influx_s<a class="headerlink" href="#programmer-s-documentation-for-influx-s" title="Permalink to this headline">¶</a></h1>
-<p>In this chapter, Application Programming Interface (API) docs are collected. It can be helpful for programmers desiring to extend some features of <code class="docutils literal"><span class="pre">influx_s</span></code> or to fix some bugs. This chapter can be safely skipped by users aiming at simple usage of <code class="docutils literal"><span class="pre">influx_s</span></code> for biological research.</p>
+<p>In this chapter, Application Programming Interface (API) docs are collected. It can be helpful for programmers desiring to extend some features of <code class="docutils literal"><span class="pre">influx_si</span></code> or to fix some bugs. This chapter can be safely skipped by users aiming at simple usage of <code class="docutils literal"><span class="pre">influx_si</span></code> for biological research.</p>
 <div class="section" id="module-C13_ftbl">
 <span id="c13-ftbl"></span><h2>C13_ftbl<a class="headerlink" href="#module-C13_ftbl" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -174,7 +174,7 @@ Each pathways is an ordered list.</p>
 
 <dl class="function">
 <dt id="C13_ftbl.formula2dict">
-<code class="descclassname">C13_ftbl.</code><code class="descname">formula2dict</code><span class="sig-paren">(</span><em>f</em>, <em>pterm=re.compile('\\W*([+-])\\W*')</em>, <em>pflux=re.compile('(?P&lt;coef&gt;\\d+\\.?\\d*|^)?\\s*\\*?\\s*(?P&lt;var&gt;[a-zA-Z_[\\]()][\\w\\. -\\[\\]]*)\\W*')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#formula2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.formula2dict" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">C13_ftbl.</code><code class="descname">formula2dict</code><span class="sig-paren">(</span><em>f</em>, <em>pterm=re.compile('([+-])')</em>, <em>pflux=re.compile('(?P&lt;coef&gt;\\d+\\.?\\d*|^)?\\s*\\*?\\s*(?P&lt;var&gt;[a-zA-Z_[\\]()][\\w\\. -\\[\\]]*)\\W*')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/C13_ftbl.html#formula2dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#C13_ftbl.formula2dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a 
 positive number and f_i is a string starting by non-digit and not white
 character (# is allowed). Output is a dict f_i:[+-]a_i</p>
@@ -466,6 +466,158 @@ return numpy array of size (n,2**n)</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-txt2ftbl">
+<span id="txt2ftbl"></span><h2>txt2ftbl<a class="headerlink" href="#module-txt2ftbl" title="Permalink to this headline">¶</a></h2>
+<p>transform a series of TXT and TSV files into FTBL file.</p>
+<p>Copyright 2021, INRAE, INSA, CNRS
+Author: Serguei Sokol (sokol at insa-toulouse dot fr)
+License: Gnu Public License (GPL) v2 <a class="reference external" href="http://www.gnu.org/licenses/gpl.html">http://www.gnu.org/licenses/gpl.html</a></p>
+<dl class="function">
+<dt id="txt2ftbl.compile">
+<code class="descclassname">txt2ftbl.</code><code class="descname">compile</code><span class="sig-paren">(</span><em>mtf</em>, <em>cmd</em>, <em>case_i=False</em>, <em>clen=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#compile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.compile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile FTBL content from mtf names: netw, miso etc. Return a dict of ftbl lines</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.dsec2out">
+<code class="descclassname">txt2ftbl.</code><code class="descname">dsec2out</code><span class="sig-paren">(</span><em>dsec</em>, <em>fout</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#dsec2out"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.dsec2out" title="Permalink to this definition">¶</a></dt>
+<dd><p>write lines from dsec to fout</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.dtstamp">
+<code class="descclassname">txt2ftbl.</code><code class="descname">dtstamp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#dtstamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.dtstamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>formatted date-time stamp</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.itvl2li">
+<code class="descclassname">txt2ftbl.</code><code class="descname">itvl2li</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#itvl2li"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.itvl2li" title="Permalink to this definition">¶</a></dt>
+<dd><p>convert interval like ‘2-5’  to [‘2’, ‘3’, ‘4’, ‘5’]</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_cnstr">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_cnstr</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_cnstr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_cnstr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse constraint TSV file. Return a tuple of 2 dicts (eq, ineq) with lines to add to ftbl</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_linp">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_linp</code><span class="sig-paren">(</span><em>f</em>, <em>clen={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_linp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_linp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse label input TSV file. Return a list of lines to add to ftbl</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_mflux">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_mflux</code><span class="sig-paren">(</span><em>f</em>, <em>dfl={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_mflux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_mflux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse flux measurements TSV file. Return a list of lines to add to ftbl</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_miso">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_miso</code><span class="sig-paren">(</span><em>fmiso</em>, <em>clen</em>, <em>case_i=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_miso"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_miso" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_mmet">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_mmet</code><span class="sig-paren">(</span><em>f</em>, <em>smet=set()</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_mmet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_mmet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse metabolite concentration measurements TSV file. Return a list of lines to add to ftbl</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_opt">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_opt</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_opt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_opt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse options TSV file. Return a list of lines to add to ftbl</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.parse_tvar">
+<code class="descclassname">txt2ftbl.</code><code class="descname">parse_tvar</code><span class="sig-paren">(</span><em>f</em>, <em>dfl={}</em>, <em>itnl_met=set()</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#parse_tvar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.parse_tvar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse variable type TSV file. Return a tuple of a dict and a list with lines to add to ftbl</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.try_ext">
+<code class="descclassname">txt2ftbl.</code><code class="descname">try_ext</code><span class="sig-paren">(</span><em>f</em>, <em>li</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#try_ext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.try_ext" title="Permalink to this definition">¶</a></dt>
+<dd><p>See if file ‘f’ exists, if not try with extensions from ‘li’.
+The first found is returned as Path() otherwise an exception is raised.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.tsv2df">
+<code class="descclassname">txt2ftbl.</code><code class="descname">tsv2df</code><span class="sig-paren">(</span><em>f</em>, <em>sep='\t'</em>, <em>comment='#'</em>, <em>skip_blank_lines=True</em>, <em>append_iline='iline'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read file ‘f’ as TSV and return a DataFrame. Separator is ‘sep’, comment char is ‘comment’, blank lines are skept, header is in the first row, file line numbers are stored in a column ‘line_nb’ if there is no a column with this name</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.txt_parse">
+<code class="descclassname">txt2ftbl.</code><code class="descname">txt_parse</code><span class="sig-paren">(</span><em>ftxt</em>, <em>re_metab=re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s+)?(?:(?P&lt;metab&gt;[^() \\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*')</em>, <em>re_labpat=re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse txt file from fname which is in format:
+### Glycolysis and OPP pathway
+GLYC (abcdef) -&gt;  G6P (abcdef)
+G6P (abcdef)  &lt;-&gt; F6P (abcdef)
+i.e.</p>
+<p>comment: # blabla
+non reversible reaction: [reac: ][N1] metab1 [(carb1)] [… + [N_i] metab_i [(carb_i)]] -&gt; …
+where</p>
+<blockquote>
+<div>reac is an optional reaction name;
+N_i is optional stoechiometric coefficient
+metab_i is i-th metabolite name
+(carb_i) is optional 1-letter carbon names for carbon transition mapping</div></blockquote>
+<p>reversible reaction is represented by “&lt;-&gt;” sign
+non reversible reaction is represented by “-&gt;” sign.
+reaction with imposed sens of reaction (from left to right) is representd with double “&gt;&gt;”,
+i.e. “-&gt;&gt;” for non reversible reaction or “&lt;-&gt;&gt;” for reversible reaction. This
+reaction with imposed sens will have an inequality “reac_name &gt;= 0” in
+FTBL/INEQUAITIES/NET section.</p>
+<p>Retrun a list with following items:
+- a list of carbon exchange reactions
+- a list of non carbon echanging reactions
+- a list of equalities net and xch
+- a list of flux tuples (reac, rev, imposed_sens)
+- a list of two lists: left and right metabolites [(metab, clen),]
+- a carbon length dictionary {met: N}</p>
+<p>the first item is a list of:
+plain string == just a comments
+list == reaction items: input, output: lists of tuples (metab, carb, coeff)</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ftbl2mtf">
+<span id="ftbl2mtf"></span><h2>ftbl2mtf<a class="headerlink" href="#module-ftbl2mtf" title="Permalink to this headline">¶</a></h2>
+<p>Parse ftbl file from first parameter or from stdin (if input file is ‘-‘)
+and write a series of mtf (multiple TSV files).
+The file stem (‘network’ in ‘network.ftbl’) is used as file name basis
+for produced files, e.g. ‘network.miso’. Parameter –out can be used to change it.
+If out path includes non existing directories, they are automatically created.
+Caution! If an existing output file starts with a comment
+“# Created by ‘ftbl2mft …”
+or is empty, it is silently overwritten.
+Otherwise, the writing is aborted with a warning. Other files may continue to be created.
+To force the overwriting, use ‘–force’.</p>
+<dl class="docutils">
+<dt>Output files will have following extensions/meanings:</dt>
+<dd>.netw: stoichiometric equations and label transitions in the biochemical network;
+.linp: label input;
+.miso: isotopic measurements (MS, label, peak);
+.mflux: flux measurements;
+.mmet: biochemical specie concentration measurements;
+.tvar: flux/specie types partition (free, dependent, constrained) and starting values;
+.cnstr: constraints (equalities, inequalities for both fluxes and concentrations);
+.opt: options.</dd>
+</dl>
+<p>Copyright 2022 INRAE, INSA, CNRS
+Author: Serguei Sokol (sokol [at] insa-toulouse [dot] fr)</p>
+<dl class="function">
+<dt id="ftbl2mtf.dtstamp">
+<code class="descclassname">ftbl2mtf.</code><code class="descname">dtstamp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2mtf.html#dtstamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ftbl2mtf.dtstamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>formatted date-time stamp</p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-ftbl2code">
 <span id="ftbl2code"></span><h2>ftbl2code<a class="headerlink" href="#module-ftbl2code" title="Permalink to this headline">¶</a></h2>
 <p>Module for translation of .ftbl file to R code</p>
@@ -536,7 +688,7 @@ cumomer system resolution by chi2 minimization.
 <span id="ftbl2netan"></span><h2>ftbl2netan<a class="headerlink" href="#module-ftbl2netan" title="Permalink to this headline">¶</a></h2>
 <p>Parse ftbl file from stdin or from first parameter
 and write netan in kvh format on stdout
-usage: ftbl2netan.py network[.ftbl] [&gt; network.netan]</p>
+usage: ftbl2netan.py network[.ftbl] [-h] [-i] [–emu] [–clownr] [–fullsys]  [&gt; network.netan]</p>
 </div>
 <div class="section" id="module-ftbl2optR">
 <span id="ftbl2optr"></span><h2>ftbl2optR<a class="headerlink" href="#module-ftbl2optR" title="Permalink to this headline">¶</a></h2>
@@ -809,7 +961,7 @@ of a dictionnary are silently overwritten</p>
 <span id="tools-ssg"></span><h2>tools_ssg<a class="headerlink" href="#module-tools_ssg" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="tools_ssg.aff">
-<code class="descclassname">tools_ssg.</code><code class="descname">aff</code><span class="sig-paren">(</span><em>name</em>, <em>obj</em>, <em>ident=0</em>, <em>f=&lt;_io.TextIOWrapper name='&lt;stdout&gt;' mode='w' encoding='UTF-8'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#aff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.aff" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">tools_ssg.</code><code class="descname">aff</code><span class="sig-paren">(</span><em>name</em>, <em>obj</em>, <em>ident=0</em>, <em>f=&lt;_io.TextIOWrapper name='&lt;stdout&gt;' mode='w' encoding='utf-8'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#aff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tools_ssg.aff" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>print formatted object:</dt>
 <dd>name=obj</dd>
@@ -1071,6 +1223,8 @@ of a dictionnary are silently overwritten</p>
   <ul>
 <li><a class="reference internal" href="#">Programmer’s documentation for influx_s</a><ul>
 <li><a class="reference internal" href="#module-C13_ftbl">C13_ftbl</a></li>
+<li><a class="reference internal" href="#module-txt2ftbl">txt2ftbl</a></li>
+<li><a class="reference internal" href="#module-ftbl2mtf">ftbl2mtf</a></li>
 <li><a class="reference internal" href="#module-ftbl2code">ftbl2code</a></li>
 <li><a class="reference internal" href="#module-ftbl2netan">ftbl2netan</a></li>
 <li><a class="reference internal" href="#module-ftbl2optR">ftbl2optR</a></li>
@@ -1082,8 +1236,8 @@ of a dictionnary are silently overwritten</p>
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="manual.html"
-                        title="previous chapter">User’s manual</a></p>
+  <p class="topless"><a href="ftblevo.html"
+                        title="previous chapter">FTBL format evolution</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="howto.html"
                         title="next chapter">How to …</a></p>
@@ -1121,9 +1275,9 @@ of a dictionnary are silently overwritten</p>
           <a href="howto.html" title="How to …"
              >next</a> |</li>
         <li class="right" >
-          <a href="manual.html" title="User’s manual"
+          <a href="ftblevo.html" title="FTBL format evolution"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -1,0 +1,7 @@
+# Created by 'ftbl2mtf.py --inst -o ./influx_si/test/mtf/ ./influx_si/test/ex_i_2box_var.ftbl' at 2022-01-10 16:27:24 CET +0100
+Id	Comment	Name	Kind	Type	Value
+		v1	NET	C	1.
+		v2	NET	D	1.
+		v3	NET	D	1.
+		B	METAB	F	1.0
+		C	METAB	F	0.5

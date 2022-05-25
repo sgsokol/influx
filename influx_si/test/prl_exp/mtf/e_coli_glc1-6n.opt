@@ -1,0 +1,5 @@
+# Created by 'ftbl2mtf e_coli_glc1-6n.ftbl -o mtf/e_coli_glc1-6n' at 2022-05-18 15:33:54 CEST +0200
+Id	Comment	Name	Value
+		commandArgs	--noscale --T --ln --zc 0
+		prl_exp	e_coli_glc2n; e_coli_glc3n; e_coli_glc4n; e_coli_glc5n; e_coli_glc6n;
+		posttreat_R	plot_smeas.R

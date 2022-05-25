@@ -1,0 +1,1 @@
+../e_coli_GX_X_MS.txt

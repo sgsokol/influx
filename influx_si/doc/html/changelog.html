@@ -5,13 +5,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Change Log for influx_si &#8212; influx_si 5.4 documentation</title>
+    <title>Change Log for influx_si &#8212; influx_si 5.99 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '5.4',
+        VERSION:     '5.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -43,7 +43,7 @@
         <li class="right" >
           <a href="intro.html" title="Introduction"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -54,6 +54,26 @@
             
   <div class="section" id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-6-0">
+<h2>2022-05-16 version 6.0<a class="headerlink" href="#version-6-0" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>New features:</dt>
+<dd><ul class="first last simple">
+<li>introduced new front-end MTF format (cf. ftbl2mtf, txt2ftbl)</li>
+<li>added plot_ilab.R for plotting instationary MS/NMR measurements and simulations (replaces plot_imass.R)</li>
+<li>ftbl2xgmml: added orange color for dead-end metabolites</li>
+<li>txt2ftbl: added detection of disconnected sub-networks</li>
+<li>ftbl2netan: dead-ends are reported</li>
+<li>ftbl2metxml: added pathway information and compartment treatment</li>
+</ul>
+</dd>
+<dt>Bug fix:</dt>
+<dd><ul class="first last simple">
+<li>fixed MS measurements on long molecules in –emu mode</li>
+</ul>
+</dd>
+</dl>
+</div>
 <div class="section" id="version-5-4-0">
 <h2>2021-02-26 version 5.4.0<a class="headerlink" href="#version-5-4-0" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
@@ -815,6 +835,7 @@ all fluxes are free or constrained;</li>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-6-0">2022-05-16 version 6.0</a></li>
 <li><a class="reference internal" href="#version-5-4-0">2021-02-26 version 5.4.0</a></li>
 <li><a class="reference internal" href="#version-5-3-0">2020-07-24 version 5.3.0</a></li>
 <li><a class="reference internal" href="#version-5-2-0">2020-05-28 version 5.2.0</a></li>
@@ -901,7 +922,7 @@ all fluxes are free or constrained;</li>
         <li class="right" >
           <a href="intro.html" title="Introduction"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

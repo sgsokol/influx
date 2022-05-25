@@ -128,7 +128,7 @@ for (iexp in seq_len(nb_exp)) {
    if (length(nm_sel) > 0) {
       plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="MS measurements\n(error bars=±2*dev)", cex=2)
-      nmf=sort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":")))
+      nmf=natsort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":")))
       for (metf in nmf) {
          i=grep(sprintf("m:%s:", metf), nm_sel, fixed=TRUE, v=TRUE)
          # count repeated fragments
@@ -141,8 +141,10 @@ for (iexp in seq_len(nb_exp)) {
          mf=strsplit(metf, ":")[[1]]
          met=mf[1]
          fr=mf[2]
+         if (is.na(fr))
+            fr=""
          metlen=clen[mets_in_res[[iexp]][i[1]]]
-         if (fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
+         if (fr == "" || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
             mainlab=met
          } else {
             mask=rep("0", metlen)

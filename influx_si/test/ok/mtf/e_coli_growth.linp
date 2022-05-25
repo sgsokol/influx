@@ -1,0 +1,17 @@
+# Created by 'ftbl2mtf e_coli_growth.ftbl -o mtf/' at 2022-05-25 17:04:35 CEST +0200
+Id	Comment	Specie	Isotopomer	Value
+		Gluc_U	111111	0.952
+		Gluc_U	011111	0.008
+		Gluc_U	101111	0.008
+		Gluc_U	110111	0.008
+		Gluc_U	111011	0.008
+		Gluc_U	111101	0.008
+		Gluc_U	111110	0.008
+		Gluc_1	100000	0.9465
+		Gluc_1	110000	0.0107
+		Gluc_1	101000	0.0107
+		Gluc_1	100100	0.0107
+		Gluc_1	100010	0.0107
+		Gluc_1	100001	0.0107
+		CO2_ext	0	0.9893
+		CO2_ext	1	0.0107

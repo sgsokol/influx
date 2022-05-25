@@ -5,13 +5,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>How to … &#8212; influx_si 5.4 documentation</title>
+    <title>How to … &#8212; influx_si 5.99 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '5.4',
+        VERSION:     '5.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -43,7 +43,7 @@
         <li class="right" >
           <a href="progdoc.html" title="Programmer’s documentation for influx_s"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -120,24 +120,24 @@
 <dd><p>Let suppose you want to filter some of Monte-Carlo (MC) iterations based on their cost values.
 In <code class="docutils literal"><span class="pre">OPTIONS/posttreat_R</span></code> of your FTBL file add <code class="docutils literal"><span class="pre">save_all.R</span></code>. The file <code class="docutils literal"><span class="pre">save_all.R</span></code> can be found in <code class="docutils literal"><span class="pre">R</span></code> directory of <code class="docutils literal"><span class="pre">influx_si</span></code> distribution. Execution of <code class="docutils literal"><span class="pre">save_all.R</span></code> at the end of calculations will simply save all session variables in <code class="docutils literal"><span class="pre">mynetwork.RData</span></code> file (supposing that your FTBL file is named <code class="docutils literal"><span class="pre">mynetwork.ftbl</span></code>). In particular, you need <code class="docutils literal"><span class="pre">free_mc</span></code> matrix which contains free parameters (each column results from a given MC iteration). After that you can open an interactive R session in your working directory and run something similar to:</p>
 <div class="highlight-r"><div class="highlight"><pre><span></span><span class="c1"># preparations</span>
-<span class="nf">load</span><span class="p">(</span><span class="s">&quot;mynetwork.RData&quot;</span><span class="p">)</span>
-<span class="nf">source</span><span class="p">(</span><span class="nf">file.path</span><span class="p">(</span><span class="n">dirx</span><span class="p">,</span> <span class="s">&quot;libs.R&quot;</span><span class="p">))</span>
-<span class="nf">source</span><span class="p">(</span><span class="nf">file.path</span><span class="p">(</span><span class="n">dirx</span><span class="p">,</span> <span class="s">&quot;opt_cumo_tools.R&quot;</span><span class="p">))</span>
+<span class="kp">load</span><span class="p">(</span><span class="s">&quot;mynetwork.RData&quot;</span><span class="p">)</span>
+<span class="kn">source</span><span class="p">(</span><span class="kp">file.path</span><span class="p">(</span>dirx<span class="p">,</span> <span class="s">&quot;libs.R&quot;</span><span class="p">))</span>
+<span class="kn">source</span><span class="p">(</span><span class="kp">file.path</span><span class="p">(</span>dirx<span class="p">,</span> <span class="s">&quot;opt_cumo_tools.R&quot;</span><span class="p">))</span>
 <span class="c1">#source(file.path(dirx, &quot;opt_icumo_tools.R&quot;)) # uncoment for influx_i use</span>
-<span class="n">tmp</span><span class="o">=</span><span class="nf">sparse2spa</span><span class="p">(</span><span class="n">spa</span><span class="p">)</span>
+tmp<span class="o">=</span>sparse2spa<span class="p">(</span>spa<span class="p">)</span>
 
 <span class="c1"># doing something useful</span>
 <span class="c1"># here, we calculate a vector of cost values, one per MC iteration</span>
-<span class="n">cost_mc</span><span class="o">=</span><span class="nf">apply</span><span class="p">(</span><span class="n">free_mc</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="nf">function</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="nf">cumo_cost</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">labargs</span><span class="p">))</span>
+cost_mc<span class="o">=</span><span class="kp">apply</span><span class="p">(</span>free_mc<span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="kr">function</span><span class="p">(</span>p<span class="p">)</span> cumo_cost<span class="p">(</span>p<span class="p">,</span> labargs<span class="p">))</span>
 <span class="c1"># do something else ...</span>
 </pre></div>
 </div>
 <p>If, instead of cost values, you need for example a full set of net-xch fluxes then do</p>
-<div class="highlight-r"><div class="highlight"><pre><span></span><span class="n">allflux_mc</span><span class="o">=</span><span class="nf">apply</span><span class="p">(</span><span class="n">free_mc</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="nf">function</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="nf">param2fl</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">labargs</span><span class="p">)</span><span class="o">$</span><span class="n">fallnx</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span></span>allflux_mc<span class="o">=</span><span class="kp">apply</span><span class="p">(</span>free_mc<span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="kr">function</span><span class="p">(</span>p<span class="p">)</span> param2fl<span class="p">(</span>p<span class="p">,</span> labargs<span class="p">)</span><span class="o">$</span>fallnx<span class="p">)</span>
 </pre></div>
 </div>
 <p>for residuals, do:</p>
-<div class="highlight-r"><div class="highlight"><pre><span></span><span class="n">resid_mc</span><span class="o">=</span><span class="nf">apply</span><span class="p">(</span><span class="n">free_mc</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="nf">function</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="nf">lab_resid</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="kc">FALSE</span><span class="p">,</span> <span class="n">labargs</span><span class="p">)</span><span class="o">$</span><span class="n">res</span><span class="p">)</span>
+<div class="highlight-r"><div class="highlight"><pre><span></span>resid_mc<span class="o">=</span><span class="kp">apply</span><span class="p">(</span>free_mc<span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="kr">function</span><span class="p">(</span>p<span class="p">)</span> lab_resid<span class="p">(</span>p<span class="p">,</span> <span class="kc">FALSE</span><span class="p">,</span> labargs<span class="p">)</span><span class="o">$</span>res<span class="p">)</span>
 </pre></div>
 </div>
 <p>After that, you can filter or do whatever needed with obtained vectors and matrices.</p>
@@ -193,7 +193,7 @@ In <code class="docutils literal"><span class="pre">OPTIONS/posttreat_R</span></
         <li class="right" >
           <a href="progdoc.html" title="Programmer’s documentation for influx_s"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

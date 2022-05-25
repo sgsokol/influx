@@ -1,0 +1,7 @@
+Id	Comment	Name	Value
+		commandArgs	--noopt --noscale --TIMEIT --clowp 1.e-9
+		dt	0.01
+		nsubdiv_dt	1
+		tmax	5
+		posttreat_R	plot_imass.R
+		funlabR	ex_i_2box_lin.funlab.R

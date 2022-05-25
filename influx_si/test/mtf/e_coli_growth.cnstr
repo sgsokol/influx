@@ -1,0 +1,11 @@
+# Created by 'ftbl2mtf e_coli_growth.ftbl -o mtf/' at 2022-05-25 17:04:35 CEST +0200
+Id	Comment	Kind	Formula	Operator	Value
+		NET	fum_a-fum_b	==	0
+		NET	Glucupt_1+Glucupt_U	==	1
+		XCH	fum_a-fum_b	==	0
+		NET	edd	>=	0
+		NET	gnd	>=	0
+		NET	zwf	>=	0
+		NET	ppc	>=	0
+		NET	idh	>=	0
+		NET	akgdh	>=	0

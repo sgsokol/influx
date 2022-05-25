@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.abspath('../bin'))
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.mathjax']
-
+#extensions = ['sphinx.ext.mathjax']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -191,7 +191,7 @@ latex_documents = [
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-#latex_use_parts = False
+latex_use_parts = True
 
 # If true, show page references after internal links.
 #latex_show_pagerefs = False
@@ -200,7 +200,12 @@ latex_documents = [
 #latex_show_urls = False
 
 # Additional stuff for the LaTeX preamble.
-latex_preamble = u'\\setcounter{secnumdepth}{0}'
+latex_elements = {
+  'preamble': r"""\usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{00D7}{$\times$}
+\DeclareUnicodeCharacter{2265}{$\geq$}
+\setcounter{secnumdepth}{0}"""
+}
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []

@@ -1,0 +1,4 @@
+# Created by 'ftbl2mtf.py --inst -o ./influx_si/test/mtf/ ./influx_si/test/ex_i_2box_var.ftbl' at 2022-01-10 16:27:24 CET +0100
+v1:	A (a) -> B (a)
+v2:	B (a) -> C (a)
+v3:	C (a) -> D (a)

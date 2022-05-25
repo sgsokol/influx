@@ -386,12 +386,27 @@ if len(args) > 0:
 # treat MTF options if any
 if ord_args:
     li_ftbl=[]
-    mtf_opts=[v for t in ord_args for v in t]
+    mtf_opts=[]
     if case_i:
         mtf_opts += ["--inst"]
-    #print("mtf_opts=", mtf_opts)
-    txt2ftbl.main(mtf_opts, li_ftbl)
-    args += li_ftbl
+    # check that multiple --prefix is not mixed with other --mtf or --eprl
+    ocount={}
+    [ocount.update([(t[0], ocount.get(t[0], 0)+1)]) for t in ord_args]
+    if "--force" in ocount:
+        mtf_opts += ["--force"]
+        del(ocount["--force"])
+    if ocount["--prefix"] > 1:
+        if len(ocount) > 1:
+            raise Exception("If several occurrences of '--prefix' options are present, no other MTF options can be used (got '%s')"%"', '".join(k for k in ocount if k != "--prefix"))
+        for t in ord_args:
+            li_ftbl=[]
+            txt2ftbl.main(mtf_opts+list(t), li_ftbl)
+            args += li_ftbl
+    else:
+        mtf_opts += [v for t in ord_args for v in t]
+        #print("mtf_opts=", mtf_opts)
+        txt2ftbl.main(mtf_opts, li_ftbl)
+        args += li_ftbl
     
 if len(args) < 1:
     parser.print_help(sys.stderr)

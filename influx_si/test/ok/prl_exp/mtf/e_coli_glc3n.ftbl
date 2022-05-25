@@ -1,0 +1,124 @@
+// Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n' at 2022-05-25 18:37:11 CEST +0200
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+EQUALITIES
+	NET
+		VALUE	FORMULA
+	XCH
+		VALUE	FORMULA
+	METAB
+		VALUE	FORMULA
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+	XCH
+		VALUE	COMP	FORMULA
+	METAB
+		VALUE	COMP	FORMULA
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	CO2.unlabeled	#0	1   // e_coli_glc3n.linp: 3
+	Gluc.ext	#001000	0.996   // e_coli_glc3n.linp: 4
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+	Ala		0	0.545953158314403	0.01   // e_coli_glc3n.miso: 48
+			1	0.417350061334581	0.01   // e_coli_glc3n.miso: 49
+			2	0.0463954139077279	0.01   // e_coli_glc3n.miso: 50
+			3	0.00652795873019547	0.01   // e_coli_glc3n.miso: 51
+	Ala	2,3	0	0.931060392279655	0.01   // e_coli_glc3n.miso: 69
+			1	0.0756602173100856	0.01   // e_coli_glc3n.miso: 70
+			2	-0.00278245704413458	0.01   // e_coli_glc3n.miso: 71
+	Asp	1,2	0	0.642600981658826	0.01   // e_coli_glc3n.miso: 45
+			1	0.324039326560382	0.01   // e_coli_glc3n.miso: 46
+			2	0.0238113244220436	0.01   // e_coli_glc3n.miso: 47
+	Asp		0	0.482876322384728	0.01   // e_coli_glc3n.miso: 16
+			1	0.40308619110028	0.01   // e_coli_glc3n.miso: 17
+			2	0.107372158440354	0.01   // e_coli_glc3n.miso: 18
+			3	0.0339316579027186	0.01   // e_coli_glc3n.miso: 19
+			4	0.00948776364398024	0.01   // e_coli_glc3n.miso: 20
+	Asp	2~4	0	0.724868792223537	0.01   // e_coli_glc3n.miso: 21
+			1	0.251479261018915	0.01   // e_coli_glc3n.miso: 22
+			2	0.0106276101318209	0.01   // e_coli_glc3n.miso: 23
+			3	-0.0266786955448535	0.01   // e_coli_glc3n.miso: 24
+	Glu		0	0.662571893217903	0.01   // e_coli_glc3n.miso: 77
+			1	0.305976241162193	0.01   // e_coli_glc3n.miso: 78
+			2	0.0315713303908524	0.01   // e_coli_glc3n.miso: 79
+			3	0.0252943557361677	0.01   // e_coli_glc3n.miso: 80
+			4	0.00195372537097088	0.01   // e_coli_glc3n.miso: 81
+			5	0.00313902746814486	0.01   // e_coli_glc3n.miso: 82
+	Glu	2~5	0	0.877605340708407	0.01   // e_coli_glc3n.miso: 40
+			1	0.11329505497957	0.01   // e_coli_glc3n.miso: 41
+			2	0.0187316095686241	0.01   // e_coli_glc3n.miso: 42
+			3	-0.015120575579655	0.01   // e_coli_glc3n.miso: 43
+			4	-0.0168640325835602	0.01   // e_coli_glc3n.miso: 44
+	Gly		0	0.69410725444834	0.01   // e_coli_glc3n.miso: 52
+			1	0.297137471604462	0.01   // e_coli_glc3n.miso: 53
+			2	-0.000244719954656462	0.01   // e_coli_glc3n.miso: 54
+	Gly	2	0	0.968386546042026	0.01   // e_coli_glc3n.miso: 67
+			1	0.0418533711064495	0.01   // e_coli_glc3n.miso: 68
+	Ile	2~6	0	0.680468093017249	0.01   // e_coli_glc3n.miso: 55
+			1	0.310882894917388	0.01   // e_coli_glc3n.miso: 56
+			2	0.037700184789058	0.01   // e_coli_glc3n.miso: 57
+			3	0.00723363014545365	0.01   // e_coli_glc3n.miso: 58
+			4	-0.0106127241081634	0.01   // e_coli_glc3n.miso: 59
+			5	0.0052832502591383	0.01   // e_coli_glc3n.miso: 60
+	Leu	2~6	0	0.865904327340376	0.01   // e_coli_glc3n.miso: 61
+			1	0.148774133582589	0.01   // e_coli_glc3n.miso: 62
+			2	-0.00844936006421471	0.01   // e_coli_glc3n.miso: 63
+			3	-0.00438392049262358	0.01   // e_coli_glc3n.miso: 64
+			4	0.00485104084805689	0.01   // e_coli_glc3n.miso: 65
+			5	0.00718933075256445	0.01   // e_coli_glc3n.miso: 66
+	Phe	1,2	0	0.513768151195971	0.01   // e_coli_glc3n.miso: 13
+			1	0.420382692160871	0.01   // e_coli_glc3n.miso: 14
+			2	0.0331941867521693	0.01   // e_coli_glc3n.miso: 15
+	Phe	2~9	0	0.0371923299061817	0.01   // e_coli_glc3n.miso: 25
+			1	0.666088411097261	0.01   // e_coli_glc3n.miso: 26
+			2	0.250313632586167	0.01   // e_coli_glc3n.miso: 27
+			3	0.031643338569098	0.01   // e_coli_glc3n.miso: 28
+			4	-0.00106405050250813	0.01   // e_coli_glc3n.miso: 29
+			5	0.00821916405814673	0.01   // e_coli_glc3n.miso: 30
+			6	0.00638566406423756	0.01   // e_coli_glc3n.miso: 31
+			7	0.00199598324565465	0.01   // e_coli_glc3n.miso: 32
+			8	-0.00698062819214291	0.01   // e_coli_glc3n.miso: 33
+	Ser		0	0.541223137960526	0.01   // e_coli_glc3n.miso: 9
+			1	0.43685133388534	0.01   // e_coli_glc3n.miso: 10
+			2	0.0281464694053918	0.01   // e_coli_glc3n.miso: 11
+			3	-0.000383084370852074	0.01   // e_coli_glc3n.miso: 12
+	Ser	2,3	0	0.938961255163614	0.01   // e_coli_glc3n.miso: 3
+			1	0.0489495482011312	0.01   // e_coli_glc3n.miso: 4
+			2	0.012696050360752	0.01   // e_coli_glc3n.miso: 5
+	Tyr	1,2	0	0.552638978794749	0.01   // e_coli_glc3n.miso: 6
+			1	0.420525684939274	0.01   // e_coli_glc3n.miso: 7
+			2	0.0399013309600506	0.01   // e_coli_glc3n.miso: 8
+	Val		0	0.511887655806066	0.01   // e_coli_glc3n.miso: 34
+			1	0.431604790451175	0.01   // e_coli_glc3n.miso: 35
+			2	0.0455949652468131	0.01   // e_coli_glc3n.miso: 36
+			3	-0.0095148288169631	0.01   // e_coli_glc3n.miso: 37
+			4	0.00975856211007698	0.01   // e_coli_glc3n.miso: 38
+			5	-0.00112723148172686	0.01   // e_coli_glc3n.miso: 39
+	Val	2~5	0	0.855774940175138	0.01   // e_coli_glc3n.miso: 72
+			1	0.109555157776762	0.01   // e_coli_glc3n.miso: 73
+			2	0.00410971192503429	0.01   // e_coli_glc3n.miso: 74
+			3	0.0056942718167594	0.01   // e_coli_glc3n.miso: 75
+			4	-0.00165608754547472	0.01   // e_coli_glc3n.miso: 76
+METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION
+OPTIONS
+	OPT_NAME	OPT_VALUE

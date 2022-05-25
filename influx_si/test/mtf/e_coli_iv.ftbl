@@ -1,0 +1,524 @@
+// Created by 'txt2ftbl --inst --prefix e_coli_iv' at 2022-05-25 17:54:29 CEST +0200
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	e_coli_iv.netw	1.0			command='txt2ftbl --inst --prefix e_coli_iv'
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// Created by 'ftbl2mtf e_coli_iv.ftbl -o mtf/' at 2022-05-25 17:04:36 CEST +0200
+	Glucupt_1	Gluc_1		Glc6P
+		#ABCDEF		#ABCDEF
+	Glucupt_U	Gluc_U		Glc6P
+		#ABCDEF		#ABCDEF
+	pgi	Glc6P		Fru6P
+		#ABCDEF		#ABCDEF
+	pfk	Fru6P		FruBP
+		#ABCDEF		#ABCDEF
+	ald	FruBP		GA3P	GA3P
+		#ABCDEF		#CBA	#DEF
+	pgk	GA3P		PGA
+		#ABC		#ABC
+	eno	PGA		PEP
+		#ABC		#ABC
+	pyk	PEP		Pyr
+		#ABC		#ABC
+	zwf	Glc6P		Gnt6P
+		#ABCDEF		#ABCDEF
+	gnd	Gnt6P		CO2	Rib5P
+		#ABCDEF		#A	#BCDEF
+	edd	Gnt6P		Pyr	GA3P
+		#ABCDEF		#ABC	#DEF
+	ta	GA3P	Sed7P	Ery4P	Fru6P
+		#ABC	#abcdefg	#defg	#abcABC
+	tk1	Rib5P	Rib5P	GA3P	Sed7P
+		#ABCDE	#abcde	#CDE	#ABabcde
+	tk2	Rib5P	Ery4P	GA3P	Fru6P
+		#ABCDE	#abcd	#CDE	#ABabcd
+	pdh	Pyr		AcCoA	CO2
+		#ABC		#BC	#A
+	citsynth	AcCoA	OAA	ICit	
+		#AB	#abcd	#dcbaBA	
+	idh	ICit		AKG	CO2
+		#ABCDEF		#ABCEF	#D
+	akgdh	AKG		Suc	CO2
+		#ABCDE		#BCDE	#A
+	fum_a	Suc		Mal
+		#ABCD		#ABCD
+	fum_b	Suc		Mal
+		#ABCD		#DCBA
+	maldh	Mal		OAA
+		#ABCD		#ABCD
+	ppc	PEP	CO2	OAA	
+		#ABC	#a	#ABCa	
+	mae	Mal		Pyr	CO2
+		#ABCD		#ABC	#D
+	bs_glc6P	Glc6P		BM_Glc6P
+		#ABCDEF		#ABCDEF
+	bs_fru6P	Fru6P		BM_Fru6P
+		#ABCDEF		#ABCDEF
+	bs_pga	PGA		BM_PGA
+		#ABC		#ABC
+	bs_pga_aux	BM_PGA		PGA_Aux
+		#ABC		#ABC
+	bs_pga1	BM_PGA		Ser
+		#ABC		#ABC
+	bs_pga1_aux	Ser		Ser_Aux
+		#ABC		#ABC
+	bs_pga2	Ser		Cys
+		#ABC		#ABC
+	bs_pga2_aux	Cys		Cys_Aux
+		#ABC		#ABC
+	bs_pga3	Ser		Gly	FTHF
+		#ABC		#AB	#C
+	bs_pga3_aux	Gly		Gly_Aux
+		#AB		#AB
+	bs_DHAP	GA3P		Glp
+		#ABC		#ABC
+	bs_pyr	Pyr		BM_Pyr
+		#ABC		#ABC
+	bs_pyr1	BM_Pyr		Ala
+		#ABC		#ABC
+	bs_pyr1_aux	Ala		Ala_Aux
+		#ABC		#ABC
+	bs_pyr2	BM_Pyr	BM_Pyr	AKV	CO2
+		#ABC	#abc	#ABbcC	#a
+	bs_pyr4	AKV		Val
+		#ABCDE		#ABCDE
+	bs_pyr4_aux	Val		Val_Aux
+		#ABCDE		#ABCDE
+	bs_pyr3	AKV	BM_AcCoA	Leu	CO2
+		#ABCDE	#ab	#abBCDE	#A
+	bs_pyr3_aux	Leu		Leu_Aux
+		#ABCDEF		#ABCDEF
+	bs_e4p	Ery4P		BM_Ery4P
+		#ABCD		#ABCD
+	bs_rib5p	Rib5P		BM_Rib5P
+		#ABCDE		#ABCDE
+	bs_rib5p1	BM_Rib5P	FTHF	His	
+		#ABCDE	#a	#EDCBAa	
+	bs_rib5p1_aux	His		His_Aux
+		#ABCDEF		#ABCDEF
+	bs_rib5p2	BM_Rib5P		Ri5P_Aux
+		#ABCDE		#ABCDE
+	bs_pep	PEP		BM_PEP
+		#ABC		#ABC
+	bs_pep1	BM_PEP	BM_Ery4P	DAHP	
+		#ABC	#abcd	#ABCabcd	
+	bs_pep2	BM_PEP	DAHP	Chor	
+		#ABC	#abcdefg	#ABCabcdefg	
+	bs_pep3a	Chor		Phe	CO2
+		#ABCDEFGHIJ		#ABCEFGHIJ	#D
+	bs_pep3b	Chor		Phe	CO2
+		#ABCDEFGHIJ		#ABCEJIHGF	#D
+	bs_pep3_aux	Phe		Phe_Aux
+		#ABCEFGHIJ		#ABCEFGHIJ
+	bs_pep4a	Chor		Tyr	CO2
+		#ABCDEFGHIJ		#ABCEFGHIJ	#D
+	bs_pep4b	Chor		Tyr	CO2
+		#ABCDEFGHIJ		#ABCEJIHGF	#D
+	bs_pep4_aux	Tyr		Tyr_Aux
+		#ABCEFGHIJ		#ABCEFGHIJ
+	bs_pep5	BM_PEP		PEP_Aux
+		#ABC		#ABC
+	bs_pep6	Chor	BM_Rib5P	Trp	PyrCO2
+		#ABCDEFGHIJ	#abcde	#edcbaJEFGHI	#ABCD
+	bs_pep6_aux	Trp		Trp_Aux
+		#ABCDEFGHIJK		#ABCDEFGHIJK
+	bs_pep7	PyrCO2		Pyr	CO2
+		#ABCD		#ABC	#D
+	bs_accoa	AcCoA		BM_AcCoA
+		#AB		#AB
+	bs_accoa_aux	BM_AcCoA		AcCoA_Aux
+		#AB		#AB
+	bs_akg	AKG		BM_AKG
+		#ABCDE		#ABCDE
+	bs_akg1	BM_AKG		Glu
+		#ABCDE		#ABCDE
+	bs_akg2	Glu		Pro
+		#ABCDE		#ABCDE
+	bs_akg3	Glu		Gln
+		#ABCDE		#ABCDE
+	bs_akg4	Glu	CO2	Arg	
+		#ABCDE	#a	#ABCDEa	
+	bs_akg4_aux	Arg		Arg_Aux
+		#ABCDEF		#ABCDEF
+	bs_oaa	OAA		BM_OAA
+		#ABCD		#ABCD
+	bs_oaa1	BM_OAA		Asp
+		#ABCD		#ABCD
+	bs_oaa1_aux	Asp		Asp_Aux
+		#ABCD		#ABCD
+	bs_oaa2	Thr	BM_Pyr	Ile	CO2
+		#ABCD	#abc	#ABbCDc	#a
+	bs_oaa2_aux	Ile		Ile_Aux
+		#ABCDEF		#ABCDEF
+	bs_oaa3a	BM_OAA	BM_Pyr	Lys	CO2
+		#ABCD	#abc	#ABCDcb	#a
+	bs_oaa3b	BM_OAA	BM_Pyr	Lys	CO2
+		#ABCD	#abc	#abcDCB	#A
+	bs_oaa3_aux	Lys		Lys_Aux
+		#ABCDEF		#ABCDEF
+	bs_oaa4	BM_OAA		OAA_Aux
+		#ABCD		#ABCD
+	bs_oaa5	BM_OAA		Thr
+		#ABCD		#ABCD
+	bs_oaa5_aux	Thr		Thr_Aux
+		#ABCD		#ABCD
+	bs_oaa6	BM_OAA	FTHF	Met	
+		#ABCD	#a	#ABCDa	
+	bs_oaa6_aux	Met		Met_Aux
+		#ABCDE		#ABCDE
+	bs_oaa7	BM_OAA		Asn
+		#ABCD		#ABCD
+	bs_oaa7_aux	Asn		Asn_Aux
+		#ABCD		#ABCD
+	out_co2	CO2		CO2_out
+		#A		#A
+	out_Ac	AcCoA		Acetate
+		#AB		#AB
+	out_FTHF	FTHF		FTHF_out
+		#A		#A
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		Glucupt_U	D	   // e_coli_iv.tvar: 4
+		akgdh	D	   // e_coli_iv.tvar: 20
+		ald	D	   // e_coli_iv.tvar: 7
+		bs_DHAP	C	0.0068   // e_coli_iv.tvar: 36
+		bs_accoa	C	0.1565   // e_coli_iv.tvar: 63
+		bs_accoa_aux	D	   // e_coli_iv.tvar: 64
+		bs_akg	C	0.0571   // e_coli_iv.tvar: 65
+		bs_oaa	C	0.0947   // e_coli_iv.tvar: 71
+		bs_pep	C	0.0381   // e_coli_iv.tvar: 50
+		bs_pga	C	0.0791   // e_coli_iv.tvar: 28
+		bs_pga_aux	D	   // e_coli_iv.tvar: 29
+		bs_pyr	C	0.1501   // e_coli_iv.tvar: 37
+		citsynth	D	   // e_coli_iv.tvar: 18
+		edd	D	   // e_coli_iv.tvar: 13
+		eno	D	   // e_coli_iv.tvar: 9
+		fum_a	D	   // e_coli_iv.tvar: 21
+		fum_b	D	   // e_coli_iv.tvar: 22
+		gnd	F	0.15062   // e_coli_iv.tvar: 12
+		idh	D	   // e_coli_iv.tvar: 19
+		mae	D	   // e_coli_iv.tvar: 25
+		maldh	D	   // e_coli_iv.tvar: 23
+		out_Ac	F	0.213   // e_coli_iv.tvar: 87
+		out_FTHF	D	   // e_coli_iv.tvar: 88
+		pdh	D	   // e_coli_iv.tvar: 17
+		pfk	D	   // e_coli_iv.tvar: 6
+		pgi	D	   // e_coli_iv.tvar: 5
+		pgk	D	   // e_coli_iv.tvar: 8
+		ppc	D	   // e_coli_iv.tvar: 24
+		pyk	F	1.4   // e_coli_iv.tvar: 10
+		ta	D	   // e_coli_iv.tvar: 14
+		zwf	F	0.2   // e_coli_iv.tvar: 11
+		bs_akg1	D	   // e_coli_iv.tvar: 66
+		bs_akg2	C	0.0111   // e_coli_iv.tvar: 67
+		bs_akg3	C	0.0132   // e_coli_iv.tvar: 68
+		bs_akg4	D	   // e_coli_iv.tvar: 69
+		bs_akg4_aux	D	   // e_coli_iv.tvar: 70
+		bs_e4p	D	   // e_coli_iv.tvar: 45
+		bs_fru6P	C	0.0038   // e_coli_iv.tvar: 27
+		bs_glc6P	C	0.0109   // e_coli_iv.tvar: 26
+		bs_oaa1	D	   // e_coli_iv.tvar: 72
+		bs_oaa1_aux	C	0.0121   // e_coli_iv.tvar: 73
+		bs_oaa2	D	   // e_coli_iv.tvar: 74
+		bs_oaa2_aux	C	0.0146   // e_coli_iv.tvar: 75
+		bs_oaa3_aux	C	0.0173   // e_coli_iv.tvar: 78
+		bs_oaa3a	D	   // e_coli_iv.tvar: 76
+		bs_oaa3b	D	   // e_coli_iv.tvar: 77
+		bs_oaa4	D	   // e_coli_iv.tvar: 79
+		bs_oaa5	D	   // e_coli_iv.tvar: 80
+		bs_oaa5_aux	C	0.0128   // e_coli_iv.tvar: 81
+		bs_oaa6	D	   // e_coli_iv.tvar: 82
+		bs_oaa6_aux	C	0.0077   // e_coli_iv.tvar: 83
+		bs_oaa7	D	   // e_coli_iv.tvar: 84
+		bs_oaa7_aux	C	0.0121   // e_coli_iv.tvar: 85
+		bs_pep1	D	   // e_coli_iv.tvar: 51
+		bs_pep2	D	   // e_coli_iv.tvar: 52
+		bs_pep3_aux	C	0.0093   // e_coli_iv.tvar: 55
+		bs_pep3a	D	   // e_coli_iv.tvar: 53
+		bs_pep3b	D	   // e_coli_iv.tvar: 54
+		bs_pep4_aux	C	0.0069   // e_coli_iv.tvar: 58
+		bs_pep4a	D	   // e_coli_iv.tvar: 56
+		bs_pep4b	D	   // e_coli_iv.tvar: 57
+		bs_pep5	C	0.0027   // e_coli_iv.tvar: 59
+		bs_pep6	D	   // e_coli_iv.tvar: 60
+		bs_pep6_aux	D	   // e_coli_iv.tvar: 61
+		bs_pep7	D	   // e_coli_iv.tvar: 62
+		bs_pga1	D	   // e_coli_iv.tvar: 30
+		bs_pga1_aux	C	0.0109   // e_coli_iv.tvar: 31
+		bs_pga2	D	   // e_coli_iv.tvar: 32
+		bs_pga2_aux	C	0.0046   // e_coli_iv.tvar: 33
+		bs_pga3	D	   // e_coli_iv.tvar: 34
+		bs_pga3_aux	C	0.0308   // e_coli_iv.tvar: 35
+		bs_pyr1	D	   // e_coli_iv.tvar: 38
+		bs_pyr1_aux	D	   // e_coli_iv.tvar: 39
+		bs_pyr2	D	   // e_coli_iv.tvar: 40
+		bs_pyr3	D	   // e_coli_iv.tvar: 43
+		bs_pyr3_aux	C	0.0227   // e_coli_iv.tvar: 44
+		bs_pyr4	D	   // e_coli_iv.tvar: 41
+		bs_pyr4_aux	C	0.0213   // e_coli_iv.tvar: 42
+		bs_rib5p	C	0.0476   // e_coli_iv.tvar: 46
+		bs_rib5p1	D	   // e_coli_iv.tvar: 47
+		bs_rib5p1_aux	C	0.0048   // e_coli_iv.tvar: 48
+		bs_rib5p2	D	   // e_coli_iv.tvar: 49
+		Glucupt_1	F	0.7   // e_coli_iv.tvar: 3
+		out_co2	D	   // e_coli_iv.tvar: 86
+		tk1	D	   // e_coli_iv.tvar: 15
+		tk2	D	   // e_coli_iv.tvar: 16
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		ald	F	0.413926   // e_coli_iv.tvar: 90
+		eno	F	0.800962   // e_coli_iv.tvar: 92
+		fum_a	F	0.395958   // e_coli_iv.tvar: 98
+		fum_b	D	   // e_coli_iv.tvar: 99
+		maldh	C	0.647115   // e_coli_iv.tvar: 100
+		pdh	C	0.0322745   // e_coli_iv.tvar: 97
+		pgi	C	0.752386   // e_coli_iv.tvar: 89
+		pgk	C	0.984718   // e_coli_iv.tvar: 91
+		ppc	F	0.256772   // e_coli_iv.tvar: 101
+		pyk	C	0.0109591   // e_coli_iv.tvar: 93
+		ta	F	0.359468   // e_coli_iv.tvar: 94
+		bs_pga3	C	0.011799   // e_coli_iv.tvar: 102
+		tk1	F	0.166316   // e_coli_iv.tvar: 95
+		tk2	F	2.11559e-03   // e_coli_iv.tvar: 96
+		Glucupt_1	C	0
+		Glucupt_U	C	0
+		pfk	C	0
+		zwf	C	0
+		gnd	C	0
+		edd	C	0
+		citsynth	C	0
+		idh	C	0
+		akgdh	C	0
+		mae	C	0
+		bs_glc6P	C	0
+		bs_fru6P	C	0
+		bs_pga	C	0
+		bs_pga_aux	C	0
+		bs_pga1	C	0
+		bs_pga1_aux	C	0
+		bs_pga2	C	0
+		bs_pga2_aux	C	0
+		bs_pga3_aux	C	0
+		bs_DHAP	C	0
+		bs_pyr	C	0
+		bs_pyr1	C	0
+		bs_pyr1_aux	C	0
+		bs_pyr2	C	0
+		bs_pyr4	C	0
+		bs_pyr4_aux	C	0
+		bs_pyr3	C	0
+		bs_pyr3_aux	C	0
+		bs_e4p	C	0
+		bs_rib5p	C	0
+		bs_rib5p1	C	0
+		bs_rib5p1_aux	C	0
+		bs_rib5p2	C	0
+		bs_pep	C	0
+		bs_pep1	C	0
+		bs_pep2	C	0
+		bs_pep3a	C	0
+		bs_pep3b	C	0
+		bs_pep3_aux	C	0
+		bs_pep4a	C	0
+		bs_pep4b	C	0
+		bs_pep4_aux	C	0
+		bs_pep5	C	0
+		bs_pep6	C	0
+		bs_pep6_aux	C	0
+		bs_pep7	C	0
+		bs_accoa	C	0
+		bs_accoa_aux	C	0
+		bs_akg	C	0
+		bs_akg1	C	0
+		bs_akg2	C	0
+		bs_akg3	C	0
+		bs_akg4	C	0
+		bs_akg4_aux	C	0
+		bs_oaa	C	0
+		bs_oaa1	C	0
+		bs_oaa1_aux	C	0
+		bs_oaa2	C	0
+		bs_oaa2_aux	C	0
+		bs_oaa3a	C	0
+		bs_oaa3b	C	0
+		bs_oaa3_aux	C	0
+		bs_oaa4	C	0
+		bs_oaa5	C	0
+		bs_oaa5_aux	C	0
+		bs_oaa6	C	0
+		bs_oaa6_aux	C	0
+		bs_oaa7	C	0
+		bs_oaa7_aux	C	0
+		out_co2	C	0
+		out_Ac	C	0
+		out_FTHF	C	0
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+	AKG	-1.0   // e_coli_iv.tvar: 103
+	AKV	1.0   // e_coli_iv.tvar: 104
+	AcCoA	1.0   // e_coli_iv.tvar: 105
+	Ala	1.0   // e_coli_iv.tvar: 106
+	Arg	1.0   // e_coli_iv.tvar: 107
+	Asn	1.0   // e_coli_iv.tvar: 108
+	Asp	1.0   // e_coli_iv.tvar: 109
+	BM_AKG	1.0   // e_coli_iv.tvar: 110
+	BM_AcCoA	1.0   // e_coli_iv.tvar: 111
+	BM_OAA	1.0   // e_coli_iv.tvar: 113
+	BM_PEP	1.0   // e_coli_iv.tvar: 114
+	BM_PGA	1.0   // e_coli_iv.tvar: 115
+	BM_Pyr	1.0   // e_coli_iv.tvar: 116
+	Chor	1.0   // e_coli_iv.tvar: 119
+	Cys	1.0   // e_coli_iv.tvar: 120
+	DAHP	1.0   // e_coli_iv.tvar: 121
+	FTHF	1.0   // e_coli_iv.tvar: 123
+	FruBP	-1.0   // e_coli_iv.tvar: 125
+	Glu	1.0   // e_coli_iv.tvar: 128
+	Gly	1.0   // e_coli_iv.tvar: 129
+	His	1.0   // e_coli_iv.tvar: 131
+	ICit	-1.0   // e_coli_iv.tvar: 132
+	Ile	1.0   // e_coli_iv.tvar: 133
+	Leu	1.0   // e_coli_iv.tvar: 134
+	Lys	1.0   // e_coli_iv.tvar: 135
+	Mal	1.0   // e_coli_iv.tvar: 136
+	Met	1.0   // e_coli_iv.tvar: 137
+	OAA	-1.0   // e_coli_iv.tvar: 138
+	PEP	-1.0   // e_coli_iv.tvar: 139
+	PGA	-1.0   // e_coli_iv.tvar: 140
+	Phe	1.0   // e_coli_iv.tvar: 141
+	Pyr	-1.0   // e_coli_iv.tvar: 142
+	Ser	1.0   // e_coli_iv.tvar: 146
+	Suc	-1.0   // e_coli_iv.tvar: 147
+	Thr	1.0   // e_coli_iv.tvar: 148
+	Trp	1.0   // e_coli_iv.tvar: 149
+	Tyr	1.0   // e_coli_iv.tvar: 150
+	Val	1.0   // e_coli_iv.tvar: 151
+	BM_Ery4P	1.0   // e_coli_iv.tvar: 112
+	BM_Rib5P	1.0   // e_coli_iv.tvar: 117
+	CO2	1.0   // e_coli_iv.tvar: 118
+	Ery4P	-1.0   // e_coli_iv.tvar: 122
+	Fru6P	-1.0   // e_coli_iv.tvar: 124
+	GA3P	-1.0   // e_coli_iv.tvar: 126
+	Glc6P	1.0   // e_coli_iv.tvar: 127
+	Gnt6P	-1.0   // e_coli_iv.tvar: 130
+	PyrCO2	1.0   // e_coli_iv.tvar: 143
+	Rib5P	-1.0   // e_coli_iv.tvar: 144
+	Sed7P	-1.0   // e_coli_iv.tvar: 145
+EQUALITIES
+	NET
+		VALUE	FORMULA
+		1	Glucupt_1+Glucupt_U   // e_coli_iv.cnstr: 4
+		0	bs_oaa3a-bs_oaa3b   // e_coli_iv.cnstr: 5
+		0	bs_pep3a-bs_pep3b   // e_coli_iv.cnstr: 6
+		0	bs_pep4a-bs_pep4b   // e_coli_iv.cnstr: 7
+		0	fum_a-fum_b   // e_coli_iv.cnstr: 3
+	XCH
+		VALUE	FORMULA
+		0	fum_a-fum_b   // e_coli_iv.cnstr: 8
+	METAB
+		VALUE	FORMULA
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+		0.0001	<=	edd   // e_coli_iv.cnstr: 10
+		0.0001	<=	gnd   // e_coli_iv.cnstr: 11
+		0.0001	<=	mae   // e_coli_iv.cnstr: 14
+		0.0001	<=	ppc   // e_coli_iv.cnstr: 13
+		1	<=	pyk   // e_coli_iv.cnstr: 9
+		0.0001	<=	zwf   // e_coli_iv.cnstr: 12
+	XCH
+		VALUE	COMP	FORMULA
+	METAB
+		VALUE	COMP	FORMULA
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	Gluc_1	#100000	ppulses(t, c(T1,T2))   // e_coli_iv.linp: 4
+	Gluc_U	#111111	ppulses(t, c(T1,T2))   // e_coli_iv.linp: 3
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+	out_Ac	0.213	0.0001   // e_coli_iv.mflux: 3
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+	Fru6P		0	NA	0.01   // e_coli_iv.miso: 36
+			1	NA	0.01   // e_coli_iv.miso: 37
+			2	NA	0.01   // e_coli_iv.miso: 38
+			3	NA	0.01   // e_coli_iv.miso: 39
+			4	NA	0.01   // e_coli_iv.miso: 40
+			5	NA	0.01   // e_coli_iv.miso: 41
+			6	NA	0.01   // e_coli_iv.miso: 42
+	FruBP		0	NA	0.01   // e_coli_iv.miso: 22
+			1	NA	0.01   // e_coli_iv.miso: 23
+			2	NA	0.01   // e_coli_iv.miso: 24
+			3	NA	0.01   // e_coli_iv.miso: 25
+			4	NA	0.01   // e_coli_iv.miso: 26
+			5	NA	0.01   // e_coli_iv.miso: 27
+			6	NA	0.01   // e_coli_iv.miso: 28
+	Glc6P		0	NA	0.01   // e_coli_iv.miso: 29
+			1	NA	0.01   // e_coli_iv.miso: 30
+			2	NA	0.01   // e_coli_iv.miso: 31
+			3	NA	0.01   // e_coli_iv.miso: 32
+			4	NA	0.01   // e_coli_iv.miso: 33
+			5	NA	0.01   // e_coli_iv.miso: 34
+			6	NA	0.01   // e_coli_iv.miso: 35
+	Gnt6P		0	NA	0.01   // e_coli_iv.miso: 49
+			1	NA	0.01   // e_coli_iv.miso: 50
+			2	NA	0.01   // e_coli_iv.miso: 51
+			3	NA	0.01   // e_coli_iv.miso: 52
+			4	NA	0.01   // e_coli_iv.miso: 53
+			5	NA	0.01   // e_coli_iv.miso: 54
+			6	NA	0.01   // e_coli_iv.miso: 55
+	ICit		0	NA	0.02   // e_coli_iv.miso: 7
+			1	NA	0.02   // e_coli_iv.miso: 8
+			2	NA	0.02   // e_coli_iv.miso: 9
+			3	NA	0.02   // e_coli_iv.miso: 10
+			4	NA	0.02   // e_coli_iv.miso: 11
+			5	NA	0.02   // e_coli_iv.miso: 12
+			6	NA	0.02   // e_coli_iv.miso: 13
+	PEP		0	NA	0.01   // e_coli_iv.miso: 14
+			1	NA	0.01   // e_coli_iv.miso: 15
+			2	NA	0.01   // e_coli_iv.miso: 16
+			3	NA	0.01   // e_coli_iv.miso: 17
+	PGA		0	NA	0.01   // e_coli_iv.miso: 18
+			1	NA	0.01   // e_coli_iv.miso: 19
+			2	NA	0.01   // e_coli_iv.miso: 20
+			3	NA	0.01   // e_coli_iv.miso: 21
+	Rib5P		0	NA	0.01   // e_coli_iv.miso: 43
+			1	NA	0.01   // e_coli_iv.miso: 44
+			2	NA	0.01   // e_coli_iv.miso: 45
+			3	NA	0.01   // e_coli_iv.miso: 46
+			4	NA	0.01   // e_coli_iv.miso: 47
+			5	NA	0.01   // e_coli_iv.miso: 48
+	Suc		1	NA	0.01   // e_coli_iv.miso: 3
+			2	NA	0.01   // e_coli_iv.miso: 4
+			3	NA	0.01   // e_coli_iv.miso: 5
+			4	NA	0.01   // e_coli_iv.miso: 6
+METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION
+	Fru6P	0.4263681348074568	0.01   // e_coli_iv.mmet: 3
+	FruBP	1.860001398406723	0.01   // e_coli_iv.mmet: 5
+	GA3P	0.469998855791378	0.01   // e_coli_iv.mmet: 4
+	PEP	0.1099999780931608	0.01   // e_coli_iv.mmet: 6
+	Rib5P	0.01933825682263468	0.01   // e_coli_iv.mmet: 7
+	Sed7P	0.05727159999541005	0.01   // e_coli_iv.mmet: 8
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noscale --TIMEIT --time_order=2 --zc=0 --clowp 1.e-9 --noopt
+	dt	1
+	nsubdiv_dt	4
+	tmax	10
+	funlabR	e_coli_iv_funlab.R
+	optctrl_errx	1.e-3
+	optctrl_maxit	50
+	optctrl_btmaxit	16
+	optctrl_btstart	1
+	optctrl_btfrac	0.5
+	optctrl_adaptbt	1
+	optctrl_monotone	1
+	posttreat_R	plot_ilab.R

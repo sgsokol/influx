@@ -32,6 +32,8 @@ invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
 def natural_sort_key(s, _re=re.compile(r'(\d+)')):
     # last 2 fields are inverted for sorting
     return [int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li[:-3]+li[-1:]+li[-2:-4:-1])]
+def plain_natural_key(s, _re=re.compile(r'(\d+)')):
+    return [int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li)]
 def dtstamp():
     "formatted date-time stamp"
     return dt.datetime.now(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z %z')
@@ -93,7 +95,7 @@ def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"
     return df
 def try_ext(f, li):
     """See if file 'f' exists, if not try with extensions from 'li'.
-    The first found is returned as Path() otherwise f returned 'as is'."""
+    The first found is returned as Path() otherwise an exception is raised."""
     if type(f) in (type(Path()), str):
         # check if we need to add an extension
         pth=Path(f)
@@ -107,13 +109,12 @@ def try_ext(f, li):
                 npth=pth.parent/(pth.name+suf)
                 if npth.is_file():
                     return npth
-            else:
-                return pth
+            raise Exception(f"try_ext: not found file '{f}' neither literal nor with extensions: '"+"', '".join(li)+"'")
         else:
             return pth
     else:
-        return f
-
+        raise Exception("try_ext: unknown type of 'f'. Expecting 'str' or 'Path'.")
+    
 
 def txt_parse(ftxt, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$")):
@@ -349,6 +350,8 @@ def parse_miso(fmiso, clen, case_i=False):
     fname=os.path.basename(fname)
 #    import pdb; pdb.set_trace()
     df=tsv2df(fmiso)
+    if "Metabolite" in df.columns and "Species" in df.columns:
+        df.rename({"Metabolite": "Specie", "Species": "Isospecies"}, inplace=True, axis=1)
     if case_i:
         if "Time" not in df or sum(df["Time"] != "") == 0:
             warn("parse_miso: instationary option is activated but 'Time' column is empty in '%s'. Only simulations can be run on result file, not fitting."%fname)
@@ -365,7 +368,7 @@ def parse_miso(fmiso, clen, case_i=False):
     cgr=1
     #import pdb; pdb.set_trace()
     meas_seen=set()
-    for kgr, ligr in df.groupby(["Metabolite", "Fragment", "Dataset"]).groups.items():
+    for kgr, ligr in df.groupby(["Specie", "Fragment", "Dataset"]).groups.items():
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
         #if met == "M_accoa_c":
@@ -385,13 +388,14 @@ def parse_miso(fmiso, clen, case_i=False):
         mlen=mlen[0]
         # standard fragment form: 1,2,...
         if frag:
-            frag=np.unique(np.sort(np.array([i for v in frag.split(",") for i in itvl2li(v)]).astype(int)))
-            ifr=frag-1;
-            frag=",".join(frag.astype(str))
+            sfrag=np.unique(np.sort(np.array([i for v in frag.split(",") for i in itvl2li(v)]).astype(int)))
+            ifr=sfrag-1;
+            sfrag=",".join(sfrag.astype(str))
         else:
             ifr=np.arange(mlen)
+            sfrag=",".join((ifr+1).astype(str))
         # common sanity check
-        #if len(ligr) == 1 and df.loc[ligr, "Species"].iloc[0] != "mean":
+        #if len(ligr) == 1 and df.loc[ligr, "Isospecies"].iloc[0] != "mean":
         #    werr("parse_miso: a group %s of length 1 is not valid, '%s': %d"%(kgr, fname, ligr[0]+2))
         flen=len(ifr)
         if flen > mlen:
@@ -400,10 +404,15 @@ def parse_miso(fmiso, clen, case_i=False):
             werr("parse_miso: dataset name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.iloc[ligr[0], :])))
         if ligr[-1]-ligr[0]+1 != len(ligr):
             werr("parse_miso: measurements %s are not contiguous in '%s'. They occupy rows: %s"%(kgr, fname, ", ".join((ligr+2).astype(str))))
+        # ftbl frag
+        if flen == mlen:
+            ffrag=""
+        else:
+            ffrag=frag.replace("-", "~")
         val=df.loc[ligr, "Value"].to_numpy()
         sdv=df.loc[ligr, "SD"].to_numpy()
         # detect kind of species
-        spec=df.loc[ligr, "Species"]
+        spec=df.loc[ligr, "Isospecies"]
         if all(spec.str.match("^ *M\d+ *$")):
             kind="ms"
         elif all(spec.str.match("^[ 01x+]+$")):
@@ -417,13 +426,13 @@ def parse_miso(fmiso, clen, case_i=False):
         elif len(ligr) == 1 and spec.iloc[0] == "mean":
             kind="mean"
         else:
-            werr("parse_miso: unknown Species '%s' in group %s in '%s': %d-%d"%(kgr, ", '".join(spec), fname, ist, iend))
+            werr("parse_miso: unknown Isospecies '%s' in group %s in '%s': %d-%d"%(kgr, ", '".join(spec), fname, ist, iend))
         if case_i:
             dsp=dict() # {specie: times indexes}, e.g. "M0": vec("0.1", "0.2", ...)
             spli=[]
             ii0=[]
             dfgr=df.iloc[ligr,:]
-            for sp, spi in dfgr[dfgr["Time"] != ""].groupby(["Species"]).groups.items():
+            for sp, spi in dfgr.groupby(["Isospecies"]).groups.items():
                 dsp[sp]=spi
                 spli.append(sp)
                 ii0.append(np.where(ligr == spi[0])[0][0])
@@ -435,28 +444,32 @@ def parse_miso(fmiso, clen, case_i=False):
         if kind == "ms":
             # ms group here, like M0, M1
             #print("ms gr=", kgr)
-            w=np.char.lstrip(df.loc[ligr, "Species"].to_numpy().astype("str"), " M").astype(int)
+            w=np.char.lstrip(df.loc[ligr, "Isospecies"].to_numpy().astype("str"), " M").astype(int)
             # ms sanity check
             if any(w > flen):
                 werr("parse_miso: invalid MS weight '%s' in group %s in '%s':%d-%d"%(w[w>flen].astype(str)[0], kgr, fname, ist, iend))
             if not case_i and len(ligr) > flen+1:
                 raise Excpetion("parse_miso: too many MS entries %d (max %d expected) in group %s in '%s':%d-%d"%(kgr, len(ligr) , flen+1, fname, ist, iend))
             # add this group to results
-            if frag == "":
-                frag=",".join(str(i) for i in range(1,flen+1))
+            #if frag == "":
+            #    frag=",".join(str(i) for i in range(1,flen+1))
             if case_i:
-                res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
+                #if met == "Phe":
+                #    import pdb; pdb.set_trace()
+
+                res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 #import pdb; pdb.set_trace()
-                for sp,spi in dsp.items():
-                    df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{frag}:{sp[1:]}:{df.loc[spi[0],'iline']}"])])
+                if not dfgr[dfgr["Time"] != ""].empty:
+                    for sp,spi in dsp.items():
+                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{ffrag}:{sp[1:]}:{df.loc[spi[0],'iline']}"])])
             else:
-                res["ms"] += [f"\t{met}\t{frag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
+                res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
         elif kind == "lab" or kind == "peak" or kind == "mean":
             # label group (like 01x+1x1)
             if kind == "lab":
-                labs=[[vv.strip() for vv in v.split("+")] for v in df.loc[ligr, "Species"]]
+                labs=[[vv.strip() for vv in v.split("+")] for v in df.loc[ligr, "Isospecies"]]
             elif kind == "peak":
                 b=np.ones(mlen, str) # base where lab will be injected
                 b.fill("x")
@@ -518,12 +531,12 @@ def parse_miso(fmiso, clen, case_i=False):
             # add this group to results
             #	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
             if case_i:
-                #import pdb; pdb.set_trace()
                 res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
                 res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[i0])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
-                for i,(sp,spi) in enumerate(dsp.items()):
-                    #import pdb; pdb.set_trace()
-                    df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"])])
+                if not dfgr[dfgr["Time"] != ""].empty:
+                    for i,(sp,spi) in enumerate(dsp.items()):
+                        #import pdb; pdb.set_trace()
+                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"])])
             else:
                 if met != last_met or frag != last_frag:
                     last_met=met
@@ -543,18 +556,21 @@ def parse_linp(f, clen={}):
     fname=os.path.basename(fname)
     
     df=tsv2df(f)
+    if "Metabolite" in df.columns:
+        df.rename({"Metabolite": "Specie"}, inplace=True, axis=1)
+
     #print("df=", df)
     res=[]
-    for met, ligr in df.groupby(["Metabolite"]).groups.items():
+    for met, ligr in df.groupby(["Specie"]).groups.items():
         mlen=clen.get(met)
         il=df.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
         if clen:
             if mlen is None:
-                werr("parse_linp: metabolite '%s' was not seen in label transitions, '%s': %s"%(met, fname, ", ".join(il)))
+                werr("parse_linp: specie '%s' was not seen in label transitions, '%s': %s"%(met, fname, ", ".join(il)))
             ibad=np.where([len(v) != mlen for v in df.loc[ligr, "Isotopomer"]])[0]
             if len(ibad):
-                werr("parse_linp: for metabolite '%s', isotopomer length(s) (%s) differ from its labeling atom length %d in '%s': %s"%(met, ", ".join(str(len(v)) for v in df.loc[ligr[ibad], "Isotopomer"]), mlen, fname, ", ".join(il)))
+                werr("parse_linp: for specie '%s', isotopomer length(s) (%s) differ from its labeling atom length %d in '%s': %s"%(met, ", ".join(str(len(v)) for v in df.loc[ligr[ibad], "Isotopomer"]), mlen, fname, ", ".join(il)))
             if len(ligr) > 2**mlen:
                 werr("parse_linp: too many isotopomers %d for metabolite '%s' in '%s':%s-%s"%(len(ligr), met, fname, il[0], il[-1]))
         if len(ligr) != ligr[-1]-ligr[0]+1:
@@ -605,9 +621,11 @@ def parse_tvar(f, dfl={}, itnl_met=set()):
     #print("df=", df)
     fl={}
     mets=[]
-    for kgr,ligr in df.groupby(["Kind", "Name"]).groups.items():
+    for kgr,ligr in sorted(df.groupby(["Kind", "Name"]).groups.items(), key=lambda t: (t[0][0], plain_natural_key(t[0][1]))):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         kind,nm=kgr
+        #if kind == "NET":
+        #    import pdb; pdb.set_trace();
         # sanity check
         if kind not in ("NET", "XCH", "METAB"):
             werr("parse_tvar: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, ", ".join(il)))
@@ -661,6 +679,7 @@ def parse_cnstr(f):
             op=invcomp[op]
             ineq[kind]=ineq.get(kind, [])
             ineq[kind].append("\t\t%s\t%s\t%s   // %s: %s"%(val, op, frml, fname, il[0]))
+    #import pdb; pdb.set_trace()
     return (eq, ineq, df)
 def parse_mmet(f, smet=set()):
     "Parse metabolite concentration measurements TSV file. Return a list of lines to add to ftbl"
@@ -671,15 +690,17 @@ def parse_mmet(f, smet=set()):
     fname=os.path.basename(fname)
     
     df=tsv2df(f)
+    if "Metabolite" in df.columns:
+        df.rename({"Metabolite": "Specie"}, inplace=True, axis=1)
     #print("df=", df)
     res=[]
-    for met,ligr in df.groupby(["Metabolite"]).groups.items():
+    for met,ligr in df.groupby(["Specie"]).groups.items():
         il=df.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
         if len(ligr) > 1:
-            werr("parse_mmet: metabolite '%s' has more than 1 measurement in '%s': %s"%(met, fname, ", ".join(il)))
-        if smet and (met not in smet):
-            werr("parse_mmet: metabolite '%s' was not seen in internal metabolites of network, '%s': %s"%(met, fname, il[0]))
+            werr("parse_mmet: specie '%s' has more than 1 measurement in '%s': %s"%(met, fname, ", ".join(il)))
+        if smet and any(m.strip() not in smet for m in met.split("+")):
+            werr("parse_mmet: specie '%s' was not seen in internal metabolites of network, '%s': %s"%(met, fname, il[0]))
         res.append("\t%s\t%s\t%s   // %s: %s"%(met, df.loc[ligr[0], "Value"], df.loc[ligr[0], "SD"], fname, il[0]))
     return res
 
@@ -781,18 +802,18 @@ def compile(mtf, cmd, case_i=False, clen=None):
     }
     dsec_empty=dsec.copy()
     # Parse netw file if not empty
-    if "netw" in mtf:
+    if "netw" in mtf and mtf["netw"]:
         pth=try_ext(mtf["netw"], ["netw", "txt"])
         (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto, dclen)=txt_parse(pth)
         # build afl matrix: each row is a balance on an internal metabolite, each column is a flux values
         nb_flux=len(sto)
-        nm_flux=sorted(sto.keys())
+        nm_flux=sorted(sto.keys(), key=plain_natural_key)
         m_l=set(m_left.keys())
         m_r=set(m_right.keys())
         m_inp=m_l-m_r
         m_out=m_r-m_l
         itnal_met=(m_l|m_r) - m_inp - m_out
-        nm_met=sorted(itnal_met)
+        nm_met=sorted(itnal_met, key=plain_natural_key)
         fl2i=dict((fl, i) for i, fl in enumerate(nm_flux))
         met2i=dict((m, i) for i, m in enumerate(nm_met))
         afl=np.zeros((len(nm_met)+len(eqs[0]), len(nm_flux)))
@@ -857,7 +878,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
             dsec["ineq"][1]["NET"] += ["\t\t%s\t%s\t%s"%ine]
         if not "linp" in mtf:
             # add default full label input
-            for m in sorted(m_inp):
+            for m in sorted(m_inp, key=plain_natural_key):
                 dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, "1"*dclen[m])]
     else:
         dclen={} if clen is None else clen
@@ -865,7 +886,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         sto={}
         fluxes=[]
     sfl=set(sto.keys()) # set of fluxes
-    if "cnstr" in mtf:
+    if "cnstr" in mtf and mtf["cnstr"]:
         pth=try_ext(mtf["cnstr"], ["cntsr", "tsv", "txt"])
         ce,ci,df=parse_cnstr(pth)
         for k,v in ce.items():
@@ -877,10 +898,11 @@ def compile(mtf, cmd, case_i=False, clen=None):
         #import pdb; pdb.set_trace()
         for eq in df[(df["Kind"] == "NET") & (df["Operator"] == "==")]["Formula"]:
             sfl |= set(formula2dict(eq).keys())
-    if "miso" in mtf:
+    if "miso" in mtf and mtf["miso"]:
         pth=try_ext(mtf["miso"], ["miso", "tsv", "txt"])
         if case_i:
             meas, df_kin=parse_miso(pth, dclen, case_i)
+            #import pdb; pdb.set_trace()
         else:
             meas=parse_miso(pth, dclen)
         dsec["meas_lab"] += meas["lab"]
@@ -889,19 +911,20 @@ def compile(mtf, cmd, case_i=False, clen=None):
         if case_i:
             df_kin=pa.DataFrame() # return empty data frame for kinetic measurements
     # simple sections
-    if "linp" in mtf:
+    if "linp" in mtf and mtf["linp"]:
         pth=try_ext(mtf["linp"], ["linp", "tsv", "txt"])
         dsec["linp"] += parse_linp(pth, dclen)
-    if "mflux" in mtf:
+    if "mflux" in mtf and mtf["mflux"]:
         pth=try_ext(mtf["mflux"], ["mflux", "tsv", "txt"])
         dsec["mflux"] += parse_mflux(pth, sfl)
-    if "mmet" in mtf:
+    if "mmet" in mtf and mtf["mmet"]:
         pth=try_ext(mtf["mmet"], ["mmet", "tsv", "txt"])
         dsec["mmet"] += parse_mmet(pth, itnal_met)
-    if "opt" in mtf:
-        dsec["opt"] += parse_opt(Path(mtf["opt"]))
+    if "opt" in mtf and mtf["opt"]:
+        pth=try_ext(mtf["opt"], ["opt", "tsv", "txt"])
+        dsec["opt"] += parse_opt(pth)
     # with subsections NET/XCH/...
-    if "tvar" in mtf:
+    if "tvar" in mtf and mtf["tvar"]:
         pth=try_ext(mtf["tvar"], ["tvar", "tsv", "txt"])
         tf,tm=parse_tvar(pth)
         stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
@@ -988,7 +1011,7 @@ def main(argv=sys.argv[1:], res_ftbl=None):
    type is present both in column names of 'vmtf' and in '--mtf' option 
    then the content of 'vmtf' file will take precedence. Empty values 
    in 'vmtf' file are ignored. All file paths in 'vmtf' file are 
-   considered relative to the the location of 'vmtf' file itself.
+   considered relative to the location of 'vmtf' file itself.
 Only first 3 files are necessary to obtain a workable FTBL file, others 
 are optional.
 Example: 'txt2ftbl --mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux'
@@ -1022,7 +1045,7 @@ This command will produce a main FTBL file 'ec.ftbl' including all necessary
 sections (NETWORK, etc.) but also two auxiliary FTBL files: 'glc1.ftbl' and
 'glc4.ftbl' having only label input/measurement sections. They will correspond
 to 2 additional parallel experiments. If ftbl file is not given in --eprl
-option, the name of miso file will be used for this. If intermediate
+option, the name of miso file will be used for it. If intermediate
 directories in ftbl path are non existent they will be silently created.
 Auxiliary ftbl names will be put in 'OPTIONS/prl_exp' field on the main ftbl file.
 These names will be written there in a form relative to the main ftbl.
@@ -1062,7 +1085,7 @@ is the argument value that will take precedence.
     # default values
     mtfsuf={"netw", "linp", "miso", "mflux", "mmet", "tvar", "cnstr", "opt", "vmtf", "ftbl"}
     mtf={} # multiplex tsv files to compile
-    prl=[] # parallel experiments, 2-tuples linp+miso
+    prl=[] # parallel experiments, 2 or 3-tuples linp+miso(+ftbl)
     # get arguments
     opts = parser.parse_args(argv)
     force=opts.force
@@ -1091,7 +1114,7 @@ is the argument value that will take precedence.
                 d=f.parent
                 stem=f.name
             if not d.is_dir():
-                werr("directory '%s' form --prefix does not exist"%str(s))
+                werr("directory '%s' from --prefix does not exist"%str(d))
             nfound=0
             #print("d=", d, "\tstem=", stem)
             for suf in mtfsuf-{"ftbl"}:
@@ -1133,8 +1156,22 @@ is the argument value that will take precedence.
             mtf["ftbl"]=mtf["netw"].with_suffix(".ftbl")
     elif not "vmtf" in mtf:
         mtf["ftbl"]=sys.stdout
+    # get opt in preamble
+    if "opt" in mtf:
+        dfopt=tsv2df(mtf["opt"])
     # prepare prl
-    for t in opts.eprl:
+    # if no --eprl, get prl_exp from .opt
+    if not opts.eprl and "opt" in mtf:
+        wd=Path(mtf["opt"]).parent
+        fli=[v.replace(";", ",") for v in dfopt.loc[dfopt["Name"] == "prl_exp", "Value"]]
+        #print("fli=", fli)
+        fli=[str(wd/s.strip()) for v in fli for s in v.split(",") if s.strip()]
+        #print("fli2=", fli)
+    else:
+        fli=opts.eprl
+    #import pdb; pdb.set_trace()
+    
+    for t in fli: # prepare prl list
         for v in t.split(","):
             d={}
             v=v.strip()
@@ -1145,7 +1182,7 @@ is the argument value that will take precedence.
             else:
                 ty=Path(v).suffix[1:]
                 nm=v
-            if ty not in ("linp", "miso", "ftbl"):
+            if ty not in ("linp", "miso", "opt", "ftbl"):
                 nm=try_ext(v, ["miso"])
                 if not nm.is_file():
                     werr("option --eprl expects in argument a list of linp, miso and optionally auxiliary ftbl files instead got type '%s' in '%s"%(ty, t))
@@ -1163,6 +1200,10 @@ is the argument value that will take precedence.
                     d["miso"]=p
                 else:
                     werr("'miso' file was not found for --eprl option '%s'"%t)
+            if "opt" not in d:
+                p=Path(d.get("miso", "")).with_suffix(".opt")
+                if p.is_file():
+                    d["opt"]=p
             if "ftbl" not in d:
                 d["ftbl"]=str(Path(d["miso"]).with_suffix(".ftbl"))
             d["ftbl"]=Path(d["ftbl"]).with_suffix(".ftbl")
@@ -1181,6 +1222,12 @@ is the argument value that will take precedence.
         del(mtf["ftbl"])
     if "ftbl" not in vdf:
         werr("'ftbl' column must be present in '%s'"%mtf["vmtf"])
+    # check case_i in opt
+    if not case_i and "opt" in mtf:
+        tmp=dfopt.loc[dfopt["Name"] == "file_labcin", "Value"]
+        if len(tmp) == 1:
+            warn(f"instationary mode is activated as 'file_labcin' is not empty in '{mtf['opt']}'")
+            case_i=True
     # run through all ftbls
     if dftbl is not None:
         # add dftbl to all fields in vmtf
@@ -1233,6 +1280,7 @@ is the argument value that will take precedence.
                     #import pdb; pdb.set_trace()
                     #df_kin.reindex(index=sorted(df_kin.index, key=natural_sort_key))
                     df_kin.loc[sorted(df_kin.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
+                #print(str(fkin))
                 for i,v in enumerate(dsec["opt"]):
                     if v.startswith("\tfile_labcin\t"):
                         dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
@@ -1252,7 +1300,7 @@ is the argument value that will take precedence.
                     fkin=p.with_suffix(".ikin")
                     with fkin.open("w") as fc:
                         fc.write(scre+f" at {dtstamp()}\nrow_col")
-                        df_kin_prl[sorted(df_kin_prl.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
+                        df_kin_prl.loc[sorted(df_kin_prl.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
                     for i,v in enumerate(dsec_prl["opt"]):
                         if v.startswith("\tfile_labcin\t"):
                             dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
@@ -1283,7 +1331,7 @@ is the argument value that will take precedence.
                 out=p.open("w")
                 out.write(scre+f" at {dtstamp()}\n")
                 dsec2out(dsec_prl, out)
-                prl_li.append(str(p.relative_to(wd)))
+                prl_li.append(str(p.relative_to(wd).with_suffix("")))
                 out.close()
             if prl_li:
                 for i,v in enumerate(dsec["opt"]):

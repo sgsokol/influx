@@ -1,0 +1,68 @@
+// Created by 'txt2ftbl --prefix influx_si/test/mtf/ex_i_2box_lin --inst' at 2022-01-11 10:34:43 CET +0100
+PROJECT
+	NAME	VERSION	FORMAT	DATE	COMMENT
+	ex_i_2box_lin.netw	1.0			command='txt2ftbl --prefix influx_si/test/mtf/ex_i_2box_lin --inst'
+NETWORK
+	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
+// Created by 'ftbl2mtf.py --inst -o ./influx_si/test/mtf/ ./influx_si/test/ex_i_2box_var.ftbl' at 2022-01-10 16:27:24 CET +0100
+	v1	A		B
+		#a		#a
+	v2	B		C
+		#a		#a
+	v3	C		D
+		#a		#a
+NOTRACER_NETWORK
+	FLUX_NAME	EQUATION
+FLUXES
+	NET
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	1.   // ex_i_2box_lin.tvar: 3
+		v2	D	1.   // ex_i_2box_lin.tvar: 4
+		v3	D	1.   // ex_i_2box_lin.tvar: 5
+	XCH
+		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)
+		v1	C	0
+		v2	C	0
+		v3	C	0
+METABOLITE_POOLS
+	META_NAME	META_SIZE
+	B	-1.0   // ex_i_2box_lin.tvar: 6
+	C	-0.5   // ex_i_2box_lin.tvar: 7
+EQUALITIES
+	NET
+		VALUE	FORMULA
+	XCH
+		VALUE	FORMULA
+	METAB
+		VALUE	FORMULA
+INEQUALITIES
+	NET
+		VALUE	COMP	FORMULA
+	XCH
+		VALUE	COMP	FORMULA
+	METAB
+		VALUE	COMP	FORMULA
+LABEL_INPUT
+	META_NAME	ISOTOPOMER	VALUE
+	A	#0	linterp(t, df$Time, df$M0)   // ex_i_2box_lin.linp: 3
+		#1	linterp(t, df$Time, df$M1)   // ex_i_2box_lin.linp: 4
+FLUX_MEASUREMENTS
+	FLUX_NAME	VALUE	DEVIATION
+LABEL_MEASUREMENTS
+	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+	B	1	1	0.02	#1   // ex_i_2box_lin.miso: 3
+	C	1	1	0.02	#1   // ex_i_2box_lin.miso: 4
+PEAK_MEASUREMENTS
+	META_NAME	PEAK_NO	VALUE_S	VALUE_D-	VALUE_D+	VALUE_DD	VALUE_T	DEVIATION_S	DEVIATION_D-	DEVIATION_D+	DEVIATION_DD/T
+MASS_SPECTROMETRY
+	META_NAME	FRAGMENT	WEIGHT	VALUE	DEVIATION
+METAB_MEASUREMENTS
+	META_NAME	VALUE	DEVIATION
+OPTIONS
+	OPT_NAME	OPT_VALUE
+	commandArgs	--noopt --noscale --TIMEIT --clowp 1.e-9
+	dt	0.01
+	nsubdiv_dt	1
+	tmax	5
+	posttreat_R	plot_imass.R
+	funlabR	ex_i_2box_lin.funlab.R

@@ -1,0 +1,73 @@
+# Created by 'ftbl2mtf e_coli_growth.ftbl -o mtf/' at 2022-05-25 17:04:35 CEST +0200
+Id	Comment	Name	Kind	Type	Value
+		Glucupt_1	NET	F	0.8128
+		Glucupt_U	NET	D	
+		Glucupt	NET	D	
+		CO2upt	NET	C	0.77
+		pgi	NET	F	0.1
+		pfk	NET	D	
+		ald	NET	D	
+		pgk	NET	D	0.1
+		eno	NET	D	
+		pyk	NET	D	1.21144
+		zwf	NET	D	0.4
+		gnd	NET	D	
+		edd	NET	F	0.1
+		rib	NET	D	
+		xul	NET	D	
+		HR1	NET	D	
+		HR2	NET	D	
+		HR3	NET	D	
+		HR4	NET	D	
+		HR5	NET	D	
+		pdh	NET	D	
+		citsynth	NET	D	
+		idh	NET	D	
+		akgdh	NET	D	
+		fum_a	NET	D	
+		fum_b	NET	D	
+		maldh	NET	D	
+		ppc	NET	D	
+		bs_glc6P	NET	C	0.0132
+		bs_fru6P	NET	C	0.0045
+		bs_pga	NET	C	0.0958
+		bs_DHAP	NET	C	0.0083
+		bs_pyr	NET	C	0.1818
+		bs_e4p	NET	C	0.0247
+		bs_rib5P	NET	C	0.0576
+		bs_pep	NET	C	0.0461
+		bs_accoa	NET	C	0.1895
+		bs_akg	NET	C	0.0692
+		bs_oaa	NET	C	0.1146
+		out_co2	NET	D	0.1
+		out_Ac	NET	F	0.48
+		pgi	XCH	F	0.4
+		pfk	XCH	F	0.01
+		ald	XCH	F	0.4
+		pgk	XCH	F	0.99
+		eno	XCH	F	0.99
+		pyk	XCH	F	0.4
+		rib	XCH	C	0.99
+		xul	XCH	F	0
+		HR1	XCH	C	0.24
+		HR2	XCH	F	0.0151117
+		HR3	XCH	F	0.14
+		HR4	XCH	C	0.04
+		HR5	XCH	F	0.02
+		pdh	XCH	C	0.01
+		fum_a	XCH	C	0.01
+		fum_b	XCH	D	
+		maldh	XCH	C	0.42
+		ppc	XCH	F	0.2
+		Suc	METAB	F	0.0014849826568155515
+		Mal	METAB	F	0.0006054470296805187
+		PEP	METAB	F	5.501298486110693e-05
+		PGA	METAB	F	0.0005008619523631337
+		Cit	METAB	F	0.001630397300073748
+		Gnt6P	METAB	F	0.00014480899018442714
+		FruBP	METAB	F	0.0004927839907571225
+		Fru6P	METAB	F	0.00010006707551232429
+		Glc6P	METAB	F	0.0004905098655004916
+		Rub5P	METAB	F	5.172415742935172e-05
+		Rib5P	METAB	C	1e-07
+		Xul5P	METAB	F	0.0002068966297174069

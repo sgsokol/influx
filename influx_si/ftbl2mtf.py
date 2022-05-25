@@ -4,26 +4,26 @@ and write a series of mtf (multiple TSV files).
 The file stem ('network' in 'network.ftbl') is used as file name basis
 for produced files, e.g. 'network.miso'. Parameter --out can be used to change it.
 If out path includes non existing directories, they are automatically created.
-Caution! If an existing output file contains "# Created by 'ftbl2mft" or is empty, it is silently overwritten.
+Caution! If an existing output file starts with a comment
+"# Created by 'ftbl2mft ..."
+or is empty, it is silently overwritten.
 Otherwise, the writing is aborted with a warning. Other files may continue to be created.
 To force the overwriting, use '--force'.
 
 Output files will have following extensions/meanings:
- .netw: stoichiometric equations and label transitions in the metabolic network;
+ .netw: stoichiometric equations and label transitions in the biochemical network;
  .linp: label input;
  .miso: isotopic measurements (MS, label, peak);
  .mflux: flux measurements;
- .mmet: metabolic concentration measurements;
- .tvar: flux/metabolite types partition (free, dependent, constrained) and starting values;
+ .mmet: biochemical specie concentration measurements;
+ .tvar: flux/specie types partition (free, dependent, constrained) and starting values;
  .cnstr: constraints (equalities, inequalities for both fluxes and concentrations);
  .opt: options.
 
-Copyright 2021 INRAE, INSA, CNRS
+Copyright 2022 INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol [at] insa-toulouse [dot] fr)
-
-usage: ftbl2mtf.py [--out OUT] [--inst] [--force] network[.ftbl]
 """
-import sys, os, getopt, stat, io
+import sys, os, argparse, stat, io
 import datetime
 from pathlib import Path
 import numpy as np
@@ -31,7 +31,7 @@ import numpy as np
 import influx_si
 import tools_ssg as tls
 import C13_ftbl
-from txt2ftbl import tsv2df, try_ext
+from txt2ftbl import tsv2df, try_ext, plain_natural_key
 
 LOCAL_TIMEZONE=datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo;
 me=os.path.basename(sys.argv[0] or "ftbl2mtf")
@@ -63,7 +63,9 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                 s=f"{rnm}:\t{dloc['left']} {'<' if rnm not in netan['notrev'] else ''}-> {dloc['right']}\n"
                 res += s
             # reactions without label transitions
-            for rnm in sorted(set(netan["sto_r_m"].keys())-set(ftbl["long_reac"].keys())):
+            # take all if no growth fluxes otherwise exclude ending with "_gr"
+            woltr=sorted(set(netan["sto_r_m"].keys() if netan["opt"].get("include_growth_flux", 0) != 1 else (k for k in netan["sto_r_m"].keys() if not k.endswith("_gr")))-set(ftbl["long_reac"].keys()), key=plain_natural_key)
+            for rnm in woltr:
                 reac=netan["sto_r_m"][rnm]
                 for lr in ("left", "right"):
                     dloc[lr]=" + ".join(f"{str(tmet[1])+'*' if tmet[1] != 1 else ''}{tmet[0]}" for i,tmet in enumerate(reac[lr]))
@@ -71,13 +73,13 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                 res += s
         elif suff == ".linp":
             # label input
-            header="Id\tComment\tMetabolite\tIsotopomer\tValue\n"
+            header="Id\tComment\tSpecie\tIsotopomer\tValue\n"
             for d in ftbl["LABEL_INPUT"]:
                 met=d["META_NAME"] if d["META_NAME"] else met
                 res += f"\t\t{met}\t{d['ISOTOPOMER'][1:]}\t{d['VALUE']}\n"
         elif suff == ".miso":
             # label, peak, ms measurements
-            header="Id\tComment\tMetabolite\tFragment\tDataset\tSpecies\tValue\tSD\tTime\n"
+            header="Id\tComment\tSpecie\tFragment\tDataset\tIsospecies\tValue\tSD\tTime\n"
             if case_i:
                 # pick file_labcin from opt
                 #import pdb; pdb.set_trace()
@@ -212,7 +214,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                     try:
                         im=measures["mass"][0]["ids"].index(vrc[i])
                     except:
-                        im=[ii for ii,v in enumerate(measures["mass"][0]["ids"]) if v.startswith(f"m:{met}:{frag}:{w}")]
+                        im=[ii for ii,v in enumerate(measures["mass"][0]["ids"]) if v.startswith(f"m:{met}:{frag}:{w}:")]
                         if len(im) != 1:
                             continue # not found corresponding unique FTBL entry, silently skip it
                         im=im[0]
@@ -234,7 +236,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                 res += f"\t\t{d['FLUX_NAME']}\t{d['VALUE']}\t{d['DEVIATION']}\n"
         elif suff == ".mmet":
             # metabolite measurements
-            header="Id\tComment\tMetabolite\tValue\tSD\n"
+            header="Id\tComment\tSpecie\tValue\tSD\n"
             for d in ftbl.get("METAB_MEASUREMENTS", []):
                 res += f"\t\t{d['META_NAME']}\t{d['VALUE']}\t{d['DEVIATION']}\n"
         elif suff == ".tvar":
@@ -248,7 +250,10 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                         continue
                     res += f"\t\t{d['NAME']}\t{nx}\t{d['FCD']}\t{d['VALUE(F/C)']}\n"
             for d in ftbl.get("METABOLITE_POOLS", []):
-                val=float(d['META_SIZE'])
+                try:
+                    val=float(d['META_SIZE'])
+                except:
+                    val=float(eval(d['META_SIZE']))
                 fcd="F" if val < 0 else "C"
                 res += f"\t\t{d['META_NAME']}\tMETAB\t{fcd}\t{abs(val)}\n"
         elif suff == ".cnstr":
@@ -278,39 +283,20 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
             cout.write_text(f"{scre} at {dtstamp()}\n"+header+res)
 
 def main(argv=sys.argv[1:]):
-    # init values
-    #sys.tracebacklimit=None
-    fftbl=""
-    out=""
-    case_i=False
-    force=False
     # parse options
-    # put arg at the end ov argv
-    #print("argv=", argv)
-    if argv and not argv[0].startswith("-"):
-        i=[i for i,v in enumerate(argv) if v.startswith("-")]
-        if i:
-            i=i[0]
-            argv=argv[i:]+argv[:i]
-    #print("post argv=", argv)
-    opts,args=getopt.getopt(argv, "hio:", ["help", "force", "inst", "out="])
+    parser=argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("-i", "--inst", help="activate instationary mode", action="store_true")
+    parser.add_argument("-f", "--force", help="force overwriting of result files", action="store_true")
+    parser.add_argument("-o", "--out", help="path prefix for result files", nargs=1)
+    parser.add_argument("ftbl", help="input file to be converted to MTF", nargs=1)
+    opts = parser.parse_args(argv)
     #print("opts=", opts)
-    for o,a in opts:
-        if o in ("-h", "--help"):
-            usage()
-            return 0
-        if o == "--out" or o == "-o":
-            out=a
-            #print("a=", a)
-        elif o == "--inst":
-            case_i=True;
-        elif o == "--force":
-            force=True
-    if not args:
-        usage()
-        werr("Expecting ftbl file name")
-        
-    fftbl=Path(args[0]) if args[0] != "-" else sys.stdin
+    force=opts.force
+    case_i=opts.inst
+    out=opts.out[0] if opts.out else ""
+    f=opts.ftbl[0]
+    fftbl=Path(f) if f != "-" else sys.stdin
+    
     if type (fftbl) == type(Path()) and not fftbl.is_file():
         fftbl = fftbl.with_suffix(".ftbl")
         if not fftbl.is_file():
@@ -328,6 +314,12 @@ def main(argv=sys.argv[1:]):
     #print("out=", out)
     #sys.exit(1)
     ftbl=C13_ftbl.ftbl_parse(str(fftbl))
+    if not case_i:
+        # search for 'file_labcin' or 'funlabR' in OPTIONS to switch to case_i=True if any
+        f=[d["OPT_VALUE"] for d in ftbl.get("OPTIONS", []) if d["OPT_NAME"] in ("file_labcin", "funlabR") and d["OPT_VALUE"]]
+        if f:
+            warn("Switching to instationary mode as non empty 'file_labcin' is found in OPTIONS")
+            case_i=True
     #print("ftbl parsed=", ftbl)
     #import pdb; pdb.set_trace()
     netan=dict()
@@ -345,7 +337,7 @@ def main(argv=sys.argv[1:]):
                 continue
             fpftbl=try_ext(fftbl.parent/pftbl, ["ftbl"])
             dftbl=C13_ftbl.ftbl_parse(str(fpftbl))
-            ftbl2suff(dftbl, fpftbl, case_i, netan, force, out.parent/pftbl, scre, (".linp", ".miso"))
+            ftbl2suff(dftbl, fpftbl, case_i, netan, force, out.parent/pftbl, scre, (".linp", ".miso", ".opt"))
     return 0
 
 if __name__ == "__main__" or __name__ == "influx_si.cli":

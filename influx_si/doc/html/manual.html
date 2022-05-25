@@ -5,13 +5,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>User’s manual &#8212; influx_si 5.4 documentation</title>
+    <title>User’s manual &#8212; influx_si 5.99 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '5.4',
+        VERSION:     '5.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Programmer’s documentation for influx_s" href="progdoc.html" />
+    <link rel="next" title="FTBL format evolution" href="ftblevo.html" />
     <link rel="prev" title="Quick Start" href="quick.html" /> 
   </head>
   <body>
@@ -38,12 +38,12 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="progdoc.html" title="Programmer’s documentation for influx_s"
+          <a href="ftblevo.html" title="FTBL format evolution"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -54,192 +54,276 @@
             
   <div class="section" id="user-s-manual">
 <h1>User’s manual<a class="headerlink" href="#user-s-manual" title="Permalink to this headline">¶</a></h1>
-<p>Before diving in <code class="docutils literal"><span class="pre">influx_si</span></code> features let us present FTBL format evolution that was necessary to support <code class="docutils literal"><span class="pre">influx_si</span></code> innovations.</p>
-<div class="section" id="ftbl-format-evolution">
-<h2>FTBL format evolution<a class="headerlink" href="#ftbl-format-evolution" title="Permalink to this headline">¶</a></h2>
-<p>FTBL format was conceived by authors of <code class="docutils literal"><span class="pre">13CFlux</span></code> software in late 1990’s (cf. <a class="reference external" href="https://www.13cflux.net/">https://www.13cflux.net/</a>). At the beginning of 2000’s, <code class="docutils literal"><span class="pre">13CFlux</span></code> became well spread in scientific community working on metabolism and isotope labeling. When we published the first version of <code class="docutils literal"><span class="pre">influx_s</span></code> in 2011, we adopted FTBL format to avoid cumbersome rewriting of networks and data already in use by the community. Second version of 13CFlux, published in 2012, abandoned FTBL format which was replaced by FluxML (XML) and was accompanied by a tool for automatic conversion of FTBL to FluxML.</p>
-<p>On our side, we decided to continue to use FTBL by extending and evolving some of its features. These extensions and evolution are presented hereafter. Version number in titles indicates when presented feature was first introduced to <code class="docutils literal"><span class="pre">influx_s(i)</span></code>.</p>
-<div class="section" id="metabolite-pools-and-metab-measurements-v2-0">
-<h3><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> (v2.0)<a class="headerlink" href="#metabolite-pools-and-metab-measurements-v2-0" title="Permalink to this headline">¶</a></h3>
-<p>Sections <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> concerning metabolite pools were added. These sections can be useful for stationary labeling when growth fluxes are modeled with <span class="math">\(\mu M\)</span> terms (cf. <a class="reference internal" href="#growth-flux-option">Growth flux option</a>) or when some metabolites are confounded in measurements due to cell compartmentation of co-elution during HPLC step or whatever reason. These sections become mandatory for <code class="docutils literal"><span class="pre">influx_i</span></code> usage for instationary labeling as not only fluxes but also metabolite concentrations impact label propagation dynamics.</p>
-<p><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> is structured in two columns named <code class="docutils literal"><span class="pre">META_NAME</span></code> and <code class="docutils literal"><span class="pre">META_SIZE</span></code> and as ussual for FTBL indented and separated by tabulations, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>METABOLITE_POOLS
-        META_NAME       META_SIZE
-        AKG     -0.5
-        ...
-</pre></div>
-</div>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">The value <code class="docutils literal"><span class="pre">-0.5</span></code> is not aligned with its column name <code class="docutils literal"><span class="pre">META_SIZE</span></code> because by default, tab characters are expanded to 8 spaces. As <code class="docutils literal"><span class="pre">META_NAME</span></code> occupies 9 spaces, <code class="docutils literal"><span class="pre">META_SIZE</span></code> is just shifted to the next tab position. User has to use only one tab character to separate columns even if they don’t look aligned on his screen.</p>
-</div>
-<p>For <code class="docutils literal"><span class="pre">influx_i</span></code>, every internal metabolite (i.e. metabolites present in <code class="docutils literal"><span class="pre">NETWORK</span></code> section and not being input or output metabolites) and participating in carbon exchange must be referenced in this section. The value given in the column <code class="docutils literal"><span class="pre">META_SIZE</span></code> is a metabolite concentration. The unit used for these values must be in accordance with the units used for fluxes. For example, if metabolite concentrations are measured in mM/g then fluxes are supposed to be measured in mM/(g*[time_unit]). If the value is positive then corresponding metabolite is considered as having constant concentration which does not vary during fitting iterations. If the value is negative, then this metabolite concentration will be part of fitted variables and its absolute value is used as a starting value for these iterations.
-A final fitted value will be expressed as a positive number.</p>
-<p>For <code class="docutils literal"><span class="pre">influx_s</span></code>, this section is optional and only few (not all) internal metabolites can be present in this section.</p>
-<p><code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> section regroups measurements of internal metabolite concentrations. Input and output metabolites may have concentrations varying during an experiment as they are consumed or produced. So they cannot appear in this section.  <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> section has 3 columns: <code class="docutils literal"><span class="pre">META_NAME</span></code>, <code class="docutils literal"><span class="pre">VALUE</span></code> and <code class="docutils literal"><span class="pre">DEVIATION</span></code>, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
-        META_NAME       VALUE   DEVIATION
-        Fru6P   <span class="m">0</span>.43    <span class="m">0</span>.01
-        ...
-</pre></div>
-</div>
-<p>Column names are self explanatory.</p>
-<p>In case of confounded measurements, confounded metabolites can be given as a sum, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
-        META_NAME       VALUE   DEVIATION
-        R5P_c+R5P_m     <span class="m">0</span>.32    <span class="m">0</span>.01
-        ...
-</pre></div>
-</div>
-<p>In this case, the value <code class="docutils literal"><span class="pre">0.32</span></code> will be fitted by a sum of simulated metabolite concentrations.</p>
-</div>
-<div class="section" id="long-reactions-v4-0">
-<h3>Long reactions (v4.0)<a class="headerlink" href="#long-reactions-v4-0" title="Permalink to this headline">¶</a></h3>
-<p>Initially, FTBL admitted no more than 2 metabolites on each side of reactions put in <code class="docutils literal"><span class="pre">NETWORK</span></code> section. We had to overcome this limit to facilitate FTBL creation for studies including reactions much longer than that. Now, chemical reaction having more than two metabolites on any side can be split in several sub-reactions, each of which has no more then 2 metabolites on every side. It is important that all sub-reactions be put together one after another and that they  have the same name. Based on this name, <code class="docutils literal"><span class="pre">influx_si</span></code> will assemble all parts in one reaction. E.g. a reaction named <code class="docutils literal"><span class="pre">Val_syn</span></code></p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>Val_syn: Pyr <span class="o">(</span>abc<span class="o">)</span> + Pyr <span class="o">(</span>def<span class="o">)</span> + Glu <span class="o">(</span>ghijk<span class="o">)</span> + NADPH -&gt; Val <span class="o">(</span>abcef<span class="o">)</span> + CO2 <span class="o">(</span>d<span class="o">)</span> + AKG <span class="o">(</span>ghijk<span class="o">)</span>
-</pre></div>
-</div>
-<p>can be translated into FTBL format as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
-       FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
-       Val_syn Pyr     Pyr     Val     CO2
-               <span class="c1">#abc    #def    #abcef  #d</span>
-       Val_syn Glu     NADPH   AKG
-               <span class="c1">#ghijk  #       #ghijk</span>
-</pre></div>
-</div>
-<p>If some reactions have the same name but not placed sequentially one after another, it will be signaled as an error.</p>
-</div>
-<div class="section" id="cofactors-v4-0">
-<h3>Cofactors (v4.0)<a class="headerlink" href="#cofactors-v4-0" title="Permalink to this headline">¶</a></h3>
-<p>Here, we call cofactors metabolites that does not participate in carbon transfer from one or several molecules to another. The main interest of entering cofactors in carbon transferring reactions is additional balance equations that we can put in stoechiometric system. Thus the number of free fluxes is diminished and fluxes are constrained to more realistic values, not violating cofactor balances.</p>
-<p>To indicate that a metabolite is a cofactor, user can simply put an empty carbon string in the corresponding carbon transferring line. For example, a reaction</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v8: PEP <span class="o">(</span>abc<span class="o">)</span> -&gt; Pyr <span class="o">(</span>abc<span class="o">)</span> + ATP
-</pre></div>
-</div>
-<p>can be translated into FTBL as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
-       FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
-       v8      PEP             Pyr     ATP
-               <span class="c1">#abc            #abc    #</span>
-</pre></div>
-</div>
-<p>Note an empty carbon string <code class="docutils literal"><span class="pre">#</span></code> at the place corresponding to <code class="docutils literal"><span class="pre">ATP</span></code>.
-An important difference between cofactors and other metabolites that the former are allowed to have stoechiometric coefficients different from 1. These coefficients must be separated from cofactors by <code class="docutils literal"><span class="pre">*</span></code> sign, e.g. a reaction</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v41: Asp <span class="o">(</span>abcd<span class="o">)</span> + <span class="m">2</span> ATP + NH3 -&gt; Asn <span class="o">(</span>abcd<span class="o">)</span>
-</pre></div>
-</div>
-<p>can be translated into FTBL as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
-       FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
-       v41     Asp     <span class="m">2</span>*ATP   Asn
-               <span class="c1">#abcd   #       #abcd</span>
-       v41     NH3
-               <span class="c1">#</span>
-</pre></div>
-</div>
-<p>Note the presence of <code class="docutils literal"><span class="pre">2*ATP</span></code> term.</p>
-</div>
-<div class="section" id="same-metabolite-on-both-sides-of-reaction-v4-0">
-<h3>Same metabolite on both sides of reaction (v4.0)<a class="headerlink" href="#same-metabolite-on-both-sides-of-reaction-v4-0" title="Permalink to this headline">¶</a></h3>
-<p>In some particular cases, it can be necessary to have a same metabolite on both sides of reaction. Let us illustrate this situation with the following example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v71: CO2.unlabeled <span class="o">(</span>a<span class="o">)</span> + CO2 <span class="o">(</span>b<span class="o">)</span> -&gt; CO2 <span class="o">(</span>a<span class="o">)</span> + CO2.out <span class="o">(</span>b<span class="o">)</span>
-</pre></div>
-</div>
-<p>Metabolite CO2 is present on both sides of reaction but its carbon atom is not the same. This is the main reason for introducing this feature, to allow tracer rearrangement. In FTBL, it gives</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
-       FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
-       v71     CO2.unlabeled   CO2     CO2     CO2.out
-               <span class="c1">#a      #b      #a      #b</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="section-notracer-network-v4-0">
-<h3>Section <code class="docutils literal"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)<a class="headerlink" href="#section-notracer-network-v4-0" title="Permalink to this headline">¶</a></h3>
-<p>In addition to reactions with carbon rearrangements, it can be useful to add reactions with no carbon transfer. The most known reaction of such type is biomass composition but it can there be others, e.g. involving exclusively cofactors:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v61: NADH + <span class="m">0</span>.5 O2 -&gt; <span class="m">2</span> ATP
-</pre></div>
-</div>
-<p>This optional section is structured in 2 columns: <code class="docutils literal"><span class="pre">FLUX_NAME</span></code> and <code class="docutils literal"><span class="pre">EQUATION</span></code>:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NOTRACER_NETWORK
-       FLUX_NAME       EQUATION
-       v61     NADH+0.5*O2 <span class="o">=</span> <span class="m">2</span>*ATP
-</pre></div>
-</div>
-<p>You can see that the reaction is written in a manner very different form <code class="docutils literal"><span class="pre">NETWORK</span></code> section. Its sides are separated by <code class="docutils literal"><span class="pre">=</span></code> sign, metabolites are separated by <code class="docutils literal"><span class="pre">+</span></code> and they can have stoechiometric coefficients separated by <code class="docutils literal"><span class="pre">*</span></code> symbol. It is not visible in this example, but there can be as many metabolites as desired on each side of reaction. The limit “no more than 2 metabolites by side” proper to <code class="docutils literal"><span class="pre">NETWORK</span></code> section does not apply here.</p>
-</div>
-<div class="section" id="sub-sections-equality-metab-and-inequality-metab-v2-11">
-<h3>Sub-sections <code class="docutils literal"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)<a class="headerlink" href="#sub-sections-equality-metab-and-inequality-metab-v2-11" title="Permalink to this headline">¶</a></h3>
-<p>In the same manner as for fluxes, user can have to constrain variable metabolite concentrations. Constraints can be by equalities and inequalities. These subsections are organized in the same way as for fluxes. In <code class="docutils literal"><span class="pre">EQUALITY/METAB</span></code> there are 2 columns <code class="docutils literal"><span class="pre">VALUE</span></code> and <code class="docutils literal"><span class="pre">FORMULA</span></code> while in <code class="docutils literal"><span class="pre">INEQUALITY/METAB</span></code> there are 3 of them: <code class="docutils literal"><span class="pre">VALUE</span></code>, <code class="docutils literal"><span class="pre">COMP</span></code> and <code class="docutils literal"><span class="pre">FORMULA</span></code>. For example,</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>EQUALITIES
-       METAB
-               VALUE   FORMULA
-               <span class="m">0</span>       R5P - <span class="m">1</span>.5*X5P
-               ...
-INEQUALITIES
-       METAB
-               VALUE   COMP    FORMULA
-               <span class="m">0</span>.001   &lt;<span class="o">=</span>      PEP
-               <span class="m">10</span>      &gt;<span class="o">=</span>      PEP
-               ...
-</pre></div>
-</div>
-</div>
-<div class="section" id="na-in-measurements-v2-5">
-<h3><code class="docutils literal"><span class="pre">NA</span></code> in measurements (v2.5)<a class="headerlink" href="#na-in-measurements-v2-5" title="Permalink to this headline">¶</a></h3>
-<p>Missing values marked as <code class="docutils literal"><span class="pre">NA</span></code> are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as <code class="docutils literal"><span class="pre">NA</span></code> is that the latter will be simulated and reported in corresponding simulation sections of the result file.
-This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to <code class="docutils literal"><span class="pre">NA</span></code> (but not their SD).</p>
-</div>
-<div class="section" id="optimization-control-parameters-v5-3">
-<h3>Optimization control parameters (v5.3)<a class="headerlink" href="#optimization-control-parameters-v5-3" title="Permalink to this headline">¶</a></h3>
-<p>Optimization method(s) can be tuned by control parameters that can be put in <code class="docutils literal"><span class="pre">OPTIONS</span></code> section. The format of those fields has changed. Before, the field names were looking like <code class="docutils literal"><span class="pre">optctrl_maxit</span></code> i.e. a prefix <code class="docutils literal"><span class="pre">optctrl_</span></code> followed by a parameter name, here <code class="docutils literal"><span class="pre">maxit</span></code>. Starting from v5.3, they look like <code class="docutils literal"><span class="pre">optctrl:nlsic:maxit</span></code> i.e. a prefix <code class="docutils literal"><span class="pre">optctrl</span></code> followed by a method name (here <code class="docutils literal"><span class="pre">nlsic</span></code>) and ended by parameter name, like <code class="docutils literal"><span class="pre">maxit</span></code>, all 3 separated by colon <code class="docutils literal"><span class="pre">:</span></code>. This new format allows tuning parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one <code class="docutils literal"><span class="pre">influx_si</span></code> run. More about parameters can be found in the section <a class="reference internal" href="#optimization-options">Optimization options</a>.</p>
-</div>
-<div class="section" id="convention-evolution">
-<h3>Convention evolution<a class="headerlink" href="#convention-evolution" title="Permalink to this headline">¶</a></h3>
-<p>Not only FTBL format evolved but also some conventions between its parts and content did so. Here is a complete list of them:</p>
-<blockquote>
-<div><ul>
-<li><p class="first">user must explicitly declare input-output fluxes as non reversible (set them as <code class="docutils literal"><span class="pre">C</span></code> with a value <code class="docutils literal"><span class="pre">0</span></code> in the section <code class="docutils literal"><span class="pre">FLUX/XCH</span></code>) to make a distinction between input-output metabolites and “dead-end” metabolites (the latter are allowed since the version 2.0 and have net flux equal to 0 while exchange flux non zero).</p>
-</li>
-<li><p class="first">starting from the version 2.8, new fluxes (i.e. absent in the <code class="docutils literal"><span class="pre">NETWORK</span></code> section) may appear in <code class="docutils literal"><span class="pre">EQUALITY</span></code> section. They can come, for example, from stoechiometry on cofactors involving non carbon carrying fluxes. These new fluxes have still to be declared in <code class="docutils literal"><span class="pre">FLUX/{NET,XCH}</span></code> sections (even if this feature is maintained in v4.0 its interest has diminished since cofactors can now be directly introduced in <code class="docutils literal"><span class="pre">NETWORK</span></code> and <code class="docutils literal"><span class="pre">NOTRACER_NETWORK</span></code> sections);</p>
-</li>
-<li><p class="first">in LABEL_INPUT section following conventions apply since v3.2:</p>
+<div class="section" id="mtf-format">
+<span id="mtf"></span><h2>MTF format<a class="headerlink" href="#mtf-format" title="Permalink to this headline">¶</a></h2>
+<p>Let start by describing file formats used by <code class="docutils literal"><span class="pre">influx_si</span></code>.
+MTF (Multiple TSV files) format was introduced in v6.0 of <code class="docutils literal"><span class="pre">influx_si</span></code>. Its introduction came in replacement to FTBL format and served several purposes:</p>
 <blockquote>
 <div><ul class="simple">
-<li><em>“the rest is unlabeled”</em>: if many labeling forms are lacking in the file (including fully unlabeled metabolite) and the present forms does not sum up to 1, then the fully unlabeled form is considered as completing the set to 1;</li>
+<li>to simplify network and other information formatting;</li>
+<li>to allow multiplexing of constant and variable information for large experience series. E.g. a same network can be tested under several biological conditions or vice versa a given data set can be confronted to different network models to see which one can better fit it;</li>
+<li>to facilitate automatic assembling of network/data/options coming from tiers workflows such as MS or NMR data treatment.</li>
+</ul>
+<p>Even if FTBL format was replaced as front-end format in <code class="docutils literal"><span class="pre">influx_si</span></code>, it is still a valid
+format for calculation and continues to be used behind the scene on in accompanying utilities.</p>
+</div></blockquote>
+<p>MTF format is composed of a series of plain text files each having a particular role and distinguished by their suffixes:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>.netw</dt>
+<dd>describes biochemical reactions and label transitions.</dd>
+<dt>.linp</dt>
+<dd>describes label inputs forms and fractions</dd>
+<dt>.miso</dt>
+<dd>describes stationary and instationary label measurements, their type, value and standard deviation</dd>
+<dt>.mflux</dt>
+<dd>describes stationary net flux measurements (e.g. substrate consumption or product secretion)</dd>
+<dt>.mmet</dt>
+<dd>describes stationary concentration measurements</dd>
+<dt>.cnstr</dt>
+<dd>describes constraints, equality or inequality type, on fluxes and concentrations</dd>
+<dt>.tvar</dt>
+<dd>describes variable type such as Free, Constrained or Dependent with possible starting values for Free variables</dd>
+<dt>.opt</dt>
+<dd>describes options such as optimization parameters, post-treatment R scripts to execute and others</dd>
+</dl>
+</div></blockquote>
+<p>These suffixes will be used throughout this manual as they facilitate <code class="docutils literal"><span class="pre">influx_si</span></code> usage. But they are not mandatory. For example, a classical .tsv or .txt suffixes can be used instead. In this case, a file meaning can be indicated in <code class="docutils literal"><span class="pre">--mtf</span></code> option of <code class="docutils literal"><span class="pre">influx_si</span></code> of <code class="docutils literal"><span class="pre">txt2ftbl</span></code>, e.g. <code class="docutils literal"><span class="pre">--mtf</span> <span class="pre">netw=ecoli.txt,miso=gcms.tsv,linp=glucoseU.8.tsv</span></code></p>
+<p>Only the first 3 are mandatory, the rest of MTF set is optional.</p>
+<p>Now, we pass in more detailed review each of the file content.</p>
+<div class="section" id="netw">
+<h3>.netw<a class="headerlink" href="#netw" title="Permalink to this headline">¶</a></h3>
+<p>This is a central file to the rest of the work – network file .netw
+It represents a list of biochemical reactions with label transitions. Here is an example of such reaction:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>edd: Gnt6P <span class="o">(</span>ABCDEF<span class="o">)</span> -&gt; Pyr <span class="o">(</span>ABC<span class="o">)</span> + GA3P <span class="o">(</span>DEF<span class="o">)</span>
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>Let detail its elements (all reaction elements are case sensitive):</dt>
+<dd><dl class="first docutils">
+<dt><code class="docutils literal"><span class="pre">edd</span></code></dt>
+<dd>the unique reaction name</dd>
+<dt><code class="docutils literal"><span class="pre">:</span></code></dt>
+<dd>name-reaction separator</dd>
+<dt><code class="docutils literal"><span class="pre">Gnt6P</span></code>, <code class="docutils literal"><span class="pre">Pyr</span></code>, <code class="docutils literal"><span class="pre">GA3P</span></code></dt>
+<dd>reactant names. They must not contain <code class="docutils literal"><span class="pre">+</span></code>, <code class="docutils literal"><span class="pre">(</span></code>, <code class="docutils literal"><span class="pre">)</span></code>. Other common separators such as <code class="docutils literal"><span class="pre">:</span></code>, <code class="docutils literal"><span class="pre">;</span></code> and special characters such as <code class="docutils literal"><span class="pre">{</span></code>, <code class="docutils literal"><span class="pre">|</span></code>, …  are to avoid. However, other than Latin alphabet letters are welcome in UTF-8 encoding, e.g. <code class="docutils literal"><span class="pre">α</span></code>, <code class="docutils literal"><span class="pre">β</span></code> etc.</dd>
+<dt><code class="docutils literal"><span class="pre">(ABCDEF)</span></code>, <code class="docutils literal"><span class="pre">(ABC)</span></code>, <code class="docutils literal"><span class="pre">(DEF)</span></code></dt>
+<dd>are labels of reactants. Here, their meaning is that first 3 carbons of <code class="docutils literal"><span class="pre">Gnt6P</span></code> goes to <code class="docutils literal"><span class="pre">Pyr</span></code> in the same order and the rest goes to <code class="docutils literal"><span class="pre">GA3P</span></code> also in the same order. Label atom numbering is left free for user’s choice but once chosen, it must remain consistent between reactions. It is advised to follow some common conventions. E.g. the most oxidized carbon atom (if it is a carbon which is used for labeling) should have number 1 (here letter <code class="docutils literal"><span class="pre">A</span></code> in <code class="docutils literal"><span class="pre">Gnt6P</span></code> and <code class="docutils literal"><span class="pre">Pyr</span></code>, and letter <code class="docutils literal"><span class="pre">D</span></code> in <code class="docutils literal"><span class="pre">GA3P</span></code>), its neighbor has number 2 etc. <code class="docutils literal"><span class="pre">influx_si</span></code> does not impose to use ¹³C as labeling atom. User is free to use any other atom or even a combination of them, e.g. ¹³C and ¹⁵N. A reactant can be without label atoms. In this case, it will participate in mass balance but not in label balance. Such situation can be useful e.g. for co-factors, e.g. ATP/ADP, NADP/NADPH etc. if they are not synthesized in the modeled network. The left opening parenthesis of label pattern must be separated by a space from a precedent reactant name. The label identifiers can be composed of latin or foreign letters as well as digits, each symbol representing one label atom. If a label symbol is present on one reaction side, it must be present as well on the other side. Each symbol must be present only once except for so called “scrambling” label molecules. For example, Formate is a symmetric molecule from carbon point of view. So its labeling can be given as <code class="docutils literal"><span class="pre">(ABCD+DCBA)</span></code>. Thus, for example a letter <code class="docutils literal"><span class="pre">A</span></code> appearing on the other side of reaction can come from both ends of Formate.</dd>
+<dt><code class="docutils literal"><span class="pre">-&gt;</span></code></dt>
+<dd><p class="first">reaction left and right side separator. Here, the reaction is indicated as non reversible, i.e. exchange flux is imposed to be 0. However, the net flux can be either positive or negative. For a positive net flux, the reactants on the left are consumed and those on the right are produced. If user wishes to impose the sens of reaction, a sign <code class="docutils literal"><span class="pre">-&gt;&gt;</span></code> can be used. In this case, the net flux is imposed to be non negative (i.e. ≥ 0). For reversible reactions, a sign <code class="docutils literal"><span class="pre">&lt;-&gt;</span></code> can be used. A sign <code class="docutils literal"><span class="pre">&lt;-&gt;&gt;</span></code> is meaningful. It indicates that a reaction is reversible but the net flux must be non negative. A non zero exchange flux for a positive net flux can be responsible for a backward label propagation.</p>
+<p class="last">Input/output reactions must have exchange flux set to 0. So they can be edited either with <code class="docutils literal"><span class="pre">-&gt;</span></code> or <code class="docutils literal"><span class="pre">-&gt;&gt;</span></code>. This is necessary to distinguish them from reactions having so called “dead-end” reactants. They occur only on one side of reaction(s) (either left or right, like input/output reactants do) but have an exchange flux different from 0. The dead-ends are rarely desirable and most often result from network topology errors or simply leaving <code class="docutils literal"><span class="pre">&lt;-&gt;</span></code> where <code class="docutils literal"><span class="pre">-&gt;</span></code> is meant. However, there are some special situations when they can be used on purpose in <code class="docutils literal"><span class="pre">influx_i</span></code>, for example, for modeling label dilution from stock species.</p>
+</dd>
+<dt><code class="docutils literal"><span class="pre">+</span></code></dt>
+<dd>reactant separator. The surrounding spaces are mandatory.</dd>
+</dl>
+<p>In the above reaction example, all stoichiometric coefficients are 1. If it is not the case in some reaction, they can be given as plain number (integer or with decimal point) preceding a reactant name and separated by an optional <code class="docutils literal"><span class="pre">*</span></code> sign (it can be replaced by a space), e.g.:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>v47:  Ser <span class="o">(</span>abc<span class="o">)</span> + AcCoA <span class="o">(</span>de<span class="o">)</span> + <span class="m">3</span>.0*ATP <span class="o">()</span> + <span class="m">4</span>.0*NADPH <span class="o">()</span> + SO4 <span class="o">()</span> -&gt; Cys <span class="o">(</span>abc<span class="o">)</span> + Ac <span class="o">(</span>de<span class="o">)</span>
+</pre></div>
+</div>
+<p>Note that coefficients different from 1 can only be used with non labeled reactants.</p>
+<p class="last">A comment can be introduced by <code class="docutils literal"><span class="pre">#</span></code>. The line content starting from this character to the end of line is simply ignored with one exception: a triple hash sign <code class="docutils literal"><span class="pre">###</span></code> at line beginning is used to introduce a pathway name. Pathway name can be useful for <code class="docutils literal"><span class="pre">ftbl2metxml.py</span></code> script which prepare xml and txt files for visualization on a partner site <a class="reference external" href="http://metexplore.toulouse.inra.fr/">MetExplore</a>.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="linp">
+<h3>.linp<a class="headerlink" href="#linp" title="Permalink to this headline">¶</a></h3>
+<p>Label input can be indicated in .linp file. Starting from this file type, the rest of the files are in TSV (tab separated values) format, i.e. they are plain text files where data are organized in tables, one table row per file line and where columns are separated with the tabulation character. The first non commented row contains column names. The comments start with <code class="docutils literal"><span class="pre">#</span></code> sign, they are simply ignored till the end of the row where they occur. The left- and right-trailing white spaces are stripped.</p>
+<dl class="docutils">
+<dt>The .linp file can contain the following column names:</dt>
+<dd><dl class="first last docutils">
+<dt><code class="docutils literal"><span class="pre">Id</span></code></dt>
+<dd>Not used by <code class="docutils literal"><span class="pre">influx_si</span></code> but can be useful for user’s information tracking system.</dd>
+<dt><code class="docutils literal"><span class="pre">Comment</span></code></dt>
+<dd>Not used by <code class="docutils literal"><span class="pre">influx_si</span></code> but left for user’s convenience.</dd>
+<dt><code class="docutils literal"><span class="pre">Specie</span></code></dt>
+<dd>Chemical specie name such as used in reactions in .netw file, e.g. <code class="docutils literal"><span class="pre">Glucose</span></code></dd>
+<dt><code class="docutils literal"><span class="pre">Isotopomer</span></code></dt>
+<dd>Particular isotopomer form used as label entry and composed only of “0”s and “1”s, e.g. <code class="docutils literal"><span class="pre">111111</span></code> for uniformly labeled Glucose, <code class="docutils literal"><span class="pre">100000</span></code> for Glucose labeled in first carbon.</dd>
+<dt><code class="docutils literal"><span class="pre">Value</span></code></dt>
+<dd><p class="first">For step-wise labeling experiments, a number between 0 and 1 indicating a fraction of the given labeled form in the mix. For experiments with labeling varying in time, a R expression describing time dependent function for the given label form.</p>
+<p>Normally, all labeling form for a given specie must sum up to 1. If they don’t, the following conventions apply:</p>
+<ul class="simple">
+<li><em>“the rest is unlabeled”</em>: if many labeling forms are lacking in the file (including fully unlabeled specie) then the fully unlabeled form (e.g. <code class="docutils literal"><span class="pre">000000</span></code> for Glucose) is considered as completing the set to 1;</li>
 <li><em>“guess the lacking one”</em>: if only one form is lacking in the file (no matter which one), then its fractions is considered as completing the present set to 1.</li>
 </ul>
+<p>Here is a complete example:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Specie  Isotopomer      Value
+                Gluc_U  <span class="m">111111</span>          <span class="m">1</span>
+                Gluc_U  <span class="m">000000</span>          <span class="m">0</span>.
+                Gluc_1  <span class="m">100000</span>          <span class="m">1</span>.
+                Gluc_1  <span class="m">000000</span>          <span class="m">0</span>.
+</pre></div>
+</div>
+<p>which can be shortened, due to above conventions, to:</p>
+<div class="last highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Specie  Isotopomer      Value
+                Gluc_U  <span class="m">111111</span>          <span class="m">1</span>
+                Gluc_1  <span class="m">100000</span>          <span class="m">1</span>.
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+</dl>
+</div>
+<div class="section" id="miso">
+<h3>.miso<a class="headerlink" href="#miso" title="Permalink to this headline">¶</a></h3>
+<p>The .miso contains and describes labeled measurements.
+This file contains the following column names:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt><code class="docutils literal"><span class="pre">Id</span></code></dt>
+<dd>Not used by <code class="docutils literal"><span class="pre">influx_si</span></code> but can be useful for user’s information tracking system.</dd>
+<dt><code class="docutils literal"><span class="pre">Comment</span></code></dt>
+<dd>Not used by <code class="docutils literal"><span class="pre">influx_si</span></code> but left for user’s convenience.</dd>
+<dt><code class="docutils literal"><span class="pre">Specie</span></code></dt>
+<dd>Specie name such as used in reactions in .netw file, e.g. <code class="docutils literal"><span class="pre">Glucose</span></code></dd>
+<dt><code class="docutils literal"><span class="pre">Fragment</span></code></dt>
+<dd>Integer sequences or intervals describing label fragment used in a given measurement, e.g. <code class="docutils literal"><span class="pre">1-3</span></code> or <code class="docutils literal"><span class="pre">1,2,3</span></code> or <code class="docutils literal"><span class="pre">2-5,7,9-11</span></code>. Empty field means that entire molecule is measured.</dd>
+<dt><code class="docutils literal"><span class="pre">Dataset</span></code></dt>
+<dd>Any character sequence identifying measurement method. It can be useful for distinguishing measurements on the same combination specie/fragment. Examples: <code class="docutils literal"><span class="pre">MS-1</span></code>, <code class="docutils literal"><span class="pre">HSQC</span></code>. A given dataset can have its own scaling factor if they are in use.</dd>
+<dt><code class="docutils literal"><span class="pre">Isospecies</span></code></dt>
+<dd>For MS measurements, a <code class="docutils literal"><span class="pre">M0</span></code>, <code class="docutils literal"><span class="pre">M1</span></code> etc. isotopologue identification. For NMR label measurements, a combination of binary cumomers involved in measurements. They are separated by “+” sign. Each binary cumomer can be composed of “0”, “1” and “x” symbols, e.g. <code class="docutils literal"><span class="pre">01x+10x</span></code>. This notation is universal enough to describe any NMR (or even MS) method. However, for methods focused on particular specie fragment, it can be more practical to use notation “label transferring” like <code class="docutils literal"><span class="pre">2-&gt;</span></code>, <code class="docutils literal"><span class="pre">2-&gt;1</span></code>, <code class="docutils literal"><span class="pre">2-&gt;3</span></code> and <code class="docutils literal"><span class="pre">2-&gt;1,3</span></code>. Here, the second atom is labeled and in a given measurement method it interacts with no other atom (given a singlet peak), with labeled atom 1 (giving a peak doublet 1) then labeled atom 3 (giving peak doublet 2) and finally with both labeled atoms 1 and 3 (doublet of doublets).</dd>
+<dt><code class="docutils literal"><span class="pre">Value</span></code></dt>
+<dd>Measured value in floating point notation. Can be empty or NA, meaning “non available”. There is a difference between a measurement absent in file and a measurement with NA value. The former is simply ignored while the latter is simulated and reported is simulated measurements.</dd>
+<dt><code class="docutils literal"><span class="pre">SD</span></code></dt>
+<dd>Standard deviation value in floating point notation. Cannot be empty neither NA. We recall that SD is characterizing a given measurement technique not its particular realization. So it is perfectly possible to have only one measurements if SD of the given technique was already estimated from previous experiments. If the <code class="docutils literal"><span class="pre">Value</span></code> contains an average of <span class="math">\(n\)</span> measurements than a standard SD should be reduced by a factor <span class="math">\(\sqrt{n}\)</span></dd>
+<dt><code class="docutils literal"><span class="pre">Time</span></code></dt>
+<dd>For instationary labeling, time point to which a given measurement corresponds. For stationary labeling, must be empty.</dd>
+</dl>
 </div></blockquote>
-</li>
-<li><p class="first">starting from v4.2, a particular comment tag <code class="docutils literal"><span class="pre">//##</span></code> is used to introduce a pathway name. The information on pathways can be useful for visualization on a partner web site <a class="reference external" href="http://metexplore.toulouse.inra.fr/">MetExplore</a> (cf. <code class="docutils literal"><span class="pre">ftbl2metxml</span></code> in <span class="target" id="additional-tools">Additional tools</span> section).</p>
-</li>
-</ul>
-</div></blockquote>
+<p>A multi-line example is following:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Specie  Fragment        Dataset Isospecies      Value           SD      Time
+                GA3P                    LAB-10  1xx             <span class="m">0</span>.03304418      <span class="m">0</span>.002
+                GA3P                    LAB-11  x1x             <span class="m">0</span>.01260362      <span class="m">0</span>.002
+                GA3P                    LAB-12  xx1             <span class="m">0</span>.1207158       <span class="m">0</span>.002
+                PEP     <span class="m">1</span>,2             PEAK-1  <span class="m">1</span>-&gt;             <span class="m">0</span>.66            <span class="m">0</span>.005
+                PEP     <span class="m">1</span>,2             PEAK-1  <span class="m">1</span>-&gt;2            <span class="m">0</span>.01            <span class="m">0</span>.005
+                PEP     <span class="m">1</span>,2,3           PEAK-2  <span class="m">2</span>-&gt;             <span class="m">1</span>.26            <span class="m">0</span>.005
+                PEP     <span class="m">1</span>,2,3           PEAK-2  <span class="m">2</span>-&gt;1            <span class="m">0</span>.03960991      <span class="m">0</span>.005
+                PEP     <span class="m">1</span>,2,3           PEAK-2  <span class="m">2</span>-&gt;3            <span class="m">0</span>.01183004      <span class="m">0</span>.005
+                PEP     <span class="m">1</span>,2,3           PEAK-2  <span class="m">2</span>-&gt;1,3          <span class="m">0</span>.0007686513    <span class="m">0</span>.005
+                PEP     <span class="m">1</span>,2,3           MS-1    M0              <span class="m">12601</span>           <span class="m">68</span>.005
+                PEP     <span class="m">1</span>,2,3           MS-1    M1              <span class="m">2301</span>            <span class="m">16</span>.505
+                PEP     <span class="m">1</span>,2,3           MS-1    M2              <span class="m">96</span>              <span class="m">5</span>.48
+                PEP     <span class="m">1</span>,2,3           MS-1    M3              <span class="m">1</span>               <span class="m">5</span>.005
+</pre></div>
+</div>
+<p>Here, column <code class="docutils literal"><span class="pre">Time</span></code> is left empty intentionally thus signaling a stationary labeling.</p>
+</div>
+<div class="section" id="mflux">
+<h3>.mflux<a class="headerlink" href="#mflux" title="Permalink to this headline">¶</a></h3>
+<p>Starting from this file format, we consider that column names are either similar to already described or are self-explanatory and we will just give multi-line examples with few possible comments. So, for net flux stationary measurements we could have:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Flux    Value   SD
+                upt     <span class="m">1</span>.02    <span class="m">0</span>.05
+</pre></div>
+</div>
+</div>
+<div class="section" id="mmet">
+<h3>.mmet<a class="headerlink" href="#mmet" title="Permalink to this headline">¶</a></h3>
+<p>For stationary specie concentration, we could have:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id   Comment Specie  Value                   SD
+             Fru6P   <span class="m">0</span>.4263681348074568      <span class="m">0</span>.01
+             GA3P    <span class="m">0</span>.469998855791378       <span class="m">0</span>.01
+</pre></div>
+</div>
+</div>
+<div class="section" id="cnstr">
+<h3>.cnstr<a class="headerlink" href="#cnstr" title="Permalink to this headline">¶</a></h3>
+<p>Constraints on fluxes and specie concentrations can look like:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Kind    Formula                 Operator        Value
+                NET     Glucupt_1+Glucupt_U     <span class="o">==</span>              <span class="m">1</span>
+                NET     edd                     &gt;<span class="o">=</span>              <span class="m">0</span>.0001
+</pre></div>
+</div>
+<p>Column <code class="docutils literal"><span class="pre">Kind</span></code> indicates if a constraint is on net fluxes: <code class="docutils literal"><span class="pre">NET</span></code>; on exchange fluxes: <code class="docutils literal"><span class="pre">XCH</span></code> or on specie concentrations: <code class="docutils literal"><span class="pre">MET</span></code>. The <code class="docutils literal"><span class="pre">Formula</span></code> content must be a linear function of involved entities. Column <code class="docutils literal"><span class="pre">Value</span></code> can have either a float number or a simple Python arithmetic expression which evaluates to a float number.</p>
+</div>
+<div class="section" id="tvar">
+<h3>.tvar<a class="headerlink" href="#tvar" title="Permalink to this headline">¶</a></h3>
+<p>Types of variables can resemble to</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Name    Kind    Type    Value
+                upt     NET     F       <span class="m">1</span>.02369
+                emp1    NET     F       <span class="m">0</span>.511098
+                emp2    NET     D
+                ppp2    XCH     F       <span class="m">0</span>.778786
+                ppp3    XCH     C       <span class="m">0</span>.83932
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">Type</span></code> can be either <code class="docutils literal"><span class="pre">F</span></code> (for “free”, requires a float number in <code class="docutils literal"><span class="pre">Value</span></code>), <code class="docutils literal"><span class="pre">D</span></code> (for “dependent”) or <code class="docutils literal"><span class="pre">C</span></code> (for “constrained”, requires a float number in <code class="docutils literal"><span class="pre">Value</span></code>)</p>
+</div>
+<div class="section" id="opt">
+<h3>.opt<a class="headerlink" href="#opt" title="Permalink to this headline">¶</a></h3>
+<p>Options passed to <code class="docutils literal"><span class="pre">influx_si</span></code> can be similar to:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Name                    Value
+                dt                      <span class="m">1</span>
+                nsubdiv_dt              <span class="m">4</span>
+                file_labcin             e_coli_msen.txt
+                commandArgs             --noscale --TIMEIT --time_order<span class="o">=</span><span class="m">2</span> --zc<span class="o">=</span><span class="m">0</span> --clowp <span class="m">1</span>.e-9
+                optctrl:nlsic:errx      <span class="m">1</span>.e-3
+                optctrl:nlsic:maxit     <span class="m">50</span>
+                optctrl:nlsic:btmaxit   <span class="m">16</span>
+                optctrl:nlsic:btstart   <span class="m">1</span>
+                optctrl:nlsic:btfrac    <span class="m">0</span>.5
+                optctrl:nlsic:adaptbt   <span class="m">1</span>
+                optctrl:nlsic:monotone  <span class="m">1</span>
+                posttreat_R             plot_ilab.R
+</pre></div>
+</div>
+<p>The meaning of each possible option is described in different sections of this manual.</p>
+</div>
+<div class="section" id="vmtf">
+<h3>.vmtf<a class="headerlink" href="#vmtf" title="Permalink to this headline">¶</a></h3>
+<p>Variable part of mtf approach can be used to combine constant and variable
+parts of experiments to launch a calculation of flux maps in a batch.
+E.g. in a set of experiments on the same organism in different biological conditions, <code class="docutils literal"><span class="pre">.miso</span></code>, <code class="docutils literal"><span class="pre">.mflux</span></code> can vary from one experiment to another while <code class="docutils literal"><span class="pre">.netw</span></code> and other files can remain the same in the whole experiment set.
+In this case, files containing variable sections (here <code class="docutils literal"><span class="pre">.miso</span></code> and <code class="docutils literal"><span class="pre">.mflux</span></code>)
+can be given in a special file having an extension ‘.vmtf’ while constant
+parts will be given in <code class="docutils literal"><span class="pre">--mtf</span></code> or <code class="docutils literal"><span class="pre">--prefix</span></code> options.</p>
+<p><code class="docutils literal"><span class="pre">.vmtf</span></code> file is a TSV file with
+columns using the same name as extensions described above: <code class="docutils literal"><span class="pre">netw</span></code>, <code class="docutils literal"><span class="pre">linp</span></code>, etc.
+Each row contains file names that will be used to produce a particular
+FTBL file used in calculation.
+Thus each row must have <code class="docutils literal"><span class="pre">ftbl</span></code> column with unique and non empty name. If a file
+type is present both in column names of ‘vmtf’ and in <code class="docutils literal"><span class="pre">--mtf</span></code>/<code class="docutils literal"><span class="pre">--prefix</span></code> option
+then the content of ‘vmtf’ file will take precedence. Empty values
+in <code class="docutils literal"><span class="pre">vmtf</span></code> file are ignored. All file paths in <code class="docutils literal"><span class="pre">vmtf</span></code> file are
+considered relative to the location of <code class="docutils literal"><span class="pre">vmtf</span></code> file itself. If in <code class="docutils literal"><span class="pre">.vmtf</span></code>,
+a file name is given without extension it is deduced from column name. Example of <code class="docutils literal"><span class="pre">.vmtf</span> <span class="pre">file</span></code>:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment miso            mflux           tvar            ftbl
+                model_WT_BW_1   model_WT_BW_1   model_WT_BW_1   vmtf_WT_BW_1
+                model_WT_BW_2   model_WT_BW_2   model_WT_BW_2   vmtf_WT_BW_2
+                model_zwf_1     model_zwf_1     model_zwf_1     vmtf_zwf_1
+</pre></div>
+</div>
+<p>Example of command line using <code class="docutils literal"><span class="pre">.vmtf</span></code>:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>--prefix ecoli --mtf variable.vmtf
+</pre></div>
+</div>
 </div>
 </div>
 <div class="section" id="basic-influx-si-usage">
 <h2>Basic influx_si usage<a class="headerlink" href="#basic-influx-si-usage" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal"><span class="pre">influx_si</span></code> can be run without any option on most common cases. So its usage can be as simple as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py mynetwork
+<p><code class="docutils literal"><span class="pre">influx_si</span></code> can be run as</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --prefix mynetwork
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_i.py mynetwork
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_i.py --prefix mynetwork
 </pre></div>
 </div>
-<p>we suppose here that a valid <a class="reference external" href="https://www.13cflux.net/">FTBL</a> file <code class="docutils literal"><span class="pre">mynetwork.ftbl</span></code> was created. Moreover, we supposed <code class="docutils literal"><span class="pre">influx_s.py</span></code> and <code class="docutils literal"><span class="pre">influx_i.py</span></code> is in the PATH variable.</p>
+<p>Letters <code class="docutils literal"><span class="pre">s</span></code> and <code class="docutils literal"><span class="pre">i</span></code> stand for “stationary” and “instationary”.
+We suppose here that a valid MTF file set was created. Moreover, we supposed <code class="docutils literal"><span class="pre">influx_s.py</span></code> and <code class="docutils literal"><span class="pre">influx_i.py</span></code> are in the PATH variable.</p>
 <p>In the rest of this manual, we’ll use just <code class="docutils literal"><span class="pre">influx_s.py</span></code> as example if the example is valid for both stationary and instationary contexts. If some usage is valid exclusively for <code class="docutils literal"><span class="pre">influx_i.py</span></code>, it will be duly signaled.</p>
-<p>In a high throughput context, it can be useful to proceed many FTBL files in parallel. This can be done by giving all the FTBL names in a command line, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py mynetwork1 mynetwork2
+<p>In a high throughput context, it can be useful to proceed many MTF set files in parallel. This can be done by giving all variable parts of experiment set in a <code class="docutils literal"><span class="pre">.vmtf</span></code> file, e.g.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --prefix mynetwork --mtf variable.vmtf
 </pre></div>
 </div>
-<p>and so on. All files are then proceeded in separate independent processes launched almost simultaneously by a bunch of size equal to the number of available or requested cores (if an option <code class="docutils literal"><span class="pre">--np=NP</span></code> is used). It is an operating system who is in charge to make a distribution of all these processes among all available CPUs and cores.</p>
+<p>All files are then proceeded in separate independent processes launched almost simultaneously by a bunch of size equal to the number of available or requested cores (if an option <code class="docutils literal"><span class="pre">--np=NP</span></code> is used). It is an operating system who is in charge to make a distribution of all these processes among all available CPUs and cores.</p>
 <p>Sometimes, particular cases need usage of special options of <code class="docutils literal"><span class="pre">influx_si</span></code>. The list of available options can be seen by running:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --help
 </pre></div>
 </div>
 <p>If used with options, <code class="docutils literal"><span class="pre">influx_si</span></code> can be run like</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py <span class="o">[</span>options<span class="o">]</span> mynetwork
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py <span class="o">[</span>options<span class="o">]</span> --prefix mynetwork
 </pre></div>
 </div>
 <p>where <code class="docutils literal"><span class="pre">[options]</span></code> is an option list separated by a white character.</p>
@@ -248,18 +332,17 @@ This feature can be useful for preliminary simulations when there is no yet data
 <p class="last">Here and throughout this manual, content placed in brackets  <code class="docutils literal"><span class="pre">[...]</span></code> is meant to be an optional part of the command. If the user does wish to type an optional part of a command, the brackets themselves must be omitted.</p>
 </div>
 <p>Each option starts with a double dash <code class="docutils literal"><span class="pre">--</span></code> and can be followed by its argument if applicable. For example, to use BFGS optimization method instead of the default NLSIC algorithm, a user can run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --meth BFGS mynetwork
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --meth BFGS --prefix mynetwork
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --meth<span class="o">=</span>BFGS mynetwork
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --meth<span class="o">=</span>BFGS --prefix mynetwork
 </pre></div>
 </div>
-<p>The option names can be shortened till a non ambiguous interpretation is possible, e.g in the previous example, the option could be shortened as <code class="docutils literal"><span class="pre">--m</span> <span class="pre">BFGS</span></code> or <code class="docutils literal"><span class="pre">--m=BFGS</span></code> because there is no other option name starting by a letter <code class="docutils literal"><span class="pre">m</span></code>. But an option <code class="docutils literal"><span class="pre">--no</span></code> could not be distinguished between <code class="docutils literal"><span class="pre">--noopt</span></code> and <code class="docutils literal"><span class="pre">--noscale</span></code>. So at least <code class="docutils literal"><span class="pre">--nos</span></code> (for <code class="docutils literal"><span class="pre">--noscale</span></code>) or <code class="docutils literal"><span class="pre">--noo</span></code> (for <code class="docutils literal"><span class="pre">--noopt</span></code>) should be provided. There is only one option that does not admit a usage of an equal sign to provide an argument, it is <code class="docutils literal"><span class="pre">--excl_outliers</span></code>. Use only a space character to provide an argument to this option when required.</p>
+<p>The option names can be shortened till a non ambiguous interpretation is possible, e.g in the previous example, the option could be shortened as <code class="docutils literal"><span class="pre">--me</span> <span class="pre">BFGS</span></code> or <code class="docutils literal"><span class="pre">--me=BFGS</span></code> because there is no other option name starting by <code class="docutils literal"><span class="pre">me</span></code>. But an option <code class="docutils literal"><span class="pre">--no</span></code> could not be distinguished between <code class="docutils literal"><span class="pre">--noopt</span></code> and <code class="docutils literal"><span class="pre">--noscale</span></code>. So at least <code class="docutils literal"><span class="pre">--nos</span></code> (for <code class="docutils literal"><span class="pre">--noscale</span></code>) or <code class="docutils literal"><span class="pre">--noo</span></code> (for <code class="docutils literal"><span class="pre">--noopt</span></code>) should be provided. There is only one option that does not admit a usage of an equal sign to provide an argument, it is <code class="docutils literal"><span class="pre">--excl_outliers</span></code>. Use only a space character to provide an argument to this option when required.</p>
 <p>Here after the available options with their full names are enumerated and detailed.</p>
-</div>
 <div class="section" id="influx-si-command-line-options">
-<h2><code class="docutils literal"><span class="pre">influx_si</span></code> command line options<a class="headerlink" href="#influx-si-command-line-options" title="Permalink to this headline">¶</a></h2>
+<h3><code class="docutils literal"><span class="pre">influx_si</span></code> command line options<a class="headerlink" href="#influx-si-command-line-options" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><table class="docutils option-list" frame="void" rules="none">
 <col class="option" />
@@ -307,7 +390,7 @@ necessary to simulate measurements)</p>
 </td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--irand</span></kbd></td>
-<td><p class="first">ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf –fseries and –iseries
+<td><p class="first">ignore initial approximation for free parameters (free fluxes and specie concentrations) from the FTBL file or from a dedicated file (cf –fseries and –iseries
 option) and use random values drawn uniformly from [0,1]</p>
 <p class="last">It is recommended to use this option in conjunction with “–zc 0” option.</p>
 </td></tr>
@@ -326,7 +409,7 @@ Default for N: 10</p>
 <td>upper limit for net fluxes. Default: 1.e3</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--cupp=<var>CUPP</var></span></kbd></td>
-<td>upper limit for metabolite pool. Default: 1.e5</td></tr>
+<td>upper limit for specie pool. Default: 1.e5</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">--clownr=<var>CLOWNR</var></span></kbd></td>
 </tr>
@@ -341,7 +424,7 @@ Zero value (default) means no lower limit</p>
 Must be non negative. Default: 0</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--clowp=<var>CLOWP</var></span></kbd></td>
-<td>lower limit for free metabolite pools. Must be positive. Default 1.e-8</td></tr>
+<td>lower limit for free specie pools. Must be positive. Default 1.e-8</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--np=<var>NP</var></span></kbd></td>
 <td>When integer &gt;= 1, it is a number of parallel threads (on
@@ -408,7 +491,7 @@ starting point from the FTBL file is used)</p>
 <tr><td class="option-group">
 <kbd><span class="option">--seed=<var>SEED</var></span></kbd></td>
 <td>Integer (preferably a prime integer) used for
-reproducible random number generating. It makes
+eproducible random number generating. It makes
 reproducible random starting points (–irand) but also
 Monte-Carlo simulations for sensitivity analysis.
 Default: none, i.e. current system value is used, so
@@ -441,6 +524,19 @@ An optional p-value used here does not give a proportion of residuals that will 
 <p class="last">This option can be helpful for generating synthetic FTBL files with realistic simulated measurements (cf. <a class="reference internal" href="howto.html#howto"><span class="std std-ref">How to make FTBL file with synthetic data?</span></a>).</p>
 </td></tr>
 <tr><td class="option-group">
+<kbd><span class="option">--mtf <var>MTF</var></span></kbd></td>
+<td>option passed to txt2ftbl. See help there.</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--prefix <var>PREFIX</var></span></kbd></td>
+</tr>
+<tr><td>&#160;</td><td>option passed to txt2ftbl. See help there.</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--eprl <var>EPRL</var></span></kbd></td>
+<td>option passed to txt2ftbl. See help there.</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--force <var>FORCE</var></span></kbd></td>
+<td>option passed to txt2ftbl. See help there.</td></tr>
+<tr><td class="option-group">
 <kbd><span class="option">--copy_doc</span></kbd></td>
 <td>copy documentation directory in the current directory and
 exit. If ./doc exists, its content is silently owerriten.</td></tr>
@@ -466,45 +562,59 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 </tbody>
 </table>
 </div></blockquote>
-<p>All command line options can be also provided in the FTBL file. A user can put them in the field <code class="docutils literal"><span class="pre">commandArgs</span></code> in the <code class="docutils literal"><span class="pre">OPTIONS</span></code> section. The corresponding portion of the FTBL file could look like</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>OPTIONS
-       OPT_NAME        OPT_VALUE
-       commandArgs     --meth BFGS --sens mc=100 --np 1
+<p>All command line options can be also provided in a .opt file. A user can put them in the field <code class="docutils literal"><span class="pre">commandArgs</span></code>, e.g.</p>
+<blockquote>
+<div><div class="highlight-none"><div class="highlight"><pre><span></span>Name            Value
+commandArgs     --meth BFGS --sens mc=100 --np 1
 </pre></div>
 </div>
-<p>In such a way, a user can just drag-and-drop an FTBL file icon on the icon of the <code class="docutils literal"><span class="pre">influx_s.py</span></code> and the calculations will be done with the necessary options, assuming that the system was configured in appropriate way during the installation process.</p>
-<p>If an option is provided both on the command line and in the FTBL file, it is the command line that has the priority. In such a way, a user is given an opportunity to overwrite any option at the run time. Nevertheless, there is no way to cancel a flag option (an option without argument) on a command line if it is already set in the FTBL file. For example, if <code class="docutils literal"><span class="pre">--fullsys</span></code> flag is set in the FTBL file, the full system information will be produced whatever command line options are.</p>
+</div></blockquote>
+<p>If an option is provided both on the command line and in the .opt file, it is the command line that has the priority. In such a way, a user is given an opportunity to overwrite any option at the run time. Nevertheless, there is no way to cancel a flag option (an option without argument) on a command line if it is already set in the .opt file. For example, if <code class="docutils literal"><span class="pre">--fullsys</span></code> flag is set in the .opt file, the full system information will be produced whatever command line options are.</p>
+</div>
 </div>
 <div class="section" id="parallel-experiments">
 <h2>Parallel experiments<a class="headerlink" href="#parallel-experiments" title="Permalink to this headline">¶</a></h2>
 <p id="prlexp">Staring from v4.0, <code class="docutils literal"><span class="pre">influx_si</span></code> offers possibility to treat labeling  data from parallel experiments. Parallel experiments for stationary labeling were described in the literature (e.g. cf. “Parallel labeling experiments and metabolic flux analysis: Past, present and future methodologies.”, Crown SB, Antoniewicz MR., <em>Metab Eng.</em> 2013 Mar;16:21-32. doi: 10.1016/j.ymben.2012.11.010). But for instationary labeling, at the best of our knowledge, <code class="docutils literal"><span class="pre">influx_si</span></code> is the first software offering parallel experiments treatment.</p>
 <p>The main interest of parallel experiments is increased precision of flux estimations. This comes at price of additional work for experiments and data gathering but the result is often worth the effort. As usual, before doing a real “wet” experiment, it can be useful to run few  “dry” simulations to see if planned experiments will deliver desired precision.</p>
-<p>To deal with parallel experiments, a user have to prepare a series of FTBL files, one per experiment. One of them will be referred to as a main file. It has to provide the following sections common to all experiments: <code class="docutils literal"><span class="pre">NETWORK</span></code>, <code class="docutils literal"><span class="pre">FLUXES</span></code>, <code class="docutils literal"><span class="pre">EQUALITIES</span></code> (if any), <code class="docutils literal"><span class="pre">INEQUALITIES</span></code> (if any), <code class="docutils literal"><span class="pre">FLUX_MEASUREMENTS</span></code> (if any), <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> (if any), <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> (if any) and some entries in <code class="docutils literal"><span class="pre">OPTIONS</span></code>.</p>
-<p>The secondary FTBL files as well as the main one are to provide experimental labeling data corresponding to each experiment. These data have to be presented in the following sections: <code class="docutils literal"><span class="pre">LABEL_INPUT</span></code>, <code class="docutils literal"><span class="pre">LABEL_MEASUREMENTS</span></code> (if any), <code class="docutils literal"><span class="pre">PEAK_MEASUREMENTS</span></code> (if any), <code class="docutils literal"><span class="pre">MASS_SPECTROMETRY</span></code> (if any). In instationary context, text files with labeling kinetics have to be provided, one per experiment. Their names have to be placed in the field <code class="docutils literal"><span class="pre">OPTION/file_labcin</span></code> of a corresponding FTBL. Finally, the names of secondary FTBL files have to be put in the field <code class="docutils literal"><span class="pre">OPTIONS/prl_exp</span></code> of the main file as plain list separated by semicolon <code class="docutils literal"><span class="pre">;</span></code> and optionally by one or more spaces.</p>
-<p>This file architecture ensures that a network topology, flux and metabolite values are common to all experiments while entry label and measurements on labeled metabolites are proper to each experiment.</p>
-<p>Secondary FTBL files can also contain <code class="docutils literal"><span class="pre">NETWORK</span></code> and other sections found in the main file but are simply ignored at processing step. When FTBL files are ready, you can run <code class="docutils literal"><span class="pre">influx_si</span></code> on them by providing the name of main FTBL on the command line (and only it, don’t list secondary files), e.g. in installation directory run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ ./influx_s.py test/prl_exp/e_coli_glc1-6n
+<p>To deal with parallel experiments, a user have to prepare a series of additional .miso/.linp couples, one per additional experiment. While the “main” .miso/.linp couple can be given in <code class="docutils literal"><span class="pre">--prefix</span></code> or <code class="docutils literal"><span class="pre">--mtf</span></code> options.</p>
+<p>Each couple provides input labeling and measured labeling data corresponding to an experiment.
+This file architecture ensures that a network topology, flux and specie values are common to all experiments while entry label and measurements on labeled species are proper to each experiment.</p>
+<p>When files are ready, you can run <code class="docutils literal"><span class="pre">influx_si</span></code> on them, e.g. in <code class="docutils literal"><span class="pre">test/prl_exp/mtf</span></code> directory run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ ./influx_s.py --pref e_coli_glc1-6n --eprl e_coli_glc2n,e_coli_glc3n,e_coli_glc4n,e_coli_glc5n,e_coli_glc6n
 </pre></div>
 </div>
-<p>You can find an example of parallel experiment data in the directory <code class="docutils literal"><span class="pre">test/prl_exp</span></code> in files
-<code class="docutils literal"><span class="pre">e_coli_glc1-6n.ftbl</span></code> (main file), <code class="docutils literal"><span class="pre">e_coli_glc2n.ftbl</span></code>, <code class="docutils literal"><span class="pre">e_coli_glc3n.ftbl</span></code>, <code class="docutils literal"><span class="pre">e_coli_glc4n.ftbl</span></code>, <code class="docutils literal"><span class="pre">e_coli_glc5n.ftbl</span></code>, <code class="docutils literal"><span class="pre">e_coli_glc6n.ftbl</span></code>. These files correspond to stationary labeling experiments described in “Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis”, Robert W. Leighty, Maciek R. Antoniewicz, <em>Metabolic Engineering</em> 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).</p>
-<p>We also provide an example of simulated instationary parallel experiments in the files <code class="docutils literal"><span class="pre">e_coli_GX_prl.ftbl</span></code> (main file) and <code class="docutils literal"><span class="pre">e_coli_GX_X.ftbl</span></code> (secondary file) corresponding to simultaneous consumption of glucose and xylose. The network for this simulations was borrowed from “13C metabolic flux analysis of microbial and mammalian systems is enhanced with GC-MS measurements of glycogen and RNA labeling”, Christopher P. Long, Jennifer Au, Jacqueline E. Gonzalez, Maciek R. Antoniewicz, Metabolic Engineering 38 (2016) 65–72. The experiment consisted in dynamic labeling by uniformly labeled glucose (main experiment)  and by uniformly labeled xylose (secondary one). Labeling kinetics MS data are given in <code class="docutils literal"><span class="pre">e_coli_GX_MS.txt</span></code> and <code class="docutils literal"><span class="pre">e_coli_GX_X_MS.txt</span></code> files respectively. To play with this example, you can run (still in installation directory):</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ ./influx_i.py test/prl_exp/e_coli_GX_prl
+<p>In this example 6 parallel experiments were used, the “main” being described in files ecoli_glc1-6n and 5 additional ones in files going from <code class="docutils literal"><span class="pre">e_coli_glc2n</span></code> to <code class="docutils literal"><span class="pre">e_coli_glc6n</span></code>. Note that we used a compact form of <code class="docutils literal"><span class="pre">--eprl</span></code> options as all .miso/.linp couples used canonical suffixes. In that way, giving only a prefix like <code class="docutils literal"><span class="pre">e_coli_glc2n</span></code> was sufficient to find the both corresponding files.</p>
+<p>The command can be shortened even more if <code class="docutils literal"><span class="pre">prl_exp</span></code> option is used in <code class="docutils literal"><span class="pre">.opt</span></code> file.
+For example if we write in the main set <code class="docutils literal"><span class="pre">e_coli_glc1-6n.opt</span></code>:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Name    Value
+prl_exp e_coli_glc2n,e_coli_glc3n,e_coli_glc4n,e_coli_glc5n,e_coli_glc6n
 </pre></div>
 </div>
-<p>The secondary files in all examples contain also the full information about the network, fluxes and so on, so they can be used as classical mono-experimental files to see how much the precision of flux estimation increased due to parallel experiment methodology.</p>
-<p>Note that set of measured metabolite fragments as well as sampling time points for instationary labeling are not necessary the same for all parallel experiments. They do can differ.</p>
+<p>then the command to run parallel experiments becomes simply:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ ./influx_s.py --pref e_coli_glc1-6n
+</pre></div>
 </div>
+<p>This example set of files correspond to stationary labeling experiments described in “Complete-MFA: Complementary parallel labeling experiments technique for metabolic flux analysis”, Robert W. Leighty, Maciek R. Antoniewicz, <em>Metabolic Engineering</em> 20 (2013) 49–55 (with only difference that we use simulated and noised data instead of measured ones).</p>
+<p>We also provide an example of simulated instationary parallel experiments in the files <code class="docutils literal"><span class="pre">e_coli_GX_prl</span></code> (main files) and <code class="docutils literal"><span class="pre">e_coli_GX_X</span></code> (secondary files) corresponding to simultaneous consumption of glucose and xylose. The network for this simulations was borrowed from “13C metabolic flux analysis of microbial and mammalian systems is enhanced with GC-MS measurements of glycogen and RNA labeling”, Christopher P. Long, Jennifer Au, Jacqueline E. Gonzalez, Maciek R. Antoniewicz, Metabolic Engineering 38 (2016) 65–72. The experiment consisted in dynamic labeling by uniformly labeled glucose (main experiment)  and by uniformly labeled xylose (secondary one). Labeling kinetics MS data are given in <code class="docutils literal"><span class="pre">e_coli_GX_MS.miso</span></code> and <code class="docutils literal"><span class="pre">e_coli_GX_X_MS.miso</span></code> files respectively. To play with this example (still in the same directory), you can run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ ./influx_i.py e_coli_GX_prl
+</pre></div>
+</div>
+<p>Note that set of measured specie fragments as well as sampling time points for instationary labeling are not necessary the same for instationary experiments. They do
+can differ. That’s why a <code class="docutils literal"><span class="pre">.opt</span></code> can be necessary to add to <code class="docutils literal"><span class="pre">.miso/.linp</span></code> couple to form a complete parallel experiment.</p>
+<p>It should be made a clear distinction between parallel experiments described in this section and independent experiments calculated in parallel. The main difference is that parallel experiments of this section share all the same flux map (only labeling pattern and data can differ) while independent experiments can have each its own flux map, be they calculated in parallel or sequentially.</p>
+</div>
+<div class="section" id="options-in-opt-file">
+<h2>Options in .opt file<a class="headerlink" href="#options-in-opt-file" title="Permalink to this headline">¶</a></h2>
+<p>In this section we describe different options that can appear in .opt file</p>
 <div class="section" id="optimization-options">
-<h2>Optimization options<a class="headerlink" href="#optimization-options" title="Permalink to this headline">¶</a></h2>
-<p>These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). They can be given only in an FTBL file, in the section OPTIONS. These options are prefixed with <code class="docutils literal"><span class="pre">optctrl</span></code> which is followed by a particular optimization method name and ended by an option name. For example, <code class="docutils literal"><span class="pre">optctrl:nlsic:errx</span></code> corresponds to the stopping criterion. A corresponding FTBL portion could look like</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>OPTIONS
-       OPT_NAME        OPT_VALUE
-       optctrl:nlsic:errx      1.e-3
+<span id="optopt"></span><h3>Optimization options<a class="headerlink" href="#optimization-options" title="Permalink to this headline">¶</a></h3>
+<p>These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). These options are prefixed with <code class="docutils literal"><span class="pre">optctrl</span></code> which is followed by a particular optimization method name and ended by an option name. For example, <code class="docutils literal"><span class="pre">optctrl:nlsic:errx</span></code> corresponds to the stopping criterion. A corresponding <code class="docutils literal"><span class="pre">.opt</span></code> portion could look like</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Name                    Value
+optctrl:nlsic:errx      1.e-3
 </pre></div>
 </div>
 <div class="section" id="nlsic-parameters">
-<h3>NLSIC parameters<a class="headerlink" href="#nlsic-parameters" title="Permalink to this headline">¶</a></h3>
+<h4>NLSIC parameters<a class="headerlink" href="#nlsic-parameters" title="Permalink to this headline">¶</a></h4>
 <p>All possible options and their default values for NLSIC algorithm follow:</p>
 <blockquote>
 <div><dl class="docutils">
@@ -536,7 +646,7 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 </div></blockquote>
 </div>
 <div class="section" id="pso-parameters">
-<h3>PSO parameters<a class="headerlink" href="#pso-parameters" title="Permalink to this headline">¶</a></h3>
+<h4>PSO parameters<a class="headerlink" href="#pso-parameters" title="Permalink to this headline">¶</a></h4>
 <p>Particle Swarm Optimization (PSO) is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That’s why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written for box constrained problems. While <code class="docutils literal"><span class="pre">influx_si</span></code> requires a usage of general linear constraints. So we modified the algorithms accordingly. Its parameters with their default values used in <code class="docutils literal"><span class="pre">influx_si</span></code> are following:</p>
 <blockquote>
 <div><dl class="docutils">
@@ -578,77 +688,68 @@ exit. If ./doc exists, its content is silently owerriten.</td></tr>
 </div></blockquote>
 </div>
 <div class="section" id="other-optimization-methods">
-<h3>Other optimization methods<a class="headerlink" href="#other-optimization-methods" title="Permalink to this headline">¶</a></h3>
+<h4>Other optimization methods<a class="headerlink" href="#other-optimization-methods" title="Permalink to this headline">¶</a></h4>
 <p>Names and default values for BFGS and Nelder-Mead algorithms can be found in the R help on <code class="docutils literal"><span class="pre">optim()</span></code> function.</p>
 </div>
 </div>
 <div class="section" id="growth-flux-option">
-<h2>Growth flux option<a class="headerlink" href="#growth-flux-option" title="Permalink to this headline">¶</a></h2>
-<p>If present, this option makes <code class="docutils literal"><span class="pre">influx_si</span></code> take into account growth fluxes <span class="math">\(-\mu{}M\)</span> in the flux balance, where <span class="math">\(\mu\)</span> is a growth rate and <span class="math">\(M\)</span> is a concentration of an internal metabolite M by a unit of biomass. Only metabolites for which this concentration is provided in an FTBL section <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code>, contribute to flux balance with a flux <span class="math">\(-\mu{}M\)</span>.
-This flux can be varying or constant during optimization process depending on whether the metabolite M is part of free parameters to fit or not. Usually, taking into account of this kind of flux does not influence very much on the estimated flux values. So, this option is provided to allow a user to be sure that it is true in his own case.</p>
-<p>The option is activated by a field <code class="docutils literal"><span class="pre">include_growth_flux</span></code> in the <code class="docutils literal"><span class="pre">OPTIONS</span></code> section:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>OPTIONS
-       OPT_NAME        OPT_VALUE
-       include_growth_flux     1
+<span id="growthflux"></span><h3>Growth flux option<a class="headerlink" href="#growth-flux-option" title="Permalink to this headline">¶</a></h3>
+<p>If present, this option makes <code class="docutils literal"><span class="pre">influx_si</span></code> take into account growth fluxes <span class="math">\(-\mu{}M\)</span> in the flux balance, where <span class="math">\(\mu\)</span> is a growth rate and <span class="math">\(M\)</span> is a concentration of an internal specie M by a unit of biomass. Only species for which this concentration is provided in a .tvar file, contribute to flux balance with a flux <span class="math">\(-\mu{}M\)</span>.
+This flux can be varying or constant during optimization process depending on whether the specie M is part of free parameters to fit or not. Usually, taking into account of this kind of flux does not influence very much on the estimated flux values. So, this option is provided to allow a user to be sure that it is true in his own case.</p>
+<p>The option is activated by a field <code class="docutils literal"><span class="pre">include_growth_flux</span></code>:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Name                    Value
+include_growth_flux     1
 </pre></div>
 </div>
 <p>Value 0 cancels the contribution of the growth fluxes to the general flux balance.</p>
 <p>Another necessary option is <code class="docutils literal"><span class="pre">mu</span></code> giving the value of <cite>µ</cite>:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>OPTIONS
-       OPT_NAME        OPT_VALUE
-       mu      0.12
+<div class="highlight-none"><div class="highlight"><pre><span></span>Name    Value
+mu      0.12
 </pre></div>
 </div>
-<p>Finally, the metabolite concentrations by a unit of biomass are reported in a section <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> as:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>METABOLITE_POOLS
-       META_NAME       META_SIZE
-       Fum     2.47158569399681
-       Suc     -15.8893144279264
-       Mal     -6.47828321758155
-       ...     ...
+<p>PLease note that the specie concentrations by a unit of biomass are reported in a file .tvar as:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Name    Kind    Type    Value
+Fum     METAB   C       2.47158569399681
+Suc     METAB   F       15.8893144279264
+Mal     METAB   F       6.47828321758155
+...     ...
 </pre></div>
 </div>
-<p>Metabolite names used in this section must be identical to those used in the <code class="docutils literal"><span class="pre">NETWORK</span></code> section and others. Negative value is used as indicator of a variable metabolite pool. Such varying metabolites are part of fitted parameters. Absolute values from this section are used as their starting values in the optimization process.</p>
-<p>One of valuable originality of <code class="docutils literal"><span class="pre">influx_s</span></code>, it is a possibility to couple fluxomics and metabolomics in stationary experiments. It can be done because metabolite pools can influence labeling in two ways:</p>
+<p>Specie names used in this section must be identical to those used in the .netw file and others. “F” is used as indicator of a varying specie pool. Such varying species are part of fitted parameters. Column “Value” is used as starting value in the optimization process.</p>
+<p>One of valuable originality of <code class="docutils literal"><span class="pre">influx_s</span></code>, it is a possibility to couple fluxomics and metabolomics in stationary experiments. It can be done because specie pools can influence labeling in two ways:</p>
 <blockquote>
 <div><ul class="simple">
-<li>through metabolite pooling (due to compartmentation and/or coelution during chromatography)</li>
+<li>through specie pooling (due to compartmentalization and/or co-elution during chromatography)</li>
 <li>through growth fluxes.</li>
 </ul>
 </div></blockquote>
-<p>This last influence is often of low intensity compared to metabolite transformation fluxes. In literature, it is often neglected.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last"><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> section was not present in the original FTBL format. It is added <cite>ad hoc</cite> and it is possible that its presence makes fail other software using such FTBL.</p>
-</div>
-<p>Another section that was added “ad hoc” to FTBL file is <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code>:</p>
-<div class="highlight-none"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
-       META_NAME       VALUE   DEVIATION
-       Suc     15.8893144279264*1.e-3/10.7     1.e-2
-       Mal     6.47828321758155*1.e-3/10.7     1.e-2
-       Rub5P+Rib5P+Xul5P       1.66034545348219*1.e-3/10.7     1.e-2
+<p>This last influence is often of low intensity compared to specie transformation fluxes. In literature, it is often neglected.</p>
+<p>Another possibility that was added influx_si is to provide measured specie concentrations in .mmet file:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>Specie                  Value                           SD
+Suc                     15.8893144279264*1.e-3/10.7     1.e-2
+Mal                     6.47828321758155*1.e-3/10.7     1.e-2
+Rub5P+Rib5P+Xul5P       1.66034545348219*1.e-3/10.7     1.e-2
 </pre></div>
 </div>
-<p>Like for other measurements, user has to provide a name, a value and a standard deviation for each entry in this section. Metabolites listed in this section must be defined in the <code class="docutils literal"><span class="pre">NETWORK</span></code> section and must have a negative value in the <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> section. Numerical values can be simple arithmetic expressions (as in the example above) which are evaluated during file parsing.</p>
-<p>When a metabolite name is given as a sum of metabolites (e.g. <code class="docutils literal"><span class="pre">Rub5P+Rib5P+Xul5P</span></code>) it is interpreted as a list of metabolites to be pooled. It is done proportionally to their concentrations. No numerical factor can appear in this sum. At least one of the metabolites from the list must have negative value in the <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> section. Otherwise, all metabolites from the list would be considered as having a fixed concentration and providing a measurement for such metabolites would be meaningless.</p>
+<p>Like for other measurements, user has to provide a name, a value and a standard deviation for each entry. Species listed in this section must be defined in the .netw file and must have type “F” in the <code class="docutils literal"><span class="pre">.tvar</span></code>. Numerical values can be simple arithmetic expressions (as in the example above) which are evaluated during file parsing.</p>
+<p>When a specie name is given as a sum of species (e.g. <code class="docutils literal"><span class="pre">Rub5P+Rib5P+Xul5P</span></code>) it is interpreted as a list of species to be pooled. It is done proportionally to their concentrations. No numerical factor can appear in this sum. At least one of the species from the list must be free (i.e. to have “F” type in the <code class="docutils literal"><span class="pre">.tvar</span></code> file). Otherwise, all species from the list would be considered as having a fixed concentration and providing a measurement for such species would be meaningless.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">There is no a specific option activating simulation of metabolite concentrations and taking them into account to the fitting process. Their simple presence in the <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> sections make concerned metabolites fittable parameters.</p>
+<p class="last">Species having “F” (as “Free”) in column “Type” in a .tvar file are treated as fittable parameters. We recall that species in this file are identifies as having “METAB” in column “Kind”.</p>
 </div>
-<p>An example of an FTBL file having metabolite sections and involving growth fluxes can be found in <code class="docutils literal"><span class="pre">test/e_coli_growth.ftbl</span></code>.</p>
+<p>An example of an MTF files having specie sections and involving growth fluxes can be found in <code class="docutils literal"><span class="pre">test/mtf/e_coli_growth.*</span></code>.</p>
 </div>
 <div class="section" id="post-treatment-option">
-<h2>Post treatment option<a class="headerlink" href="#post-treatment-option" title="Permalink to this headline">¶</a></h2>
-<p>User can specify a name of one or several R scripts that will be automatically executed after non aborted <code class="docutils literal"><span class="pre">influx_si</span></code> run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file <code class="docutils literal"><span class="pre">test/save_all.R</span></code> and its use can be found in the options of <code class="docutils literal"><span class="pre">test/e_coli.ftbl</span></code> file.</p>
-<p>To activate this option, the script names must be provided in the <code class="docutils literal"><span class="pre">OPTIONS</span></code> section, in the field <code class="docutils literal"><span class="pre">posttreat_R</span></code> and separated by <code class="docutils literal"><span class="pre">';</span> <span class="pre">'</span></code>, e.g.:</p>
+<h3>Post treatment option<a class="headerlink" href="#post-treatment-option" title="Permalink to this headline">¶</a></h3>
+<p>User can specify a name of one or several R scripts that will be automatically executed after non aborted <code class="docutils literal"><span class="pre">influx_si</span></code> run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such script is provided in the file <code class="docutils literal"><span class="pre">R/save_all.R</span></code> and its use can be found in the options of <code class="docutils literal"><span class="pre">test/e_coli.opt</span></code> file.</p>
+<p>To activate this option, the script names must be provided in the <code class="docutils literal"><span class="pre">.opt</span></code> file, in the field <code class="docutils literal"><span class="pre">posttreat_R</span></code> and separated by <code class="docutils literal"><span class="pre">';</span> <span class="pre">'</span></code>, e.g.:</p>
 <blockquote>
-<div><div class="highlight-text"><div class="highlight"><pre><span></span>OPTIONS
-      OPT_NAME        OPT_VALUE
-      posttreat_R     save_all.R; plot_something.pdf
+<div><div class="highlight-text"><div class="highlight"><pre><span></span>Name            Value
+posttreat_R     save_all.R; plot_smeas.R
 </pre></div>
 </div>
 </div></blockquote>
-<p>The script name is interpreted as a relative path to the directory where the original FTBL file is located.  If the file is not found starting from FTBL’s directory, it is searched for in <code class="docutils literal"><span class="pre">influx_si/R</span></code>.
+<p>The script name is interpreted as a relative path to the directory where the original MTF files are located.  If the file is not found there, it is searched for in <code class="docutils literal"><span class="pre">influx_si/R</span></code>.
 After execution of <code class="docutils literal"><span class="pre">save_all.R</span></code>, a file <code class="docutils literal"><span class="pre">e_coli.RData</span></code> is created. This particular example can be used to restore a calculation R environment by launching R and executing:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>&gt; load<span class="o">(</span><span class="s2">&quot;e_coli.RData&quot;</span><span class="o">)</span>
 </pre></div>
@@ -664,25 +765,32 @@ To be able to launch custom calculations on these variables, user has to do some
 <dt>baseshort</dt>
 <dd>is a short name of the input FTBL file (without the suffix <code class="docutils literal"><span class="pre">.ftbl</span></code> neither the directory part of the path)</dd>
 <dt>param</dt>
-<dd>is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and metabolite concentrations (if any)</dd>
+<dd>is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and specie concentrations (if any)</dd>
+<dt>labargs</dt>
+<dd>is an environment with all necessary data for label simulation (e.g. <code class="docutils literal"><span class="pre">v=lab_sim(param,</span> <span class="pre">cjac=FALSE,</span> <span class="pre">labargs)</span></code>) or residual calculation (e.g. <code class="docutils literal"><span class="pre">rres=lab_resid(param,</span> <span class="pre">cjac=TRUE,</span> <span class="pre">labargs)</span></code>)</dd>
 <dt>jx_f</dt>
 <dd><p class="first">is a environment regrouping calculated quantities. Here are some of its fields:</p>
-<dl class="last docutils">
-<dt>fallnx</dt>
+<p><code class="docutils literal"><span class="pre">lf</span></code> a list with different fluxes:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt><code class="docutils literal"><span class="pre">fallnx</span></code></dt>
 <dd>a vector of all net and exchange fluxes (here, exchange fluxes are mapped on [0; 1[ interval)</dd>
-<dt>fwrv</dt>
+<dt><code class="docutils literal"><span class="pre">fwrv</span></code></dt>
 <dd>a vector of forward and reverse fluxes (reverse fluxes are “as is”, i.e. not mapped)</dd>
-<dt>x</dt>
+</dl>
+</div></blockquote>
+<dl class="last docutils">
+<dt><code class="docutils literal"><span class="pre">xsim</span></code></dt>
 <dd>is an internal state label vector</dd>
-<dt>simlab, simfmn and simpool</dt>
-<dd>are vectors of simulated measurements for label, net flux and metabolite pools respectively (fitting at the best of influx_s’ capacity the provided measurements in the FTBL file)</dd>
-<dt>res</dt>
+<dt><code class="docutils literal"><span class="pre">simlab</span></code>, <code class="docutils literal"><span class="pre">simfmn</span></code> and <code class="docutils literal"><span class="pre">simpool</span></code></dt>
+<dd>are vectors of simulated measurements for label, net flux and specie pools respectively (fitting at the best of influx_s’ capacity the provided measurements)</dd>
+<dt><code class="docutils literal"><span class="pre">res</span></code></dt>
 <dd>is the reduced residual vector, i.e. (simulated-measured)/SD</dd>
-<dt>ures</dt>
+<dt><code class="docutils literal"><span class="pre">ures</span></code></dt>
 <dd>is the unreduced residual vector, i.e. (simulated-measured)</dd>
-<dt>jacobian</dt>
+<dt><code class="docutils literal"><span class="pre">jacobian</span></code></dt>
 <dd>as its names indicates, is the Jacobian matrix (d res/d param)</dd>
-<dt>udr_dp</dt>
+<dt><code class="docutils literal"><span class="pre">udr_dp</span></code></dt>
 <dd>is the jacobian matrix for the unreduced residual vector (d ures/d param)</dd>
 </dl>
 </dd>
@@ -691,7 +799,7 @@ To be able to launch custom calculations on these variables, user has to do some
 <dt>nb_f</dt>
 <dd>is a list of various counts, like number of fluxes, parameters to fit, system sizes and so on</dd>
 <dt>nm_list</dt>
-<dd>is a list of names for various vectors like fluxes, metabolites, label vectors, measurements, inequalities and so on</dd>
+<dd>is a list of names for various vectors like fluxes, species, label vectors, measurements, inequalities and so on</dd>
 <dt>ui, ci</dt>
 <dd>are inequality matrix and right hand side respectively</dd>
 </dl>
@@ -700,10 +808,10 @@ To be able to launch custom calculations on these variables, user has to do some
 </pre></div>
 </div>
 <p>This list of more than 400 items is too long to be fully described here. We hope that few items succinctly described in this section will be sufficient for basic custom treatments.</p>
-<p>An inspiration for your own custom treatments and/or plotting can be found in files <code class="docutils literal"><span class="pre">plot_imass.R</span></code> and <code class="docutils literal"><span class="pre">plot_smeas.R</span></code> that plot instationary and stationary data respectively in pdf files.</p>
+<p>An inspiration for your own custom treatments and/or plotting can be found in files <code class="docutils literal"><span class="pre">plot_ilab.R</span></code> and <code class="docutils literal"><span class="pre">plot_smeas.R</span></code> that plot instationary and stationary data respectively in pdf files.</p>
 </div>
 <div class="section" id="exclusive-influx-i-options">
-<h2>Exclusive <code class="docutils literal"><span class="pre">influx_i</span></code> options<a class="headerlink" href="#exclusive-influx-i-options" title="Permalink to this headline">¶</a></h2>
+<h3>Exclusive <code class="docutils literal"><span class="pre">influx_i</span></code> options<a class="headerlink" href="#exclusive-influx-i-options" title="Permalink to this headline">¶</a></h3>
 <p>There is only one exclusive option that can be given on a command line:</p>
 <blockquote>
 <div><table class="docutils option-list" frame="void" rules="none">
@@ -722,68 +830,34 @@ order scheme then continues with the order 2.</p>
 </tbody>
 </table>
 </div></blockquote>
-<p>Other options occur as fields in the section <code class="docutils literal"><span class="pre">OPTIONS</span></code> of the FTBL file.</p>
+<p>Other options can occur as fields in a <code class="docutils literal"><span class="pre">.opt</span></code> file.</p>
 <blockquote>
 <div><dl class="docutils">
-<dt><code class="docutils literal"><span class="pre">file_labcin</span></code></dt>
-<dd><p class="first">gives the name of the text file with label kinetics. If the file name starts with a “/”, it is considered as an absolute path.</p>
-<p>The values must be organized in a matrix where each row corresponds to a measured isotopomer/cumomer/mass-isotopologue while each column corresponds to a given time point. First column gives the names of labeled measured species and the first row contains time points.</p>
-<p>Matrix must be written one row per line and its entries (cells) must be separated by tabulations. Missing data can be signaled as <code class="docutils literal"><span class="pre">NA</span></code> or just an empty cell. Comments are allowed and must start with <code class="docutils literal"><span class="pre">//</span></code> string. The rest of the line after <code class="docutils literal"><span class="pre">//</span></code> is simply ignored.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">In versions of <code class="docutils literal"><span class="pre">influx_i</span></code> previous to v5.4. A character delimiting comments was <code class="docutils literal"><span class="pre">#</span></code>. Those files will continue to work as before. However, for new files of labeling kinetics it is safer to use <code class="docutils literal"><span class="pre">//</span></code> for comments.</p>
-</div>
-<p>Empty lines are ignored. In such a way, comments can help to annotate the data and empty lines can help to format the file for better human readability.
-All lines (a part from blank lines and comments) must have the same number of cells.</p>
-<p>The specie names must fit the names used in corresponding measurement sections of FTBL file. For example, a name <code class="docutils literal"><span class="pre">m:Rib5P:1,2,3,4,5:0:693</span></code> is composed of several fields separated by a column <code class="docutils literal"><span class="pre">:</span></code></p>
-<dl class="docutils">
-<dt><code class="docutils literal"><span class="pre">m</span></code></dt>
-<dd>indicates that data are of <code class="docutils literal"><span class="pre">MASS_SPECTROMETRY</span></code> type. Other possible values are <code class="docutils literal"><span class="pre">l</span></code> for <code class="docutils literal"><span class="pre">LABEL_MEASUREMENTS</span></code> and <code class="docutils literal"><span class="pre">p</span></code> for <code class="docutils literal"><span class="pre">PEAK_MEASUREMENTS</span></code></dd>
-<dt><code class="docutils literal"><span class="pre">Rib5P</span></code></dt>
-<dd>metabolite name</dd>
-<dt><code class="docutils literal"><span class="pre">1,2,3,4,5</span></code></dt>
-<dd>carbon numbers present in the measured fragment</dd>
-<dt><code class="docutils literal"><span class="pre">0</span></code></dt>
-<dd>mass shift relative to fully unlabeled mass isotopologue: <code class="docutils literal"><span class="pre">0</span></code> corresponds to a fraction of unlabeled fragment, <code class="docutils literal"><span class="pre">1</span></code> to a fraction of fragments with only one labeled carbon atom and so on</dd>
-<dt><code class="docutils literal"><span class="pre">693</span></code></dt>
-<dd>line number in FTBL file corresponding to this measurement. If previous fields are sufficient to unambiguously identify the measurement, this field can be omitted.</dd>
-</dl>
-<p>Cf. <code class="docutils literal"><span class="pre">test/e_coli_msne.txt</span></code> (and corresponding <code class="docutils literal"><span class="pre">test/e_coli_i.ftbl</span></code>) for more examples.</p>
-<p>The measurement precision (SD) is considered as constant during time and its values (one per measured specie) is given in the FTBL file, in the corresponding measurement section.</p>
-<p>All time points must be positive and put in increasing order. The time point 0 must be absent and is considered as labeling start. At that point all species are supposed to be fully unlabeled. This means also that all label measurements must be provided with a correction for natural 13C labeling. To prepare MS data with such correction, a software <a class="reference external" href="https://metatoul.insa-toulouse.fr/metasys/software/isocor">IsoCor</a> can help.</p>
-<p>There can be fictitious time points without any data in them. This feature can be used to increase the time resolution at some time intervals. The simulation of label propagation will be done and reported at these fictitious time points but the fitting will be obviously done only at time points having real data in them. For a regular time interval sub-division, it is more practical to use a parameter <code class="docutils literal"><span class="pre">nsubdiv_dt</span></code> (cf. hereafter) instead of fictitious time point in this file.</p>
-<p>If this field is empty or absent in the FTBL file then no fit can be done and a simple label simulation is calculated as if <code class="docutils literal"><span class="pre">--noopt</span></code> option were activated. Such simulation can be done only if a time grid is defined with the help of two other parameters: <code class="docutils literal"><span class="pre">dt</span></code> and <code class="docutils literal"><span class="pre">tmax</span></code> (cf. hereafter).</p>
-<div class="last admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">Option <code class="docutils literal"><span class="pre">--noscale</span></code> must be always activated for instationary calculations. So that for example, MS measurements must be always composed of fully measured fragments (i.e. with all isotopologues present) and normalized to sum up to 1.</p>
-</div>
-</dd>
 <dt><code class="docutils literal"><span class="pre">nsubdiv_dt</span></code></dt>
 <dd><p class="first">integer number of sub-intervals by which every time interval is divided to increase the precision of time resolution.</p>
 <p class="last">It can happen that the value 1 (default) is sufficient for a satisfactory flux/concentration estimation. User can gradually increase this value (2, 3, …) in successive <code class="docutils literal"><span class="pre">influx_i</span></code> runs to be sure that better time resolution does not impact parameter estimation. This property is called <em>grid convergence</em>. A grid convergence is necessary to overcome the result dependency on the choice of a numerical discretization scheme. A grid convergence can be considered as achieved when changes in estimated parameters provoked by a grid refinement are significantly lower than estimated confidence intervals for these parameters.</p>
 </dd>
 <dt><code class="docutils literal"><span class="pre">dt</span></code></dt>
-<dd><p class="first">a real positive number, defines a time step in a regular grid in absence of a file in <code class="docutils literal"><span class="pre">file_labcin</span></code> field.
-If a file with label kinetics is well present then this parameter has no effect.</p>
-<p class="last">A regular time grid for label simulations can be useful on preliminary stage when user only elaborates FTBL file and wants to see if label simulation are plausible. It can also help to produce simulated measurements (which can be extracted from the <code class="docutils literal"><span class="pre">_res.kvh</span></code> file) for further numerical experiments like studying convergence speed, parameter identifiability, noise impact and so on.</p>
+<dd><p class="first">a real positive number, defines a time step in a regular grid in absence of values in “Time” column in <code class="docutils literal"><span class="pre">.miso</span></code> file.
+If a “Time” values are well present for label kinetics then this parameter has no effect.</p>
+<p class="last">A regular time grid for label simulations can be useful on preliminary stage when user only elaborates MTF files and wants to see if label simulation are plausible. It can also help to produce simulated measurements (which can be extracted from the <code class="docutils literal"><span class="pre">_res.kvh</span></code> file) for further numerical experiments like studying convergence speed, parameter identifiability, noise impact and so on.</p>
 </dd>
 <dt><code class="docutils literal"><span class="pre">tmax</span></code></dt>
-<dd><p class="first">a real positive number, defines the end of a regular time grid if the field <code class="docutils literal"><span class="pre">file_labcin</span></code> is empty or absent. Parameters <code class="docutils literal"><span class="pre">dt</span></code> and <code class="docutils literal"><span class="pre">tmax</span></code> must be defined in such a way that there will be at least 2 time points greater then 0 in the time grid.</p>
-<p>If a file with label kinetics is well present then this parameter can be used to limit time grid on which simulations are done. If the value in <code class="docutils literal"><span class="pre">tmax</span></code> is greater then the maximal time value defined in the kinetics file then this parameter has no effect.</p>
+<dd><p class="first">a real positive number, defines the end of a regular time grid if “Time” is empty or absent in <code class="docutils literal"><span class="pre">.miso</span></code>. Parameters <code class="docutils literal"><span class="pre">dt</span></code> and <code class="docutils literal"><span class="pre">tmax</span></code> must be defined in such a way that there will be at least 2 time points greater then 0 in the time grid.</p>
+<p>If “Time” values are well present in <code class="docutils literal"><span class="pre">.miso</span></code> then this parameter can be used to limit the time grid on which the simulations are done. If the value in <code class="docutils literal"><span class="pre">tmax</span></code> is greater then the maximal time value defined in <code class="docutils literal"><span class="pre">.miso</span></code> file then this parameter has no effect.</p>
 <div class="last admonition note">
 <p class="first admonition-title">Note</p>
-<p>It is very important that the values for time, flux and metabolite concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.</p>
+<p>It is very important that the values for time, flux and specie concentrations be expressed in concordant units. It would be meaningless to give time in minutes, fluxes in mM/h/g and concentrations in mM. This will lead to wrong results.</p>
 <p class="last">For example, if the time is expressed in seconds and concentrations in mM/g then fluxes must be expressed in mM/s/g.</p>
 </div>
 </dd>
 <dt><code class="docutils literal"><span class="pre">funlabR</span></code></dt>
-<dd><p class="first">since v5.4, <code class="docutils literal"><span class="pre">influx_i</span></code> is able to simulate label propagation in metabolically stationary network from a label input varying in time. User can supply R expressions which will calculate fractions of different input label components as functions of time <code class="docutils literal"><span class="pre">t</span></code>. Those expressions can be provided in the LABEL_INPUT section but they can need some helper functions. Few of them are defined in a file <code class="docutils literal"><span class="pre">funlab.R</span></code> included in <code class="docutils literal"><span class="pre">influx_si</span></code> but user can need more of them. Thanks to this field, he can define them in a custom R file who’s name can be provided here. There can be given only one file. However, if user-defined functions are spread over several files they can be included via <code class="docutils literal"><span class="pre">source()</span></code> function called in this one. For this purpose, a predefined variable <code class="docutils literal"><span class="pre">dirw</span></code> pointing to the current working directory can be useful. It is worth mentioning that the file defined in this field will be executed in a particular environment so that variables created during its execution won’t affect <code class="docutils literal"><span class="pre">influx_si</span></code>’s ones. The path of the file provided in this field is relative to the FTBL’s one. Example:</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>OPTIONS
-        OPT_NAME        OPT_VALUE
-        funlabR         e_coli_iv_funlab.R     // the file &#39;e_coli_iv_funlab.R&#39; is in the same directory that &#39;e_coli_iv.ftbl&#39;
+<dd><p class="first">since v5.4, <code class="docutils literal"><span class="pre">influx_i</span></code> is able to simulate label propagation in metabolically stationary network from a label input varying in time. User can supply R expressions which will calculate fractions of different input label components as functions of time <code class="docutils literal"><span class="pre">t</span></code>. Those expressions can be provided in the <code class="docutils literal"><span class="pre">Value</span></code> column of <code class="docutils literal"><span class="pre">.linp</span></code> file but they can need some helper functions. Few of them are defined in a file <code class="docutils literal"><span class="pre">funlab.R</span></code> included in <code class="docutils literal"><span class="pre">influx_si</span></code> but user can need more of them. Thanks to this field, he can define them in a custom R file who’s name can be provided here. There can be given only one file. However, if user-defined functions are spread over several files they can be included via <code class="docutils literal"><span class="pre">source()</span></code> function called from this one. For this purpose, a predefined variable <code class="docutils literal"><span class="pre">dirw</span></code> pointing to the current working directory can be useful. It is worth mentioning that the file defined in this field will be executed in a particular environment so that variables created during its execution won’t affect <code class="docutils literal"><span class="pre">influx_si</span></code>’s ones. The path of the file provided in this field is relative to the .netw’s one. Example:</p>
+<div class="highlight-text"><div class="highlight"><pre><span></span>Name            Value
+funlabR         e_coli_iv_funlab.R  # the file &#39;e_coli_iv_funlab.R&#39; is in the same directory that &#39;e_coli_iv.*&#39; MTF set
 </pre></div>
 </div>
-<p>Functions that are included in <code class="docutils literal"><span class="pre">funlab.R</span></code> are following:</p>
+<p>Functions that are available in <code class="docutils literal"><span class="pre">funlab.R</span></code> are following:</p>
 <blockquote class="last">
 <div><dl class="docutils">
 <dt><code class="docutils literal"><span class="pre">ppulses(tp,</span> <span class="pre">Tint,</span> <span class="pre">Hint=rep_len(c(1.,</span> <span class="pre">0.),</span> <span class="pre">length(Tint)))</span></code></dt>
@@ -791,38 +865,38 @@ If a file with label kinetics is well present then this parameter has no effect.
 <dt><code class="docutils literal"><span class="pre">linterp(tp,</span> <span class="pre">knots,</span> <span class="pre">v)</span></code></dt>
 <dd>computes a signal in the form of continuous linear piece-wise functions in time points <code class="docutils literal"><span class="pre">tp</span></code>. The limits of linear intervals are defined in numeric vector <code class="docutils literal"><span class="pre">knots</span></code> and values at limits must be given in numeric vector <code class="docutils literal"><span class="pre">v</span></code>. All <code class="docutils literal"><span class="pre">tp</span></code> values must lie between <code class="docutils literal"><span class="pre">min(knots)</span></code> and <code class="docutils literal"><span class="pre">max(knots)</span></code>. Returns a numeric vector of the same length as <code class="docutils literal"><span class="pre">tp</span></code>.</dd>
 <dt><code class="docutils literal"><span class="pre">steplinpath(tp,</span> <span class="pre">nu)</span></code></dt>
-<dd>computes labeling in a linear pathway of non reversible reactions under step labeling with fully unlabeled initial state, i.e. starting from 0. The signal is calculated in time points <code class="docutils literal"><span class="pre">tp</span></code>. The pathway is defined by numeric vector <code class="docutils literal"><span class="pre">nu</span></code> which represents turn-over rates (i.e. a ratio Flux/Metabolite_Concentration). All values in <code class="docutils literal"><span class="pre">nu</span></code> must be pairwise different. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp). So, for example, if a signal only of the third metabolite is required, the function can be called as <code class="docutils literal"><span class="pre">steplinpath(tp,</span> <span class="pre">nu)[3,]</span></code></dd>
+<dd>computes labeling in a linear pathway of non reversible reactions under step labeling with fully unlabeled initial state, i.e. starting from 0. The signal is calculated in time points <code class="docutils literal"><span class="pre">tp</span></code>. The pathway is defined by numeric vector <code class="docutils literal"><span class="pre">nu</span></code> which represents turn-over rates (i.e. a ratio Flux/Specie_Concentration). All values in <code class="docutils literal"><span class="pre">nu</span></code> must be pairwise different. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp). So, for example, if a signal only of the third specie is required, the function can be called as <code class="docutils literal"><span class="pre">steplinpath(tp,</span> <span class="pre">nu)[3,]</span></code></dd>
 <dt><code class="docutils literal"><span class="pre">steplinpath2(tp,</span> <span class="pre">nu,</span> <span class="pre">init=double(length(nu)),</span> <span class="pre">height=1.)</span></code></dt>
 <dd>The same as <code class="docutils literal"><span class="pre">steplinpath()</span></code> above but initial state can be different from 0. It can be defined in numeric vector <code class="docutils literal"><span class="pre">init</span></code> of the same length as <code class="docutils literal"><span class="pre">nu</span></code>. The label amplitude can be given in a scalar <code class="docutils literal"><span class="pre">height</span></code>.</dd>
 <dt><code class="docutils literal"><span class="pre">ppulseslinpath(tp,</span> <span class="pre">nu,</span> <span class="pre">Tint,</span> <span class="pre">Hint=rep_len(c(1.,</span> <span class="pre">0.),</span> <span class="pre">length(Tint)),</span> <span class="pre">init=double(length(nu)))</span></code></dt>
-<dd>computes labeling of linear non reversible pathway under input composed of periodic rectangular pulses. Labeling for all metabolites is calculated in time points <code class="docutils literal"><span class="pre">tp</span></code>. Each period is composed of one or several intervals whose length in time is given in numeric vector <code class="docutils literal"><span class="pre">Tint</span></code> and heights of signals are given in optional numeric vector <code class="docutils literal"><span class="pre">Hint</span></code>. By default, <code class="docutils literal"><span class="pre">Hint</span></code> is a sequence of 1’s and 0’s. Initial label levels can be defined in numeric vector <code class="docutils literal"><span class="pre">init</span></code>. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp).</dd>
+<dd>computes labeling of linear non reversible pathway under input composed of periodic rectangular pulses. Labeling for all species is calculated in time points <code class="docutils literal"><span class="pre">tp</span></code>. Each period is composed of one or several intervals whose length in time is given in numeric vector <code class="docutils literal"><span class="pre">Tint</span></code> and heights of signals are given in optional numeric vector <code class="docutils literal"><span class="pre">Hint</span></code>. By default, <code class="docutils literal"><span class="pre">Hint</span></code> is a sequence of 1’s and 0’s. Initial label levels can be defined in numeric vector <code class="docutils literal"><span class="pre">init</span></code>. Returns a numeric matrix of size m x n, where number of rows m=length(nu) and number of columns n=length(tp).</dd>
 </dl>
 </div></blockquote>
 </dd>
-<dt><code class="docutils literal"><span class="pre">LABEL_INPUT</span></code>, <code class="docutils literal"><span class="pre">VALUE</span></code> column</dt>
-<dd><p class="first">in this field, user can provide R expression calculating fractions of input label as function of time. While for <code class="docutils literal"><span class="pre">influx_s</span></code> it can only be a constant or python expression evaluating to a scalar at compilation time. Such R expressions can refer to a scalar variable <code class="docutils literal"><span class="pre">t</span></code> representing current time point and should return a scalar value representing label level between 0 and 1. The sum of all label levels relative to a given metabolite must be 1 if a full set of isotopomer is provided by user. If one or many isotopomers are lacking, usual conventions apply for completion to 1 (cf. <a class="reference internal" href="#convention-evolution">Convention evolution</a>).</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>LABEL_INPUT
-        META_NAME       ISOTOPOMER      VALUE
-        Gluc_U          #111111         ppulses(t, c(T1,T2))   // periodic pulses composed of intervals of length T1 (&quot;labeled&quot;) and T2 (&quot;unlabeled&quot;)
-        //              #000000         1-ppulses(t, c(T1,T2)) // complete to 1 (not necessary, &quot;the rest is unlabeled&quot; convention applies here)
-        Gluc_1          #100000         ppulses(t, c(T1,T2))
-        //              #000000         1-ppulses(t, c(T1,T2))
-OPTIONS
-        OPT_NAME        OPT_VALUE
-        funlabR         e_coli_iv_funlab.R  // in this R file variables T1 and T2 are defined
+<dt><code class="docutils literal"><span class="pre">Value</span></code> column in <code class="docutils literal"><span class="pre">.linp</span></code></dt>
+<dd><p class="first">in this field, user can provide R expression calculating fractions of input label as function of time. While for <code class="docutils literal"><span class="pre">influx_s</span></code>, it can only be a constant or python expression evaluating to a scalar at compilation time. Such R expressions can refer to a scalar variable <code class="docutils literal"><span class="pre">t</span></code> representing current time point and should return a scalar value representing label level between 0 and 1. The sum of all label levels relative to a given specie must be 1 if a full set of isotopomer is provided by user. If one or many isotopomers are lacking, usual conventions apply for completion to 1 (cf. <a class="reference internal" href="#mtf-format">MTF format</a>).</p>
+<div class="highlight-text"><div class="highlight"><pre><span></span># .linp example
+Specie  Isotopomer      Value
+Gluc_U  111111          ppulses(t, c(T1,T2))  # periodic pulses composed of intervals of length T1 (&quot;labeled&quot;) and T2 (&quot;unlabeled&quot;)
+Gluc_1  100000          ppulses(t, c(T1,T2))
+
+# .opt example
+Name    Value
+funlabR         e_coli_iv_funlab.R  // in this R file variables T1 and T2 are defined
 </pre></div>
 </div>
 <p>Input isotopomers that are absent in such <code class="docutils literal"><span class="pre">funlab</span></code> fields are supposed to be 0 all the time (except for above mentioned conventions).</p>
 <p>If a label level cannot be calculated in one arithmetic operation, several R statements can be placed between curled braces <code class="docutils literal"><span class="pre">{}</span></code> separated by semicolon <code class="docutils literal"><span class="pre">;</span></code>. The last operation must be the searched result. In the example above, we could exclude usage of helper file <code class="docutils literal"><span class="pre">e_coli_iv_funlab.R</span></code> by defining <code class="docutils literal"><span class="pre">T1</span></code> and <code class="docutils literal"><span class="pre">T2</span></code> directly in the expressions:</p>
-<div class="last highlight-text"><div class="highlight"><pre><span></span>LABEL_INPUT
-        META_NAME       ISOTOPOMER      VALUE
-        Gluc_U          #111111         {T1=2; T2=2; ppulses(t, c(T1,T2))}
-        Gluc_1          #100000         {T1=2; T2=2; ppulses(t, c(T1,T2))}
+<div class="last highlight-text"><div class="highlight"><pre><span></span># .linp example
+Specie  Isotopomer      Value
+Gluc_U  111111          {T1=2; T2=2; ppulses(t, c(T1,T2))}
+Gluc_1  100000          {T1=2; T2=2; ppulses(t, c(T1,T2))}
 </pre></div>
 </div>
 </dd>
 </dl>
 </div></blockquote>
+</div>
 </div>
 <div class="section" id="result-file-fields">
 <h2>Result file fields<a class="headerlink" href="#result-file-fields" title="Permalink to this headline">¶</a></h2>
@@ -834,11 +908,11 @@ OPTIONS
 <dd>are prefixed by <code class="docutils literal"><span class="pre">n.</span></code> or <code class="docutils literal"><span class="pre">x.</span></code> respectively</dd>
 <dt>free, dependent, constrained and variable growth fluxes</dt>
 <dd>are prefixed by <code class="docutils literal"><span class="pre">f.</span></code>, <code class="docutils literal"><span class="pre">d.</span></code>, <code class="docutils literal"><span class="pre">c.</span></code> and <code class="docutils literal"><span class="pre">g.</span></code> respectively. So, a complete flux name could look like <code class="docutils literal"><span class="pre">f.n.zwf</span></code> which means <cite>free net ZWF flux</cite>.
-Growth fluxes which depend on constant metabolite concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with <code class="docutils literal"><span class="pre">_gr</span></code> (as <cite>growth</cite>) string. For example, a flux <code class="docutils literal"><span class="pre">g.n.Cit_gr</span></code> corresponds to a net growth flux of Citrate metabolite. The growth fluxes are all set as non reversible, so all exchange fluxes like <code class="docutils literal"><span class="pre">g.x.M_gr</span></code> or <code class="docutils literal"><span class="pre">c.x.M_gr</span></code> are set to 0.</dd>
+Growth fluxes which depend on constant specie concentrations can be found in constrained fluxes. Constant or variable growth fluxes are postfixed with <code class="docutils literal"><span class="pre">_gr</span></code> (as <cite>growth</cite>) string. For example, a flux <code class="docutils literal"><span class="pre">g.n.Cit_gr</span></code> corresponds to a net growth flux of Citrate specie. The growth fluxes are all set as non reversible, so all exchange fluxes like <code class="docutils literal"><span class="pre">g.x.M_gr</span></code> or <code class="docutils literal"><span class="pre">c.x.M_gr</span></code> are set to 0.</dd>
 <dt>scaling factors names</dt>
 <dd>are formed according to a pattern similar to <code class="docutils literal"><span class="pre">label;Ala;1</span></code> which corresponds to the first group of measurements on Alanine molecule in labeling experiments. Other possible types of experiments are <code class="docutils literal"><span class="pre">peak</span></code> and <code class="docutils literal"><span class="pre">mass</span></code>.</dd>
 <dt>MID vector names</dt>
-<dd>are looking like <code class="docutils literal"><span class="pre">METAB+N</span></code> where <code class="docutils literal"><span class="pre">METAB</span></code> is metabolite name and <code class="docutils literal"><span class="pre">N</span></code> goes from 0 to the number of carbon atoms in the considered molecule.</dd>
+<dd>are looking like <code class="docutils literal"><span class="pre">METAB+N</span></code> where <code class="docutils literal"><span class="pre">METAB</span></code> is specie name and <code class="docutils literal"><span class="pre">N</span></code> goes from 0 to the number of carbon atoms in the considered molecule.</dd>
 <dt>cumomer names</dt>
 <dd>follow classical convention <code class="docutils literal"><span class="pre">METAB#pattern_of_x_and_1</span></code>, e.g. <code class="docutils literal"><span class="pre">Ala#x1x</span></code></dd>
 <dt>forward and reverse fluxes</dt>
@@ -847,8 +921,8 @@ Growth fluxes which depend on constant metabolite concentrations can be found in
 <dd><p class="first">have several fields separated by a colon <code class="docutils literal"><span class="pre">:</span></code>. For example, <code class="docutils literal"><span class="pre">l:Asp:#xx1x:694</span></code> deciphers like:</p>
 <blockquote class="last">
 <div><ul class="simple">
-<li><code class="docutils literal"><span class="pre">l</span></code> stands for <cite>labeling</cite> experiment (others possibilities are <code class="docutils literal"><span class="pre">p</span></code> for <cite>peak</cite>, <code class="docutils literal"><span class="pre">m</span></code> for <cite>mass</cite> and <code class="docutils literal"><span class="pre">pm</span></code> for <cite>metabolite pool</cite>)</li>
-<li><code class="docutils literal"><span class="pre">Asp</span></code> is a metabolite name</li>
+<li><code class="docutils literal"><span class="pre">l</span></code> stands for <cite>labeling</cite> experiment (others possibilities are <code class="docutils literal"><span class="pre">p</span></code> for <cite>peak</cite>, <code class="docutils literal"><span class="pre">m</span></code> for <cite>mass</cite> and <code class="docutils literal"><span class="pre">pm</span></code> for <cite>specie pool</cite>)</li>
+<li><code class="docutils literal"><span class="pre">Asp</span></code> is a specie name</li>
 <li><code class="docutils literal"><span class="pre">#xx1x</span></code> is a measurement identification</li>
 <li><code class="docutils literal"><span class="pre">694</span></code> is a line number in the FTBL file corresponding to this measurement.</li>
 </ul>
@@ -860,25 +934,25 @@ Growth fluxes which depend on constant metabolite concentrations can be found in
 <p>The final cost value is in the field <code class="docutils literal"><span class="pre">final</span> <span class="pre">cost</span></code>.</p>
 <p>The values of vectors derived from free fluxes like dependent fluxes, cumomers, MID and so on are in the corresponding fields whose names can be easily recognized.</p>
 <p>Linear stats and Monte-Carlo statistics are presented in their respective fields. The latter field is present only if explicitly requested by user with <code class="docutils literal"><span class="pre">--sens</span> <span class="pre">mc=MC</span></code> option. In this kvh section, a term <code class="docutils literal"><span class="pre">rsd</span></code> means “relative standard deviation” (in literature, it is often encountered a synonym CV as Coefficient of Variation), it is calculated as SD/Mean and if expressed in percentage then the formula becomes 100%*SD/Mean.</p>
-<p>The field <code class="docutils literal"><span class="pre">jacobian</span> <span class="pre">dr_dp</span> <span class="pre">(without</span> <span class="pre">1/sd_exp)</span></code> report a Jacobian matrix which is defined as a matrix of partial derivatives <span class="math">\(\partial{r}/\partial{p}\)</span> where <em>r</em> is residual vector (Simulated–Measured) and <em>p</em> is a free parameter vector including free fluxes, scaling factors (if any) and free metabolite pools (if any). Note that in this definition the residual vector is not yet scaled by standard deviation of measurements. Sometimes, Jacobian is called <em>sensitivity matrix</em> in which case a special care should be brought to the sens of derivation. Often, by sensitivity matrix, we intend a matrix expressing how estimated fluxes are sensible to variations in the measurement data. Such definition corresponds to generalized inverse of Jacobian and it is reported in the field <code class="docutils literal"><span class="pre">generalized</span> <span class="pre">inverse</span> <span class="pre">of</span> <span class="pre">jacobian</span> <span class="pre">dr_dp</span> <span class="pre">(without</span> <span class="pre">1/sd_exp)</span></code></p>
+<p>The field <code class="docutils literal"><span class="pre">jacobian</span> <span class="pre">dr_dp</span> <span class="pre">(without</span> <span class="pre">1/sd_exp)</span></code> report a Jacobian matrix which is defined as a matrix of partial derivatives <span class="math">\(\partial{r}/\partial{p}\)</span> where <em>r</em> is residual vector (Simulated–Measured) and <em>p</em> is a free parameter vector including free fluxes, scaling factors (if any) and free specie pools (if any). Note that in this definition the residual vector is not yet scaled by standard deviation of measurements. Sometimes, Jacobian is called <em>sensitivity matrix</em> in which case a special care should be brought to the sens of derivation. Often, by sensitivity matrix, we intend a matrix expressing how estimated fluxes are sensible to variations in the measurement data. Such definition corresponds to generalized inverse of Jacobian and it is reported in the field <code class="docutils literal"><span class="pre">generalized</span> <span class="pre">inverse</span> <span class="pre">of</span> <span class="pre">jacobian</span> <span class="pre">dr_dp</span> <span class="pre">(without</span> <span class="pre">1/sd_exp)</span></code></p>
+</div>
 <div class="section" id="network-values-for-cytoscape">
-<h3>Network values for Cytoscape<a class="headerlink" href="#network-values-for-cytoscape" title="Permalink to this headline">¶</a></h3>
+<h2>Network values for Cytoscape<a class="headerlink" href="#network-values-for-cytoscape" title="Permalink to this headline">¶</a></h2>
 <p>Several network values formatted for cytoscape are written by <code class="docutils literal"><span class="pre">influx_si</span></code> to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of any of them. All these files are written at the end of calculations so if an error has interrupted this process, no such file will be produced. Take care to don’t use an outdated copy of these files.</p>
 <p>A file named <code class="docutils literal"><span class="pre">edge.netflux.mynetwork.attrs</span></code> can help to map net flux values on edges of a studied network. A file <code class="docutils literal"><span class="pre">edge.xchflux.mynetwork.attrs</span></code> do the same with exchange fluxes. And finally, <code class="docutils literal"><span class="pre">node.log2pool.mynetwork.attrs</span></code> provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.</p>
 <p>See <a class="reference internal" href="#additional-tools">Additional tools</a> section, <a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: cytoscape view</a> paragraph to know how to produce files importable in Cytoscape from a given FTBL file. User’s manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.</p>
 </div>
-</div>
 <div class="section" id="warning-and-error-messages">
 <h2>Warning and error messages<a class="headerlink" href="#warning-and-error-messages" title="Permalink to this headline">¶</a></h2>
 <p>The warning and error messages are logged in the <code class="docutils literal"><span class="pre">.err</span></code> suffixed file. For example, after running:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s mynetwok
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s --prefix mynetwok
 </pre></div>
 </div>
 <p>the warnings and errors will be written in the <code class="docutils literal"><span class="pre">mynetwork.err</span></code> file.
 This kind of messages are important for user not only to be aware that during calculations something went wrong but also to understand what exactly went wrong and to have an insight on how to fix it.</p>
 <p>Problems can appear in all stages of a software run:</p>
 <ul>
-<li><p class="first">parsing FTBL files</p>
+<li><p class="first">parsing MTF/FTBL files</p>
 </li>
 <li><p class="first">R code writing</p>
 </li>
@@ -894,7 +968,7 @@ This kind of messages are important for user not only to be aware that during ca
 </ul>
 <p>Most of the error messages are automatically generated by underlying languages Python and R. These messages can appear somewhat cryptic for a user unfamiliar with these languages. But the most important error messages are edited to be as explicit as possible. For example, a message telling that free fluxes are badly chosen could look like:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>Error : Flux matrix is not square or singular: <span class="o">(</span>56eq x 57unk<span class="o">)</span>
-You have to change your choice of free fluxes <span class="k">in</span> the <span class="s1">&#39;mynetwork.ftbl&#39;</span> file.
+You have to change your choice of free fluxes in the <span class="s1">&#39;mynetwork.ftbl&#39;</span> file.
 Candidate<span class="o">(</span>s<span class="o">)</span> <span class="k">for</span> free flux<span class="o">(</span>es<span class="o">)</span>:
 d.n.Xylupt_U
 </pre></div>
@@ -919,8 +993,8 @@ fwd.ACITL
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p>In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here <code class="docutils literal"><span class="pre">cit_c:&lt;N&gt;</span></code> cumomers, where &lt;N&gt; is an integer, its binary mask indicates the “1”s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the FTBL file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option <code class="docutils literal"><span class="pre">--cinout=CINOUT</span></code> or even all non reversible ones with the option <code class="docutils literal"><span class="pre">--clownr=CLOWNR</span></code>) to stay out of 0, e.g.:</p>
-<p><code class="docutils literal"><span class="pre">$</span> <span class="pre">influx_s.py</span> <span class="pre">--clownr</span> <span class="pre">0.0001</span> <span class="pre">mynetwork</span></code></p>
+<p>In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here <code class="docutils literal"><span class="pre">cit_c:&lt;N&gt;</span></code> cumomers, where &lt;N&gt; is an integer, its binary mask indicates the “1”s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the <code class="docutils literal"><span class="pre">.cnstr</span></code> file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option <code class="docutils literal"><span class="pre">--cinout=CINOUT</span></code> or even all non reversible ones with the option <code class="docutils literal"><span class="pre">--clownr=CLOWNR</span></code>) to stay out of 0, e.g.:</p>
+<p><code class="docutils literal"><span class="pre">$</span> <span class="pre">influx_s.py</span> <span class="pre">--clownr</span> <span class="pre">0.0001</span> <span class="pre">--prefix</span> <span class="pre">mynetwork</span></code></p>
 <p class="last">Adding such inequalities does not guaranty that cumomer matrix will become invertible but often it does help.
 It’s up to user to check that an addition of such inequalities does not contradict biological sens of his network.</p>
 </div>
@@ -950,16 +1024,16 @@ f.n.PPDK        7
 <p>and execution is stopped.</p>
 <p>Several options are then available for a user facing such situation.</p>
 <ol class="arabic simple">
-<li>Collect more data to resolve lacking fluxes. As a rule of thumb, data must be collected on metabolites which are node of convergence of badly defined fluxes or on metabolites situated downhill of convergence point and preserving labeling pattern. Nature of collected data can be also important. Examples can be constructed where mass data are not sufficient to determine a flux but RMN data can do the job.</li>
+<li>Collect more data to resolve lacking fluxes. As a rule of thumb, data must be collected on species which are node of convergence of badly defined fluxes or on species situated downhill of convergence point and preserving labeling pattern. Nature of collected data can be also important. Examples can be constructed where mass data are not sufficient to determine a flux but RMN data can do the job.</li>
 </ol>
 <blockquote>
-<div>Before using real data collection, you can make a “dry run” with <code class="docutils literal"><span class="pre">--noopt</span></code> option and with fictitious values for intended metabolite in the FTBL file to see if with these new data, the network becomes well resolved. If the error message disappear and SD values in the section <code class="docutils literal"><span class="pre">linear</span> <span class="pre">stats</span></code> are not very high then chances are that additionally collected data can help to resolve the fluxes.</div></blockquote>
+<div>Before using real data collection, you can make a “dry run” with <code class="docutils literal"><span class="pre">--noopt</span></code> option and with fictitious or even NA values for intended to collect Isospecie in the .miso file. Thus we can see if with these new data, the network becomes well resolved. How? If the error message disappear and SD values in the section <code class="docutils literal"><span class="pre">linear</span> <span class="pre">stats</span></code> are not very high then chances are that additionally collected data can help to resolve the fluxes.</div></blockquote>
 <ol class="arabic simple" start="2">
-<li>Optimize input label. It can happen that you do collect data on a metabolite situated in convergence point for undefined fluxes but incoming fluxes are bringing the same labeling pattern which prevents flux(es) to be resolved. May be changing substrate label can help in this situation. For label optimization you can use a software called IsoDesign, distributed under OpenSource licence and available here <a class="reference external" href="http:://metatoul.insa-toulouse.fr/metasys/software/isodes/">http:://metatoul.insa-toulouse.fr/metasys/software/isodes/</a> (may be you have received <code class="docutils literal"><span class="pre">influx_si</span></code> as part of IsoDesign package, in which case you have it already).</li>
+<li>Optimize input label. It can happen that you do collect data on a specie situated in convergence point for undefined fluxes but incoming fluxes are bringing the same labeling pattern which prevents flux(es) to be resolved. May be changing substrate label can help in this situation. For label optimization you can use a software called IsoDesign, distributed under OpenSource licence and available here <a class="reference external" href="http:://metatoul.insa-toulouse.fr/metasys/software/isodes/">http:://metatoul.insa-toulouse.fr/metasys/software/isodes/</a> (may be you have received <code class="docutils literal"><span class="pre">influx_si</span></code> as part of IsoDesign package, in which case you have it already).</li>
 </ol>
 <blockquote>
 <div><p>Naturally, this label optimization should be done before doing actual experiments. See IsoDesing tutorial for more details on how to prepare and make such optimization.</p>
-<p>If you don’t want or don’t have a possibility to use a software for label optimization or you think to have an insight on what should be changed in substrate labeling to better define the fluxes, you can still make a try with <code class="docutils literal"><span class="pre">influx_s.py</span> <span class="pre">--noopt</span> <span class="pre">new_labeling.ftbl</span></code> option to see if a new labeling will do the job (here <code class="docutils literal"><span class="pre">new_labeling.ftbl</span></code> is an example name for a FTBL file that you will prepare with a new <code class="docutils literal"><span class="pre">LABEL_INPUT</span></code> section.)</p>
+<p>If you don’t want or don’t have a possibility to use a software for label optimization or you think to have an insight on what should be changed in substrate labeling to better define the fluxes, you can still make a try with <code class="docutils literal"><span class="pre">influx_s.py</span> <span class="pre">--noopt</span> <span class="pre">--prefix</span> <span class="pre">mynetwork</span> <span class="pre">--mtf</span> <span class="pre">new_label.linp</span></code> to see if a new labeling will do the job (here <code class="docutils literal"><span class="pre">new_label.linp</span></code> is an example name for a <code class="docutils literal"><span class="pre">.linp</span></code> file set that you will prepare with a new entries. It is important that <code class="docutils literal"><span class="pre">--mtf</span> <span class="pre">new_label.linp</span></code> comes after <code class="docutils literal"><span class="pre">--prefix</span> <span class="pre">mynetwork</span></code> to take precedence over the old one <code class="docutils literal"><span class="pre">mynetwork.linp</span></code>)</p>
 </div></blockquote>
 <ol class="arabic simple" start="3">
 <li>Use <code class="docutils literal"><span class="pre">--ln</span></code> option. It wont make you fluxes well defined, it will just continue calculation trying to resolve what can be solved and assigning some particular values (issued from so called <em>least norm</em> solution for rank deficient matrices) to undefined fluxes. You will still have a warning similar to</li>
@@ -974,14 +1048,14 @@ Least L2-norm solution is provided.
 <p>informing you that some flux(es) in the network is(are) still undefined. This option can be helpful if undefined fluxes are without particular interest for biological question in hand and their actual values can be safely ignored.</p>
 </div></blockquote>
 <ol class="arabic simple" start="4">
-<li>You can give an arbitrary fixed value to an undefined flux by declaring it as constrained in the FTBL file (letter <code class="docutils literal"><span class="pre">C</span></code> in the column <code class="docutils literal"><span class="pre">FCD</span></code> in the <code class="docutils literal"><span class="pre">FLUXES</span></code> section).</li>
+<li>You can give an arbitrary fixed value to an undefined flux by declaring it as constrained in the <code class="docutils literal"><span class="pre">.tvar</span></code> file (letter <code class="docutils literal"><span class="pre">C</span></code> in the column <code class="docutils literal"><span class="pre">Type</span></code> followed by some value in <code class="docutils literal"><span class="pre">Value</span></code> column).</li>
 </ol>
 </div>
 <div class="section" id="badly-defined-fluxes">
 <h3>Badly defined fluxes<a class="headerlink" href="#badly-defined-fluxes" title="Permalink to this headline">¶</a></h3>
 <p>Also known as <em>statistically undefined fluxes</em>, these fluxes have big or even huge SD values. The difference between these fluxes and structurally undefined fluxes is that the badly defined fluxes can become well defined if the noise is reduced or hypothetically eliminated while the latter will still be undetermined even in the absence of the noise. Despite this difference, all options presented in the previous section are applicable here (all but <code class="docutils literal"><span class="pre">--ln</span></code> which would be without effect here).</p>
 <p>An additional measure can be taken which consist in experimental noise reduction. Generally, it can be done by using better protocols, better instruments or simply by increasing the measurement repetition number.</p>
-<p>Once again, a use of <code class="docutils literal"><span class="pre">--noopt</span></code> with new hoped DEV values in the FTBL file can help to see if these new measurements with better noise characteristics will resolve or not the problem.</p>
+<p>Once again, a use of <code class="docutils literal"><span class="pre">--noopt</span></code> with new hoped SD values in the <code class="docutils literal"><span class="pre">.miso</span></code> file can help to see if these new measurements with better noise characteristics will resolve or not the problem.</p>
 </div>
 <div class="section" id="slow-convergence">
 <h3>Slow convergence<a class="headerlink" href="#slow-convergence" title="Permalink to this headline">¶</a></h3>
@@ -994,7 +1068,7 @@ Least L2-norm solution is provided.
 </pre></div>
 </div>
 <p>Theoretically, user can increase the limit for those two numbers
-(<code class="docutils literal"><span class="pre">optctrl:nlsic:maxit</span></code> and <code class="docutils literal"><span class="pre">optctrl:nlsic:btmaxit</span></code> respectively in the <code class="docutils literal"><span class="pre">OPTIONS</span></code> section of FTBL file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
+(<code class="docutils literal"><span class="pre">optctrl:nlsic:maxit</span></code> and <code class="docutils literal"><span class="pre">optctrl:nlsic:btmaxit</span></code> respectively in the <code class="docutils literal"><span class="pre">.opt</span></code> file) but generally it is not a good idea. It can help only in very specific situations that we cannot analyze here as we estimate them low probable.
 In all cases, a slow convergence is due to high non linearity of the solved problem. What can vary from one situation to another, it is the nature of this non linearity. Depending on this nature, several steps can be undertaken to accelerate optimization:</p>
 <ol class="arabic simple">
 <li>If a non linearity causing the slow convergence is due to the use of function absolute value <span class="math">\(|x|\)</span> in the calculation of forward and revers fluxes from net and exchange fluxes, then an option <code class="docutils literal"><span class="pre">--zc=ZC</span></code> (zero crossing) can be very efficient. This non linearity can become harmful when during optimization a net flux has to change its sign, in other words it has to cross zero.</li>
@@ -1009,15 +1083,16 @@ If <code class="docutils literal"><span class="pre">--zc</span></code> option is
 </div>
 </div></blockquote>
 <p>To avoid such situation, an argument to <code class="docutils literal"><span class="pre">--zc</span></code> must be a small positive number, say <code class="docutils literal"><span class="pre">--zc</span> <span class="pre">0.001</span></code>. In this case, positive net fluxes are kept over 0.001 and negative fluxes are kept under -0.001 value. In this manner, an exact zero is avoided.</p>
-<p>Another way to avoid problem induced by using module function <span class="math">\(|x|\)</span> is to add inequality(-ies) imposing sens of reaction in <code class="docutils literal"><span class="pre">INEQUALITIES/NET</span></code> section, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="m">0</span>.0001 &lt;<span class="o">=</span>      mae
+<p>Another way to avoid problem induced by using module function <span class="math">\(|x|\)</span> is to add inequality(-ies) imposing sens of reaction in <code class="docutils literal"><span class="pre">.cnstr</span></code> file e.g.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>Id      Comment Kind    Formula Operator        Value
+                NET     mae     &gt;<span class="o">=</span>              <span class="m">0</span>
 </pre></div>
 </div>
-<p>Naturally, in this example, you have to be sure that the reaction catalyzed by malic enzyme (here <code class="docutils literal"><span class="pre">mae</span></code>) must go in the sens written in your FTBL file.</p>
+<p>Naturally, in this example, you have to be sure that the reaction catalyzed by malic enzyme (here <code class="docutils literal"><span class="pre">mae</span></code>) must go in the sens written in your <code class="docutils literal"><span class="pre">.netw</span></code> file.</p>
 <p>You can find potential candidates to impose sens of reaction by examining the flux values in <code class="docutils literal"><span class="pre">mynetwork_res.kvh</span></code> after a slow convergence and looking fluxes who’s sign (positive or negative) looks suspicious to you. In our practice, we could observe a dramatic increase in convergence speed and stability just after imposing a sens of reaction to a “key” reaction. Obviously, such constraint must be in accordance with biological sens of a studied network and its biological condition.</p>
 </div></blockquote>
 <ol class="arabic simple" start="2">
-<li>A high non linearity can appear for some particular set of fluxes, especially when they take extreme values, e.g. when exchange fluxes are close to 1 or net fluxes take very high values of order 10² or even 10³ (supposing that the main entry flux is normalized to 1). In such a case, user can low this limits (options <code class="docutils literal"><span class="pre">--cupx=CUPX</span></code> and <code class="docutils literal"><span class="pre">--cupn=CUPN</span></code> respectively) or try to exclude outliers (<code class="docutils literal"><span class="pre">--excl_outliers</span> <span class="pre">P-VALUE</span></code>) as outliers can attract the solution in weird zone of fluxes. In this latter case, the first convergence will continue to be slow and will generate corresponding warnings but the second one (after a possible automatic elimination of outliers) can be much quicker.</li>
+<li>A high non linearity can appear for some particular set of fluxes, especially when they take extreme values, e.g. when exchange fluxes are close to 1 or net fluxes take very high values of order 10² or even 10³ (supposing that the main entry flux is normalized to 1). In such a case, user can low this limits (options <code class="docutils literal"><span class="pre">--cupx=CUPX</span></code> and <code class="docutils literal"><span class="pre">--cupn=CUPN</span></code> respectively) or try to exclude outliers (<code class="docutils literal"><span class="pre">--excl_outliers</span> <span class="pre">P-VALUE</span></code>) as outliers can attract the solution in weird zone of fluxes. In this latter case, the first convergence will continue to be slow and will generate corresponding warnings but the second one (after a possible automatic elimination of outliers) can converge much faster.</li>
 </ol>
 </div>
 <div class="section" id="convergence-aborted">
@@ -1030,47 +1105,176 @@ If <code class="docutils literal"><span class="pre">--zc</span></code> option is
 If it happens for relatively small increments then the results of convergence are still exploitable. If not, there is no so many actions that user could undertake except to make his system better defined as described in previous sections.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">By default, we use a very small value for increment norm as stopping criterion (<span class="math">\(10^{-5}\)</span>). It can be considered as very drastic criterion and can be relaxed to <span class="math">\(10^{-3}\)</span> or <span class="math">\(10^{-2}\)</span> depending on required precision for a problem in hand (to do that, use an option <code class="docutils literal"><span class="pre">optctrl:nlsic:errx</span></code> in the section <code class="docutils literal"><span class="pre">OPTIONS</span></code> of FTBL file).</p>
+<p class="last">By default, we use a very small value for increment norm as stopping criterion (<span class="math">\(10^{-5}\)</span>). It can be considered as very drastic criterion and can be relaxed to <span class="math">\(10^{-3}\)</span> or <span class="math">\(10^{-2}\)</span> depending on required precision for a problem in hand (to do that, use an option <code class="docutils literal"><span class="pre">optctrl:nlsic:errx</span></code> in the <code class="docutils literal"><span class="pre">.opt</span></code> file).</p>
 </div>
 </div>
 </div>
-<div class="section" id="id1">
-<h2>Additional tools<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="additional-tools">
+<h2>Additional tools<a class="headerlink" href="#additional-tools" title="Permalink to this headline">¶</a></h2>
 <p>Tools described in this section are not strictly necessary for running <code class="docutils literal"><span class="pre">influx_si</span></code> and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.</p>
 <p>Most of the utilities produce an output written on standard output or in a file who’s name is derived from the input file name. This latter situation is signaled with a phrase “The output redirection is optional” and in the usage examples the output redirection is taken in square brackets <code class="docutils literal"><span class="pre">[&gt;</span> <span class="pre">output.txt]</span></code> which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.</p>
-<div class="section" id="txt2ftbl-conversion-of-txt-format-to-ftbl-format">
-<h3>txt2ftbl: conversion of txt format to FTBL format<a class="headerlink" href="#txt2ftbl-conversion-of-txt-format-to-ftbl-format" title="Permalink to this headline">¶</a></h3>
-<p>An easily readable/writable text format can be used to create <em>de novo</em> an FTBL file. Reactions in this text format can look like:</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>v48: Asp (abcd) + Pyr (efg) + Glu (hijkl) + SucCoA (mnop) + ATP + 2 NADPH -&gt;
- LL-DAP (0.5 abcdgfe + 0.5 efgdcba) + AKG (hijkl) + Suc (0.5 mnop + 0.5 ponm)
+<div class="section" id="ftbl2mtf-conversion-of-ftbl-to-mtf-format">
+<h3>ftbl2mtf: conversion of FTBL to MTF format<a class="headerlink" href="#ftbl2mtf-conversion-of-ftbl-to-mtf-format" title="Permalink to this headline">¶</a></h3>
+<p>For old <code class="docutils literal"><span class="pre">influx_si</span></code> users having their projects in FTBL format, this utility can be an invaluable helper for making transition to the new MTF format. Here is the help message which can be seen with <code class="docutils literal"><span class="pre">ftbl2mtf</span> <span class="pre">-h</span></code></p>
+<blockquote>
+<div><div class="highlight-text"><div class="highlight"><pre><span></span>usage: ftbl2mtf [-h] [-i] [-f] [-o OUT] ftbl
+
+Parse ftbl file from first parameter or from stdin (if input file is &#39;-&#39;)
+and write a series of mtf (multiple TSV files).
+The file stem (&#39;network&#39; in &#39;network.ftbl&#39;) is used as file name basis
+for produced files, e.g. &#39;network.miso&#39;. Parameter --out can be used to change it.
+If out path includes non existing directories, they are automatically created.
+Caution! If an existing output file starts with a comment
+&quot;# Created by &#39;ftbl2mft ...&quot;
+or is empty, it is silently overwritten.
+Otherwise, the writing is aborted with a warning. Other files may continue to be created.
+To force the overwriting, use &#39;--force&#39;.
+
+Output files will have following extensions/meanings:
+
+ .netw: stoichiometric equations and label transitions in the biochemical network;
+ .linp: label input;
+ .miso: isotopic measurements (MS, label, peak);
+ .mflux: flux measurements;
+ .mmet: biochemical specie concentration measurements;
+ .tvar: flux/specie types partition (free, dependent, constrained) and starting values;
+ .cnstr: constraints (equalities, inequalities for both fluxes and concentrations);
+ .opt: options.
+
+Copyright 2022 INRAE, INSA, CNRS
+Author: Serguei Sokol (sokol [at] insa-toulouse [dot] fr)
+
+positional arguments:
+  ftbl               input file to be converted to MTF
+
+optional arguments:
+  -h, --help         show this help message and exit
+  -i, --inst         activate instationary mode
+  -f, --force        force overwriting of result files
+  -o OUT, --out OUT  path prefix for result files
 </pre></div>
 </div>
-<p>This long reaction illustrates several format features:</p>
-<blockquote>
-<div><ul class="simple">
-<li><code class="docutils literal"><span class="pre">v48</span></code> is the reaction name. It is optional. If reaction names (and theirs separators <code class="docutils literal"><span class="pre">:</span></code> signs) are omitted, reactions will be just numbered. The numbering restarts after each comment block (a comment starts with a <code class="docutils literal"><span class="pre">#</span></code> sign). This is done to give an opportunity to organize reactions in pathways. In such a case, a comment is considered as stating a new pathway which is also numbered. Thus an automatic reaction name can look like <code class="docutils literal"><span class="pre">r2.3</span></code> where <code class="docutils literal"><span class="pre">2</span></code> is pathway number and <code class="docutils literal"><span class="pre">3</span></code> is a reaction number in this pathway.</li>
-</ul>
-<blockquote>
-<div>Note that in this example, the reaction is split in two lines only for convenience of presentation. In a text file, a reaction must be written on only one line. No line breaks are admitted in reactions and no more than one reaction can be written on a given line.</div></blockquote>
-<ul class="simple">
-<li><code class="docutils literal"><span class="pre">Asp</span> <span class="pre">(abcd)</span></code> is a metabolite name <code class="docutils literal"><span class="pre">Asp</span></code> followed by its optional carbon id string between parentheses <code class="docutils literal"><span class="pre">(abcd)</span></code>. All carbon id must be a unique letter on each side of the reaction and if present on one side of reaction, must also be present on the other one. Thus carbon atom balance is preserved. In case of symmetric molecule, the carbon scrambling can be indicated as <code class="docutils literal"><span class="pre">(0.5</span> <span class="pre">mnop</span> <span class="pre">+</span> <span class="pre">0.5</span> <span class="pre">ponm)</span></code> as e.g. for succinate <code class="docutils literal"><span class="pre">Suc</span></code> in the example above. Numeric coefficients of carbon forms (here <code class="docutils literal"><span class="pre">0.5</span></code>) can be omitted as all forms are considered as equally probable and automatically normalized to sum up to 1. So a completely equivalent form could be <code class="docutils literal"><span class="pre">(mnop</span> <span class="pre">+</span> <span class="pre">ponm)</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">+</span></code> sign separates metabolites on each side of reaction</li>
-<li><code class="docutils literal"><span class="pre">-&gt;</span></code> separates two sides of reaction and indicates that this reaction is irreversible, i.e. its exchange flux is zero. It does not precludes about the sens of reaction. Here we consider that a reaction can be irreversible and have a negative net flux. If in addition, you wish to indicate that a reaction must operate only from left to right, i.e. to have a positive net flux, then use <code class="docutils literal"><span class="pre">-&gt;&gt;</span></code> sign. To indicate a reversible reaction use <code class="docutils literal"><span class="pre">&lt;-&gt;</span></code> and a reversible reaction with imposed positive net flux use <code class="docutils literal"><span class="pre">&lt;-&gt;&gt;</span></code>.</li>
-<li><code class="docutils literal"><span class="pre">ATP</span></code> is an example of a cofactor, it does not have a carbon id string. It participates in mass balance but not in carbon balance equations.</li>
-<li><code class="docutils literal"><span class="pre">2</span> <span class="pre">NADPH</span></code> is an example of a cofactor with a stoechiometric coefficient different from 1. Coefficients different from 1 are not allowed for metabolites participating in carbon exchanges in a given reaction. But if a reaction has no carbon exchanges, then all metabolites are allowed to have a coefficient different from 1 like for example in biomass reactions.</li>
-<li><code class="docutils literal"><span class="pre">#</span></code> starts a comment that will be put in FTBL as is, except the first <code class="docutils literal"><span class="pre">#</span></code> hash sign that will be replaced by <code class="docutils literal"><span class="pre">//</span></code> (FTBL comment tag)</li>
-<li><code class="docutils literal"><span class="pre">###</span></code> triple hash sign is used to introduce a pathway name. Respectively, <code class="docutils literal"><span class="pre">//##</span></code> will do the same in FTBL. Pathway name can be useful for <code class="docutils literal"><span class="pre">ftbl2metxml.py</span></code> script which prepare xml and txt files for visualization on a partner site <a class="reference external" href="http://metexplore.toulouse.inra.fr/">MetExplore</a>.</li>
-</ul>
 </div></blockquote>
-<p>An example of a full featured metabolite network can be found in <code class="docutils literal"><span class="pre">test/prl_exp/e_coli_anto.txt</span></code>.</p>
-<p>To convert it to FTBL file, you can run (in installation directory):</p>
+</div>
+<div class="section" id="txt2ftbl-conversion-of-mtf-format-to-ftbl-format">
+<h3>txt2ftbl: conversion of MTF format to FTBL format<a class="headerlink" href="#txt2ftbl-conversion-of-mtf-format-to-ftbl-format" title="Permalink to this headline">¶</a></h3>
+<p>This tools is implicitly used by <code class="docutils literal"><span class="pre">influx_si</span></code> to convert MTF to FTBL format. Users desiring to play with format conversion or to produce FTBL file to be used with <a class="reference internal" href="#additional-tools">Additional tools</a> can use it explicitly. Here is its help message:</p>
 <blockquote>
-<div><div class="highlight-text"><div class="highlight"><pre><span></span>$ ./txt2ftbl.py test/prl_exp/e_coli_anto.txt [&gt; test/prl_exp/e_coli_anto.ftbl]
+<div><div class="highlight-text"><div class="highlight"><pre><span></span>usage: txt2ftbl [-h] [--mtf MTF] [--prefix PREFIX] [--eprl EPRL] [--inst] [--force] [netw]
+
+transform a series of TXT and TSV files into FTBL file.
+
+Copyright 2021, INRAE, INSA, CNRS
+Author: Serguei Sokol (sokol at insa-toulouse dot fr)
+License: Gnu Public License (GPL) v2 http://www.gnu.org/licenses/gpl.html
+
+positional arguments:
+  netw
+                   If &#39;netw&#39; file is not given in any option (neither --mtf nor --prefix), it
+                   can be given as the only argument NETW, e.g.
+                     txt2ftbl ecoli.txt
+                   or
+                     txt2ftbl --mtf ms_nmr_data.miso,glucose.linp ecoli.txt
+                   If &#39;netw&#39; file name is given both in any option and as an argument, it
+                   is the argument value that will take precedence.
+
+optional arguments:
+  -h, --help       show this help message and exit
+  --mtf MTF        MTF is a coma separated list of files with following extensions/meanings:
+                    netw: a text file with stoichiometric reactions and label transitions (one per line)
+                       Comments starts with &#39;#&#39; but those starting with &#39;###&#39; introduce
+                       pathways which are numbered as well as reactions in them. Reaction
+                       name can precede the reaction itself and is separated by &quot;:&quot; If no
+                       explicit name is given, reactions in FTBL file will be named
+                       according a pattern &#39;rX.Y&#39; where X is pathway number and Y is
+                       reaction number in the pathway. But it is highly recommended to
+                       give explicit names to reactions.
+                       Symbols &quot;+&quot;, &quot;(&quot;, &quot;)&quot; and &quot;:&quot; are not allowed in metabolite neither reaction names
+                       Example of reaction and label transition:
+                          edd: Gnt6P (ABCDEF) -&gt; Pyr (ABC) + GA3P (DEF)
+                       Non reversible reactions are signaled with &#39;-&gt;&#39; (as in the example above).
+                       A sign &#39;&lt;-&gt;&#39; can be used for reversible reactions.
+                       If &#39;netw&#39; name is equal to &#39;-&#39;, then its content is read from standard input, e.g.
+                         &#39;--mtf netw=-&#39;
+                    linp: label inputs (starting from this extensions, TSV files are assumed)
+                    miso: isotopic measurements (NMR (label, peak) and MS)
+                    mflux: flux measurements
+                    mmet: metabolite concentration measurements
+                    tvar: type of variables (NET or XCH , free or dependent, starting values, ...)
+                    cnstr: equality and inequality constraints on fluxes and concentrations
+                    opt: options
+                    ftbl: name of output FTBL file. If not given, it will be equal to &#39;netw&#39;
+                      stem with &#39;.ftbl&#39; extension. If it is equal to &#39;-&#39;, then the result
+                      will be written to standard output, e.g.
+                        &#39;txt2ftbl --mtf ftbl=-,ecoli.netw&#39;
+                      Intermediate directories in ftbl path are silently created if non existent.
+                    vmtf: variable part of mtf approach.
+                      If a series of FTBL files has to be generated partially with
+                      information common to all files (constant part) and partially with
+                      sections proper to each FTBL (variable part) then files containing
+                      variable sections (e.g. &#39;miso&#39;) can be given in a special file
+                      having an extension (or prefix, cf. hereafter) &#39;vmtf&#39;. In such a
+                      way, each FTBL file will be produced from combination of MTF files
+                      given directly in this option (constant part) and files given on a
+                      corresponding row of &#39;vmtf&#39; file. vmtf file is a TSV file with
+                      columns using the same names: &#39;netw&#39;, &#39;linp&#39;, etc. Each row contains
+                      file names that will be used to produce an FTBL file. Thus each row
+                      must have &#39;ftbl&#39; column with unique and non empty name. When &#39;vmtf&#39;
+                      is used, &#39;ftbl&#39; cannot be present on the command line. If a file
+                      type is present both in column names of &#39;vmtf&#39; and in &#39;--mtf&#39; option
+                      then the content of &#39;vmtf&#39; file will take precedence. Empty values
+                      in &#39;vmtf&#39; file are ignored. All file paths in &#39;vmtf&#39; file are
+                      considered relative to the location of &#39;vmtf&#39; file itself.
+                   Only first 3 files are necessary to obtain a workable FTBL file, others
+                   are optional.
+                   Example: &#39;txt2ftbl --mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux&#39;
+                   NB: no space is allowed around comas. If a file path has a spaces in
+                   its name, it must be enclosed into quotes or double quotes.
+                   If an entry file cannot be renamed to have some of these extensions, then
+                   they can be used as prefixes followed by a &#39;=&#39; sign, e.g.
+                     &#39;txt2ftbl --mtf netw=ecoli.txt,linp=glu08C1_02U.tsv,cond1.miso,cond1.mflux&#39;
+                   As you can see from this example, both naming schemes can be mixed.
+                   If for some reason, the same type of file is indicated several times
+                   (no matter with extension or prefix), the last occurrence supersedes
+                   all precedent ones.
+  --prefix PREFIX  If all input files have the same name pattern and are different only
+                   in extensions then the pattern can be given as PREFIX, e.g.
+                     &#39;--prefix somedir/ecoli&#39;
+                   Then in &#39;somedir&#39;, we suppose to have &#39;ecoli.netw&#39;, &#39;ecoli.linp&#39; and
+                   other input files having names starting with &#39;ecoli&#39; and ending with
+                   corresponding extensions.
+                   NB. If some file is given in more than one option: &#39;--prefix&#39; and/or
+                   &#39;--mtf&#39; then the last occurrence overrides precedent ones.
+  --eprl EPRL      Parallel experiments can be given with this option. It must
+                   introduce a couple of linp/miso files and optional auxiliary ftbl name. These files
+                   correspond to a given parallel experiment. This option can be repeated as
+                   many times as there are additional parallel experiments, e.g.
+                     &#39;txt2ftbl --mtf ec.netw,glc6.linp,glc6.miso --eprl glc1.linp,glc1.miso --eprl glc4.linp,glc4.miso&#39;
+                   This command will produce a main FTBL file &#39;ec.ftbl&#39; including all necessary
+                   sections (NETWORK, etc.) but also two auxiliary FTBL files: &#39;glc1.ftbl&#39; and
+                   &#39;glc4.ftbl&#39; having only label input/measurement sections. They will correspond
+                   to 2 additional parallel experiments. If ftbl file is not given in --eprl
+                   option, the name of miso file will be used for it. If intermediate
+                   directories in ftbl path are non existent they will be silently created.
+                   Auxiliary ftbl names will be put in &#39;OPTIONS/prl_exp&#39; field on the main ftbl file.
+                   These names will be written there in a form relative to the main ftbl.
+                   To shorten the writings, it is possible to indicate only one of two .miso/.linp files.
+                   The other one will be guessed if it has canonical extension. If extension is omitted then .miso and .linp files are searched with these extensions. In this case, several parallel experiments can be given with one --eprl option. So that above example can be shorten to:
+                     &#39;txt2ftbl --mtf ec.netw,glc6.linp,glc6.miso --eprl glc1,glc4&#39;
+  --inst           Prepare FTBL for instationary case. File &#39;netw&#39; is supposed to have
+                   column &#39;Time&#39; non empty. Isotopic kinetic data will be written to a TSV
+                   file with &#39;ikin&#39; extension. Its name will be the same as in FTBL file,
+                   and FTBL field &#39;OPTIONS/file_labcin&#39; will contain &#39;ikin&#39; file name.
+  --force          Overwrite an existent result file not produced by this script.
+                   NB. If a result file exists and is actually produced by this script,
+                   then it is silently overwritten even without this option. The script
+                   detects if it was the creator of a file by searching for a string &quot;//
+                   Created by &#39;txt2ftbl&quot; at the first line of the file. By removing or
+                   editing this comment, user can protect a file from a silent
+                   overwriting.
 </pre></div>
 </div>
 </div></blockquote>
-<p>Note that output redirection <code class="docutils literal"><span class="pre">&gt;</span> <span class="pre">...</span></code> is optional. In absence of such redirection, the output file name is guessed from input file by replacing <code class="docutils literal"><span class="pre">.txt</span></code> with <code class="docutils literal"><span class="pre">.ftbl</span></code> extension.
-Thus obtained FTBL file must be completed with several kinds of information like label input, label measurements and so on to be fully functional and suitable for <code class="docutils literal"><span class="pre">influx_si</span></code>.</p>
 </div>
 <div class="section" id="ftbl2xgmml-cytoscape-view">
 <h3>ftbl2xgmml: cytoscape view<a class="headerlink" href="#ftbl2xgmml-cytoscape-view" title="Permalink to this headline">¶</a></h3>
@@ -1085,15 +1289,15 @@ Thus obtained FTBL file must be completed with several kinds of information like
 For those who use <a class="reference external" href="http://apps.cytoscape.org/apps/cysbml">CySBML</a> plugin, a saving of a particular layout in a file can be practical for later applying it to a new network.</p>
 <p>Graphical conventions used in the generated XGMML are the following:</p>
 <ul>
-<li><p class="first">metabolite are presented as rounded square nodes;</p>
+<li><p class="first">specie are presented as rounded square nodes;</p>
 </li>
 <li><p class="first">simple (one to one) reaction are represented by simple edges;</p>
 </li>
 <li><p class="first">condensing and/or splitting reactions are represented by edges converging and/or diverging from additional almost invisible node having a label with the reaction name;</p>
 </li>
-<li><p class="first">all nodes and edges have tool tips, i.e. when a pointer is put over, their name (metabolite or reaction) appears in a tiny pop-up window;</p>
+<li><p class="first">all nodes and edges have tool tips, i.e. when a pointer is put over, their name (specie or reaction) appears in a tiny pop-up window;</p>
 </li>
-<li><p class="first">non reversible reactions are represented by a single solid line, have an arrow on the target end (i.e. produced metabolite) and nothing on the source end (i.e. consumed metabolite);</p>
+<li><p class="first">non reversible reactions are represented by a single solid line, have an arrow on the target end (i.e. produced specie) and nothing on the source end (i.e. consumed specie);</p>
 </li>
 <li><p class="first">reversible reactions are represented by a double parallel line and have a solid circle on the source end;</p>
 </li>
@@ -1144,7 +1348,8 @@ For those who use <a class="reference external" href="http://apps.cytoscape.org/
 </div>
 <div class="section" id="expa2ftbl-non-carbon-carrying-fluxes">
 <h3>expa2ftbl: non carbon carrying fluxes<a class="headerlink" href="#expa2ftbl-non-carbon-carrying-fluxes" title="Permalink to this headline">¶</a></h3>
-<p>Some reactions of carbon metabolism require cofactor usage like ATP/ADP and some others. A mass balance on cofactors can produce additional useful constraints on the stoechiometric system. Since the version 2.8, such mass balance equation on non carbon carrying metabolites can be put in <code class="docutils literal"><span class="pre">EQUATION</span></code> section of FTBL file. A utility <code class="docutils literal"><span class="pre">expa2ftbl.R</span></code> can be helpful for this purpose if a user has already a full set of reactions in <a class="reference external" href="http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis">expa</a> format.
+<p>Deprecated since v6.0. Such kind of fluxes can be directly incorporated in .netw file.</p>
+<p>Some reactions of carbon metabolism require cofactor usage like ATP/ADP and some others. A mass balance on cofactors can produce additional useful constraints on the stoichiometric system. Since the version 2.8, such mass balance equation on non carbon carrying species can be put in <code class="docutils literal"><span class="pre">EQUATION</span></code> section of FTBL file. A utility <code class="docutils literal"><span class="pre">expa2ftbl.R</span></code> can be helpful for this purpose if a user has already a full set of reactions in <a class="reference external" href="http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis">expa</a> format.
 To extract additional equation from an expa file, <code class="docutils literal"><span class="pre">expa2ftbl.R</span></code> can be used as:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ R --vanilla --slave --args file.expa &lt; expa2ftbl.R &gt; file.ftbl_eq
 </pre></div>
@@ -1168,7 +1373,7 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 </div>
 <div class="section" id="ffres2ftbl-import-free-fluxes">
 <h3>ffres2ftbl: import free fluxes<a class="headerlink" href="#ffres2ftbl-import-free-fluxes" title="Permalink to this headline">¶</a></h3>
-<p>This utility imports free flux values and metabolite concentrations (if any) from a result file _res.kvh and inject them into an FTBL file. Usage:</p>
+<p>This utility imports free flux values and specie concentrations (if any) from a result file _res.kvh and inject them into an FTBL file. Usage:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>$ ffres2ftbl.sh mynetwork_res.kvh <span class="o">[</span>base.ftbl<span class="o">]</span> &gt; new.ftbl
 </pre></div>
 </div>
@@ -1188,7 +1393,7 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 </div>
 <div class="section" id="isodesign-optimizing-input-label">
 <h3>IsoDesign: optimizing input label<a class="headerlink" href="#isodesign-optimizing-input-label" title="Permalink to this headline">¶</a></h3>
-<p>One of means to increase a flux resolution can be an optimization of input label composition. A utility <code class="docutils literal"><span class="pre">IsoDesing</span></code> solving this problem was developed by Pierre Millard. It is not part of <code class="docutils literal"><span class="pre">influx_si</span></code> distribution and can be downloaded at <a class="reference external" href="http://metatoul.insa-toulouse.fr/metasys/software/isodes/">http://metatoul.insa-toulouse.fr/metasys/software/isodes/</a>. In a nutshell, it works by scanning all possible input label compositions with a defined step, running <code class="docutils literal"><span class="pre">influx_si</span></code> on each of them then collecting the SD information on all fluxes for all label compositions and finally selecting an input label optimal in some sens (according to a criterion chosen by a user).</p>
+<p>One of means to increase a flux resolution can be an optimization of input label composition. A utility <code class="docutils literal"><span class="pre">IsoDesing</span></code> solving this problem was developed by Pierre Millard. It is not part of <code class="docutils literal"><span class="pre">influx_si</span></code> distribution and can be downloaded at <a class="reference external" href="http://metatoul.insa-toulouse.fr/metasys/software/isodes/">http://metatoul.insa-toulouse.fr/metasys/software/isodes/</a>. In a nutshell, it works by scanning all possible input label compositions with a defined step, running <code class="docutils literal"><span class="pre">influx_si</span></code> on each of them then collecting the SD information on all fluxes for all label compositions and finally selecting an input label composition optimal in some sens (according to a criterion chosen by a user).</p>
 </div>
 </div>
 </div>
@@ -1202,21 +1407,24 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">User’s manual</a><ul>
-<li><a class="reference internal" href="#ftbl-format-evolution">FTBL format evolution</a><ul>
-<li><a class="reference internal" href="#metabolite-pools-and-metab-measurements-v2-0"><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> (v2.0)</a></li>
-<li><a class="reference internal" href="#long-reactions-v4-0">Long reactions (v4.0)</a></li>
-<li><a class="reference internal" href="#cofactors-v4-0">Cofactors (v4.0)</a></li>
-<li><a class="reference internal" href="#same-metabolite-on-both-sides-of-reaction-v4-0">Same metabolite on both sides of reaction (v4.0)</a></li>
-<li><a class="reference internal" href="#section-notracer-network-v4-0">Section <code class="docutils literal"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)</a></li>
-<li><a class="reference internal" href="#sub-sections-equality-metab-and-inequality-metab-v2-11">Sub-sections <code class="docutils literal"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)</a></li>
-<li><a class="reference internal" href="#na-in-measurements-v2-5"><code class="docutils literal"><span class="pre">NA</span></code> in measurements (v2.5)</a></li>
-<li><a class="reference internal" href="#optimization-control-parameters-v5-3">Optimization control parameters (v5.3)</a></li>
-<li><a class="reference internal" href="#convention-evolution">Convention evolution</a></li>
+<li><a class="reference internal" href="#mtf-format">MTF format</a><ul>
+<li><a class="reference internal" href="#netw">.netw</a></li>
+<li><a class="reference internal" href="#linp">.linp</a></li>
+<li><a class="reference internal" href="#miso">.miso</a></li>
+<li><a class="reference internal" href="#mflux">.mflux</a></li>
+<li><a class="reference internal" href="#mmet">.mmet</a></li>
+<li><a class="reference internal" href="#cnstr">.cnstr</a></li>
+<li><a class="reference internal" href="#tvar">.tvar</a></li>
+<li><a class="reference internal" href="#opt">.opt</a></li>
+<li><a class="reference internal" href="#vmtf">.vmtf</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#basic-influx-si-usage">Basic influx_si usage</a></li>
+<li><a class="reference internal" href="#basic-influx-si-usage">Basic influx_si usage</a><ul>
 <li><a class="reference internal" href="#influx-si-command-line-options"><code class="docutils literal"><span class="pre">influx_si</span></code> command line options</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#parallel-experiments">Parallel experiments</a></li>
+<li><a class="reference internal" href="#options-in-opt-file">Options in .opt file</a><ul>
 <li><a class="reference internal" href="#optimization-options">Optimization options</a><ul>
 <li><a class="reference internal" href="#nlsic-parameters">NLSIC parameters</a></li>
 <li><a class="reference internal" href="#pso-parameters">PSO parameters</a></li>
@@ -1226,10 +1434,10 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 <li><a class="reference internal" href="#growth-flux-option">Growth flux option</a></li>
 <li><a class="reference internal" href="#post-treatment-option">Post treatment option</a></li>
 <li><a class="reference internal" href="#exclusive-influx-i-options">Exclusive <code class="docutils literal"><span class="pre">influx_i</span></code> options</a></li>
-<li><a class="reference internal" href="#result-file-fields">Result file fields</a><ul>
-<li><a class="reference internal" href="#network-values-for-cytoscape">Network values for Cytoscape</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#result-file-fields">Result file fields</a></li>
+<li><a class="reference internal" href="#network-values-for-cytoscape">Network values for Cytoscape</a></li>
 <li><a class="reference internal" href="#warning-and-error-messages">Warning and error messages</a></li>
 <li><a class="reference internal" href="#problematic-cases">Problematic cases</a><ul>
 <li><a class="reference internal" href="#structurally-non-identifiable-fluxes">Structurally non identifiable fluxes</a></li>
@@ -1238,8 +1446,9 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 <li><a class="reference internal" href="#convergence-aborted">Convergence aborted</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#id1">Additional tools</a><ul>
-<li><a class="reference internal" href="#txt2ftbl-conversion-of-txt-format-to-ftbl-format">txt2ftbl: conversion of txt format to FTBL format</a></li>
+<li><a class="reference internal" href="#additional-tools">Additional tools</a><ul>
+<li><a class="reference internal" href="#ftbl2mtf-conversion-of-ftbl-to-mtf-format">ftbl2mtf: conversion of FTBL to MTF format</a></li>
+<li><a class="reference internal" href="#txt2ftbl-conversion-of-mtf-format-to-ftbl-format">txt2ftbl: conversion of MTF format to FTBL format</a></li>
 <li><a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: cytoscape view</a></li>
 <li><a class="reference internal" href="#ftbl2netan-ftbl-parsing">ftbl2netan: FTBL parsing</a></li>
 <li><a class="reference internal" href="#ftbl2cumoab-human-readable-equations">ftbl2cumoAb: human readable equations</a></li>
@@ -1259,8 +1468,8 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
   <p class="topless"><a href="quick.html"
                         title="previous chapter">Quick Start</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="progdoc.html"
-                        title="next chapter">Programmer’s documentation for influx_s</a></p>
+  <p class="topless"><a href="ftblevo.html"
+                        title="next chapter">FTBL format evolution</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -1292,12 +1501,12 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="progdoc.html" title="Programmer’s documentation for influx_s"
+          <a href="ftblevo.html" title="FTBL format evolution"
              >next</a> |</li>
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.4 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

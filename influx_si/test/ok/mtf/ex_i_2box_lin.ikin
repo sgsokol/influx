@@ -1,0 +1,4 @@
+// Created by 'txt2ftbl --prefix influx_si/test/mtf/ex_i_2box_var --inst' at 2022-01-10 17:13:23 CET +0100
+row_col	
+m:B:#1:NA	1
+m:C:#1:NA	1

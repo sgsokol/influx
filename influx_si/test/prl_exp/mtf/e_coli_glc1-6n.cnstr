@@ -1,0 +1,18 @@
+# Created by 'ftbl2mtf e_coli_glc1-6n.ftbl -o mtf/e_coli_glc1-6n' at 2022-05-18 15:33:54 CEST +0200
+Id	Comment	Kind	Formula	Operator	Value
+		NET	v25_1 - v25_2	==	0
+		NET	v26_1 - v26_2	==	0
+		NET	v26_1 - v26_3	==	0
+		NET	v26_1 - v26_4	==	0
+		NET	v27_1 - v27_2	==	0
+		NET	v29_1 - v29_2	==	0
+		NET	v48_1 - v48_2	==	0
+		NET	v48_1 - v48_3	==	0
+		NET	v48_1 - v48_4	==	0
+		NET	v49_1 - v49_2	==	0
+		NET	v51_1 - v51_2	==	0
+		XCH	v25_1 - v25_2	==	0
+		XCH	v26_1 - v26_2	==	0
+		XCH	v26_1 - v26_3	==	0
+		XCH	v26_1 - v26_4	==	0
+		XCH	v27_1 - v27_2	==	0
