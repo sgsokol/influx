@@ -4,30 +4,24 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Installation &#8212; influx_si 5.99 documentation</title>
+    <title>Installation &#8212; influx_si 6.0 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '5.99',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Quick Start" href="quick.html" />
     <link rel="prev" title="Change Log for influx_si" href="changelog.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -43,7 +37,7 @@
         <li class="right" >
           <a href="changelog.html" title="Change Log for influx_si"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.0 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -59,43 +53,43 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">The code examples here after are given for Unix shell environment.
-On windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix’s one.</p>
+On Windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix’s one.</p>
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p>In command examples to run, we use script names with extension <cite>.py</cite>. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without ‘.py’. For example, commands:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --prefix e_coli
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --prefix e_coli
 </pre></div>
 </div>
 <p>and</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s --prefix e_coli
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s --prefix e_coli
 </pre></div>
 </div>
-<p class="last">are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.</p>
+<p class="last">are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows, where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.</p>
 </div>
 <div class="section" id="installation-with-conda">
-<h2>Installation with <code class="docutils literal"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Permalink to this headline">¶</a></h2>
-<p>If you have Anaconda or Miniconda installed on your system, installation of <code class="docutils literal"><span class="pre">influx_si</span></code> resumes to:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ conda install influx_si -c conda-forge -c bioconda
+<h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Permalink to this headline">¶</a></h2>
+<p>If you have Anaconda or Miniconda installed on your system, installation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> resumes to:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ conda install influx_si -c conda-forge -c bioconda
 </pre></div>
 </div>
-<p>It installs <code class="docutils literal"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.</p>
+<p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.</p>
 </div>
 <div class="section" id="installation-with-pip">
-<h2>Installation with <code class="docutils literal"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Permalink to this headline">¶</a></h2>
-<p>If you don’t have any version of <code class="docutils literal"><span class="pre">conda</span></code> (neither <code class="docutils literal"><span class="pre">miniconda</span></code> nor <code class="docutils literal"><span class="pre">Anaconda</span></code>) but do have a Python and R installed on your system, you can install <code class="docutils literal"><span class="pre">influx_si</span></code> with the following procedure.</p>
-<p>Your need a python tool called <code class="docutils literal"><span class="pre">pip</span></code> which manages pure python packages. If it is not present on your sustem, you’ll have to install it <a class="reference external" href="https://pip.pypa.io/en/stable/installing/">first</a> to continue with this method. If you have multiple Pyhton versions installed on your system (e.g. Python2 and Python3) you’ll have to use <code class="docutils literal"><span class="pre">pip3</span></code> to install the software in the Python3 univers.</p>
-<p>The first step will install only Python part of <code class="docutils literal"><span class="pre">influx_si</span></code>:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip3 install influx_si
+<h2>Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Permalink to this headline">¶</a></h2>
+<p>If you don’t have any version of <code class="docutils literal notranslate"><span class="pre">conda</span></code> (neither <code class="docutils literal notranslate"><span class="pre">miniconda</span></code> nor <code class="docutils literal notranslate"><span class="pre">Anaconda</span></code>) but do have a Python and R installed on your system, you can install <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> with the following procedure.</p>
+<p>You need a python tool called <code class="docutils literal notranslate"><span class="pre">pip</span></code> which manages pure python packages. If it is not present on your system, you’ll have to install it <a class="reference external" href="https://pip.pypa.io/en/stable/installing/">first</a> to continue with this method. If you have multiple Python versions installed on your system (e.g. Python2 and Python3) you’ll have to use <code class="docutils literal notranslate"><span class="pre">pip3</span></code> to install the software in the Python3 universe.</p>
+<p>The first step will install only Python part of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip3 install influx_si
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip3 install --user influx_si
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip3 install --user influx_si
 </pre></div>
 </div>
-<p>if you wish to install <code class="docutils literal"><span class="pre">influx_si</span></code> not system-wide but only in your own userspace.</p>
-<p>To use the software <code class="docutils literal"><span class="pre">influx_si</span></code>, you’ll need some R dependencies listed bellow. You can try to install them by:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --install_rdep
+<p>if you wish to install <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> not system-wide but only in your own userspace.</p>
+<p>To use the software <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>, you’ll need some R dependencies listed below. You can try to install them by:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --install_rdep
 </pre></div>
 </div>
 <p>If this procedure fails, you’ll have to solve the underlying problem identified from its error messages and rerun the command again.</p>
@@ -109,14 +103,14 @@ On windows, in PowerShell or DOS environment the syntax is often similar and in 
 <li>rmumps (5.2.1-6 or higher)</li>
 <li>arrApply</li>
 <li>slam</li>
-<li>limSolve (optional, needed only for <code class="docutils literal"><span class="pre">--lim</span></code> option)</li>
+<li>limSolve (optional, needed only for <code class="docutils literal notranslate"><span class="pre">--lim</span></code> option)</li>
 <li>multbxxc</li>
 </ul>
 </li>
 </ul>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">As of this writing (September 17, 2014), an R package <code class="docutils literal"><span class="pre">nnls</span></code> distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the <code class="docutils literal"><span class="pre">Path</span></code> system variable has the R path ending by <code class="docutils literal"><span class="pre">\bin\x64</span></code> and not just by <code class="docutils literal"><span class="pre">\bin</span></code>.</p>
+<p class="last">As of this writing (September 17, 2014), an R package <code class="docutils literal notranslate"><span class="pre">nnls</span></code> distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the <code class="docutils literal notranslate"><span class="pre">Path</span></code> system variable has the R path ending by <code class="docutils literal notranslate"><span class="pre">\bin\x64</span></code> and not just by <code class="docutils literal notranslate"><span class="pre">\bin</span></code>.</p>
 </div>
 </div>
 <div class="section" id="python-dependencies">
@@ -132,84 +126,84 @@ On windows, in PowerShell or DOS environment the syntax is often similar and in 
 <div class="section" id="test-of-installation">
 <h3>Test of installation<a class="headerlink" href="#test-of-installation" title="Permalink to this headline">¶</a></h3>
 <p>Open a shell window and get to your working directory.
-Copy distributed test directory to the current directory by running</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --copy_test
+Copy the distributed test directory to the current directory by running</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --copy_test
 </pre></div>
 </div>
-<p>then you can get in the newly created directory <code class="docutils literal"><span class="pre">test</span></code> and run some tests:</p>
+<p>then you can get in the newly created directory <code class="docutils literal notranslate"><span class="pre">test</span></code> and run some tests:</p>
 <blockquote>
-<div><div class="highlight-shell"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> test/mtf
+<div><div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> test/mtf
 $ influx_s.py --prefix e_coli
 </pre></div>
 </div>
 </div></blockquote>
 <p>If everything was correctly installed, you should see in your shell window an
 output looking like:</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>&quot;/home-local/sokol/.local/bin/influx_s&quot; &quot;--prefix&quot; &quot;e_coli&quot;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;/home-local/sokol/.local/bin/influx_s&quot; &quot;--prefix&quot; &quot;e_coli&quot;
 code gen: 2022-05-25 12:10:53
 calcul  : 2022-05-25 12:10:53
 end     : 2022-05-25 12:10:55
 </pre></div>
 </div>
 <p>The meaning of this output is quit simple. First, an R code is generated from input MTF files (cf. <a class="reference internal" href="manual.html#mtf"><span class="std std-ref">MTF format</span></a> for more details) then it is executed till it ends. Time moments at which these three events occur are reported.</p>
-<p>The calculation result will be written in <code class="docutils literal"><span class="pre">e_coli_res.kvh</span></code>.
-It should be almost identical to the same file in <code class="docutils literal"><span class="pre">ok/mtf</span></code> subdirectory.
+<p>The calculation result will be written in <code class="docutils literal notranslate"><span class="pre">e_coli_res.kvh</span></code>.
+It should be almost identical to the same file in <code class="docutils literal notranslate"><span class="pre">ok/mtf</span></code> subdirectory.
 On Unix you can do</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ diff e_coli_res.kvh ../ok/mtf/e_coli_res.kvh
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ diff e_coli_res.kvh ../ok/mtf/e_coli_res.kvh
 </pre></div>
 </div>
 <p>to see if there is any difference. Some small differences in numerical
 values can be ok. They might come from variations in versions of R and
 underlying numerical libraries (BLAS, LAPACK and so on).</p>
-<p>If something went wrong, check the error messages in <code class="docutils literal"><span class="pre">e_coli.err</span></code>,
+<p>If something went wrong, check the error messages in <code class="docutils literal notranslate"><span class="pre">e_coli.err</span></code>,
 interpret them, try to figure out why the errors occurred and correct them.</p>
-<p>In high throughput context, you can find useful to run <code class="docutils literal"><span class="pre">influx_si</span></code> in parallel on many independent MTF sets. It can be done by providing more than one <code class="docutils literal"><span class="pre">--prefix</span></code> options. For example, with two of cases provided with the package you can run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --prefix e_coli --prefix e_coli_growth
+<p>In high throughput context, you can find it useful to run <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> in parallel on many independent MTF sets. It can be done by providing more than one <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> options. For example, with two of cases provided with the package you can run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --prefix e_coli --prefix e_coli_growth
 </pre></div>
 </div>
 <p>In this case, the output looks sightly different than in one by one run:</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>&quot;/home-local/sokol/.local/bin/influx_s&quot; &quot;--pref&quot; &quot;e_coli&quot; &quot;--pref&quot; &quot;e_coli_growth&quot;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;/home-local/sokol/.local/bin/influx_s&quot; &quot;--pref&quot; &quot;e_coli&quot; &quot;--pref&quot; &quot;e_coli_growth&quot;
 e_coli_growth: code gen: 2022-05-25 14:44:56
 e_coli: code gen: 2022-05-25 14:44:56
 //calcul: 2022-05-25 14:44:57
 //end   : 2022-05-25 14:44:58
 </pre></div>
 </div>
-<p>The time moments for code generation is preceded by a short version of file names. The symbol <code class="docutils literal"><span class="pre">//</span></code> means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.</p>
+<p>The time moments for code generation is preceded by a short version of file names. The symbol <code class="docutils literal notranslate"><span class="pre">//</span></code> means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.</p>
 <p>It is the operating system that dispatches and equilibrates the charge
-among available CPUs and cores, not <code class="docutils literal"><span class="pre">influx_si</span></code> who simply launches these processes.</p>
-<p>One of the main interest of MTF format is an ability to multiplex constant and variable parts of information describing a set of experiments. In this case, many calculations can run in parallel on inter-dependent input files, cf. <code class="docutils literal"><span class="pre">.vmtf</span></code> description in <a class="reference internal" href="manual.html#mtf"><span class="std std-ref">MTF format</span></a>.</p>
-<p>For a quick test of <code class="docutils literal"><span class="pre">influx_i</span></code>, you can run in the same directory:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_i.py --prefix e_coli_i
+among available CPUs and cores, not <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> who simply launches these processes.</p>
+<p>One of the main interest of MTF format is an ability to multiplex constant and variable parts of information describing a set of experiments. In this case, many calculations can run in parallel on inter-dependent input files, cf. <code class="docutils literal notranslate"><span class="pre">.vmtf</span></code> description in <a class="reference internal" href="manual.html#mtf"><span class="std std-ref">MTF format</span></a>.</p>
+<p>For a quick test of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>, you can run in the same directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_i.py --prefix e_coli_i
 </pre></div>
 </div>
 <p>Normal output looks like</p>
-<div class="highlight-text"><div class="highlight"><pre><span></span>&quot;/home-local/sokol/.local/bin/influx_i.py&quot; &quot;--pref&quot; &quot;e_coli_i&quot;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;/home-local/sokol/.local/bin/influx_i.py&quot; &quot;--pref&quot; &quot;e_coli_i&quot;
 code gen: 2022-05-25 14:50:51
 calcul  : 2022-05-25 14:50:52
 end     : 2022-05-25 14:51:02
 </pre></div>
 </div>
-<p>Calculation results are written in <code class="docutils literal"><span class="pre">e_coli_i_res.kvh</span></code> and they can be compared with the same file in the <code class="docutils literal"><span class="pre">ok/mtf</span></code> sub-directory. You can also visually check a generated graphic file <code class="docutils literal"><span class="pre">e_coli_i.pdf</span></code> to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.</p>
+<p>Calculation results are written in <code class="docutils literal notranslate"><span class="pre">e_coli_i_res.kvh</span></code> and they can be compared with the same file in the <code class="docutils literal notranslate"><span class="pre">ok/mtf</span></code> sub-directory. You can also visually check a generated graphic file <code class="docutils literal notranslate"><span class="pre">e_coli_i.pdf</span></code> to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.</p>
 </div>
 <div class="section" id="installation-of-documentation">
 <h3>Installation of documentation<a class="headerlink" href="#installation-of-documentation" title="Permalink to this headline">¶</a></h3>
-<p><code class="docutils literal"><span class="pre">influx_si</span></code> is distributed with its documentation. To get it locally accessible from your personal disk space you can run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --copy_doc
+<p><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is distributed with its documentation. To get it locally accessible from your personal disk space, you can run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --copy_doc
 </pre></div>
 </div>
-<p>It will create a sub-directory <code class="docutils literal"><span class="pre">doc</span></code> in the current directory. This sub-directory contains <code class="docutils literal"><span class="pre">influx_si.pdf</span></code>, all-in-one documentation file but also an <code class="docutils literal"><span class="pre">html</span></code> subdirectory with the documentation browsable in your prefered navigator.</p>
+<p>It will create a subdirectory <code class="docutils literal notranslate"><span class="pre">doc</span></code> in the current directory. This subdirectory contains <code class="docutils literal notranslate"><span class="pre">influx_si.pdf</span></code>, all-in-one documentation file but also an <code class="docutils literal notranslate"><span class="pre">html</span></code> subdirectory with the documentation browsable in your prefered navigator.</p>
 <p>The both documentation versions are also available on-line: <a class="reference external" href="https://metasys.insa-toulouse.fr/software/influx/influx_si.pdf">pdf</a>  and <a class="reference external" href="https://metasys.insa-toulouse.fr/software/influx/doc/">html</a>.</p>
 <p>For a quick reminder of available options, launch</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_s.py --help
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --help
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>$ influx_i.py --help
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_i.py --help
 </pre></div>
 </div>
 <p>depending on what context you want to treat: stationary or instationary labeling.</p>
-<p>For more detailed documentation read <a class="reference internal" href="manual.html"><span class="doc">User’s manual</span></a>.</p>
+<p>For more detailed documentation, read <a class="reference internal" href="manual.html"><span class="doc">User’s manual</span></a>.</p>
 </div>
 </div>
 </div>
@@ -220,11 +214,11 @@ end     : 2022-05-25 14:51:02
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
+  <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Installation</a><ul>
-<li><a class="reference internal" href="#installation-with-conda">Installation with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
-<li><a class="reference internal" href="#installation-with-pip">Installation with <code class="docutils literal"><span class="pre">pip</span></code></a></li>
+<li><a class="reference internal" href="#installation-with-conda">Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a></li>
+<li><a class="reference internal" href="#installation-with-pip">Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a></li>
 <li><a class="reference internal" href="#r-dependencies">R dependencies</a></li>
 <li><a class="reference internal" href="#python-dependencies">Python dependencies</a><ul>
 <li><a class="reference internal" href="#test-of-installation">Test of installation</a></li>
@@ -250,12 +244,14 @@ end     : 2022-05-25 14:51:02
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -277,12 +273,12 @@ end     : 2022-05-25 14:51:02
         <li class="right" >
           <a href="changelog.html" title="Change Log for influx_si"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.0 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
     </div>
   </body>
 </html>

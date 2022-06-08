@@ -6,7 +6,7 @@
 FTBL format evolution
 =====================
 
-Even if FTBL is no more a front-end format for ``influx_si`` software (it was replace by MTF to this end), we consider useful to keep track of its evolution during ``influx_si`` development.
+Even if FTBL is no more a front-end format for ``influx_si`` software (it was replaced by MTF to this end), we consider useful to keep track of its evolution during ``influx_si`` development.
 
 
 Introduction

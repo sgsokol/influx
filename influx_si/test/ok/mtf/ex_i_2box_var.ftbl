@@ -1,4 +1,4 @@
-// Created by 'txt2ftbl --inst --prefix ex_i_2box_var' at 2022-05-25 18:45:40 CEST +0200
+// Created by 'txt2ftbl --inst --prefix ex_i_2box_var' at 2022-06-08 17:01:22 CEST +0200
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
 	ex_i_2box_var.netw	1.0			command='txt2ftbl --inst --prefix ex_i_2box_var'

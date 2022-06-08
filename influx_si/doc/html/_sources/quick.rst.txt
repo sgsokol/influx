@@ -7,11 +7,11 @@ Quick Start
 
 A basic work-flow with ``influx_si`` is composed of the following steps:
 
-1. Create a MTF file set (Multiple TSV Files) describing your metabolic reactions and carbon transitions (.netw), experimental data (.miso) label input (.linp) and some non mandatory measurements options (.mflux, .mmet, .tvar, .cntsr, .opt). Let an example MTF set has a prefix ``mynetwork``. The syntax rules for reactions will be more or less obvious for someone working on metabolism biochemistry. So, to go quickly, you can inspire from example files ``test/mtf/e_coli.netw`` and co. distributed with the ``influx_si`` software (run ``influx_s --copy_test`` to bring them to your current directory). You can also consult the help message from ``txt2ftbl -h`` for ``--mtf`` option.
+1. Create a MTF file set (Multiple TSV Files) describing your metabolic reactions and carbon transitions (.netw), experimental data (.miso) label input (.linp) and some non mandatory measurements options (.mflux, .mmet, .tvar, .cntsr, .opt). Let an example MTF set has a prefix ``mynetwork``. The syntax rules for reactions will be more or less obvious to someone working on metabolism biochemistry. So, to go quickly, you can inspire from example files ``test/mtf/e_coli.netw`` and co. distributed with the ``influx_si`` software (run ``influx_s --copy_test`` to bring them to your current directory). You can also consult the help message from ``txt2ftbl -h`` for ``--mtf`` option.
 
- .. note:: ``NA`` values (as "Non Available") are admitted as measurements values where appropriate. The difference with situation where measurements are simply omitted is that NA measurements are simulated and are present in the vectors ``simulated unscaled labeling measurements`` and ``simulated scaled labeling measurements`` in the result kvh file.
+ .. note:: ``NA`` values (as "Non Available") are admitted as measurements values where appropriate. The difference with the situation where measurements are simply omitted is that NA measurements are simulated and are present in the vectors ``simulated unscaled labeling measurements`` and ``simulated scaled labeling measurements`` in the result kvh file.
  
- .. note:: In case of ``influx_i``, label kinetics can be provided in .miso file using non empty ``Time`` column.
+ .. note:: In case of ``influx_i``, label kinetics can be provided in .miso file using non-empty ``Time`` column.
   Empty cells in ``Value`` column are equivalent to ``NA``.
 
 2. Set your current directory to the directory of ``mynetwork.*`` and run ::
@@ -31,14 +31,14 @@ A basic work-flow with ``influx_si`` is composed of the following steps:
   ``mynetwork.log``
     contains the run-time output from various scripts, in particular,
     it contains a report on convergence history during the fitting process.
-    It can be helpful for identifying potential problems but if everything
+    It can be helpful for identifying potential problems, but if everything
     is going well, the user does not have to examine the content of this file;
   ``mynetwork.err``
    contains the warning and error messages.
    Normally, this file should be empty (0 byte size);
   ``mynetwork_res.kvh``
-   contains all of the results. `KVH format <http://serguei.sokol.free.fr/kvh-format/>`_ is a
-   lightweight plain text format for hierarchically structured data. It can be seen in a text editor or in a spreadsheet software as its fields are tab separated. It can also be processed by user's custom software for post-processing, graphics output and alike. If ``influx_si`` is run on a series of starting points there will be generated a common result
+   contains all the results. `KVH format <http://serguei.sokol.free.fr/kvh-format/>`_ is a
+   lightweight plain text format for hierarchically structured data. It can be seen in a text editor or in a spreadsheet software as its fields are tab separated. It can also be processed by user's custom software for post-processing, graphics output and alike. If ``influx_si`` is run on a series of starting points, there will be generated a common result
    file ``mynetwork_res.kvh`` which contains common information to all starting points
    but also a series of kvh files, one by starting point, e.g. ``mynetwork_res.V1.kvh``,
    ``mynetwork_res.V2.kvh`` and so on;
@@ -49,7 +49,7 @@ A basic work-flow with ``influx_si`` is composed of the following steps:
    will contain only one column corresponding to the starting point defined
    in the ``mynetwork.tvar`` file or to the random starting point.
   ``edge.netflux.mynetwok``, ``edge.xchflux.mynetwok``, ``node.log2pool.mynetwork``
-   as the middle name of this files suggest, they can be used to map the corresponding
+   as the middle name of these files suggest, they can be used to map the corresponding
    values on the network graph in the `cytoscape <http://www.cytoscape.org>`_ software.
   
    .. note:: All these files are silently overwritten if already exist.
@@ -63,9 +63,9 @@ A basic work-flow with ``influx_si`` is composed of the following steps:
 
    $ influx_s.py --noopt --pref mynetwork
    
-   before collecting actual measurement data to see if intended measurements will be sufficient to well define all fluxes or at least the fluxes of interest. It is possible to do so because the measurement values in the .miso file have no impact on flux SD calculation when ``--noopt`` option is used. So it can be used any values even NA at this moment. On the contrary, ``SD`` values set in .miso file, must be realistic. It is generally not a problem as they express measurements errors and are more or less known for a given measurement method.
+   before collecting actual measurement data to see if intended measurements will be sufficient to well define all fluxes, or at least the fluxes of interest. It is possible to do so because the measurement values in the .miso file have no impact on flux SD calculation when ``--noopt`` option is used. So it can be used any values, even NA at this moment. On the contrary, ``SD`` values set in .miso file, must be realistic. It is generally not a problem as they express measurements errors and are more or less known for a given measurement method.
    
-   It is worthwhile to stress that a "dry run" is done for some presumed free fluxe values and if they reveal to be very different from actual flux values, it can happen that a network considered as well defined at moment of "dry run" turned into a badly defined network with actual measurement data and corresponding estimated fluxes. So it is important to do his best to guess the most realistic free fluxes for "dry runs" and log their values in .tvar file.
+   It is worthwhile to stress that a "dry run" is done for some presumed free flux values. If they reveal to be very different from actual flux values, it can happen that a network considered as well defined at moment of "dry run" turned into a badly defined network with actual measurement data and corresponding estimated fluxes. So it is important to do his best to guess the most realistic free fluxes for "dry runs" and log their values in .tvar file.
 
 3. See warning and error messages in ``mynetwork.err`` if any. Correct what has to be corrected and retry p. 2
 

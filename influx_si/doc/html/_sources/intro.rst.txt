@@ -2,7 +2,7 @@
 Introduction
 ============
 
-``influx_s`` and ``influx_i`` are programs designed for flux and metabolite concentration estimation based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, ... is also possible). ``influx_s`` works with stationary data while the ``influx_i``
+``influx_s`` and ``influx_i`` are programs designed for estimation of flux and chemical specie concentrations based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, ... is also possible). ``influx_s`` works with stationary data while the ``influx_i``
 is able to simulate instationary labeling (hence the ``_i`` in the name). Both work in metabolically stationary context. The whole project is referred as ``influx_si``. Note also that the term ``influx_si`` is used in contexts where ``influx_s`` and ``influx_i`` are interchangeable.
 
 ``influx_si``
@@ -10,13 +10,13 @@ is able to simulate instationary labeling (hence the ``_i`` in the name). Both w
 
 Flux and metabolite concentration values are obtained
 as a result of a fitting between simulated labeling data and the data measured
-by MS or NMR techniques. In this documentation the terms `fitting` and `optimization`
+by MS or NMR techniques. In this documentation, the terms `fitting` and `optimization`
 are used as synonyms.
 
 ``influx_s``
 ------------
 
-For the theory behind flux calculations in stationary labeling context see the following papers:
+For the theory behind flux calculations in stationary labeling context, see the following papers:
 
 Wiechert, W., Möllney, M., Isermann, N., Wurzel, M., and de Graaf, A. A. (1999).
 Bidirectional reaction steps in metabolic networks: III. Explicit solution and analysis
@@ -38,7 +38,7 @@ mfa.vueinnovations.com>`_, ...) is the usage of NLSIC algorithm
 for fitting purposes. This algorithm provides:
 
  - more reliable convergence which results in better numerical precision, i.e. even started from random initial points, it converges to the same solution if no local minima are present. So the spread of final solutions is close to zero.
- - better accuracy, i.e. the found numerical solution lies closer to the theoretical solution than solutions provided by concurrent minimization algorithms. Thus, ``influx_s`` provides better numerical accuracy.
+ - better accuracy, i.e., the found numerical solution lies closer to the theoretical solution than solutions provided by concurrent minimization algorithms. Thus, ``influx_s`` provides better numerical accuracy.
 
 For more details, see the paper on ``influx_s`` cited above.
 
@@ -46,9 +46,9 @@ Moreover, ``influx_s`` provides:
 
  - both cumomer and EMU frameworks for describing label distribution in the metabolites;
  - parallel experiment treatment both in stationary and instationary modes;
- - metabolite concentration estimation in particular stationary contexts (since v2.0. A methodology behind metabolite concentration evaluation is not yet published at the moment of this writing.); 
+ - estimation of specie concentration in particular in stationary contexts (since v2.0. A methodology behind metabolite concentration evaluation is not yet published at the moment of this writing.); 
  - a possibility to deal with metabolite pool confusion appearing either in compartmentation or in coelution;
- - taking into account non carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;
+ - taking into account non-carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;
  - an optional automatic choice of free fluxes;
  - optional equality and inequality constraint on fluxes and metabolite concentrations;
  - short time execution and design for many core computers. So it facilitates high throughput flux calculations in parallel way;
@@ -63,7 +63,7 @@ Moreover, ``influx_s`` provides:
 ------------
 
 Instationary labeling (hence the final 'i' in the name) is the domain of ``influx_i``.
-The theory of instationary labeling was developed for example in
+The theory of instationary labeling was developed, for example in
 
 Katharina Nöh, Wolfgang Wiechert (2006)
 Experimental Design Principles for Isotopically Instationary 13C Labeling Experiments
@@ -74,7 +74,7 @@ Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks
 *PLoS ONE* 10(12): e0144652. doi:10.1371/journal.pone.0144652
 
 As ``influx_i`` capitalizes on ``influx_s`` development and shares a big part of code, ``influx_i`` presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for ``influx_s``. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
-Some of the advantages of ``influx_i`` over the concurrent software coping with instationary labeling data are:
+Some of advantages of ``influx_i`` over the concurrent software coping with instationary labeling data are:
 
  - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in 17s while the most important part devoted to optimization takes as low as 10s);
  - parallel experiment treatment;

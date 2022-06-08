@@ -12,7 +12,7 @@ The software was developed on Linux
 but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.
 
 .. note:: The code examples here after are given for Unix shell environment.
- On windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix's one.
+ On Windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix's one.
 
 .. note:: In command examples to run, we use script names with extension `.py`. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without '.py'. For example, commands: ::
 
@@ -22,7 +22,7 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
 
  $ influx_s --prefix e_coli
  
- are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
+ are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows, where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
 
 Installation with ``conda``
 ---------------------------
@@ -36,7 +36,7 @@ Installation with ``pip``
 -------------------------
 If you don't have any version of ``conda`` (neither ``miniconda`` nor ``Anaconda``) but do have a Python and R installed on your system, you can install ``influx_si`` with the following procedure.
 
-Your need a python tool called ``pip`` which manages pure python packages. If it is not present on your sustem, you'll have to install it `first <https://pip.pypa.io/en/stable/installing/>`_ to continue with this method. If you have multiple Pyhton versions installed on your system (e.g. Python2 and Python3) you'll have to use ``pip3`` to install the software in the Python3 univers.
+You need a python tool called ``pip`` which manages pure python packages. If it is not present on your system, you'll have to install it `first <https://pip.pypa.io/en/stable/installing/>`_ to continue with this method. If you have multiple Python versions installed on your system (e.g. Python2 and Python3) you'll have to use ``pip3`` to install the software in the Python3 universe.
 
 The first step will install only Python part of ``influx_si``: ::
 
@@ -48,7 +48,7 @@ or ::
   
 if you wish to install ``influx_si`` not system-wide but only in your own userspace.
 
-To use the software ``influx_si``, you'll need some R dependencies listed bellow. You can try to install them by: ::
+To use the software ``influx_si``, you'll need some R dependencies listed below. You can try to install them by: ::
 
   $ influx_s.py --install_rdep
 
@@ -86,7 +86,7 @@ Test of installation
 ********************
 
 Open a shell window and get to your working directory.
-Copy distributed test directory to the current directory by running ::
+Copy the distributed test directory to the current directory by running ::
 
  $ influx_s.py --copy_test
  
@@ -122,7 +122,7 @@ underlying numerical libraries (BLAS, LAPACK and so on).
 If something went wrong, check the error messages in ``e_coli.err``,
 interpret them, try to figure out why the errors occurred and correct them.
 
-In high throughput context, you can find useful to run ``influx_si`` in parallel on many independent MTF sets. It can be done by providing more than one ``--prefix`` options. For example, with two of cases provided with the package you can run: ::
+In high throughput context, you can find it useful to run ``influx_si`` in parallel on many independent MTF sets. It can be done by providing more than one ``--prefix`` options. For example, with two of cases provided with the package you can run: ::
  
  $ influx_s.py --prefix e_coli --prefix e_coli_growth
  
@@ -163,11 +163,11 @@ Calculation results are written in ``e_coli_i_res.kvh`` and they can be compared
 Installation of documentation
 *****************************
 
-``influx_si`` is distributed with its documentation. To get it locally accessible from your personal disk space you can run: ::
+``influx_si`` is distributed with its documentation. To get it locally accessible from your personal disk space, you can run: ::
 
  $ influx_s.py --copy_doc
 
-It will create a sub-directory ``doc`` in the current directory. This sub-directory contains ``influx_si.pdf``, all-in-one documentation file but also an ``html`` subdirectory with the documentation browsable in your prefered navigator.
+It will create a subdirectory ``doc`` in the current directory. This subdirectory contains ``influx_si.pdf``, all-in-one documentation file but also an ``html`` subdirectory with the documentation browsable in your prefered navigator.
 
 The both documentation versions are also available on-line: `pdf <https://metasys.insa-toulouse.fr/software/influx/influx_si.pdf>`_  and `html <https://metasys.insa-toulouse.fr/software/influx/doc/>`_.
 
@@ -181,4 +181,4 @@ $ influx_i.py --help
 
 depending on what context you want to treat: stationary or instationary labeling.
 
-For more detailed documentation read :doc:`User's manual <manual>`.
+For more detailed documentation, read :doc:`User's manual <manual>`.

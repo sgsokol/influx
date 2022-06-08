@@ -29,7 +29,7 @@ dzwf_nbc0	True	influx_s.py cases/Dzwf_1
 prl_exp_mc	True	influx_s.py --sens mc=4 cases/e_coli_1-Glc_exact
 utf16	True	ftbl2netan.py cases/UTF16.ftbl
 utf32	True	ftbl2netan.py cases/UTF32.ftbl
-mc_prl_weighted_pools	False	influx_s.py cases/mc_prl_weighted_pools.ftbl	"monte-carlo" in open("cases/mc_prl_weighted_pools_res.kvh").read()
+mc_prl_weighted_pools	True	influx_s.py cases/mc_prl_weighted_pools.ftbl	"monte-carlo" in open("cases/mc_prl_weighted_pools_res.kvh").read()
 sln_use	True	influx_s.py --sln cases/model_Man-Bio12	re.search("\tres=8.61", open("cases/model_Man-Bio12.log", "r").read())
 # dim pb reported in mail Baudoin Delépine 2019-02-08
 dim_fixed	True	influx_i.py cases/methanol_v1.ftbl	
@@ -64,7 +64,7 @@ Rreprod	True	influx_s --nocalc cases/e_coli && mv -f cases/e_coli.R cases/e_coli
 # pso+BFGS+nlsic
 pso	True	influx_s.py cases/e_coli_pso.ftbl	
 # ffguess redundant equality
-ffg	False	influx_s.py --seed 777 cases/ffguess_eq.ftbl	"it=3" in open("cases/ffguess_eq.log", "r").read()
+ffg	False	influx_s.py --seed 777 --clownr 1.e-3 cases/ffguess_eq.ftbl	"it=3" in open("cases/ffguess_eq.log", "r").read()
 # weird entry in labcin
 weird_i	False	influx_i.py cases/e_coli2_i.ftbl	None==setvar("texterr", open("cases/e_coli2_i.err", "r").read()); "'0,8301287113482'" in texterr
 # mumps memory issue

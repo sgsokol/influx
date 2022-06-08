@@ -4,30 +4,24 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>FTBL format evolution &#8212; influx_si 5.99 documentation</title>
+    <title>FTBL format evolution &#8212; influx_si 6.0 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '5.99',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Programmer’s documentation for influx_s" href="progdoc.html" />
+    <link rel="next" title="Programmer’s documentation for influx_si" href="progdoc.html" />
     <link rel="prev" title="User’s manual" href="manual.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -38,12 +32,12 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="progdoc.html" title="Programmer’s documentation for influx_s"
+          <a href="progdoc.html" title="Programmer’s documentation for influx_si"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.0 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -54,16 +48,16 @@
             
   <div class="section" id="ftbl-format-evolution">
 <h1>FTBL format evolution<a class="headerlink" href="#ftbl-format-evolution" title="Permalink to this headline">¶</a></h1>
-<p>Even if FTBL is no more a front-end format for <code class="docutils literal"><span class="pre">influx_si</span></code> software (it was replace by MTF to this end), we consider useful to keep track of its evolution during <code class="docutils literal"><span class="pre">influx_si</span></code> development.</p>
+<p>Even if FTBL is no more a front-end format for <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software (it was replaced by MTF to this end), we consider useful to keep track of its evolution during <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> development.</p>
 <div class="section" id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
-<p>FTBL format was conceived by authors of <code class="docutils literal"><span class="pre">13CFlux</span></code> software in late 1990’s (cf. <a class="reference external" href="https://www.13cflux.net/">https://www.13cflux.net/</a>). At the beginning of 2000’s, <code class="docutils literal"><span class="pre">13CFlux</span></code> became well spread in scientific community working on metabolism and isotope labeling. When we published the first version of <code class="docutils literal"><span class="pre">influx_s</span></code> in 2011, we adopted FTBL format to avoid cumbersome rewriting of networks and data already in use by the community. Second version of 13CFlux, published in 2012, abandoned FTBL format which was replaced by FluxML (XML) and was accompanied by a tool for automatic conversion of FTBL to FluxML.</p>
-<p>On our side, we decided to continue to use FTBL by extending and evolving some of its features till its replacement by MTF (starting from v6.0). These extensions and evolution are presented hereafter for keeping tracks only. This chapter is not necessary for reading to successfully use <code class="docutils literal"><span class="pre">influx_si</span></code> software. Version number in titles indicates when described feature was first introduced to <code class="docutils literal"><span class="pre">influx_si</span></code>.</p>
+<p>FTBL format was conceived by authors of <code class="docutils literal notranslate"><span class="pre">13CFlux</span></code> software in late 1990’s (cf. <a class="reference external" href="https://www.13cflux.net/">https://www.13cflux.net/</a>). At the beginning of 2000’s, <code class="docutils literal notranslate"><span class="pre">13CFlux</span></code> became well spread in scientific community working on metabolism and isotope labeling. When we published the first version of <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> in 2011, we adopted FTBL format to avoid cumbersome rewriting of networks and data already in use by the community. Second version of 13CFlux, published in 2012, abandoned FTBL format which was replaced by FluxML (XML) and was accompanied by a tool for automatic conversion of FTBL to FluxML.</p>
+<p>On our side, we decided to continue to use FTBL by extending and evolving some of its features till its replacement by MTF (starting from v6.0). These extensions and evolution are presented hereafter for keeping tracks only. This chapter is not necessary for reading to successfully use <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software. Version number in titles indicates when described feature was first introduced to <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.</p>
 <div class="section" id="metabolite-pools-and-metab-measurements-v2-0">
-<h3><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> (v2.0)<a class="headerlink" href="#metabolite-pools-and-metab-measurements-v2-0" title="Permalink to this headline">¶</a></h3>
-<p>Sections <code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> concerning metabolite pools were added. These sections can be useful for stationary labeling when growth fluxes are modeled with <span class="math">\(\mu M\)</span> terms (cf. <a class="reference internal" href="manual.html#growthflux"><span class="std std-ref">Growth flux option</span></a>) or when some metabolites are confounded in measurements due to cell compartmentation of co-elution during HPLC step or whatever reason. These sections become mandatory for <code class="docutils literal"><span class="pre">influx_i</span></code> usage for instationary labeling as not only fluxes but also metabolite concentrations impact label propagation dynamics.</p>
-<p><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> is structured in two columns named <code class="docutils literal"><span class="pre">META_NAME</span></code> and <code class="docutils literal"><span class="pre">META_SIZE</span></code> and as ussual for FTBL indented and separated by tabulations, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>METABOLITE_POOLS
+<h3><code class="docutils literal notranslate"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal notranslate"><span class="pre">METAB_MEASUREMENTS</span></code> (v2.0)<a class="headerlink" href="#metabolite-pools-and-metab-measurements-v2-0" title="Permalink to this headline">¶</a></h3>
+<p>Sections <code class="docutils literal notranslate"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal notranslate"><span class="pre">METAB_MEASUREMENTS</span></code> concerning metabolite pools were added. These sections can be useful for stationary labeling when growth fluxes are modeled with <span class="math notranslate nohighlight">\(\mu M\)</span> terms (cf. <a class="reference internal" href="manual.html#growthflux"><span class="std std-ref">Growth flux option</span></a>) or when some metabolites are confounded in measurements due to cell compartmentation of co-elution during HPLC step or whatever reason. These sections become mandatory for <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> usage for instationary labeling as not only fluxes but also metabolite concentrations impact label propagation dynamics.</p>
+<p><code class="docutils literal notranslate"><span class="pre">METABOLITE_POOLS</span></code> is structured in two columns named <code class="docutils literal notranslate"><span class="pre">META_NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">META_SIZE</span></code> and as ussual for FTBL indented and separated by tabulations, e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>METABOLITE_POOLS
         META_NAME       META_SIZE
         AKG     -0.5
         ...
@@ -71,13 +65,13 @@
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">The value <code class="docutils literal"><span class="pre">-0.5</span></code> is not aligned with its column name <code class="docutils literal"><span class="pre">META_SIZE</span></code> because by default, tab characters are expanded to 8 spaces. As <code class="docutils literal"><span class="pre">META_NAME</span></code> occupies 9 spaces, <code class="docutils literal"><span class="pre">META_SIZE</span></code> is just shifted to the next tab position. User has to use only one tab character to separate columns even if they don’t look aligned on his screen.</p>
+<p class="last">The value <code class="docutils literal notranslate"><span class="pre">-0.5</span></code> is not aligned with its column name <code class="docutils literal notranslate"><span class="pre">META_SIZE</span></code> because by default, tab characters are expanded to 8 spaces. As <code class="docutils literal notranslate"><span class="pre">META_NAME</span></code> occupies 9 spaces, <code class="docutils literal notranslate"><span class="pre">META_SIZE</span></code> is just shifted to the next tab position. User has to use only one tab character to separate columns even if they don’t look aligned on his screen.</p>
 </div>
-<p>For <code class="docutils literal"><span class="pre">influx_i</span></code>, every internal metabolite (i.e. metabolites present in <code class="docutils literal"><span class="pre">NETWORK</span></code> section and not being input or output metabolites) and participating in carbon exchange must be referenced in this section. The value given in the column <code class="docutils literal"><span class="pre">META_SIZE</span></code> is a metabolite concentration. The unit used for these values must be in accordance with the units used for fluxes. For example, if metabolite concentrations are measured in mM/g then fluxes are supposed to be measured in mM/(g*[time_unit]). If the value is positive then corresponding metabolite is considered as having constant concentration which does not vary during fitting iterations. If the value is negative, then this metabolite concentration will be part of fitted variables and its absolute value is used as a starting value for these iterations.
+<p>For <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>, every internal metabolite (i.e. metabolites present in <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section and not being input or output metabolites) and participating in carbon exchange must be referenced in this section. The value given in the column <code class="docutils literal notranslate"><span class="pre">META_SIZE</span></code> is a metabolite concentration. The unit used for these values must be in accordance with the units used for fluxes. For example, if metabolite concentrations are measured in mM/g then fluxes are supposed to be measured in mM/(g*[time_unit]). If the value is positive then corresponding metabolite is considered as having constant concentration which does not vary during fitting iterations. If the value is negative, then this metabolite concentration will be part of fitted variables and its absolute value is used as a starting value for these iterations.
 A final fitted value will be expressed as a positive number.</p>
-<p>For <code class="docutils literal"><span class="pre">influx_s</span></code>, this section is optional and only few (not all) internal metabolites can be present in this section.</p>
-<p><code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> section regroups measurements of internal metabolite concentrations. Input and output metabolites may have concentrations varying during an experiment as they are consumed or produced. So they cannot appear in this section.  <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> section has 3 columns: <code class="docutils literal"><span class="pre">META_NAME</span></code>, <code class="docutils literal"><span class="pre">VALUE</span></code> and <code class="docutils literal"><span class="pre">DEVIATION</span></code>, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
+<p>For <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>, this section is optional and only few (not all) internal metabolites can be present in this section.</p>
+<p><code class="docutils literal notranslate"><span class="pre">METAB_MEASUREMENTS</span></code> section regroups measurements of internal metabolite concentrations. Input and output metabolites may have concentrations varying during an experiment as they are consumed or produced. So they cannot appear in this section.  <code class="docutils literal notranslate"><span class="pre">METAB_MEASUREMENTS</span></code> section has 3 columns: <code class="docutils literal notranslate"><span class="pre">META_NAME</span></code>, <code class="docutils literal notranslate"><span class="pre">VALUE</span></code> and <code class="docutils literal notranslate"><span class="pre">DEVIATION</span></code>, e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
         META_NAME       VALUE   DEVIATION
         Fru6P   <span class="m">0</span>.43    <span class="m">0</span>.01
         ...
@@ -85,22 +79,22 @@ A final fitted value will be expressed as a positive number.</p>
 </div>
 <p>Column names are self explanatory.</p>
 <p>In case of confounded measurements, confounded metabolites can be given as a sum, e.g.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>METAB_MEASUREMENTS
         META_NAME       VALUE   DEVIATION
         R5P_c+R5P_m     <span class="m">0</span>.32    <span class="m">0</span>.01
         ...
 </pre></div>
 </div>
-<p>In this case, the value <code class="docutils literal"><span class="pre">0.32</span></code> will be fitted by a sum of simulated metabolite concentrations.</p>
+<p>In this case, the value <code class="docutils literal notranslate"><span class="pre">0.32</span></code> will be fitted by a sum of simulated metabolite concentrations.</p>
 </div>
 <div class="section" id="long-reactions-v4-0">
 <h3>Long reactions (v4.0)<a class="headerlink" href="#long-reactions-v4-0" title="Permalink to this headline">¶</a></h3>
-<p>Initially, FTBL admitted no more than 2 metabolites on each side of reactions put in <code class="docutils literal"><span class="pre">NETWORK</span></code> section. We had to overcome this limit to facilitate FTBL creation for studies including reactions much longer than that. Now, chemical reaction having more than two metabolites on any side can be split in several sub-reactions, each of which has no more then 2 metabolites on every side. It is important that all sub-reactions be put together one after another and that they  have the same name. Based on this name, <code class="docutils literal"><span class="pre">influx_si</span></code> will assemble all parts in one reaction. E.g. a reaction named <code class="docutils literal"><span class="pre">Val_syn</span></code></p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>Val_syn: Pyr <span class="o">(</span>abc<span class="o">)</span> + Pyr <span class="o">(</span>def<span class="o">)</span> + Glu <span class="o">(</span>ghijk<span class="o">)</span> + NADPH -&gt; Val <span class="o">(</span>abcef<span class="o">)</span> + CO2 <span class="o">(</span>d<span class="o">)</span> + AKG <span class="o">(</span>ghijk<span class="o">)</span>
+<p>Initially, FTBL admitted no more than 2 metabolites on each side of reactions put in <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section. We had to overcome this limit to facilitate FTBL creation for studies including reactions much longer than that. Now, chemical reaction having more than two metabolites on any side can be split in several sub-reactions, each of which has no more then 2 metabolites on every side. It is important that all sub-reactions be put together one after another and that they  have the same name. Based on this name, <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> will assemble all parts in one reaction. E.g. a reaction named <code class="docutils literal notranslate"><span class="pre">Val_syn</span></code></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Val_syn: Pyr <span class="o">(</span>abc<span class="o">)</span> + Pyr <span class="o">(</span>def<span class="o">)</span> + Glu <span class="o">(</span>ghijk<span class="o">)</span> + NADPH -&gt; Val <span class="o">(</span>abcef<span class="o">)</span> + CO2 <span class="o">(</span>d<span class="o">)</span> + AKG <span class="o">(</span>ghijk<span class="o">)</span>
 </pre></div>
 </div>
 <p>can be translated into FTBL format as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>NETWORK
        FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
        Val_syn Pyr     Pyr     Val     CO2
                <span class="c1">#abc    #def    #abcef  #d</span>
@@ -114,23 +108,23 @@ A final fitted value will be expressed as a positive number.</p>
 <h3>Cofactors (v4.0)<a class="headerlink" href="#cofactors-v4-0" title="Permalink to this headline">¶</a></h3>
 <p>Here, we call cofactors metabolites that does not participate in carbon transfer from one or several molecules to another. The main interest of entering cofactors in carbon transferring reactions is additional balance equations that we can put in stoechiometric system. Thus the number of free fluxes is diminished and fluxes are constrained to more realistic values, not violating cofactor balances.</p>
 <p>To indicate that a metabolite is a cofactor, user can simply put an empty carbon string in the corresponding carbon transferring line. For example, a reaction</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v8: PEP <span class="o">(</span>abc<span class="o">)</span> -&gt; Pyr <span class="o">(</span>abc<span class="o">)</span> + ATP
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>v8: PEP <span class="o">(</span>abc<span class="o">)</span> -&gt; Pyr <span class="o">(</span>abc<span class="o">)</span> + ATP
 </pre></div>
 </div>
 <p>can be translated into FTBL as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>NETWORK
        FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
        v8      PEP             Pyr     ATP
                <span class="c1">#abc            #abc    #</span>
 </pre></div>
 </div>
-<p>Note an empty carbon string <code class="docutils literal"><span class="pre">#</span></code> at the place corresponding to <code class="docutils literal"><span class="pre">ATP</span></code>.
-An important difference between cofactors and other metabolites that the former are allowed to have stoechiometric coefficients different from 1. These coefficients must be separated from cofactors by <code class="docutils literal"><span class="pre">*</span></code> sign, e.g. a reaction</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v41: Asp <span class="o">(</span>abcd<span class="o">)</span> + <span class="m">2</span> ATP + NH3 -&gt; Asn <span class="o">(</span>abcd<span class="o">)</span>
+<p>Note an empty carbon string <code class="docutils literal notranslate"><span class="pre">#</span></code> at the place corresponding to <code class="docutils literal notranslate"><span class="pre">ATP</span></code>.
+An important difference between cofactors and other metabolites that the former are allowed to have stoechiometric coefficients different from 1. These coefficients must be separated from cofactors by <code class="docutils literal notranslate"><span class="pre">*</span></code> sign, e.g. a reaction</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>v41: Asp <span class="o">(</span>abcd<span class="o">)</span> + <span class="m">2</span> ATP + NH3 -&gt; Asn <span class="o">(</span>abcd<span class="o">)</span>
 </pre></div>
 </div>
 <p>can be translated into FTBL as</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>NETWORK
        FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
        v41     Asp     <span class="m">2</span>*ATP   Asn
                <span class="c1">#abcd   #       #abcd</span>
@@ -138,16 +132,16 @@ An important difference between cofactors and other metabolites that the former 
                <span class="c1">#</span>
 </pre></div>
 </div>
-<p>Note the presence of <code class="docutils literal"><span class="pre">2*ATP</span></code> term.</p>
+<p>Note the presence of <code class="docutils literal notranslate"><span class="pre">2*ATP</span></code> term.</p>
 </div>
 <div class="section" id="same-metabolite-on-both-sides-of-reaction-v4-0">
 <h3>Same metabolite on both sides of reaction (v4.0)<a class="headerlink" href="#same-metabolite-on-both-sides-of-reaction-v4-0" title="Permalink to this headline">¶</a></h3>
 <p>In some particular cases, it can be necessary to have a same metabolite on both sides of reaction. Let us illustrate this situation with the following example:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v71: CO2.unlabeled <span class="o">(</span>a<span class="o">)</span> + CO2 <span class="o">(</span>b<span class="o">)</span> -&gt; CO2 <span class="o">(</span>a<span class="o">)</span> + CO2.out <span class="o">(</span>b<span class="o">)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>v71: CO2.unlabeled <span class="o">(</span>a<span class="o">)</span> + CO2 <span class="o">(</span>b<span class="o">)</span> -&gt; CO2 <span class="o">(</span>a<span class="o">)</span> + CO2.out <span class="o">(</span>b<span class="o">)</span>
 </pre></div>
 </div>
 <p>Metabolite CO2 is present on both sides of reaction but its carbon atom is not the same. This is the main reason for introducing this feature, to allow tracer rearrangement. In FTBL, it gives</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NETWORK
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>NETWORK
        FLUX_NAME       EDUCT_1 EDUCT_2 PRODUCT_1       PRODUCT_2
        v71     CO2.unlabeled   CO2     CO2     CO2.out
                <span class="c1">#a      #b      #a      #b</span>
@@ -155,23 +149,23 @@ An important difference between cofactors and other metabolites that the former 
 </div>
 </div>
 <div class="section" id="section-notracer-network-v4-0">
-<h3>Section <code class="docutils literal"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)<a class="headerlink" href="#section-notracer-network-v4-0" title="Permalink to this headline">¶</a></h3>
+<h3>Section <code class="docutils literal notranslate"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)<a class="headerlink" href="#section-notracer-network-v4-0" title="Permalink to this headline">¶</a></h3>
 <p>In addition to reactions with carbon rearrangements, it can be useful to add reactions with no carbon transfer. The most known reaction of such type is biomass composition but it can there be others, e.g. involving exclusively cofactors:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>v61: NADH + <span class="m">0</span>.5 O2 -&gt; <span class="m">2</span> ATP
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>v61: NADH + <span class="m">0</span>.5 O2 -&gt; <span class="m">2</span> ATP
 </pre></div>
 </div>
-<p>This optional section is structured in 2 columns: <code class="docutils literal"><span class="pre">FLUX_NAME</span></code> and <code class="docutils literal"><span class="pre">EQUATION</span></code>:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>NOTRACER_NETWORK
+<p>This optional section is structured in 2 columns: <code class="docutils literal notranslate"><span class="pre">FLUX_NAME</span></code> and <code class="docutils literal notranslate"><span class="pre">EQUATION</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>NOTRACER_NETWORK
        FLUX_NAME       EQUATION
        v61     NADH+0.5*O2 <span class="o">=</span> <span class="m">2</span>*ATP
 </pre></div>
 </div>
-<p>You can see that the reaction is written in a manner very different form <code class="docutils literal"><span class="pre">NETWORK</span></code> section. Its sides are separated by <code class="docutils literal"><span class="pre">=</span></code> sign, metabolites are separated by <code class="docutils literal"><span class="pre">+</span></code> and they can have stoechiometric coefficients separated by <code class="docutils literal"><span class="pre">*</span></code> symbol. It is not visible in this example, but there can be as many metabolites as desired on each side of reaction. The limit “no more than 2 metabolites by side” proper to <code class="docutils literal"><span class="pre">NETWORK</span></code> section does not apply here.</p>
+<p>You can see that the reaction is written in a manner very different form <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section. Its sides are separated by <code class="docutils literal notranslate"><span class="pre">=</span></code> sign, metabolites are separated by <code class="docutils literal notranslate"><span class="pre">+</span></code> and they can have stoechiometric coefficients separated by <code class="docutils literal notranslate"><span class="pre">*</span></code> symbol. It is not visible in this example, but there can be as many metabolites as desired on each side of reaction. The limit “no more than 2 metabolites by side” proper to <code class="docutils literal notranslate"><span class="pre">NETWORK</span></code> section does not apply here.</p>
 </div>
 <div class="section" id="sub-sections-equality-metab-and-inequality-metab-v2-11">
-<h3>Sub-sections <code class="docutils literal"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)<a class="headerlink" href="#sub-sections-equality-metab-and-inequality-metab-v2-11" title="Permalink to this headline">¶</a></h3>
-<p>In the same manner as for fluxes, user can have to constrain variable metabolite concentrations. Constraints can be by equalities and inequalities. These subsections are organized in the same way as for fluxes. In <code class="docutils literal"><span class="pre">EQUALITY/METAB</span></code> there are 2 columns <code class="docutils literal"><span class="pre">VALUE</span></code> and <code class="docutils literal"><span class="pre">FORMULA</span></code> while in <code class="docutils literal"><span class="pre">INEQUALITY/METAB</span></code> there are 3 of them: <code class="docutils literal"><span class="pre">VALUE</span></code>, <code class="docutils literal"><span class="pre">COMP</span></code> and <code class="docutils literal"><span class="pre">FORMULA</span></code>. For example,</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>EQUALITIES
+<h3>Sub-sections <code class="docutils literal notranslate"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal notranslate"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)<a class="headerlink" href="#sub-sections-equality-metab-and-inequality-metab-v2-11" title="Permalink to this headline">¶</a></h3>
+<p>In the same manner as for fluxes, user can have to constrain variable metabolite concentrations. Constraints can be by equalities and inequalities. These subsections are organized in the same way as for fluxes. In <code class="docutils literal notranslate"><span class="pre">EQUALITY/METAB</span></code> there are 2 columns <code class="docutils literal notranslate"><span class="pre">VALUE</span></code> and <code class="docutils literal notranslate"><span class="pre">FORMULA</span></code> while in <code class="docutils literal notranslate"><span class="pre">INEQUALITY/METAB</span></code> there are 3 of them: <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>, <code class="docutils literal notranslate"><span class="pre">COMP</span></code> and <code class="docutils literal notranslate"><span class="pre">FORMULA</span></code>. For example,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>EQUALITIES
        METAB
                VALUE   FORMULA
                <span class="m">0</span>       R5P - <span class="m">1</span>.5*X5P
@@ -186,13 +180,13 @@ INEQUALITIES
 </div>
 </div>
 <div class="section" id="na-in-measurements-v2-5">
-<h3><code class="docutils literal"><span class="pre">NA</span></code> in measurements (v2.5)<a class="headerlink" href="#na-in-measurements-v2-5" title="Permalink to this headline">¶</a></h3>
-<p>Missing values marked as <code class="docutils literal"><span class="pre">NA</span></code> are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as <code class="docutils literal"><span class="pre">NA</span></code> is that the latter will be simulated and reported in corresponding simulation sections of the result file.
-This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to <code class="docutils literal"><span class="pre">NA</span></code> (but not their SD).</p>
+<h3><code class="docutils literal notranslate"><span class="pre">NA</span></code> in measurements (v2.5)<a class="headerlink" href="#na-in-measurements-v2-5" title="Permalink to this headline">¶</a></h3>
+<p>Missing values marked as <code class="docutils literal notranslate"><span class="pre">NA</span></code> are admitted in measurement sections, in columns designated to values. In contrast, they are not admitted in columns designated to standard deviations. The main difference between a measurement just omitted and those marked as <code class="docutils literal notranslate"><span class="pre">NA</span></code> is that the latter will be simulated and reported in corresponding simulation sections of the result file.
+This feature can be useful for preliminary simulations when there is no yet data available but user want to know e.g. if fluxes of interest will be well determined or not based on a supposed set of measurements. In this case, all presumed data can be set to <code class="docutils literal notranslate"><span class="pre">NA</span></code> (but not their SD).</p>
 </div>
 <div class="section" id="optimization-control-parameters-v5-3">
 <h3>Optimization control parameters (v5.3)<a class="headerlink" href="#optimization-control-parameters-v5-3" title="Permalink to this headline">¶</a></h3>
-<p>Optimization method(s) can be tuned by control parameters that can be put in <code class="docutils literal"><span class="pre">OPTIONS</span></code> section. The format of those fields has changed. Before, the field names were looking like <code class="docutils literal"><span class="pre">optctrl_maxit</span></code> i.e. a prefix <code class="docutils literal"><span class="pre">optctrl_</span></code> followed by a parameter name, here <code class="docutils literal"><span class="pre">maxit</span></code>. Starting from v5.3, they look like <code class="docutils literal"><span class="pre">optctrl:nlsic:maxit</span></code> i.e. a prefix <code class="docutils literal"><span class="pre">optctrl</span></code> followed by a method name (here <code class="docutils literal"><span class="pre">nlsic</span></code>) and ended by parameter name, like <code class="docutils literal"><span class="pre">maxit</span></code>, all 3 separated by colon <code class="docutils literal"><span class="pre">:</span></code>. This new format allows tuning parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one <code class="docutils literal"><span class="pre">influx_si</span></code> run. More about parameters can be found in the section <a class="reference internal" href="manual.html#optopt"><span class="std std-ref">Optimization options</span></a>.</p>
+<p>Optimization method(s) can be tuned by control parameters that can be put in <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> section. The format of those fields has changed. Before, the field names were looking like <code class="docutils literal notranslate"><span class="pre">optctrl_maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl_</span></code> followed by a parameter name, here <code class="docutils literal notranslate"><span class="pre">maxit</span></code>. Starting from v5.3, they look like <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:maxit</span></code> i.e. a prefix <code class="docutils literal notranslate"><span class="pre">optctrl</span></code> followed by a method name (here <code class="docutils literal notranslate"><span class="pre">nlsic</span></code>) and ended by parameter name, like <code class="docutils literal notranslate"><span class="pre">maxit</span></code>, all 3 separated by colon <code class="docutils literal notranslate"><span class="pre">:</span></code>. This new format allows tuning parameters for multiple optimization methods simultaneously. It became necessary, as starting from v5.3, several optimization methods can be used successively in one <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run. More about parameters can be found in the section <a class="reference internal" href="manual.html#optopt"><span class="std std-ref">Optimization options</span></a>.</p>
 </div>
 </div>
 </div>
@@ -203,17 +197,17 @@ This feature can be useful for preliminary simulations when there is no yet data
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
+  <h3><a href="index.html">Table of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">FTBL format evolution</a><ul>
 <li><a class="reference internal" href="#introduction">Introduction</a><ul>
-<li><a class="reference internal" href="#metabolite-pools-and-metab-measurements-v2-0"><code class="docutils literal"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal"><span class="pre">METAB_MEASUREMENTS</span></code> (v2.0)</a></li>
+<li><a class="reference internal" href="#metabolite-pools-and-metab-measurements-v2-0"><code class="docutils literal notranslate"><span class="pre">METABOLITE_POOLS</span></code> and <code class="docutils literal notranslate"><span class="pre">METAB_MEASUREMENTS</span></code> (v2.0)</a></li>
 <li><a class="reference internal" href="#long-reactions-v4-0">Long reactions (v4.0)</a></li>
 <li><a class="reference internal" href="#cofactors-v4-0">Cofactors (v4.0)</a></li>
 <li><a class="reference internal" href="#same-metabolite-on-both-sides-of-reaction-v4-0">Same metabolite on both sides of reaction (v4.0)</a></li>
-<li><a class="reference internal" href="#section-notracer-network-v4-0">Section <code class="docutils literal"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)</a></li>
-<li><a class="reference internal" href="#sub-sections-equality-metab-and-inequality-metab-v2-11">Sub-sections <code class="docutils literal"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)</a></li>
-<li><a class="reference internal" href="#na-in-measurements-v2-5"><code class="docutils literal"><span class="pre">NA</span></code> in measurements (v2.5)</a></li>
+<li><a class="reference internal" href="#section-notracer-network-v4-0">Section <code class="docutils literal notranslate"><span class="pre">NOTRACER_NETWORK</span></code> (v4.0)</a></li>
+<li><a class="reference internal" href="#sub-sections-equality-metab-and-inequality-metab-v2-11">Sub-sections <code class="docutils literal notranslate"><span class="pre">EQUALITY/METAB</span></code> and <code class="docutils literal notranslate"><span class="pre">INEQUALITY/METAB</span></code> (v2.11)</a></li>
+<li><a class="reference internal" href="#na-in-measurements-v2-5"><code class="docutils literal notranslate"><span class="pre">NA</span></code> in measurements (v2.5)</a></li>
 <li><a class="reference internal" href="#optimization-control-parameters-v5-3">Optimization control parameters (v5.3)</a></li>
 </ul>
 </li>
@@ -226,7 +220,7 @@ This feature can be useful for preliminary simulations when there is no yet data
                         title="previous chapter">User’s manual</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="progdoc.html"
-                        title="next chapter">Programmer’s documentation for influx_s</a></p>
+                        title="next chapter">Programmer’s documentation for influx_si</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -236,12 +230,14 @@ This feature can be useful for preliminary simulations when there is no yet data
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -258,17 +254,17 @@ This feature can be useful for preliminary simulations when there is no yet data
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="progdoc.html" title="Programmer’s documentation for influx_s"
+          <a href="progdoc.html" title="Programmer’s documentation for influx_si"
              >next</a> |</li>
         <li class="right" >
           <a href="manual.html" title="User’s manual"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 5.99 documentation</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.0 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.7.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
     </div>
   </body>
 </html>

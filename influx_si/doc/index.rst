@@ -7,7 +7,7 @@ Welcome to influx_si's documentation!
 =====================================
 
 .. toctree::
-   :maxdepth: 0
+   :maxdepth: 1
    
    Introduction <intro>
    Change Log <changelog>
