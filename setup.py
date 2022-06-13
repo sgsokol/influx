@@ -17,7 +17,7 @@ setup(
    author_email='sokol@insa-toulouse.fr',
    url="https://metasys.insa-toulouse.fr/software/influx/",
    packages=['influx_si'],
-   package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/e_coli.ftbl',  'test/e_coli_growth.ftbl', 'test/e_coli_i.ftbl', 'test/e_coli_msen.txt', 'test/ok/*', 'test/prl_exp/*', 'doc/html/*', 'doc/*.pdf', 'doc/*.html']},
+   package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', 'doc/html/*', 'doc/*.pdf', 'doc/*.html']},
    install_requires=['scipy', 'python-libsbml', 'pandas'],
    scripts=[
       'influx_si/bin/ff2ftbl.py',
