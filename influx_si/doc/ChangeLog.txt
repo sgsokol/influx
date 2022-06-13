@@ -2,7 +2,13 @@
 Change Log for influx_si
 ========================
 
-2022-05-16 version 6.0
+2022-06-13 version 6.0.1
+------------------------
+ 
+Bug fix:
+ - fixed inclusion of test/* files, namely mtf/* files (reported by Younes Dellero, INRAE, Rennes, France)
+
+2022-06-08 version 6.0
 ----------------------
 New features:
  - introduced new front-end MTF format (cf. ftbl2mtf, txt2ftbl)
