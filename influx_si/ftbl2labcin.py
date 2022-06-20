@@ -75,7 +75,7 @@ def ftbl_id(ftbl, d, netan, iprl=0):
             li[-1] = m2f[li[-1]]
             nid[iid] = ":".join(li)
     df_cin = df_cin.assign(row_col=nid)
-    df_cin.to_csv(flabcin, sep="\t", index=False, quoting=False)
+    df_cin.to_csv(flabcin, sep="\t", index=False)
 
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(description=__doc__)

@@ -1211,7 +1211,7 @@ is the argument value that will take precedence.
     #print("prl=", prl)
 
     cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
-    scre=f"// Created by '{cmd}'"
+    scre=f"// Created by '{cmd}'".encode().decode()
     
     if "vmtf" in mtf:
         vdf=tsv2df(mtf["vmtf"])

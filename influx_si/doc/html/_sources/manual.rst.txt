@@ -212,7 +212,24 @@ Types of variables can resemble to ::
 			ppp2	XCH	F	0.778786
 			ppp3	XCH	C	0.83932
 
-The ``Type`` can be either ``F`` (for "free", requires a float number in ``Value``), ``D`` (for "dependent") or ``C`` (for "constrained", requires a float number in ``Value``)
+The ``Type`` can be either
+
+  ``F``
+     for "free", requires a float number in ``Value``
+  ``D``
+     for "dependent" or
+  ``C``
+     for "constrained", requires a float number in ``Value``.
+
+The ``Kind`` can be either
+
+  ``NET``
+     for net fluxes
+  ``XCH``
+     for exchange fluxes
+  ``METAB``
+     for specie concentration
+     
 
 .opt
 ----

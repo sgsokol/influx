@@ -327,7 +327,7 @@ def main(argv=sys.argv[1:]):
     if (not case_i) and ("OPTIONS" in ftbl and netan["opt"].get("file_labcin", [""])[0]):
         warn("we are in stationary case but ftbl file has 'file_labcin' option")
     bsl="\\" # backslash
-    scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
+    scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'".encode().decode()
     ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
     #import pdb; pdb.set_trace()
     if "OPTIONS" in ftbl and "prl_exp" in netan["opt"]:
