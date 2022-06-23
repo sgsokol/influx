@@ -2,6 +2,16 @@
 Change Log for influx_si
 ========================
 
+2022-06-23 version 6.0.3
+------------------------
+
+New feature:
+ - `Time` values <= 0 in .miso are silently filtered out in instationary mode
+ - ftbl2mtf and txt2mtf now write their results in UTF-8 encoding
+ 
+Bug fix:
+ - fixed reading MTF and FTBL files not in UTF-8 encoding
+
 2022-06-13 version 6.0.1
 ------------------------
  

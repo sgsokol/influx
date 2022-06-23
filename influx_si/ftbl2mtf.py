@@ -273,14 +273,14 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
             # avoid writing empty files
             if not force and cout.is_file() and cout.stat().st_size > 0:
                 # check if we can overwrite
-                with cout.open() as fc:
-                     if scre[:22] != fc.read(22):
+                with cout.open(mode="rb") as fc:
+                     if scre.encode()[:22] != fc.read(22):
                          warn(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
                          continue
             if not cout.parent.exists():
                 cout.parent.mkdir(parents=True)
             print(str(cout))
-            cout.write_text(f"{scre} at {dtstamp()}\n"+header+res)
+            cout.write_text(f"{scre} at {dtstamp()}\n# If edited by hand, remove these comments\n"+header+res, encoding="UTF-8")
 
 def main(argv=sys.argv[1:]):
     # parse options
@@ -327,7 +327,7 @@ def main(argv=sys.argv[1:]):
     if (not case_i) and ("OPTIONS" in ftbl and netan["opt"].get("file_labcin", [""])[0]):
         warn("we are in stationary case but ftbl file has 'file_labcin' option")
     bsl="\\" # backslash
-    scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'".encode().decode()
+    scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
     ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
     #import pdb; pdb.set_trace()
     if "OPTIONS" in ftbl and "prl_exp" in netan["opt"]:
