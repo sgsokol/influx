@@ -2,7 +2,7 @@
 Change Log for influx_si
 ========================
 
-2022-06-23 version 6.0.3
+2022-06-23 version 6.0.4
 ------------------------
 
 New feature:

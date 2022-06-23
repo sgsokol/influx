@@ -1,4 +1,5 @@
-// Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n' at 2022-06-13 11:51:23 CEST +0200
+// Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n' at 2022-06-23 17:23:50 CEST +0200.
+// If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
 	e_coli_glc1-6n.netw	1.0			command='txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n'

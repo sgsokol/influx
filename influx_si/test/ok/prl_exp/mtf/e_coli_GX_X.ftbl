@@ -1,4 +1,5 @@
-// Created by 'txt2ftbl --inst --prefix ../prl_exp/mtf/e_coli_GX_prl' at 2022-06-13 11:52:11 CEST +0200
+// Created by 'txt2ftbl --inst --prefix ../prl_exp/mtf/e_coli_GX_prl' at 2022-06-23 17:24:39 CEST +0200.
+// If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
 NETWORK

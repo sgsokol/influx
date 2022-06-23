@@ -18,6 +18,7 @@ setup(
    url="https://metasys.insa-toulouse.fr/software/influx/",
    packages=['influx_si'],
    package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', 'doc/html/*', 'doc/*.pdf', 'doc/*.html']},
+   include_package_data=True,
    install_requires=['scipy', 'python-libsbml', 'pandas'],
    scripts=[
       'influx_si/bin/ff2ftbl.py',
