@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-transform a series of TXT and TSV files into FTBL file.
+Transform a series of TXT and TSV files into FTBL file.
 
 Copyright 2021, INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
@@ -36,7 +36,7 @@ def plain_natural_key(s, _re=re.compile(r'(\d+)')):
     return [int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li)]
 def dtstamp():
     "formatted date-time stamp"
-    return dt.datetime.now(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z %z')
+    return (dt.datetime.now(LOCAL_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S %Z %z'))
 def werr(mes):
     raise Exception(f"{me}: {mes}")
 def warn(mes):
@@ -58,10 +58,19 @@ def dsec2out(dsec, fout):
                 dsec2out(item, fout)
             else:
                 fout.write(item+"\n")
-def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"):
+def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline", encodings=["UTF-8", "windows-1250", "windows-1252"]):
     "Read file 'f' as TSV and return a DataFrame. Separator is 'sep', comment char is 'comment', blank lines are skept, header is in the first row, file line numbers are stored in a column 'line_nb' if there is no a column with this name"
     if type(f) == str or type(f) == type(Path()):
-        li=Path(f).open().read().splitlines()
+        for i,e in enumerate(encodings):
+            try:
+                li=Path(f).open(encoding=e).read().splitlines()
+                break
+            except UnicodeDecodeError:
+                if i == len(encodings):
+                    # it was the last chance
+                    raise()
+                else:
+                    continue
     else:
         li=f.readlines
     rows=np.array([], dtype=object)
@@ -117,7 +126,7 @@ def try_ext(f, li):
     
 
 def txt_parse(ftxt, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
-        re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$")):
+        re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$"), encodings=["utf-8", "windows-1250", "windows-1252"]):
     """Parse txt file from fname which is in format:
 ### Glycolysis and OPP pathway
 GLYC (abcdef) ->  G6P (abcdef)
@@ -164,10 +173,23 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     open_here=False
     if type(ftxt) == type(Path()):
         open_here=True
-        fc=ftxt.open("r")
+        for i,e in enumerate(encodings):
+            try:
+                fc=ftxt.open("r", encoding=e)
+                li=fc.readlines()
+                break
+            except UnicodeDecodeError:
+                if i == len(encodings):
+                    # it was the last chance
+                    sys.stderr.write(f"tried following encodings but to no avail: {ecodings}")
+                    raise()
+                else:
+                    continue
+        
         fname=ftxt.name
     else:
         fc=ftxt
+        li=fc.readlines()
         fname=Path(ftxt.name).name
     m_left={} # metab sources
     m_right={} # metab products
@@ -176,7 +198,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     ireac=0
     ipath=1
     iline=0
-    for l in fc.readlines():
+    for l in li:
         iline=iline+1
         l=l.strip()
         if len(l) == 0:
@@ -356,7 +378,7 @@ def parse_miso(fmiso, clen, case_i=False):
         if "Time" not in df or sum(df["Time"] != "") == 0:
             warn("parse_miso: instationary option is activated but 'Time' column is empty in '%s'. Only simulations can be run on result file, not fitting."%fname)
         else:
-            df=df[df["Time"] != ""]
+            df=df[df["Time"].astype(float) > 0.]
         df_kin=pa.DataFrame()
     else:
         if "Time" in df and sum(df["Time"] == "") == 0:
@@ -374,7 +396,7 @@ def parse_miso(fmiso, clen, case_i=False):
         #if met == "M_accoa_c":
         #    import pdb; pdb.set_trace()
         if not met:
-            werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.iloc[ligr[0], :])))
+            werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         ist=int(df.loc[ligr[0], "iline"])
         iend=int(df.loc[ligr[-1], "iline"])
         mets=np.array([v.strip() for v in met.split("+")]) # met can be A+B+C, take just the first name
@@ -401,7 +423,7 @@ def parse_miso(fmiso, clen, case_i=False):
         if flen > mlen:
             werr("parse_miso: in group %s, fragment length %d is greater than metabolite length %d in '%s'"%(kgr, flen, mlen, fname))
         if not dset:
-            werr("parse_miso: dataset name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.iloc[ligr[0], :])))
+            werr("parse_miso: dataset name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         if ligr[-1]-ligr[0]+1 != len(ligr):
             werr("parse_miso: measurements %s are not contiguous in '%s'. They occupy rows: %s"%(kgr, fname, ", ".join((ligr+2).astype(str))))
         # ftbl frag
@@ -431,7 +453,7 @@ def parse_miso(fmiso, clen, case_i=False):
             dsp=dict() # {specie: times indexes}, e.g. "M0": vec("0.1", "0.2", ...)
             spli=[]
             ii0=[]
-            dfgr=df.iloc[ligr,:]
+            dfgr=df.loc[ligr,:]
             for sp, spi in dfgr.groupby(["Isospecies"]).groups.items():
                 dsp[sp]=spi
                 spli.append(sp)
@@ -1211,7 +1233,7 @@ is the argument value that will take precedence.
     #print("prl=", prl)
 
     cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
-    scre=f"// Created by '{cmd}'"
+    scre=f"// Created by '{cmd}'"+" at %s.\n// If edited by hand, remove these comments.\n"
     
     if "vmtf" in mtf:
         vdf=tsv2df(mtf["vmtf"])
@@ -1275,8 +1297,8 @@ is the argument value that will take precedence.
                          werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
             if len(df_kin) > 0:
                 fkin=p.with_suffix(".ikin")
-                with fkin.open("w") as fc:
-                    fc.write(scre+f" at {dtstamp()}\nrow_col")
+                with fkin.open("w", encoding="UTF-8") as fc:
+                    fc.write(scre%dtstamp()+"row_col")
                     #import pdb; pdb.set_trace()
                     #df_kin.reindex(index=sorted(df_kin.index, key=natural_sort_key))
                     df_kin.loc[sorted(df_kin.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
@@ -1293,19 +1315,19 @@ is the argument value that will take precedence.
                 p=Path(d["ftbl"]).resolve()
                 p.parent.mkdir(parents=True, exist_ok=True)
                 if p.is_file() and not force:
-                    with p.open() as fc:
+                    with p.open(encoding="UTF-8") as fc:
                         if scre[:23] != fc.read(23):
                             werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
                 if len(df_kin_prl) > 0:
                     fkin=p.with_suffix(".ikin")
-                    with fkin.open("w") as fc:
-                        fc.write(scre+f" at {dtstamp()}\nrow_col")
+                    with fkin.open("w", encoding="UTF-8") as fc:
+                        fc.write(scre%dtstamp()+"row_col")
                         df_kin_prl.loc[sorted(df_kin_prl.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
                     for i,v in enumerate(dsec_prl["opt"]):
                         if v.startswith("\tfile_labcin\t"):
                             dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-                    out=p.open("w")
-                    out.write(scre+f" at {dtstamp()}\n")
+                    out=p.open("w", encoding="UTF-8")
+                    out.write(scre%dtstamp())
                     dsec_prl["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
                 dsec2out(dsec_prl, out)
                 prl_li.append(str(p.relative_to(wd)))
@@ -1325,11 +1347,11 @@ is the argument value that will take precedence.
                 p=Path(d["ftbl"]).resolve()
                 p.parent.mkdir(parents=True, exist_ok=True)
                 if p.is_file() and not force:
-                    with p.open() as fc:
+                    with p.open(encoding="UTF-8") as fc:
                         if scre[:23] != fc.read(23):
                              werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-                out=p.open("w")
-                out.write(scre+f" at {dtstamp()}\n")
+                out=p.open("w", encoding="UTF-8")
+                out.write(scre%dtstamp())
                 dsec2out(dsec_prl, out)
                 prl_li.append(str(p.relative_to(wd).with_suffix("")))
                 out.close()
@@ -1339,8 +1361,9 @@ is the argument value that will take precedence.
                         dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
                 dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
         # output ftbl
-        out=ftbl.open("w") if type(ftbl) == type(Path()) else ftbl
-        out.write(scre+f" at {dtstamp()}\n")
+        out=ftbl.open("w", encoding="UTF-8") if type(ftbl) == type(Path()) else ftbl
+        #print(("out=", out))
+        out.write(scre%dtstamp())
         dsec2out(dsec, out)
         out.close()
         if case_i and type(ftbl) == type(Path()):

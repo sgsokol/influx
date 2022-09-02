@@ -496,7 +496,7 @@ the length of the string).</p>
 </div>
 <div class="section" id="module-txt2ftbl">
 <span id="txt2ftbl"></span><h2>txt2ftbl<a class="headerlink" href="#module-txt2ftbl" title="Permalink to this headline">¶</a></h2>
-<p>transform a series of TXT and TSV files into FTBL file.</p>
+<p>Transform a series of TXT and TSV files into FTBL file.</p>
 <p>Copyright 2021, INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
 License: Gnu Public License (GPL) v2 <a class="reference external" href="http://www.gnu.org/licenses/gpl.html">http://www.gnu.org/licenses/gpl.html</a></p>
@@ -575,13 +575,13 @@ The first found is returned as Path() otherwise an exception is raised.</p>
 
 <dl class="function">
 <dt id="txt2ftbl.tsv2df">
-<code class="descclassname">txt2ftbl.</code><code class="descname">tsv2df</code><span class="sig-paren">(</span><em>f</em>, <em>sep='\t'</em>, <em>comment='#'</em>, <em>skip_blank_lines=True</em>, <em>append_iline='iline'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">txt2ftbl.</code><code class="descname">tsv2df</code><span class="sig-paren">(</span><em>f, sep='\t', comment='#', skip_blank_lines=True, append_iline='iline', encodings=['UTF-8', 'windows-1250', 'windows-1252']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read file ‘f’ as TSV and return a DataFrame. Separator is ‘sep’, comment char is ‘comment’, blank lines are skept, header is in the first row, file line numbers are stored in a column ‘line_nb’ if there is no a column with this name</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="txt2ftbl.txt_parse">
-<code class="descclassname">txt2ftbl.</code><code class="descname">txt_parse</code><span class="sig-paren">(</span><em>ftxt</em>, <em>re_metab=re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s+)?(?:(?P&lt;metab&gt;[^() \\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*')</em>, <em>re_labpat=re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">txt2ftbl.</code><code class="descname">txt_parse</code><span class="sig-paren">(</span><em>ftxt, re_metab=re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s+)?(?:(?P&lt;metab&gt;[^() \\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*'), re_labpat=re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$'), encodings=['utf-8', 'windows-1250', 'windows-1252']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse txt file from fname which is in format:
 ### Glycolysis and OPP pathway
 GLYC (abcdef) -&gt;  G6P (abcdef)

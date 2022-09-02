@@ -1,4 +1,5 @@
-// Created by 'txt2ftbl --inst --prefix ex_i_2box_var' at 2022-06-08 17:01:22 CEST +0200
+// Created by 'txt2ftbl --inst --prefix ex_i_2box_var' at 2022-06-23 17:24:38 CEST +0200.
+// If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
 	ex_i_2box_var.netw	1.0			command='txt2ftbl --inst --prefix ex_i_2box_var'
