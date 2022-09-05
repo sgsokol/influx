@@ -2,12 +2,22 @@
 Change Log for influx_si
 ========================
 
+2022-06-23 version 6.1
+------------------------
+
+New feature:
+ - kvh module is now in independent package
+ 
+Bug fix:
+ - fixed biomass-like reactions in C13ftbl
+ - made explicit error message when cumomer system has b=0
+
 2022-06-23 version 6.0.4
 ------------------------
 
 New feature:
  - `Time` values <= 0 in .miso are silently filtered out in instationary mode
- - ftbl2mtf and txt2mtf now write their results in UTF-8 encoding
+ - ftbl2mtf and txt2ftbl now write their results in UTF-8 encoding
  
 Bug fix:
  - fixed reading MTF and FTBL files not in UTF-8 encoding

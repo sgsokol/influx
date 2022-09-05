@@ -91,6 +91,8 @@ nb_w=%(nb_w)d
         l_ia=[]; # list of non zero off-diagonal elements in A / row
         l_ib=[]; # list of non zero elements in b / row
         nb_maxfa=0; # how many fluxes in an off-diagonal term in a
+        if ncumo != 0 and len(b) == 0:
+            raise Exception(f"ftbl2code: netan2Abcumo_spr: at the label weight N° {iwl+1}, the right-hand-sides are all 0 which cannot be as the corresponding {ncumo} cumomers will be 0 too. The cumomer list is:\n\t"+"\n\t".join(cumos))
         nb_maxprod=0 if ncumo == 0 else max(len(li) for cu,rdi in b.items() for fl,d in rdi.items() for i,li in d.items()); # how many cumomer fragments are fused in b
         for irow in range(ncumo):
             cr=cumos[irow]

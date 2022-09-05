@@ -2437,6 +2437,8 @@ def cumo_infl(netan, cumo):
         fluxset=fluxset.difference(netan["flux_inout"])
     for reac in fluxset:
         # get all cstr for given metab
+        if reac not in netan["carbotrans"]:
+            continue
         for (imetab,cstr) in ((i,s) for (i,(m,s)) in enumerate(netan["carbotrans"][reac]["left"])
             if m==metab):
             # get all input cumomer in this reaction for this cstr
