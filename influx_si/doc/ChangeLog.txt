@@ -6,7 +6,8 @@ Change Log for influx_si
 ------------------------
 
 New feature:
- - kvh module is now in independent package
+ - kvh, nlsic modules are moved to independent package
+ - error about dependent stoechiometric equations is turned into warning
  
 Bug fix:
  - fixed biomass-like reactions in C13ftbl

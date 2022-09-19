@@ -1487,11 +1487,12 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # check if this line was already entered before
         for (i,row) in enumerate(res):
             if not ffguess and (row == qry or (np.array(row) == mqry).all()):
+                inz=set(i for i,coef in enumerate(row) if coef !=0)
                 wout("Warning: when trying to add a balance equation for metabolite '"+metab+
                     "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
-                wout("metab:\t"+join("\t", netan["vflux"]["net"]+netan["vflux"]["xch"])+"\n")
-                wout(netan["vrowAfl"][i]+":\t"+join("\t", row)+"\n")
-                wout(metab+":\t"+join("\t", qry)+"\n")
+                wout("metab:\t"+join("\t", [fl for i,fl in enumerate(netan["vflux"]["net"]+netan["vflux"]["xch"]) if i in inz])+"\n")
+                wout(netan["vrowAfl"][i]+":\t"+join("\t", [coef for i,coef in enumerate(row) if i in inz])+"\n")
+                wout(metab+":\t"+join("\t", [coef for i,coef in enumerate(qry) if i in inz])+"\n")
                 break
         else:
             # identique row is not found, add it

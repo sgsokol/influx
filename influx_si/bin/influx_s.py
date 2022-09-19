@@ -10,7 +10,6 @@ from glob import glob # wildcard expansion
 
 import influx_si
 import txt2ftbl
-
 #from pdb import set_trace
 
 def now_s():
@@ -95,7 +94,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             if isinstance(v, type("")) else "TRUE" if v is True else "FALSE" \
             if v is False else str(v)) for k,v in cmd_opts.items() if k not in notropt) + '"'] + \
             (["--case_i"] if case_i else []) + [ft]
-        pycmd=[sys.executable, os.path.join(direx, "ftbl2optR.py")] + opt4py
+        pycmd=[sys.executable, os.path.join(dirbin, "ftbl2optR.py")] + opt4py
         pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
         flog.write("executing: "+pycmd_s+"\n")
         flog.flush()
@@ -136,14 +135,9 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
 
 # my own name
 me=os.path.realpath(sys.argv[0])
-# my exec dir
-direx=os.path.dirname(me)
-if (direx.endswith("py3")):
-    direx=os.path.split(direx)[0]
-direx="." if not direx else direx
-
 # my install dir
 dirinst=os.path.dirname(os.path.realpath(influx_si.__file__))
+dirbin=os.path.join(dirinst, "bin")
 
 me=os.path.basename(me)
 if me[:8]=="influx_i":

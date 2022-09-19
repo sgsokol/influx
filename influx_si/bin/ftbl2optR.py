@@ -115,8 +115,8 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     #import pdb
 
     me=os.path.realpath(sys.argv[0])
-    dirx=os.path.dirname(me)
-    sys.path.append(dirx)
+    dirbin=os.path.join(os.path.dirname(influx_si.__file__), "bin")
+    sys.path.append(dirbin)
     me=os.path.basename(me)
 
     from tools_ssg import *
@@ -719,7 +719,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
       }
       clusterEvalQ(cl, {
          #idth=myinfo$id
-         suppressPackageStartupMessages(library(nnls))
+         suppressPackageStartupMessages(library(nlsic))
          suppressPackageStartupMessages(library(slam)) # for quick sparse matrices
          suppressPackageStartupMessages(library(Rcpp))
          suppressPackageStartupMessages(library(RcppArmadillo))
@@ -728,7 +728,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
          suppressPackageStartupMessages(library(multbxxc))
          compiler::enableJIT(0)
          source(file.path(dirr, "tools_ssg.R"))
-         source(file.path(dirr, "nlsic.R"))
+         #source(file.path(dirr, "nlsic.R"))
          source(file.path(dirr, "opt_cumo_tools.R"))
          source(file.path(dirr, "opt_icumo_tools.R"))
          #loadcmp(file.path(dirr, "tools_ssg.Rc"))

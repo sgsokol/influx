@@ -959,7 +959,7 @@ bp=as.numeric(c2bfl%stm%fc+cnst2bfl)
     f.write("""
 if (ffguess) {
    # make an automatic guess for free/dependent flux partition
-   afd=as.matrix(cBind(Afl, -p2bfl))
+   afd=as.matrix(cbind(Afl, -p2bfl))
    qafd=qr(afd, LAPACK=TRUE)
    d=abs(diag(qafd$qr))
    rank=sum(d > d[1]*1.e-10)
@@ -1045,17 +1045,31 @@ qrAfl=qr(Afl, LAPACK=TRUE)
 d=abs(diag(qrAfl$qr))
 qrAfl$rank=sum(d > d[1]*1.e-10)
 rank=qrAfl$rank
-aful=as.matrix(cBind(Afl, -p2bfl, -c2bfl))
+aful=as.matrix(cbind(Afl, -p2bfl, -c2bfl))
 qrow=qr(t(aful))
 rankr=qrow$rank
 #browser()
 # first check the presence of lindep rows
 if (nrow(Afl) > rankr) {
-   prop=sprintf("Error: Among %d equations (rows), %d are redundant and must be eliminated by hand.\\n", nrow(Afl), nrow(Afl)-rankr)
-   prop=paste(prop, "Candidate(s) for elimination is (are):\\n",
-      paste(rownames(Afl)[qrow$pivot[-(1:rankr)]], sep="", collapse="\\n"),
-               "\\n", sep="")
-   stop_mes(prop, file=fcerr)
+   # find list of independent metabs for dependent ones
+   idep=qrow$pivot[(rankr+1):nrow(Afl)]
+   dcoef=qr.solve(t(aful[-idep,,drop=FALSE]), t(aful[idep,,drop=FALSE]))
+   lidep=apply(dcoef, 2, function(v) names(which(abs(v) >= 1.e-10)), simplify=FALSE)
+   prop=sprintf("Warning: Among %d equations (rows), %d are redundant.\\nThe dependencies are:\\n\\t", nrow(Afl), nrow(Afl)-rankr)
+   prop=paste0(prop, paste0(lapply(names(lidep), function(nm) paste0(nm, ": ", paste0(lidep[[nm]], collapse=", "))), collapse="\\n\\t"), "\\nThe redundant balances for species '", paste0(names(lidep), collapse="', '"), "' will be ignored.\\n")
+   #browser()
+   cat(prop, file=fcerr)
+   Afl=Afl[-idep,,drop=FALSE]
+   rankr=nrow(Afl)
+   qrAfl=qr(Afl, LAPACK=TRUE)
+   d=abs(diag(qrAfl$qr))
+   qrAfl$rank=sum(d > d[1]*1.e-10)
+   rank=qrAfl$rank
+   p2bfl=p2bfl[-idep,,drop=FALSE]
+   c2bfl=c2bfl[-idep,,drop=FALSE]
+   g2bfl=g2bfl[-idep,,drop=FALSE]
+   cnst2bfl=cnst2bfl[-idep]
+   bp=bp[-idep]
 }
 if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    #write.table(Afl)
@@ -1068,12 +1082,12 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
    } else if (nrow(Afl) > rank) {
       nextra=nrow(Afl)-rank
       comb=combn(c(nm_ffn, colnames(Afl)[-qrAfl$pivot[1L:rank]]), nextra)
-      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl)
+      aextra=cbind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl)
       colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl))
       ara=Afl[,qrAfl$pivot[1L:rank],drop=FALSE]
-      i=which.min(apply(comb, 2, function(i) kappa(cBind(ara, aextra[,i]))))[1L]
+      i=which.min(apply(comb, 2, function(i) kappa(cbind(ara, aextra[,i]))))[1L]
       nm_tmp=comb[,i]
-      ka=kappa(cBind(ara, aextra[,nm_tmp]))
+      ka=kappa(cbind(ara, aextra[,nm_tmp]))
       if (ka < 1.e7) {
          prop=paste("Proposal to declare dependent flux(es) is:\\n",
             paste(nm_tmp, collapse="\\n"), "\\n", sep="")
@@ -1084,7 +1098,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
       } else {
          # add constraint fluxes to candidate list
          if (nb_fcn > 0) {
-            aextra=as.matrix(cBind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl, -c2bfl))
+            aextra=as.matrix(cbind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl, -c2bfl))
             colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl), colnames(c2bfl))
          }
          aextended=aful
@@ -1119,7 +1133,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
 if (qrAfl$rank != nb_fl) {
    #write.table(Afl)
    # make a suggestion of new free fluxes
-   A=cBind(Afl, -p2bfl, -c2bfl)
+   A=cbind(Afl, -p2bfl, -c2bfl)
    colnames(A)=c(colnames(Afl), nm_ff, nm_fc)
    qa=qr(A, LAPACK=TRUE)
    d=diag(qa$qr)
@@ -1163,7 +1177,7 @@ if (TIMEIT) {
 
 dfl_dffg=invAfl%stm%p2bfl
 if (nb_fgr > 0L) {
-   dfl_dffg=cBind(dfl_dffg, invAfl%stm%g2bfl)
+   dfl_dffg=cbind(dfl_dffg, invAfl%stm%g2bfl)
 }
 dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))
 dfl_dffg[abs(dfl_dffg) < 1.e-14]=0.
@@ -1947,9 +1961,9 @@ nm_i=nm_i[!zi]
 
 # complete ui by zero columns corresponding to scale params
 if (nb_sc_tot) {
-   ui=cBind(as.matrix(ui), matrix(0., NROW(ui), nb_sc_tot))
+   ui=cbind(as.matrix(ui), matrix(0., NROW(ui), nb_sc_tot))
    # complete ui by scales >=0
-   ui=rBind(ui, cBind(matrix(0, nb_sc_tot, nb_ff), diag(1, nb_sc_tot)))
+   ui=rbind(ui, cbind(matrix(0, nb_sc_tot, nb_ff), diag(1, nb_sc_tot)))
    ci=c(ci,rep(0., nb_sc_tot))
    nm_i=c(nm_i, paste(nm_par[nb_ff+seq_len(nb_sc_tot)], ">=0", sep=""))
    rownames(ui)=nm_i
