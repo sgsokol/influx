@@ -3,7 +3,7 @@ import operator
 import string
 import numpy as np
 from math import *
-from kvh import *
+from kvh.kvh import *
 letters=string.ascii_lowercase
 
 def aff(name, obj, ident=0, f=sys.stdout):

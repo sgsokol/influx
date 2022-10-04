@@ -120,6 +120,9 @@ import copy
 import os
 import sys
 from codecs import BOM_UTF8, BOM_UTF16_BE, BOM_UTF16_LE, BOM_UTF32_BE, BOM_UTF32_LE
+
+#import pdb
+
 class oset(dict):
     def __init__(*args, **kwds):
         self, *args = args
@@ -245,7 +248,7 @@ def ftbl_parse(f):
                 break;
             except UnicodeDecodeError:
                 pass
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     inp=inp.encode("utf-8").decode("utf-8-sig")
     lines=inp.splitlines()
     # fc=codecs.open(f, "r", encoding="utf-32")
@@ -282,7 +285,7 @@ def ftbl_parse(f):
     irow=0
     dic=dict()
     pathway=""
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     for l in lines:
         irow+=1
         #print "raw l="+l;##
@@ -319,7 +322,7 @@ def ftbl_parse(f):
             sec_name=flds[0]
             subsec_name=""
             if not sec_name in defsec:
-                #import pdb; pdb.set_trace()
+                #pdb.set_trace()
                 raise Exception("FTBL: Illegal section name '%s' (%s: %d)"%(sec_name, ftbl["name"], irow))
             # prepare storage
             ftbl[sec_name]=[]
@@ -755,7 +758,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         netan["formula"][reac]["all"]=ms
 
     # find input and output metabolites
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     netan["input"].update(netan["subs"]-netan["prods"])
     netan["output"].update(netan["prods"]-netan["subs"])
     netan["deadend"].update(((netan["left"]-netan["right"]) | (netan["right"]-netan["left"])) - netan["input"]-netan["output"])
@@ -1464,6 +1467,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # stocheometric part
     res=netan["Afl"]
     for (metab,lr) in netan["sto_m_r"].items():
+        #if metab == "M_adp_c":
+            #pdb.set_trace()
         if metab in netan["input"] or metab in netan["output"]:
             continue
         # calculate coefs (repeated fluxes)

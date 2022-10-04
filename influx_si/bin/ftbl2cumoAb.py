@@ -24,10 +24,15 @@ from fractions import Fraction as Frac
 import influx_si
 from tools_ssg import *
 import C13_ftbl
+import txt2ftbl
+
+#import pdb
 
 me=os.path.basename(sys.argv[0]);
 def usage():
     print(__doc__)
+def seli(l, i):
+    return type(l)(l[ii] for ii in i)
 def get_net(r, dfc):
     """Get net flux value for a reaction r from a dictionary dfc w/ keys like "d.n.v1" """
     for s in ("d", "f", "c", "g"):
@@ -43,7 +48,7 @@ def net2type(r, dfc):
     return None
 # get arguments
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "hri", ["help", "clownr", "emu"])
+    opts,args=getopt.getopt(sys.argv[1:], "hri", ["help", "clownr", "emu", "prefix="])
 except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -52,6 +57,7 @@ reduced=False
 emu=False
 clownr=False
 case_i=False
+li_ftbl=[]
 for o,a in opts:
     if o in ("-h", "--help"):
         usage()
@@ -64,14 +70,23 @@ for o,a in opts:
         clownr=True
     elif o=="-i":
         case_i=True
+    elif o=="--prefix":
+        mtf_opts=[]
+        if case_i:
+            mtf_opts += ["--inst"]
+        txt2ftbl.main(mtf_opts+["--prefix", a], li_ftbl)
     else:
-        assert False, "unhandled option"
-if not args:
+        assert False, "unhandled option '"+o+"'"
+if not args and not li_ftbl:
     sys.stderr("Expecting ftbl file name\n")
     usage()
 fullsys=not reduced
 C13_ftbl.clownr=clownr
-fftbl=args[0]
+C13_ftbl.ffguess=True
+if li_ftbl:
+    fftbl=li_ftbl[0]
+else:
+    fftbl=args[0]
 if fftbl and fftbl[-5:] != ".ftbl":
     fftbl+=".ftbl"
 if fftbl and not os.path.exists(fftbl):
@@ -103,7 +118,29 @@ dfc_val.update(("c.x."+f, v) for (f,v) in netan["flux_constr"]["xch"].items())
 dfc_val.update(("g.n."+f, v) for (f,v) in netan["flux_vgrowth"]["net"].items())
 bfl=np.array( [(sum(dfc_val.get(f, 1.)*v
     for (f,v) in row.items()) if row else 0.) for row in netan["bfl"]] )
+# test for linear dependence of rows in Afl
+# get vector of col names in bfl
+cnm=sorted(set(f for r in netan["bfl"] for f in r.keys() if f))
+ncbfl=len(cnm)
+i2cnm=dict(enumerate(cnm))
+# make numpy matrix from bfl
+mbfl=np.array([[r.get(i2cnm.get(i, None), 0.) for i in range(ncbfl)] for r in netan["bfl"]])
+afull=np.concatenate((Afl, -mbfl), axis=1)
+qf,rf=np.linalg.qr(afull.T)
+rd=np.diag(rf)
+ikeep=np.where(np.abs(rd) >= 1.e-10)[0]
+#pdb.set_trace()
+if len(ikeep) < Afl.shape[0]:
+    sys.stderr.write(f"Warning: found {Afl.shape[0] - len(ikeep)} linearly dependent rows in stoechiometric matrix.\nThe following rows will be ignored:\n\t"+"\n\t".join(np.array(netan["vrowAfl"])[np.abs(rd) < 1.e-10])+"\n")
+    Afl=Afl[ikeep,:]
+    bfl=bfl[ikeep]
+    netan["Afl"]=seli(netan["Afl"], ikeep)
+    netan["vrowAfl"]=seli(netan["vrowAfl"], ikeep)
+    netan["bfl"]=seli(netan["bfl"], ikeep)
 # solve Afl*d=bfl
+#pdb.set_trace()
+# exclude linearly redundant rows in Afull
+
 try:
     d=np.linalg.solve(Afl, bfl)
     dfc_val.update(("d.n."+f, d[i]) for (i,f) in enumerate(netan["vflux"]["net"]))
@@ -143,21 +180,21 @@ if d_avail:
         })
         if lr["right"] and lr["left"]:
             #print "left | right=", str(lr["right"])+"|"+str(lr["left"]);##
-            infl=join("", ((str(co)+"*" if co != 1. else "")+(" + " if i>0 and math.copysign(1, get_net(r, dfc_val)) > 0 else " ")+str(get_net(r, dfc_val)) for i,(r,co) in enumerate(lr["right"])))
-            outfl=join("", ((str(co)+"*" if co != 1. else "")+(" + " if i>0 and math.copysign(1, get_net(r, dfc_val)) > 0 else " ")+str(get_net(r, dfc_val)) for i,(r,co) in enumerate(lr["left"])))
+            #pdb.set_trace()
+            fl=[join("", ((" + " if i>0 and math.copysign(1, get_net(r, dfc_val)) > 0 else " - " if math.copysign(1, co*get_net(r, dfc_val)) < 0 else " ")+(str(co)+"*" if co != 1. else "")+str(abs(get_net(r, dfc_val))) for i,(r,co) in enumerate(side))) for side in (lr["right"], lr["left"])]
             try:
-               dif=abs(eval(infl)-eval(outfl))
+               dif=abs(eval(fl[0])-eval(fl[1]))
                verdict="OK" if dif < 1.e-9 else "bad ("+str(dif)+")"
             except:
                verdict="No check status"
             f.write("\t%(in)s =%(out)s\t%(verdict)s\n"%{
-                "in": infl,
-                "out": outfl,
+                "in": fl[0],
+                "out": fl[1],
                 "verdict": verdict,
             })
 else:
     f.write("\n***Stoichiometric equations cannot be checked as the stoichiometric matrix is not invertible.\n")
-
+#pdb.set_trace()
 f.write("""
 Full flux equations:
 metab:net fluxes\t|exchange fluxes\t=b\n
@@ -224,7 +261,8 @@ dep.flux=f(free.flux, constr.flux)
     ira=np.arange(fcv2dep.shape[1])
     for (ir,row) in enumerate(fcv2dep.A):
         nz=abs(row) >= 1.e-10
-        formula=join("", ( (("+" if v > 0 else "-") if abs(abs(v)-1.) < 1.e-10 and f != "" else ("+" if v > 0 else "") + "%s"% Frac.from_float(v).limit_denominator(100)) + ("*" if f != "" and abs(abs(v)-1) > 1.e-10 else "") + f for (v,f) in zip(row[nz],i2fcv[nz])))
+        #pdb.set_trace()
+        formula=join("", ( (("+" if v > 0 else "-") if abs(abs(v)-1.) < 1.e-10 and f != "" else ("+" if v > 0 else "") + "%s"% Frac.from_float(v).limit_denominator(10000)) + ("*" if f != "" and abs(abs(v)-1) > 1.e-10 else "") + f for (v,f) in zip(row[nz],i2fcv[nz])))
         formula="0" if not formula else formula if formula[0] != "+" else formula[1:]
         f.write("%(dep)s=%(formula)s\n"%{
             "dep": "d.n."+netan["vflux"]["net"][ir] if ir < ndn else "d.x."+netan["vflux"]["xch"][ir-ndn],
@@ -261,6 +299,7 @@ else:
     f.write("\n# full (not reduced to measurable) cumomer system\n")
 #aff("A3", Ab["A"][2]);##
 #aff("\nb3", Ab["b"][2]);##
+#pdb.set_trace()
 for (w,A) in enumerate(Ab["A"]):
     f.write("\n# weight %d\n"%(w+1))
     #for r_cumo in sorted(A.keys()):

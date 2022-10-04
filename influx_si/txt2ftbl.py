@@ -23,6 +23,8 @@ vsadd=np.core.defchararray.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict
 
+import pdb
+
 version="1.0"
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
 me="txt2ftbl"
@@ -125,7 +127,7 @@ def try_ext(f, li):
         raise Exception("try_ext: unknown type of 'f'. Expecting 'str' or 'Path'.")
     
 
-def txt_parse(ftxt, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s+)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
+def txt_parse(ftxt, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s*\*\s*)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$"), encodings=["utf-8", "windows-1250", "windows-1252"]):
     """Parse txt file from fname which is in format:
 ### Glycolysis and OPP pathway
@@ -238,7 +240,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         # we cannot just split by "+" because of possible scrambling patterns having "+" in them
         lr=[[(c, m, [elab for lab in t.split("+") for elab in re_labpat.findall(lab)]) for (c, m, t) in re_metab.findall(io) if m != "+"] for io in in_out]
         tr_reac=len([1 for side in lr for (c, m, t) in side if t and t[0]]) # it exists carbon transition
-        #import pdb; pdb.set_trace();
+        #pdb.set_trace();
         if tr_reac:
             # gather carbon lengths
             for side in lr:
@@ -361,7 +363,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     if len(mconn) > 1:
         mconn=sorted(mconn, key=lambda s: len(s), reverse=True)
         werr("txt_parse: detected %d disconnected sub-networks in '%s':\n\t%s"%(len(mconn)-1, fname, "\n\t".join(str(i+1)+": "+", ".join(s) for i,s in enumerate(mconn[1:]))))
-    #import pdb; pdb.set_trace()
+        #pdb.set_trace()
     return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto, dclen]
 def parse_miso(fmiso, clen, case_i=False):
     "Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak"
@@ -370,7 +372,7 @@ def parse_miso(fmiso, clen, case_i=False):
     else:
         fname=fmiso
     fname=os.path.basename(fname)
-#    import pdb; pdb.set_trace()
+    #pdb.set_trace()
     df=tsv2df(fmiso)
     if "Metabolite" in df.columns and "Species" in df.columns:
         df.rename({"Metabolite": "Specie", "Species": "Isospecies"}, inplace=True, axis=1)
@@ -388,13 +390,13 @@ def parse_miso(fmiso, clen, case_i=False):
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
     cgr=1
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     meas_seen=set()
     for kgr, ligr in df.groupby(["Specie", "Fragment", "Dataset"]).groups.items():
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
         #if met == "M_accoa_c":
-        #    import pdb; pdb.set_trace()
+        #    pdb.set_trace()
         if not met:
             werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         ist=int(df.loc[ligr[0], "iline"])
@@ -477,11 +479,11 @@ def parse_miso(fmiso, clen, case_i=False):
             #    frag=",".join(str(i) for i in range(1,flen+1))
             if case_i:
                 #if met == "Phe":
-                #    import pdb; pdb.set_trace()
+                #    pdb.set_trace()
 
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
-                #import pdb; pdb.set_trace()
+                #pdb.set_trace()
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for sp,spi in dsp.items():
                         df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{ffrag}:{sp[1:]}:{df.loc[spi[0],'iline']}"])])
@@ -502,7 +504,7 @@ def parse_miso(fmiso, clen, case_i=False):
                     tmp=b.copy()
                     tmp[li]="1"
                     labs.append(["".join(tmp[ifr])])
-                #import pdb; pdb.set_trace()
+                #pdb.set_trace()
             elif kind == "mean":
                 b=np.ones(mlen, str) # base where lab will be injected
                 b.fill("x")
@@ -557,7 +559,7 @@ def parse_miso(fmiso, clen, case_i=False):
                 res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[i0])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for i,(sp,spi) in enumerate(dsp.items()):
-                        #import pdb; pdb.set_trace()
+                        #pdb.set_trace()
                         df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"])])
             else:
                 if met != last_met or frag != last_frag:
@@ -647,7 +649,7 @@ def parse_tvar(f, dfl={}, itnl_met=set()):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         kind,nm=kgr
         #if kind == "NET":
-        #    import pdb; pdb.set_trace();
+        #    pdb.set_trace();
         # sanity check
         if kind not in ("NET", "XCH", "METAB"):
             werr("parse_tvar: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, ", ".join(il)))
@@ -701,7 +703,7 @@ def parse_cnstr(f):
             op=invcomp[op]
             ineq[kind]=ineq.get(kind, [])
             ineq[kind].append("\t\t%s\t%s\t%s   // %s: %s"%(val, op, frml, fname, il[0]))
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     return (eq, ineq, df)
 def parse_mmet(f, smet=set()):
     "Parse metabolite concentration measurements TSV file. Return a list of lines to add to ftbl"
@@ -888,10 +890,11 @@ def compile(mtf, cmd, case_i=False, clen=None):
                 carbs=carbs+"\t%s"%(("#"+carb) if metab else "")
             dsec["netw"] += ["%s"%carbs]
         for row in notr_netw:
+            #pdb.set_trace()
             if type(row) == str:
                 dsec["notr"] += ["%s"%row]
                 continue
-            dsec["notr"] += ["\t%s\t%s"%(row[0][0], " = ".join("+".join((c+"*" if c and c != "1" else "")+m  for c,m,t in side) for side in row[1:3]))]
+            dsec["notr"] += ["\t%s\t%s"%(row[0][0], " = ".join(" + ".join((c+" * " if c and c != "1" else "")+m  for c,m,t in side) for side in row[1:3]))]
         for e in eqs[0]:
             dsec["eq"][1]["NET"] += ["\t\t%s\t%s"%e]
         for e in eqs[1]:
@@ -901,7 +904,8 @@ def compile(mtf, cmd, case_i=False, clen=None):
         if not "linp" in mtf:
             # add default full label input
             for m in sorted(m_inp, key=plain_natural_key):
-                dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, "1"*dclen[m])]
+                if m in dclen:
+                    dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, "1"*dclen[m])]
     else:
         dclen={} if clen is None else clen
         itnal_met=set()
@@ -917,14 +921,14 @@ def compile(mtf, cmd, case_i=False, clen=None):
             dsec["ineq"][1][k] += v
         # complete flux set by those from eq:net
         
-        #import pdb; pdb.set_trace()
+        #pdb.set_trace()
         for eq in df[(df["Kind"] == "NET") & (df["Operator"] == "==")]["Formula"]:
             sfl |= set(formula2dict(eq).keys())
     if "miso" in mtf and mtf["miso"]:
         pth=try_ext(mtf["miso"], ["miso", "tsv", "txt"])
         if case_i:
             meas, df_kin=parse_miso(pth, dclen, case_i)
-            #import pdb; pdb.set_trace()
+            #pdb.set_trace()
         else:
             meas=parse_miso(pth, dclen)
         dsec["meas_lab"] += meas["lab"]
@@ -949,6 +953,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     if "tvar" in mtf and mtf["tvar"]:
         pth=try_ext(mtf["tvar"], ["tvar", "tsv", "txt"])
         tf,tm=parse_tvar(pth)
+        #pdb.set_trace()
         stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
         if "NET" in tf:
             dsec["flux"][1]["NET"] += tf["NET"]
@@ -963,7 +968,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     for tpl in fluxes:
         f, rev, imposed_sens, fd=tpl
         #if f == "R_FORt":
-        #    import pdb; pdb.set_trace()
+        #    pdb.set_trace()
         if not rev:
             dsec["flux"][1]["XCH"] += ["\t\t%s\tC\t0"%f]
             snrev.add(f)
@@ -979,7 +984,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     # fluxes that are not in tvar are completed from dtnet and dtxch
     dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", set())]
     dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in (stvar.get("XCH", set()) | snrev)]
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     return (dsec, dclen) if not case_i else (dsec, dclen, df_kin)
 def main(argv=sys.argv[1:], res_ftbl=None):
     ord_args=[]
@@ -1191,7 +1196,7 @@ is the argument value that will take precedence.
         #print("fli2=", fli)
     else:
         fli=opts.eprl
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     
     for t in fli: # prepare prl list
         for v in t.split(","):
@@ -1287,7 +1292,7 @@ is the argument value that will take precedence.
         else:
             wd=Path(ftbl).resolve().parent
         if case_i:
-            #import pdb; pdb.set_trace()
+            #pdb.set_trace()
             dsec,dclen,df_kin=compile(rmtf, cmd, case_i)
             p=Path(ftbl).resolve()
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -1299,7 +1304,7 @@ is the argument value that will take precedence.
                 fkin=p.with_suffix(".ikin")
                 with fkin.open("w", encoding="UTF-8") as fc:
                     fc.write(scre%dtstamp()+"row_col")
-                    #import pdb; pdb.set_trace()
+                    #pdb.set_trace()
                     #df_kin.reindex(index=sorted(df_kin.index, key=natural_sort_key))
                     df_kin.loc[sorted(df_kin.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
                 #print(str(fkin))

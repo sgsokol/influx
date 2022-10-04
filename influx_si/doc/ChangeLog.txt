@@ -8,8 +8,10 @@ Change Log for influx_si
 New feature:
  - kvh, nlsic modules are moved to independent package
  - error about dependent stoechiometric equations is turned into warning
+ - ftbl2cumoAb gets '--prefix' option and eliminates linearly dependent rows from Afl
  
 Bug fix:
+ - stoichiometric coefficients in .netw can be written with "*", not necessarily with " * "
  - fixed biomass-like reactions in C13ftbl
  - made explicit error message when cumomer system has b=0
 
