@@ -41,14 +41,14 @@ def get_net(r, dfc):
             break
     return res
 def net2type(r, dfc):
-    """Get net flux type (one of "d", "f", "c", "g") for a reaction r from a dictionary dfc w/ keys like "d.n.v1". Return None if r is not found."""
+    """Return net flux type (one of "d", "f", "c", "g") for a reaction r from a dictionary dfc w/ keys like "d.n.v1". Return None if r is not found."""
     for s in ("d", "f", "c", "g"):
         if s+".n."+r in dfc:
             return s
     return None
 # get arguments
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "hri", ["help", "clownr", "emu", "prefix="])
+    opts,args=getopt.getopt(sys.argv[1:], "hri", ["help", "clownr", "emu", "prefix=", "flux="])
 except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -57,6 +57,7 @@ reduced=False
 emu=False
 clownr=False
 case_i=False
+has_flux=False
 li_ftbl=[]
 for o,a in opts:
     if o in ("-h", "--help"):
@@ -70,6 +71,10 @@ for o,a in opts:
         clownr=True
     elif o=="-i":
         case_i=True
+    elif o=="--flux":
+        has_flux=True
+        fv=txt2ftbl.tsv2df(a)
+        fv.isetitem(1, fv.iloc[:,1].astype(float))
     elif o=="--prefix":
         mtf_opts=[]
         if case_i:
@@ -116,6 +121,20 @@ dfc_val.update(("f.x."+f, v) for (f,v) in netan["flux_free"]["xch"].items())
 dfc_val.update(("c.n."+f, v) for (f,v) in netan["flux_constr"]["net"].items())
 dfc_val.update(("c.x."+f, v) for (f,v) in netan["flux_constr"]["xch"].items())
 dfc_val.update(("g.n."+f, v) for (f,v) in netan["flux_vgrowth"]["net"].items())
+
+# update dfc by values from file
+if has_flux:
+    dset=set(netan["vflux"]["net"])
+    for i,row in fv.iterrows():
+        nm=row[0]
+        t=net2type(nm, dfc_val)
+        if t is None:
+            if nm in dset:
+                t="d"
+            else:
+                continue # ignore names not defined in ftbl
+        fnm=t+".n."+nm
+        dfc_val[fnm]=row[1]
 bfl=np.array( [(sum(dfc_val.get(f, 1.)*v
     for (f,v) in row.items()) if row else 0.) for row in netan["bfl"]] )
 # test for linear dependence of rows in Afl
@@ -141,22 +160,25 @@ if len(ikeep) < Afl.shape[0]:
 #pdb.set_trace()
 # exclude linearly redundant rows in Afull
 
-try:
-    d=np.linalg.solve(Afl, bfl)
-    dfc_val.update(("d.n."+f, d[i]) for (i,f) in enumerate(netan["vflux"]["net"]))
-    dfc_val.update(("d.x."+f, d[i+len(netan["vflux"]["net"])]) for (i,f) in enumerate(netan["vflux"]["xch"]))
-    invAfl=np.matrix(Afl).I
+invAfl=None
+if has_flux:
     d_avail=True
-except Exception as err:
-    sys.stderr.write("Error: Afl is singular or is not square\n")
-    sys.stderr.write("nrow x ncol = %d x %d\n"%Afl.shape)
-    sys.stderr.write("dependent net fluxes="+str(netan["vflux"]["net"])+"\n")
-    sys.stderr.write("dependent xch fluxes="+str(netan["vflux"]["xch"])+"\n")
-    sys.stderr.write("Afl="+str(netan["Afl"])+"\n")
-    sys.stderr.write("bfl="+str(netan["bfl"])+"\n")
-    sys.stderr.write(str(err)+"\n")
-    invAfl=None
-    d_avail=False
+else:
+    try:
+        d=np.linalg.solve(Afl, bfl)
+        dfc_val.update(("d.n."+f, d[i]) for (i,f) in enumerate(netan["vflux"]["net"]))
+        dfc_val.update(("d.x."+f, d[i+len(netan["vflux"]["net"])]) for (i,f) in enumerate(netan["vflux"]["xch"]))
+        invAfl=np.matrix(Afl).I
+        d_avail=True
+    except Exception as err:
+        sys.stderr.write("Error: Afl is singular or is not square\n")
+        sys.stderr.write("nrow x ncol = %d x %d\n"%Afl.shape)
+        sys.stderr.write("dependent net fluxes="+str(netan["vflux"]["net"])+"\n")
+        sys.stderr.write("dependent xch fluxes="+str(netan["vflux"]["xch"])+"\n")
+        sys.stderr.write("Afl="+str(netan["Afl"])+"\n")
+        sys.stderr.write("bfl="+str(netan["bfl"])+"\n")
+        sys.stderr.write(str(err)+"\n")
+        d_avail=False
 
 # print flux values
 f.write("""
