@@ -6,11 +6,12 @@ Change Log for influx_si
 ------------------------
 
 New feature:
+ - species not carrying labeled atoms cannot appear in FTBL/METABOLITE_POOLS
+ - ftbl2cumoAb and other ftbl2... utilities can use '--prefix'/'--mtf' options
+ - ftbl2cumoAb eliminates linearly dependent rows from Afl
+ - ftbl2cumoAb gets '--flux' option to read flux values from a 2-columns tsv file
  - kvh, nlsic modules are moved to independent package
- - error about dependent stoechiometric equations is turned into warning
- - ftbl2cumoAb gets '--prefix' option
- - ftbl2cumoAb gets eliminates linearly dependent rows from Afl
- - ftbl2cumoAb gets '--flux' option to read flux values from a file
+ - error about dependent stoichiometric equations is turned into warning
  
 Bug fix:
  - stoichiometric coefficients in .netw can be written with "*", not necessarily with " * "

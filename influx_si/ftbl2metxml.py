@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Parse ftbl file from first parameter
-and write SBML in XML format on stdout
-usage: ftbl2metxml.py network[.ftbl] [> network.xml]
+"""Parse mtf/ftbl file and write SBML in XML format on stdout
+usage: ftbl2metxml.py network[.ftbl] | --prefix PREFIX | --mtf MTF [> network.xml]
 """
 import sys, os, stat, re
 from pathlib import Path
@@ -11,7 +10,10 @@ from libsbml import *
 import influx_si
 import tools_ssg
 import C13_ftbl
-import kvh
+import kvh.kvh as kv
+import txt2ftbl
+
+#import pdb
 
 me=os.path.basename(sys.argv[0])
 def warn(mes):
@@ -46,11 +48,14 @@ def main(argv=sys.argv[1:]):
     sys.tracebacklimit=None
 
     parser=argparse.ArgumentParser(description="convert FTBL to SBML. If a counterpart '_res.kvh' file is found, produce TSV files with flux values.")
-    parser.add_argument('ftbl', nargs="+", help="file(s) to be converted to SBML. Extension '.ftbl' can be omitted.")
+    parser.add_argument('ftbl', nargs="*", help="file(s) to be converted to SBML. Extension '.ftbl' can be omitted.")
     parser.add_argument('--cstart', nargs=1, help="string delimiting start of compartment name, e.g. '--cstart=_'. If not given, all metabolites will be assigned to a default compartment")
     parser.add_argument('--cend', nargs=1, default="", help="string delimiting the end of compartment name, e.g. '--cstart=\"_[\" --cend=\"]\"', here a compartment name is expected to be in brackets preceded by an underscore. For example, with cited values, a metabolite name 'Glc_[c]' will be interpreted as metabolite 'Glc' in compartment 'c'.")
     parser.add_argument('--cdef', default="_def", help="default compartment name, e.g. '--cdef=cytoplasm'. Default is '_def'")
     parser.add_argument('--scale', type=float, default=1., help="If TSV files are generated, flux values are multiplied with this value.")
+    parser.add_argument('-i', dest="inst", action="store_true", help="use instationary mode when --prefix/--mtf is used")
+    parser.add_argument('--prefix', nargs=1, help="parameter passed through to txt2ftbl")
+    parser.add_argument('--mtf', nargs=1, help="parameter passed through to txt2ftbl")
 
     args=parser.parse_args(argv)
     cstart=args.cstart
@@ -62,6 +67,22 @@ def main(argv=sys.argv[1:]):
     cdef=args.cdef
     scale=args.scale
     fli=args.ftbl
+    mtf_opts=[]
+    if args.inst:
+        mtf_opts += ["--inst"]
+    if args.prefix:
+        for p in args.prefix:
+            mtf_opts += ["--prefix", p]
+    if args.mtf:
+        for p in args.mtf:
+            mtf_opts += ["--mtf", p]
+    li_ftbl=[]
+    if "--mtf" in mtf_opts or "--prefix" in mtf_opts:
+        txt2ftbl.main(mtf_opts, li_ftbl)
+        fli += li_ftbl
+    if not fli:
+        raise Exception("expecting --prefix/-mtf option of FTBL file names as argument")
+    #pdb.set_trace()
 
     for fftbl in fli:
         if fftbl[-5:].lower() != ".ftbl":
@@ -177,7 +198,7 @@ def main(argv=sys.argv[1:]):
         if not fkvh.is_file():
             warn("warning: file '%s' is not found. No flux values are written in TSV files.\n"%str(fkvh))
             continue
-        dkvh=kvh.kvh2dict(str(fkvh), strip=True)
+        dkvh=kv.kvh2dict(str(fkvh), strip=True)
         if not "linear stats" in dkvh or not "fwd-rev fluxes (sorted by name)" in dkvh["linear stats"]:
             warn("warning: field 'linear stats/fwd-rev fluxes (sorted by name)' is not found in file '%s'. No flux values are written in TSV files.\n"%str(fkvh))
             continue

@@ -204,6 +204,8 @@ latex_elements = {
   'preamble': r"""\usepackage[utf8]{inputenc}
 \DeclareUnicodeCharacter{00D7}{$\times$}
 \DeclareUnicodeCharacter{2265}{$\geq$}
+\DeclareUnicodeCharacter{03B1}{$\alpha$}
+\DeclareUnicodeCharacter{03B2}{$\beta$}
 \setcounter{secnumdepth}{0}"""
 }
 

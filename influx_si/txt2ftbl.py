@@ -136,8 +136,11 @@ G6P (abcdef)  <-> F6P (abcdef)
 i.e.
 
 comment: # blabla
+
 non reversible reaction: [reac: ][N1] metab1 [(carb1)] [... + [N_i] metab_i [(carb_i)]] -> ...
+
 where
+
  reac is an optional reaction name;
  N_i is optional stoechiometric coefficient
  metab_i is i-th metabolite name
@@ -633,7 +636,7 @@ def parse_opt(f):
     df=tsv2df(f).loc[:, ["Name", "Value"]].to_numpy().astype(str)
     res=vsadd(vsadd("\t", vsadd(df[:,0], "\t")), df[:,1]).tolist()
     return res
-def parse_tvar(f, dfl={}, itnl_met=set()):
+def parse_tvar(f, dfl={}, lablen={}):
     "Parse variable type TSV file. Return a tuple of a dict and a list with lines to add to ftbl"
     if "name" in dir(f):
         fname=f.name
@@ -652,24 +655,28 @@ def parse_tvar(f, dfl={}, itnl_met=set()):
         #    pdb.set_trace();
         # sanity check
         if kind not in ("NET", "XCH", "METAB"):
-            werr("parse_tvar: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, ", ".join(il)))
+            werr("parse_tvar: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, fname, ", ".join(il)))
         if len(ligr) > 1:
-            werr("parse_tvar: groupe '%s' has more than 1 entry in '%s': %s"%(kgr, ", ".join(il)))
+            werr("parse_tvar: groupe '%s' has more than 1 entry in '%s': %s"%(kgr, fname, ", ".join(il)))
         val=df.loc[ligr[0], "Value"]
         ty=df.loc[ligr[0], "Type"]
         if ty not in ("F", "C", "D"):
-            werr("parse_tvar: type '%s' is not valid (expected one of F, D or C) in '%s': %s"%(ty, il[0]))
+            werr("parse_tvar: type '%s' is not valid (expected one of F, D or C) in '%s': %s"%(ty, fname, il[0]))
         if ty != "D" and not val:
-            werr("parse_tvar: type '%s' supposes non empty value in '%s': %s"%(ty, il[0]))
+            werr("parse_tvar: type '%s' supposes non empty value in '%s': %s"%(ty, fname, il[0]))
         if kind == "METAB":
-            if itnl_met and nm not in itnl_met:
-                werr("parse_tvar: metabolite '%s' was not seen in internal metabolites, '%s': %s"%(nm, il[0]))
+            if lablen and nm not in lablen:
+                warn("parse_tvar: metabolite '%s' is not internal one. Ignored, '%s': %s"%(nm, fname, il[0]))
+                continue
+            if lablen and lablen.get(nm, 0) == 0:
+                warn("parse_tvar: metabolite '%s' has not labeled atoms. Ignored. '%s': %s"%(nm, fname, il[0]))
+                continue
             if ty != "C":
                 val="-"+val
             mets.append("\t%s\t%s   // %s: %s"%(nm, val, fname, il[0]))
         else:
             if dfl and nm not in dfl:
-                werr("parse_tvar: flux '%s' was not seen in metabolic network, '%s': %s"%(nm, il[0]))
+                werr("parse_tvar: flux '%s' was not seen in metabolic network, '%s': %s"%(nm, fname, il[0]))
             fl[kind]=fl.get(kind, [])
             fl[kind].append("\t\t%s\t%s\t%s   // %s: %s"%(nm, ty, val, fname, il[0]))
     return (fl, mets)
@@ -952,7 +959,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     # with subsections NET/XCH/...
     if "tvar" in mtf and mtf["tvar"]:
         pth=try_ext(mtf["tvar"], ["tvar", "tsv", "txt"])
-        tf,tm=parse_tvar(pth)
+        tf,tm=parse_tvar(pth, sfl, dclen)
         #pdb.set_trace()
         stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
         if "NET" in tf:

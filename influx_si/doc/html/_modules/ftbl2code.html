@@ -1,21 +1,20 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ftbl2code &#8212; influx_si 6.0 documentation</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
     
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -30,7 +29,8 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">influx_si 6.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>
     </div>  
 
@@ -133,6 +133,8 @@
         <span class="n">l_ia</span><span class="o">=</span><span class="p">[];</span> <span class="c1"># list of non zero off-diagonal elements in A / row</span>
         <span class="n">l_ib</span><span class="o">=</span><span class="p">[];</span> <span class="c1"># list of non zero elements in b / row</span>
         <span class="n">nb_maxfa</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="c1"># how many fluxes in an off-diagonal term in a</span>
+        <span class="k">if</span> <span class="n">ncumo</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ftbl2code: netan2Abcumo_spr: at the label weight N° </span><span class="si">{</span><span class="n">iwl</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">, the right-hand-sides are all 0 which cannot be as the corresponding </span><span class="si">{</span><span class="n">ncumo</span><span class="si">}</span><span class="s2"> cumomers will be 0 too. The cumomer list is:</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cumos</span><span class="p">))</span>
         <span class="n">nb_maxprod</span><span class="o">=</span><span class="mi">0</span> <span class="k">if</span> <span class="n">ncumo</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">li</span><span class="p">)</span> <span class="k">for</span> <span class="n">cu</span><span class="p">,</span><span class="n">rdi</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">fl</span><span class="p">,</span><span class="n">d</span> <span class="ow">in</span> <span class="n">rdi</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">li</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">());</span> <span class="c1"># how many cumomer fragments are fused in b</span>
         <span class="k">for</span> <span class="n">irow</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncumo</span><span class="p">):</span>
             <span class="n">cr</span><span class="o">=</span><span class="n">cumos</span><span class="p">[</span><span class="n">irow</span><span class="p">]</span>
@@ -999,7 +1001,7 @@
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">if (ffguess) {</span>
 <span class="s2">   # make an automatic guess for free/dependent flux partition</span>
-<span class="s2">   afd=as.matrix(cBind(Afl, -p2bfl))</span>
+<span class="s2">   afd=as.matrix(cbind(Afl, -p2bfl))</span>
 <span class="s2">   qafd=qr(afd, LAPACK=TRUE)</span>
 <span class="s2">   d=abs(diag(qafd$qr))</span>
 <span class="s2">   rank=sum(d &gt; d[1]*1.e-10)</span>
@@ -1085,17 +1087,31 @@
 <span class="s2">d=abs(diag(qrAfl$qr))</span>
 <span class="s2">qrAfl$rank=sum(d &gt; d[1]*1.e-10)</span>
 <span class="s2">rank=qrAfl$rank</span>
-<span class="s2">aful=as.matrix(cBind(Afl, -p2bfl, -c2bfl))</span>
+<span class="s2">aful=as.matrix(cbind(Afl, -p2bfl, -c2bfl))</span>
 <span class="s2">qrow=qr(t(aful))</span>
 <span class="s2">rankr=qrow$rank</span>
 <span class="s2">#browser()</span>
 <span class="s2"># first check the presence of lindep rows</span>
 <span class="s2">if (nrow(Afl) &gt; rankr) {</span>
-<span class="s2">   prop=sprintf(&quot;Error: Among </span><span class="si">%d</span><span class="s2"> equations (rows), </span><span class="si">%d</span><span class="s2"> are redundant and must be eliminated by hand.</span><span class="se">\\</span><span class="s2">n&quot;, nrow(Afl), nrow(Afl)-rankr)</span>
-<span class="s2">   prop=paste(prop, &quot;Candidate(s) for elimination is (are):</span><span class="se">\\</span><span class="s2">n&quot;,</span>
-<span class="s2">      paste(rownames(Afl)[qrow$pivot[-(1:rankr)]], sep=&quot;&quot;, collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;),</span>
-<span class="s2">               &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
-<span class="s2">   stop_mes(prop, file=fcerr)</span>
+<span class="s2">   # find list of independent metabs for dependent ones</span>
+<span class="s2">   idep=qrow$pivot[(rankr+1):nrow(Afl)]</span>
+<span class="s2">   dcoef=qr.solve(t(aful[-idep,,drop=FALSE]), t(aful[idep,,drop=FALSE]))</span>
+<span class="s2">   lidep=apply(dcoef, 2, function(v) names(which(abs(v) &gt;= 1.e-10)), simplify=FALSE)</span>
+<span class="s2">   prop=sprintf(&quot;Warning: Among </span><span class="si">%d</span><span class="s2"> equations (rows), </span><span class="si">%d</span><span class="s2"> are redundant.</span><span class="se">\\</span><span class="s2">nThe dependencies are:</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">t&quot;, nrow(Afl), nrow(Afl)-rankr)</span>
+<span class="s2">   prop=paste0(prop, paste0(lapply(names(lidep), function(nm) paste0(nm, &quot;: &quot;, paste0(lidep[[nm]], collapse=&quot;, &quot;))), collapse=&quot;</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">t&quot;), &quot;</span><span class="se">\\</span><span class="s2">nThe redundant balances for species &#39;&quot;, paste0(names(lidep), collapse=&quot;&#39;, &#39;&quot;), &quot;&#39; will be ignored.</span><span class="se">\\</span><span class="s2">n&quot;)</span>
+<span class="s2">   #browser()</span>
+<span class="s2">   cat(prop, file=fcerr)</span>
+<span class="s2">   Afl=Afl[-idep,,drop=FALSE]</span>
+<span class="s2">   rankr=nrow(Afl)</span>
+<span class="s2">   qrAfl=qr(Afl, LAPACK=TRUE)</span>
+<span class="s2">   d=abs(diag(qrAfl$qr))</span>
+<span class="s2">   qrAfl$rank=sum(d &gt; d[1]*1.e-10)</span>
+<span class="s2">   rank=qrAfl$rank</span>
+<span class="s2">   p2bfl=p2bfl[-idep,,drop=FALSE]</span>
+<span class="s2">   c2bfl=c2bfl[-idep,,drop=FALSE]</span>
+<span class="s2">   g2bfl=g2bfl[-idep,,drop=FALSE]</span>
+<span class="s2">   cnst2bfl=cnst2bfl[-idep]</span>
+<span class="s2">   bp=bp[-idep]</span>
 <span class="s2">}</span>
 <span class="s2">if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {</span>
 <span class="s2">   #write.table(Afl)</span>
@@ -1108,12 +1124,12 @@
 <span class="s2">   } else if (nrow(Afl) &gt; rank) {</span>
 <span class="s2">      nextra=nrow(Afl)-rank</span>
 <span class="s2">      comb=combn(c(nm_ffn, colnames(Afl)[-qrAfl$pivot[1L:rank]]), nextra)</span>
-<span class="s2">      aextra=cBind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl)</span>
+<span class="s2">      aextra=cbind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl)</span>
 <span class="s2">      colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl))</span>
 <span class="s2">      ara=Afl[,qrAfl$pivot[1L:rank],drop=FALSE]</span>
-<span class="s2">      i=which.min(apply(comb, 2, function(i) kappa(cBind(ara, aextra[,i]))))[1L]</span>
+<span class="s2">      i=which.min(apply(comb, 2, function(i) kappa(cbind(ara, aextra[,i]))))[1L]</span>
 <span class="s2">      nm_tmp=comb[,i]</span>
-<span class="s2">      ka=kappa(cBind(ara, aextra[,nm_tmp]))</span>
+<span class="s2">      ka=kappa(cbind(ara, aextra[,nm_tmp]))</span>
 <span class="s2">      if (ka &lt; 1.e7) {</span>
 <span class="s2">         prop=paste(&quot;Proposal to declare dependent flux(es) is:</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">            paste(nm_tmp, collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;)</span>
@@ -1124,7 +1140,7 @@
 <span class="s2">      } else {</span>
 <span class="s2">         # add constraint fluxes to candidate list</span>
 <span class="s2">         if (nb_fcn &gt; 0) {</span>
-<span class="s2">            aextra=as.matrix(cBind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl, -c2bfl))</span>
+<span class="s2">            aextra=as.matrix(cbind(Afl[,-qrAfl$pivot[1L:rank],drop=FALSE], -p2bfl, -c2bfl))</span>
 <span class="s2">            colnames(aextra)=c(colnames(Afl)[-qrAfl$pivot[1L:rank]], colnames(p2bfl), colnames(c2bfl))</span>
 <span class="s2">         }</span>
 <span class="s2">         aextended=aful</span>
@@ -1159,7 +1175,7 @@
 <span class="s2">if (qrAfl$rank != nb_fl) {</span>
 <span class="s2">   #write.table(Afl)</span>
 <span class="s2">   # make a suggestion of new free fluxes</span>
-<span class="s2">   A=cBind(Afl, -p2bfl, -c2bfl)</span>
+<span class="s2">   A=cbind(Afl, -p2bfl, -c2bfl)</span>
 <span class="s2">   colnames(A)=c(colnames(Afl), nm_ff, nm_fc)</span>
 <span class="s2">   qa=qr(A, LAPACK=TRUE)</span>
 <span class="s2">   d=diag(qa$qr)</span>
@@ -1203,7 +1219,7 @@
 
 <span class="s2">dfl_dffg=invAfl</span><span class="si">%s</span><span class="s2">tm%p2bfl</span>
 <span class="s2">if (nb_fgr &gt; 0L) {</span>
-<span class="s2">   dfl_dffg=cBind(dfl_dffg, invAfl</span><span class="si">%s</span><span class="s2">tm</span><span class="si">%g</span><span class="s2">2bfl)</span>
+<span class="s2">   dfl_dffg=cbind(dfl_dffg, invAfl</span><span class="si">%s</span><span class="s2">tm</span><span class="si">%g</span><span class="s2">2bfl)</span>
 <span class="s2">}</span>
 <span class="s2">dimnames(dfl_dffg)=list(nm_fl, c(nm_ff, nm_fgr))</span>
 <span class="s2">dfl_dffg[abs(dfl_dffg) &lt; 1.e-14]=0.</span>
@@ -1987,9 +2003,9 @@
 
 <span class="s2"># complete ui by zero columns corresponding to scale params</span>
 <span class="s2">if (nb_sc_tot) {</span>
-<span class="s2">   ui=cBind(as.matrix(ui), matrix(0., NROW(ui), nb_sc_tot))</span>
+<span class="s2">   ui=cbind(as.matrix(ui), matrix(0., NROW(ui), nb_sc_tot))</span>
 <span class="s2">   # complete ui by scales &gt;=0</span>
-<span class="s2">   ui=rBind(ui, cBind(matrix(0, nb_sc_tot, nb_ff), diag(1, nb_sc_tot)))</span>
+<span class="s2">   ui=rbind(ui, cbind(matrix(0, nb_sc_tot, nb_ff), diag(1, nb_sc_tot)))</span>
 <span class="s2">   ci=c(ci,rep(0., nb_sc_tot))</span>
 <span class="s2">   nm_i=c(nm_i, paste(nm_par[nb_ff+seq_len(nb_sc_tot)], &quot;&gt;=0&quot;, sep=&quot;&quot;))</span>
 <span class="s2">   rownames(ui)=nm_i</span>
@@ -2070,23 +2086,22 @@
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span></div>
 </pre></div>
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2101,12 +2116,13 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">influx_si 6.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
     </div>
   </body>
 </html>

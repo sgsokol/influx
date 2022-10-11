@@ -765,18 +765,24 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
     # internal metabs
     netan["metabint"]=netan["metabs"].copy()
     netan["metabint"].difference_update(netan["input"] | netan["output"])
+    netan["metab0len"]=set(m for m in netan["metabs"] if netan["Clen"].get(m, 0) == 0)
 
     # all met_pools must be in internal metabolites
     mdif=oset(netan["met_pools"]).difference(netan["metabint"])
     if len(mdif) :
         # unknown metabolite
         raise Exception("Unknown metabolite(s). Metabolite(s) '"+", ".join(mdif)+"' defined in section METABOLITE_POOLS are not internal metabolites in NETWORK section.")
+    # all met_pools must carry labeling
+    mcom=oset(netan["met_pools"]).intersection(netan["metab0len"])
+    if len(mcom) :
+        # unknown metabolite
+        raise Exception("Non labeled specie in METABOLITE_POOLS. Metabolite(s) '"+"', '".join(mcom)+"' defined in section METABOLITE_POOLS are not carrying labeled atoms")
     if case_i:
         # check it other way: all metabint must be in metpools
-        mdif=oset(netan["metabint"]).difference(netan["met_pools"])
+        mdif=oset(netan["metabint"]-netan["metab0len"]).difference(netan["met_pools"])
         if len(mdif) :
             # unknown metabolite
-            raise Exception("Unknown metabolite concentration. Metabolite(s) '"+", ".join(mdif)+"' defined in section NETWORK are not defined in METABOLITE_POOLS section.")
+            raise Exception("Unknown metabolite concentration. Metabolite(s) carrying labeling '"+", ".join(mdif)+"' defined in section NETWORK are not defined in METABOLITE_POOLS section.")
 
     # add growth fluxes if requested
     netan["flux_growth"]={"net":dict()}

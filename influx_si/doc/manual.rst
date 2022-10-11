@@ -3,7 +3,9 @@
 
 .. highlight:: bash
 
-.. _MetExplore: http://metexplore.toulouse.inra.fr/
+.. _MetExplore: https://metexplore.toulouse.inra.fr/
+.. _vkvh: https://vkvh.readthedocs.io
+.. _Cytoscape: https://www.cytoscape.org
 
 =============
 User's manual
@@ -1216,7 +1218,11 @@ This tool is implicitly used by ``influx_si`` to convert MTF to FTBL format. Use
 ftbl2xgmml: cytoscape view
 --------------------------
 
-Once a valid FTBL file is generated, a user can visualize a graph representing his metabolic network in `Cytoscape <http://www.cytoscape.org>`_ program. To produce necessary graph files, user can run::
+Once a valid MTF set (or FTBL file) is generated, a user can visualize a graph representing his metabolic network in Cytoscape_ program. To produce necessary graph files, user can run::
+
+ $ ftbl2xgmml.py --prefix mynetwork [> mynetwotk.xgmml]
+ 
+or::
 
  $ ftbl2xgmml.py mynetwork[.ftbl] [> mynetwotk.xgmml]
 
@@ -1224,9 +1230,9 @@ or drag and drop ``mynetwork.ftbl`` icon on ``ftbl2xgmml.py`` icon.
 
 The output redirection is optional.
 
-This will produce a file in the XGMML format ``mynetwork.xgmml`` in the directory of ``mynetwork.ftbl``:
+This will produce a file in the XGMML format ``mynetwork.xgmml`` in the directory of ``mynetwork.netw`` or ``mynetwork.ftbl``:
 
-Once a generated file ``mynetwork.ftbl`` is imported in cytoscape, a user can use one of automatic cytoscape layouts or edit node's disposition in the graph by hand.
+Once a generated file ``mynetwork.xgmml`` is imported in cytoscape, a user can use one of automatic cytoscape layouts (e.g. 'Prefuse Force Directed Layout') or edit node's disposition in the graph by hand.
 For those who use `CySBML <http://apps.cytoscape.org/apps/cysbml>`_ plugin, a saving of a particular layout in a file can be practical for later applying it to a new network.
 
 Graphical conventions used in the generated XGMML are the following:
@@ -1249,21 +1255,29 @@ Graphical conventions used in the generated XGMML are the following:
 	* blue for dependent exchange flux;
 	* black for constrained exchange flux.
 
-ftbl2netan: FTBL parsing
-------------------------
+ftbl2netan: MTF/FTBL parsing
+----------------------------
 
-To see how an FTBL file is parsed and what the parsing module "understands" in the network, a following command can be run::
+To see how MTF/FTBL files are parsed and what the parsing module "understands" in the network, a following command can be run::
+
+ $ ftbl2netan.py --prefix mynetwork [> mynetwork.netan]
+ 
+or::
 
  $ ftbl2netan.py mynetwork[.ftbl] [> mynetwork.netan]
 
 The output redirection is optional.
 
-A user can examine ``mynetwork.netan`` in a plain text editor (not like Word) or in spreadsheet software. It has an hierarchical structure, the fields are separated by tabulations and the field values are Python objects converted to strings.
+A user can examine ``mynetwork.netan`` in vkvh_ software or in a plain text editor (not like Word) or in spreadsheet software. It has an hierarchical structure, the fields are separated by tabulations and the field values are Python objects converted to strings.
 
 ftbl2cumoAb: human-readable equations
 -------------------------------------
 
 Sometimes, it can be helpful to examine visually the equations used by ``influx_si``. These equations can be produced in human-readable form by running::
+
+ $ ftbl2cumoAb.py -r --prefix mynetwork [> mynetwork.sys]
+ 
+or::
 
  $ ftbl2cumoAb.py -r mynetwork[.ftbl] [> mynetwork.sys]
 
@@ -1319,23 +1333,27 @@ This utility imports free flux values and specie concentrations (if any) from a 
 
 If an optional argument ``base.ftbl`` is omitted, then the free flux values are injected into an FTBL file corresponding to the _res.kvh file (here ``mynetwork.ftbl``). This script can be used on a Unix (e.g., Linux, MacOS) or on a cygwin (Unix tools on Windows) platform. It makes use of another utility written in python ``ff2ftbl.py``
 
-ftbl2kvh: check ftbl parsing
-----------------------------
+ftbl2kvh: check MTF/FTBL parsing
+--------------------------------
 
-This utility simply parses a ftbl file and write what was "understood" in a kvh file. No network analysis occurs here unlike in ``ftbl2netan`` utility. Usage::
+This utility simply parses MTF/FTBL files and write what was "understood" to a kvh file. No network analysis occurs here unlike in ``ftbl2netan`` utility. Usage::
+
+ $ ftbl2kvh.py --prefix mynetwork [> mynetwork.kvh]
+ 
+or::
 
  $ ftbl2kvh.py mynetwork[.ftbl] [> mynetwork.kvh]
 
 The output redirection is optional.
+The resulting ``mynetwork.kvh`` is tab-separated plain text file. So it can be explored in vkvh_ software, plain text editor or spreadsheet software.
 
 ftbl2metxml: prepare MetExplore_ visualization
 ----------------------------------------------
 
-Convert an FTBL file to an xml file suitable for visualization on MetExplore_ site. If a result kvh file ``mynetwork_res.kvh`` is present, it will be parsed to extract flux values corresponding to the last ``influx_si`` run and put them in ``mynetwok_net.txt``, ``mynetwork_fwd.txt`` and ``mynetwork_rev.txt``. As their names indicate, they will contain net, forward and revers flux values respectively.
+Convert a MTF sets (or FTBL files) to an xml files suitable for visualization on MetExplore_ site. If a result kvh file ``mynetwork_res.kvh`` is present, it will be parsed to extract flux values corresponding to the last ``influx_si`` run and put them in ``mynetwok_net.txt``, ``mynetwork_fwd.txt`` and ``mynetwork_rev.txt``. As their names indicate, they will contain net, forward and revers flux values respectively.
 
 IsoDesign: optimizing input label
 ---------------------------------
 
 One of the means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` solving this problem was developed by Pierre Millard. It is not part of ``influx_si`` distribution and can be downloaded at http://metatoul.insa-toulouse.fr/metasys/software/isodes/. In a nutshell, it works by scanning all possible input label compositions with a defined step, running ``influx_si`` on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).
 
-.. _Cytoscape: http://www.cytoscape.org

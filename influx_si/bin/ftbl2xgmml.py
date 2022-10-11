@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 r"""
-read a .ftbl file from a parameter and translate to .xgmml file.
+read a .ftbl file from a parameter (or from --prefix/--mtf options) and translate to .xgmml file.
 The generated xgmml file can be then imported into Cytoscape
 (www.cytoscape.org).
 Reactions involving two substrates or two products are represented
@@ -10,7 +10,7 @@ are just edges.
 Node and edge attributes are written in respective xml attributes.
 Compatibility: cytoscape v2.8.3 and v3.0
 
-usage: ftbl2xgmml.py [-h|--help] mynetwork.ftbl [> mynetwork.xgmml]
+usage: ftbl2xgmml.py [-h|--help] mynetwork.ftbl|--prefix PREFIX|--mtf MTF [> mynetwork.xgmml]
 
 OPTIONS
 -h, --help print this message and exit
@@ -19,7 +19,7 @@ OPTIONS
 
 :returns: mynetwork.xgmml -- file of the network definition suitable for cytoscape
 
-Copyright 2014, INRA, France
+Copyright 2014-2022, INRAE/INSA/CNRS, France
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
 License: Gnu Public License (GPL) v3 http://www.gnu.org/licenses/gpl.html
 """
@@ -39,6 +39,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     import influx_si
     from tools_ssg import *
     from C13_ftbl import *
+    import txt2ftbl
 
     werr=sys.stderr.write
 
@@ -99,7 +100,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     def usage():
         sys.stderr.write(__doc__)
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "hfi", ["help", "force"])
+        opts,args=getopt.getopt(sys.argv[1:], "hfi", ["help", "force", "prefix=", "mtf="])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err)+"\n")
         usage()
@@ -107,6 +108,8 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     cost=False
     force=False
     case_i=False
+    li_ftbl=[]
+    mtf_opts=[]
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -115,12 +118,17 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
             force=True
         if o in ("-i",):
             case_i=True
+            mtf_opts += ["--inst"]
+        if o in ("--mtf", "--prefix"):
+            mtf_opts += [o, a]
     #aff("args", args);##
-    if len(args) != 1:
-        sys.stderr("Expecting exactly one ftbl file name\n")
+    if "--mtf" in mtf_opts or "--prefix" in mtf_opts:
+        txt2ftbl.main(mtf_opts, li_ftbl)
+    if not args and not li_ftbl:
+        sys.stderr.write("Error: expecting ftbl file name or --prefix/--mtf options\n")
         usage()
-        exit(1)
-    base=args[0]
+        sys.exit(1)
+    base=args[0] if args else li_ftbl[0]
     if base[-5:]==".ftbl":
         base=base[:-5]
     path_ftbl=base+".ftbl"

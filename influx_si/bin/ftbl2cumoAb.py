@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Transform .ftbl file to human readable matrix A and right hand part b
 in full cumomer (default), reduced cumomer (option -r) or emu (option --emu) system A*x=b.
+Option '-i' should be used for instationary cases.
 
-usage: ./ftbl2cumoAb.py [-h|--help|-r network.ftbl [> network.sys]
+usage: ./ftbl2cumoAb.py [-h|--help|-r network.ftbl | --prefix PREFIX | --mtf MTF [> network.sys]
 If neither output redirection (>) nor a pipe (|) are not used, the output
 file name is silently formed from the input one by replacing the suffix .ftbl with .sys. If exists, the output file is rewritten without warning.
 If you wish an output on the screen, use
@@ -48,7 +49,7 @@ def net2type(r, dfc):
     return None
 # get arguments
 try:
-    opts,args=getopt.getopt(sys.argv[1:], "hri", ["help", "clownr", "emu", "prefix=", "flux="])
+    opts,args=getopt.getopt(sys.argv[1:], "hri", ["help", "clownr", "emu", "prefix=", "flux=", "mtf="])
 except getopt.GetoptError as err:
     print(str(err))
     usage()
@@ -59,6 +60,7 @@ clownr=False
 case_i=False
 has_flux=False
 li_ftbl=[]
+mtf_opts=[]
 for o,a in opts:
     if o in ("-h", "--help"):
         usage()
@@ -71,27 +73,28 @@ for o,a in opts:
         clownr=True
     elif o=="-i":
         case_i=True
+        mtf_opts += ["--inst"]
     elif o=="--flux":
         has_flux=True
         fv=txt2ftbl.tsv2df(a)
         fv.isetitem(1, fv.iloc[:,1].astype(float))
-    elif o=="--prefix":
-        mtf_opts=[]
-        if case_i:
-            mtf_opts += ["--inst"]
-        txt2ftbl.main(mtf_opts+["--prefix", a], li_ftbl)
+    elif o=="--prefix" or o=="--mtf":
+        mtf_opts += [o, a]
     else:
         assert False, "unhandled option '"+o+"'"
+
+if "--mtf" in mtf_opts or "--prefix" in mtf_opts:
+    txt2ftbl.main(mtf_opts, li_ftbl)
+
 if not args and not li_ftbl:
-    sys.stderr("Expecting ftbl file name\n")
+    sys.stderr.write("Error: expecting ftbl file name or --prefix/--mtf options\n")
     usage()
+    sys.exit(0)
 fullsys=not reduced
 C13_ftbl.clownr=clownr
 C13_ftbl.ffguess=True
-if li_ftbl:
-    fftbl=li_ftbl[0]
-else:
-    fftbl=args[0]
+fftbl=args[0] if args else li_ftbl[0]
+
 if fftbl and fftbl[-5:] != ".ftbl":
     fftbl+=".ftbl"
 if fftbl and not os.path.exists(fftbl):

@@ -1,21 +1,20 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C13_ftbl &#8212; influx_si 6.0 documentation</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
     
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
-    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -30,7 +29,8 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">influx_si 6.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">C13_ftbl</a></li> 
       </ul>
     </div>  
 
@@ -162,6 +162,9 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">codecs</span> <span class="kn">import</span> <span class="n">BOM_UTF8</span><span class="p">,</span> <span class="n">BOM_UTF16_BE</span><span class="p">,</span> <span class="n">BOM_UTF16_LE</span><span class="p">,</span> <span class="n">BOM_UTF32_BE</span><span class="p">,</span> <span class="n">BOM_UTF32_LE</span>
+
+<span class="c1">#import pdb</span>
+
 <div class="viewcode-block" id="oset"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset">[docs]</a><span class="k">class</span> <span class="nc">oset</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
@@ -287,7 +290,7 @@
                 <span class="k">break</span><span class="p">;</span>
             <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
                 <span class="k">pass</span>
-    <span class="c1">#import pdb; pdb.set_trace()</span>
+    <span class="c1">#pdb.set_trace()</span>
     <span class="n">inp</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8-sig&quot;</span><span class="p">)</span>
     <span class="n">lines</span><span class="o">=</span><span class="n">inp</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
     <span class="c1"># fc=codecs.open(f, &quot;r&quot;, encoding=&quot;utf-32&quot;)</span>
@@ -324,7 +327,7 @@
     <span class="n">irow</span><span class="o">=</span><span class="mi">0</span>
     <span class="n">dic</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
     <span class="n">pathway</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
-    <span class="c1">#import pdb; pdb.set_trace()</span>
+    <span class="c1">#pdb.set_trace()</span>
     <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
         <span class="n">irow</span><span class="o">+=</span><span class="mi">1</span>
         <span class="c1">#print &quot;raw l=&quot;+l;##</span>
@@ -361,7 +364,7 @@
             <span class="n">sec_name</span><span class="o">=</span><span class="n">flds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">subsec_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">sec_name</span> <span class="ow">in</span> <span class="n">defsec</span><span class="p">:</span>
-                <span class="c1">#import pdb; pdb.set_trace()</span>
+                <span class="c1">#pdb.set_trace()</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FTBL: Illegal section name &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">sec_name</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">irow</span><span class="p">))</span>
             <span class="c1"># prepare storage</span>
             <span class="n">ftbl</span><span class="p">[</span><span class="n">sec_name</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
@@ -797,7 +800,7 @@
         <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;formula&quot;</span><span class="p">][</span><span class="n">reac</span><span class="p">][</span><span class="s2">&quot;all&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">ms</span>
 
     <span class="c1"># find input and output metabolites</span>
-    <span class="c1">#import pdb; pdb.set_trace()</span>
+    <span class="c1">#pdb.set_trace()</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;subs&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;prods&quot;</span><span class="p">])</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;prods&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;subs&quot;</span><span class="p">])</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;deadend&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(((</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">])</span> <span class="o">|</span> <span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">]))</span> <span class="o">-</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
@@ -1506,6 +1509,8 @@
     <span class="c1"># stocheometric part</span>
     <span class="n">res</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Afl&quot;</span><span class="p">]</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">metab</span><span class="p">,</span><span class="n">lr</span><span class="p">)</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;sto_m_r&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1">#if metab == &quot;M_adp_c&quot;:</span>
+            <span class="c1">#pdb.set_trace()</span>
         <span class="k">if</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]:</span>
             <span class="k">continue</span>
         <span class="c1"># calculate coefs (repeated fluxes)</span>
@@ -1529,11 +1534,12 @@
         <span class="c1"># check if this line was already entered before</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">row</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ffguess</span> <span class="ow">and</span> <span class="p">(</span><span class="n">row</span> <span class="o">==</span> <span class="n">qry</span> <span class="ow">or</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">==</span> <span class="n">mqry</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+                <span class="n">inz</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">coef</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">if</span> <span class="n">coef</span> <span class="o">!=</span><span class="mi">0</span><span class="p">)</span>
                 <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;Warning: when trying to add a balance equation for metabolite &#39;&quot;</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span>
                     <span class="s2">&quot;&#39;, got equation redundant with those for &#39;&quot;</span><span class="o">+</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrowAfl&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;&#39;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;metab:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vflux&quot;</span><span class="p">][</span><span class="s2">&quot;net&quot;</span><span class="p">]</span><span class="o">+</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vflux&quot;</span><span class="p">][</span><span class="s2">&quot;xch&quot;</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">wout</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrowAfl&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">wout</span><span class="p">(</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">qry</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;metab:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">fl</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">fl</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vflux&quot;</span><span class="p">][</span><span class="s2">&quot;net&quot;</span><span class="p">]</span><span class="o">+</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vflux&quot;</span><span class="p">][</span><span class="s2">&quot;xch&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inz</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">wout</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrowAfl&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">coef</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">coef</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inz</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">wout</span><span class="p">(</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;:</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">coef</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">coef</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qry</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">inz</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">break</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># identique row is not found, add it</span>
@@ -2479,6 +2485,8 @@
         <span class="n">fluxset</span><span class="o">=</span><span class="n">fluxset</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;flux_inout&quot;</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">reac</span> <span class="ow">in</span> <span class="n">fluxset</span><span class="p">:</span>
         <span class="c1"># get all cstr for given metab</span>
+        <span class="k">if</span> <span class="n">reac</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;carbotrans&quot;</span><span class="p">]:</span>
+            <span class="k">continue</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">imetab</span><span class="p">,</span><span class="n">cstr</span><span class="p">)</span> <span class="ow">in</span> <span class="p">((</span><span class="n">i</span><span class="p">,</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,(</span><span class="n">m</span><span class="p">,</span><span class="n">s</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;carbotrans&quot;</span><span class="p">][</span><span class="n">reac</span><span class="p">][</span><span class="s2">&quot;left&quot;</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">m</span><span class="o">==</span><span class="n">metab</span><span class="p">):</span>
             <span class="c1"># get all input cumomer in this reaction for this cstr</span>
@@ -2966,23 +2974,22 @@
     
 </pre></div>
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2997,12 +3004,13 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">influx_si 6.0 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">C13_ftbl</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.8.5.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
     </div>
   </body>
 </html>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse ftbl file from stdin or from first parameter
+"""Parse ftbl file from stdin or from first parameter or from '--prefix PREFIX'/'--mtf MTF'
 and write netan in kvh format on stdout
 usage: ftbl2netan.py network[.ftbl] [-h] [-i] [--emu] [--clownr] [--fullsys]  [> network.netan]
 """
@@ -9,12 +9,16 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     import influx_si
     import tools_ssg
     import C13_ftbl
+    import txt2ftbl
+    
+    #import pdb
+    
     def usage():
         print(__doc__)
 
     me=os.path.basename(sys.argv[0])
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "hi", ["help", "emu", "clownr", "fullsys"])
+        opts,args=getopt.getopt(sys.argv[1:], "hi", ["help", "emu", "clownr", "fullsys", "prefix=", "mtf="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -23,27 +27,37 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     clownr=False
     fullsys=False
     case_i=False
+    li_ftbl=[]
+    mtf_opts=[]
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit(0)
         if o=="-i":
             case_i=True
+            mtf_opts += ["--inst"]
         elif o=="--emu":
             emu=True
         elif o=="--clownr":
             clownr=True
         elif o=="--fullsys":
             fullsys=True
+        elif o=="--prefix" or o=="--mtf":
+            mtf_opts += [o, a]
         else:
-            assert False, "unhandled option"
-    if not args:
-        sys.stderr("Expecting ftbl file name\n")
+            assert False, "unhandled option '"+o+"'"
+    #pdb.set_trace()
+    if "--mtf" in mtf_opts or "--prefix" in mtf_opts:
+        txt2ftbl.main(mtf_opts, li_ftbl)
+
+    if not args and not li_ftbl:
+        sys.stderr.write("Error: expecting ftbl file name or --prefix/--mtf options\n")
         usage()
+        sys.exit(1)
         
     C13_ftbl.clownr=clownr
     C13_ftbl.case_i=case_i
-    fftbl=args[0]
+    fftbl=args[0] if args else li_ftbl[0]
     if fftbl and fftbl[-5:] != ".ftbl":
         fftbl+=".ftbl"
     if not os.path.exists(fftbl):
@@ -65,7 +79,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
         tools_ssg.dict2kvh(netan, f)
         raise e
         #sys.exit(1)
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     tools_ssg.dict2kvh(netan, f)
     # calculate measure matrices
     if "measures" not in netan:

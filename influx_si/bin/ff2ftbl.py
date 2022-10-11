@@ -28,7 +28,7 @@ import re
 from math import exp
 
 import influx_si
-import kvh
+import kvh.kvh as kv
 def usage(mes=""):
     sys.stderr.write(os.linesep.join([mes, __doc__]))
 
@@ -77,10 +77,10 @@ else:
     raise Exception("When _res.kvh and .ftbl have different basecpart of name, both file names must be provided.")
 
 # get free and dependent fluxes from kvh
-ff=kvh.kvh_get_matrix(fkvh, ["linear stats", "net-xch01 fluxes (sorted by name)"])
+ff=kv.kvh_get_matrix(fkvh, ["linear stats", "net-xch01 fluxes (sorted by name)"])
 # get constrained fluxes from kvh
 try:
-    ff+=kvh.kvh_get_matrix(fkvh, ["constrained net-xch01 fluxes"])
+    ff+=kv.kvh_get_matrix(fkvh, ["constrained net-xch01 fluxes"])
 except:
     pass;
 
