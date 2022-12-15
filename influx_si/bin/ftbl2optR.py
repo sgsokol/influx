@@ -1317,7 +1317,27 @@ for (irun in seq_len(nseries)) {
             simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) jx_f$usm[[iexp]]+rnorm(length(jx_f$usm[[iexp]]))*measurements$dev$labeled[[iexp]])
             names(simul[["labeled data"]])=nm_exp
          } else {
-            simul[["labeled data"]]=jx_f$usm
+            # move mass in usm into valid interval [0, 1] and sum=1
+            simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) {
+               x=jx_f$usm[[iexp]]
+               x[x < 0.]=0.
+               x[x > 1.]=1.
+               # get unique mass names to sum up to 1
+               nmx=rownames(x)
+               nm_m=nmx[startsWith(nmx, "m:")]
+               if (length(nm_m)) {
+                  # get unique fragments
+                  fr_u=unique(sapply(strsplit(nm_m, ":", fixed=TRUE), function(v) paste0(c(v[1L:3L], ""), collapse=":")))
+                  lapply(fr_u, function(nm) {
+                     # get indexes per fragment
+                     i=which(startsWith(nmx, nm))
+                     s=colSums(x[i,,drop=FALSE])
+                     x[i,] <<- arrApply::arrApply(x[i,,drop=FALSE], 2, "multv", v=1./s)
+                     NULL
+                  })
+               }
+               x
+            })
             names(simul[["labeled data"]])=nm_exp
          }
       }

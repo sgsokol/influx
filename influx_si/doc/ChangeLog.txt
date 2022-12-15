@@ -2,8 +2,17 @@
 Change Log for influx_si
 ========================
 
-2022-06-23 version 6.1
+2022-12-18 version 6.1.1
 ------------------------
+
+New feature:
+ - in influx_i, unscaled simulated mass measurements (in _res.kvh: "simulated measurements/labeled data") are clamped to [0; 1] and normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)
+
+Bug fix:
+ - fixed error messages from funlab in which time point could be erroneous.
+
+2022-10-11 version 6.1
+----------------------
 
 New feature:
  - species not carrying labeled atoms cannot appear in FTBL/METABOLITE_POOLS

@@ -354,6 +354,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #   xw2=solve(ali[[ilua[idtr]]], vmw*xw1/dt[idtr]+st[,idtr])
          #   xw1[] <<- xw2
          #}, xw1)
+#browser()
          redim(st, c(nb_c, emuw, ntico))
          solve_ieu(invdt, xw1, vmw, ali_w[[iw]], st, ilua)
          #       dim(xw2)=c(nb_c, emuw, ntico)
@@ -571,6 +572,7 @@ param2fl_usm_rich=function(param, cjac, labargs) {
       }
       # Richardson interpolation
       jx_f=labargs$jx_f
+#browser()
       for (iexp in seq_len(labargs$nb_exp)) {
          jx_f$usm[[iexp]]=2*res2$usm[[iexp]]-res1$usm[[iexp]]
          if (getx) {
@@ -617,17 +619,17 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
             }
             if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
                ibad=which(ibad)[1]
-               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a non numeric value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a non numeric value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
             }
             v[v < 0. && v >= -tol]=0.
             v[v > 1. && v <= 1+tol]=1.
             if (any(ibad <- v < 0.)) {
                ibad=which(ibad)[1]
-               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a negative value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a negative value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
             }
             if (any(ibad <- v > 1.)) {
                ibad=which(ibad)[1]
-               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a value > 1 at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
+               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a value > 1 at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
             }
             v
          }, double(1L)
@@ -643,7 +645,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
       su=Reduce("+", m)
       if (any(ibad <- su > 1+tol)) {
          ibad=which(ibad)[1L]
-         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], "sum-1=", su[ibad]-1., ".", file=fcerr)
+         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], "; sum-1=", su[ibad]-1., ".", file=fcerr)
       }
       if (!"0" %in% names(m)) {
          # "the rest is unlabeled"
@@ -656,7 +658,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
       } else if (any(ibad <- su < 1-tol)) {
          # sanity check, sum < 1
          ibad=which(ibad)[1L]
-         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value less than 1 at t=", tp[ibad], ": '", su[ibad], "'.", file=fcerr)
+         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value less than 1 at t=", tp[ibad], "; 1-sum=", su[ibad], ".", file=fcerr)
       }
    }
    sp=matrix(unlist(strsplit(nm_inp, ":", fixed=TRUE)), nrow=2)
