@@ -2,7 +2,7 @@
 Change Log for influx_si
 ========================
 
-2022-12-18 version 6.1.1
+2022-03-02 version 6.2.0
 ------------------------
 
 New feature:
@@ -10,6 +10,9 @@ New feature:
 
 Bug fix:
  - fixed error messages from funlab in which time point could be erroneous.
+ - fixed pooled measurements with spaces around "+" sign (reported by Magalie Poirier Pocovi, U. of Bordeaux, France)
+ - fixed plot_ilab.R in simulation mode
+ - fixed time points sometimes non ordered in .ikin while converting from .miso
 
 2022-10-11 version 6.1
 ----------------------

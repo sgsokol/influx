@@ -23,7 +23,7 @@ vsadd=np.core.defchararray.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict
 
-import pdb
+#import pdb
 
 version="1.0"
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
@@ -573,6 +573,11 @@ def parse_miso(fmiso, clen, case_i=False):
                 res["lab"] += [f"\t{met}\t{cgr}\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
                 res["lab"] += [f"\t\t{i+cgr if norma else cgr}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
                 cgr += len(ligr) if norma else 1
+    if case_i:
+        # reorder time moments in df_kin
+        #pdb.set_trace()
+        cols = sorted(df_kin.columns.tolist(), key=lambda x: float(x))
+        df_kin=df_kin[cols]
     return (res, df_kin) if case_i else res
 def parse_linp(f, clen={}):
     "Parse label input TSV file. Return a list of lines to add to ftbl"

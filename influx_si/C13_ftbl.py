@@ -587,6 +587,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
             netan["opt"][row["OPT_NAME"]]=eval(row["OPT_VALUE"])
         except:
             netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"]
+    #pdb.set_trace()
     for row in ftbl.get("METABOLITE_POOLS",[]):
         metab=row["META_NAME"]
         if metab in netan["met_pools"]:
@@ -778,6 +779,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # unknown metabolite
         raise Exception("Non labeled specie in METABOLITE_POOLS. Metabolite(s) '"+"', '".join(mcom)+"' defined in section METABOLITE_POOLS are not carrying labeled atoms")
     if case_i:
+        #pdb.set_trace()
         # check it other way: all metabint must be in metpools
         mdif=oset(netan["metabint"]-netan["metab0len"]).difference(netan["met_pools"])
         if len(mdif) :
@@ -1857,7 +1859,7 @@ def mecoparse(terms, pmeco=re.compile(r'\s*((?P<coef>\d+\.?\d*|^)\s*\*\s*)?(?P<m
     The general form of each term is 'coef*metab'.
     coef (if present) must be separated from metab by '*' and be convertible to float.
     metab can start with a number (e.g. '6PG') so the presence of '*' is mandatory to
-    separate coef from metab.If coef is absent, it is considered to be 1. 
+    separate coef from metab. If coef is absent, it is considered to be 1. 
     Return a list of (or a single for str) tuples (metab (str), coef (real)).
     """
     single=isstr(terms)
@@ -2644,7 +2646,7 @@ def proc_label_meas(ftbl, netan):
         metabs=row["META_NAME"] or metabs
         group=row["CUM_GROUP"] or group
         # metabs can be metab1[+metab2[+...]]
-        metabl=metabs.split("+")
+        metabl=[v.strip() for v in metabs.split("+")]
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
             mdif=oset(metabl).difference(netan["met_pools"])
@@ -2730,7 +2732,7 @@ def proc_peak_meas(ftbl, netan):
         if (row.get("VALUE_DD","") and row.get("VALUE_T","")):
             raise Exception("Not valid value combination. Only one of DD and T has to be in row "+str(row)+" (%s: %s)"%(ftbl["name"], row["irow"]))
         metabs=row["META_NAME"] or metabs
-        metabl=metabs.split("+")
+        metabl=[v.strip() for v in metabs.split("+")]
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
             mdif=oset(metabl).difference(netan["met_pools"])
@@ -2809,7 +2811,7 @@ def proc_mass_meas(ftbl, netan):
         #print row;##
         metabs=row["META_NAME"] or metabs
         # metabs can be metab1[+metab2[+...]]
-        metabl=metabs.split("+")
+        metabl=[v.strip() for v in metabs.split("+")]
         if (len(metabl) > 1):
             # pooling metabolites will need their concentraions
             mdif=oset(metabl).difference(netan["met_pools"])

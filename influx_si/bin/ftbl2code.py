@@ -1488,7 +1488,7 @@ for (iexp in seq_len(nb_exp)) {
    for (po in names(ipooled[[iexp]])) {
       if (po == "ishort") next
       nm_sum=strsplit(po, ":")[[1L]][2L]
-      mets=strsplit(nm_sum, "\\+")[[1L]]
+      mets=trimws(strsplit(nm_sum, "\\+")[[1L]])
       irpo=ipooled[[iexp]][[po]]
       ipwe[[iexp]]=c(ipwe[[iexp]], irpo) # where weighting is
       i=pmatch(mets, names(nm_poolf))
