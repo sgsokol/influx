@@ -2,17 +2,18 @@
 Change Log for influx_si
 ========================
 
-2022-03-02 version 6.2.0
+2023-06-08 version 6.2.0
 ------------------------
 
 New feature:
  - in influx_i, unscaled simulated mass measurements (in _res.kvh: "simulated measurements/labeled data") are clamped to [0; 1] and normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)
+ - default mft values lacking in input files are now explicitly written in newly created files .def
+ - pooled measurements with spaces around "+" sign are now allowed (seen at Magalie Poirier Pocovi, U. of Bordeaux, France)
 
 Bug fix:
- - fixed error messages from funlab in which time point could be erroneous.
- - fixed pooled measurements with spaces around "+" sign (reported by Magalie Poirier Pocovi, U. of Bordeaux, France)
+ - fixed error messages from funlab in which reported time point could be erroneous.
  - fixed plot_ilab.R in simulation mode
- - fixed time points sometimes non ordered in .ikin while converting from .miso
+ - fixed non ordered time points in .ikin while converted from .miso (seen at Magalie Poirier Pocovi, U. of Bordeaux, France)
 
 2022-10-11 version 6.1
 ----------------------

@@ -1,4 +1,6 @@
-// Created by 'txt2ftbl --inst --prefix ../prl_exp/mtf/e_coli_GX_prl' at 2022-06-23 17:24:39 CEST +0200.
+// Created by 'txt2ftbl --inst --prefix ../prl_exp/mtf/e_coli_GX_prl'
+// Date: 2023-06-08 14:48:48 CEST +0200
+// influx_si version: 6.1.0.11
 // If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
@@ -55,7 +57,7 @@ NETWORK
 NOTRACER_NETWORK
 	FLUX_NAME	EQUATION
 	v23	Pyr = LowerMetabolism
-	v24	2.04*G6P+0.536*F6P+7.463*R5P+0.612*GAP+1.4*E4P+1.156*Phe = Biomass
+	v24	2.04 * G6P + 0.536 * F6P + 7.463 * R5P + 0.612 * GAP + 1.4 * E4P + 1.156 * Phe = Biomass
 FLUXES
 	NET
 		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)

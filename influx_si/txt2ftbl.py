@@ -23,7 +23,7 @@ vsadd=np.core.defchararray.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict
 
-#import pdb
+import pdb
 
 version="1.0"
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
@@ -126,7 +126,9 @@ def try_ext(f, li):
     else:
         raise Exception("try_ext: unknown type of 'f'. Expecting 'str' or 'Path'.")
     
-
+def revineq(ine):
+    rev={">": "<", "<": ">", "=": "="}
+    return "".join(rev[c] for c in ine)
 def txt_parse(ftxt, re_metab=re.compile(r"(?:(?P<coef>[\d\.]*)\s*\*\s*)?(?:(?P<metab>[^() \t\r]+)\s*)(?:\(\s*(?P<carb>[^()]*)\s*\))?\s*"),
         re_labpat=re.compile(r"^[./*\d\s]*(?P<labpat>[a-zA-Z]*)\s*$"), encodings=["utf-8", "windows-1250", "windows-1252"]):
     """Parse txt file from fname which is in format:
@@ -399,7 +401,7 @@ def parse_miso(fmiso, clen, case_i=False):
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
         #if met == "M_accoa_c":
-        #    pdb.set_trace()
+            #pdb.set_trace()
         if not met:
             werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         ist=int(df.loc[ligr[0], "iline"])
@@ -482,7 +484,7 @@ def parse_miso(fmiso, clen, case_i=False):
             #    frag=",".join(str(i) for i in range(1,flen+1))
             if case_i:
                 #if met == "Phe":
-                #    pdb.set_trace()
+                    #pdb.set_trace()
 
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
@@ -657,7 +659,7 @@ def parse_tvar(f, dfl={}, lablen={}):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         kind,nm=kgr
         #if kind == "NET":
-        #    pdb.set_trace();
+            #pdb.set_trace();
         # sanity check
         if kind not in ("NET", "XCH", "METAB"):
             werr("parse_tvar: kind '%s' is unknown (expected one of NET, XCH or METAB) in '%s': %s"%(kind, fname, ", ".join(il)))
@@ -837,6 +839,16 @@ def compile(mtf, cmd, case_i=False, clen=None):
         ],
     }
     dsec_empty=dsec.copy()
+    dfdef={ # will contain default values per mtf suffix
+        "tvar": pa.DataFrame(columns=["Id", "Comment", "Name", "Kind", "Type", "Value"]),
+        "cnstr": pa.DataFrame(columns=["Id", "Comment", "Kind", "Formula", "Operator", "Value"]),
+        "linp": pa.DataFrame(columns=["Id", "Comment", "Specie", "Isotopomer", "Value"]),
+    }
+    defsort={
+        "tvar": ["Kind", "Type", "Name"],
+        "cnstr": ["Kind", "Operator", "Formula"],
+        "linp": ["Specie"],
+    }
     # Parse netw file if not empty
     if "netw" in mtf and mtf["netw"]:
         pth=try_ext(mtf["netw"], ["netw", "txt"])
@@ -907,17 +919,23 @@ def compile(mtf, cmd, case_i=False, clen=None):
                 dsec["notr"] += ["%s"%row]
                 continue
             dsec["notr"] += ["\t%s\t%s"%(row[0][0], " = ".join(" + ".join((c+" * " if c and c != "1" else "")+m  for c,m,t in side) for side in row[1:3]))]
+        #pdb.set_trace()
         for e in eqs[0]:
             dsec["eq"][1]["NET"] += ["\t\t%s\t%s"%e]
+            dfdef["cnstr"].loc[len(dfdef["cnstr"])]=["", "", "NET", e[1], "==", e[0]]
         for e in eqs[1]:
             dsec["eq"][1]["XCH"] += ["\t\t%s\t%s"%e]
+            dfdef["cnstr"].loc[len(dfdef["cnstr"])]=["", "", "XCH", e[1], "==", e[0]]
         for ine in ineqs[0]:
             dsec["ineq"][1]["NET"] += ["\t\t%s\t%s\t%s"%ine]
+            dfdef["cnstr"].loc[len(dfdef["cnstr"])]=["", "", "NET", ine[2], revineq(ine[1]), ine[0]]
         if not "linp" in mtf:
             # add default full label input
             for m in sorted(m_inp, key=plain_natural_key):
                 if m in dclen:
-                    dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, "1"*dclen[m])]
+                    ismr="1"*dclen[m]
+                    dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, ismr)]
+                    dfdef["linp"].loc[len(dfdef["linp"])]=["", "", m, ismr, 1.0]
     else:
         dclen={} if clen is None else clen
         itnal_met=set()
@@ -966,38 +984,53 @@ def compile(mtf, cmd, case_i=False, clen=None):
         pth=try_ext(mtf["tvar"], ["tvar", "tsv", "txt"])
         tf,tm=parse_tvar(pth, sfl, dclen)
         #pdb.set_trace()
-        stvar=dict((nx, set(v.split("\t")[2] for v in li)) for nx,li in tf.items())
+        stvar=dict((nx, dict((it[0], [it[1], it[2]]) for it in map(str.split, li))) for nx,li in tf.items())
         if "NET" in tf:
             dsec["flux"][1]["NET"] += tf["NET"]
         if "XCH" in tf:
             dsec["flux"][1]["XCH"] += tf["XCH"]
         dsec["met_pool"] += tm
     else:
-        stvar={"NET": set(), "XCH": set()}
+        #pdb.set_trace()
+        stvar={"NET": dict(), "XCH": dict()}
         dsec["met_pool"] += ["\t"+m+"\t0.1" for m in itnal_met]
+        # add default values in dfdef["tvar"]
+        dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", m, "METAB", "C", 0.1) for m in itnal_met], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])])
 
     snrev=set() # set of non reversible fluxes
     for tpl in fluxes:
         f, rev, imposed_sens, fd=tpl
         #if f == "R_FORt":
-        #    pdb.set_trace()
-        if not rev:
+            #pdb.set_trace()
+        if not rev and f not in stvar.get("XCH", {}):
             dsec["flux"][1]["XCH"] += ["\t\t%s\tC\t0"%f]
             snrev.add(f)
+            dfdef["tvar"].loc[len(dfdef["tvar"])]=["", "", f, "XCH", "C", 0]
         elif not "tvar" in mtf:
             dsec["flux"][1]["XCH"] += ["\t\t%s\tF\t0.01"%f]
-    badf=stvar.get("XCH", set()) & snrev
+            dfdef["tvar"].loc[len(dfdef["tvar"])]=["", "", f, "XCH", "F", 0.01]
+    sxch_nonc0=set(k for k,v in stvar.get("XCH", dict()).items() if v[0].upper() != "C" or float(v[1]) != 0.)
+    badf= sxch_nonc0 & snrev
+    #pdb.set_trace()
     if badf:
-        werr("following fluxes should not appear in '%s', with 'XCH' kind as they are non reversible in '%s':\n\t'%s'"%(mtf["tvar"], mtf["netw"], "'\n\t'".join(badf)))
+        werr("following fluxes should not appear in '%s', with 'XCH' kind and not constrained or with non zero value as they are non reversible in '%s':\n\t'%s'"%(mtf["tvar"], mtf["netw"], "'\n\t'".join(badf)))
     # f, rev, imposed_sens, fd=tpl
     dtnet=dict((tpl[0], "\t\t%s\t%s\t0.2E0"%(tpl[0], "F" if tpl[0] in ff else "D")) for tpl in fluxes)
-    dtxch=dict((tpl[0], "\t\t%s\t%s"%(tpl[0], "%s\t0.01E0"%tpl[3])) for tpl in fluxes if not tpl[1])
+    dtxch=dict((tpl[0], "\t\t%s\tC\t0"%(tpl[0])) for tpl in fluxes if not tpl[1])
     
     # fluxes that are not in tvar are completed from dtnet and dtxch
-    dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", set())]
-    dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in (stvar.get("XCH", set()) | snrev)]
     #pdb.set_trace()
-    return (dsec, dclen) if not case_i else (dsec, dclen, df_kin)
+    dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", dict())]
+    dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]
+    if "tvar" not in dfdef:
+        dfdef["tvar"]=pa.DataFrame(columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])
+    dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", v[0], "NET", v[1], v[2]) for v in [vv.split() for k,vv in dtnet.items() if k not in stvar.get("NET", dict())]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])], ignore_index=True)
+    dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", v[0], "XCH", v[1], v[2]) for v in [vv.split() for k,vv in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])], ignore_index=True)
+    #pdb.set_trace()
+    # sort dfdef
+    for k,df in dfdef.items():
+        dfdef[k]=df.sort_values(defsort[k])
+    return (dsec, dclen, dfdef) if not case_i else (dsec, dclen, dfdef, df_kin)
 def main(argv=sys.argv[1:], res_ftbl=None):
     ord_args=[]
     class ordAction(argparse.Action):
@@ -1250,7 +1283,7 @@ is the argument value that will take precedence.
     #print("prl=", prl)
 
     cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
-    scre=f"// Created by '{cmd}'"+" at %s.\n// If edited by hand, remove these comments.\n"
+    scre=f"// Created by '{cmd}'"+"\n// Date: %s\n// influx_si version: " + influx_si.__version__ + "\n// If edited by hand, remove these comments.\n"
     
     if "vmtf" in mtf:
         vdf=tsv2df(mtf["vmtf"])
@@ -1305,7 +1338,7 @@ is the argument value that will take precedence.
             wd=Path(ftbl).resolve().parent
         if case_i:
             #pdb.set_trace()
-            dsec,dclen,df_kin=compile(rmtf, cmd, case_i)
+            dsec,dclen,dfdef,df_kin=compile(rmtf, cmd, case_i)
             p=Path(ftbl).resolve()
             p.parent.mkdir(parents=True, exist_ok=True)
             if p.is_file() and not force:
@@ -1327,7 +1360,7 @@ is the argument value that will take precedence.
             # prl
             prl_li=[]
             for d in prl:
-                dsec_prl,dclen,df_kin_prl=compile(d, cmd, case_i, clen=dclen)
+                dsec_prl,dclen,tmp,df_kin_prl=compile(d, cmd, case_i, clen=dclen)
                 # output ftbl
                 p=Path(d["ftbl"]).resolve()
                 p.parent.mkdir(parents=True, exist_ok=True)
@@ -1355,11 +1388,11 @@ is the argument value that will take precedence.
                         dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
                 dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
         else:
-            dsec,dclen=compile(rmtf, cmd)
+            dsec,dclen,dfdef=compile(rmtf, cmd)
             # prl
             prl_li=[]
             for d in prl:
-                dsec_prl,dclen=compile(d, cmd, clen=dclen)
+                dsec_prl,dclen,tmp=compile(d, cmd, clen=dclen)
                 # output ftbl
                 p=Path(d["ftbl"]).resolve()
                 p.parent.mkdir(parents=True, exist_ok=True)
@@ -1389,6 +1422,14 @@ is the argument value that will take precedence.
         if res_ftbl is not None:
             res_ftbl.append(out.name)
         out.close()
+        # output default mtf
+        for k,df in dfdef.items():
+            if len(df) == 0:
+                continue
+            #pdb.set_trace()
+            with Path(mtf["netw"]).with_suffix("."+k+".def").open("w", encoding="UTF-8") as fc:
+                fc.write(scre%dtstamp())
+                df.to_csv(fc, sep="\t", index=False)
     return 0
 if __name__ == "__main__" or __name__ == "influx_si.cli":
     main()

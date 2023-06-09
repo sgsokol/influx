@@ -1,4 +1,6 @@
-// Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n' at 2022-06-23 17:23:50 CEST +0200.
+// Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n'
+// Date: 2023-06-08 14:48:01 CEST +0200
+// influx_si version: 6.1.0.11
 // If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
@@ -246,14 +248,14 @@ NETWORK
 		#a	#b	#a	#b
 NOTRACER_NETWORK
 	FLUX_NAME	EQUATION
-	v61	NADH+0.5*O2 = 2.0*ATP
-	v62	FADH2+0.5*O2 = ATP
+	v61	NADH + 0.5 * O2 = 2.0 * ATP
+	v62	FADH2 + 0.5 * O2 = ATP
 	v63	NADH = NADPH
 	v64	ATP = ATP.ext
 	v67	O2.ext = O2
 	v68	NH3.ext = NH3
 	v69	SO4.ext = SO4
-	v70	0.488*Ala+0.281*Arg+0.229*Asn+0.229*Asp+0.087*Cys+0.25*Glu+0.25*Gln+0.582*Gly+0.09*His+0.276*Ile+0.428*Leu+0.326*Lys+0.146*Met+0.176*Phe+0.21*Pro+0.205*Ser+0.241*Thr+0.054*Trp+0.131*Tyr+0.402*Val+0.205*G6P+0.071*F6P+0.754*R5P+0.129*GAP+0.619*3PG+0.051*PEP+0.083*Pyr+2.51*AcCoA+0.087*AKG+0.34*OAC+0.443*MEETHF+33.247*ATP+5.363*NADPH = 39.68*Biomass+1.455*NADH
+	v70	0.488 * Ala + 0.281 * Arg + 0.229 * Asn + 0.229 * Asp + 0.087 * Cys + 0.25 * Glu + 0.25 * Gln + 0.582 * Gly + 0.09 * His + 0.276 * Ile + 0.428 * Leu + 0.326 * Lys + 0.146 * Met + 0.176 * Phe + 0.21 * Pro + 0.205 * Ser + 0.241 * Thr + 0.054 * Trp + 0.131 * Tyr + 0.402 * Val + 0.205 * G6P + 0.071 * F6P + 0.754 * R5P + 0.129 * GAP + 0.619 * 3PG + 0.051 * PEP + 0.083 * Pyr + 2.51 * AcCoA + 0.087 * AKG + 0.34 * OAC + 0.443 * MEETHF + 33.247 * ATP + 5.363 * NADPH = 39.68 * Biomass + 1.455 * NADH
 FLUXES
 	NET
 		NAME	FCD	VALUE(F/C)	ED_WEIGHT	LOW(F)	INC(F)	UP(F)

@@ -23,6 +23,9 @@ Output files will have following extensions/meanings:
 Copyright 2022 INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol [at] insa-toulouse [dot] fr)
 """
+
+#import pdb
+
 import sys, os, argparse, stat, io
 import datetime
 from pathlib import Path
@@ -297,6 +300,7 @@ def main(argv=sys.argv[1:]):
     f=opts.ftbl[0]
     fftbl=Path(f) if f != "-" else sys.stdin
     
+    #pdb.set_trace()
     if type (fftbl) == type(Path()) and not fftbl.is_file():
         fftbl = fftbl.with_suffix(".ftbl")
         if not fftbl.is_file():

@@ -1,0 +1,60 @@
+// Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n'
+// Date: 2023-06-08 14:48:01 CEST +0200
+// influx_si version: 6.1.0.11
+// If edited by hand, remove these comments.
+Id	Comment	Name	Kind	Type	Value
+		v1	XCH	C	0
+		v10	XCH	C	0
+		v18	XCH	C	0
+		v19	XCH	C	0
+		v20	XCH	C	0
+		v21	XCH	C	0
+		v24	XCH	C	0
+		v29_1	XCH	C	0
+		v29_2	XCH	C	0
+		v3	XCH	C	0
+		v30	XCH	C	0
+		v31	XCH	C	0
+		v32	XCH	C	0
+		v33	XCH	C	0
+		v34	XCH	C	0
+		v36	XCH	C	0
+		v37	XCH	C	0
+		v38	XCH	C	0
+		v39	XCH	C	0
+		v40	XCH	C	0
+		v41	XCH	C	0
+		v42	XCH	C	0
+		v43	XCH	C	0
+		v46	XCH	C	0
+		v47	XCH	C	0
+		v48_1	XCH	C	0
+		v48_2	XCH	C	0
+		v48_3	XCH	C	0
+		v48_4	XCH	C	0
+		v49_1	XCH	C	0
+		v49_2	XCH	C	0
+		v50	XCH	C	0
+		v51_1	XCH	C	0
+		v51_2	XCH	C	0
+		v52	XCH	C	0
+		v53	XCH	C	0
+		v54	XCH	C	0
+		v55	XCH	C	0
+		v56	XCH	C	0
+		v57	XCH	C	0
+		v58	XCH	C	0
+		v59	XCH	C	0
+		v60	XCH	C	0
+		v61	XCH	C	0
+		v62	XCH	C	0
+		v64	XCH	C	0
+		v65	XCH	C	0
+		v66	XCH	C	0
+		v67	XCH	C	0
+		v68	XCH	C	0
+		v69	XCH	C	0
+		v70	XCH	C	0
+		v71	XCH	C	0
+		v8	XCH	C	0
+		v9	XCH	C	0
