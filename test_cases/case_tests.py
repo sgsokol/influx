@@ -13,6 +13,8 @@ Different tests are separated by a string "---<date>, <number>:<name>\n"
 Usage: case_tests.py [options] cases_influx_s.tab
 """
 
+#import pdb
+
 import sys, os, subprocess as subp, re, platform, tempfile
 from shutil import copyfileobj
 from glob import glob
@@ -46,6 +48,7 @@ def setvar(k, v):
     return(None)
 def worker(ith):
     while True:
+        #pdb.set_trace()
         item = q.get()
         #print(c("ith=", ith, "; item=", item))
         if item is None:

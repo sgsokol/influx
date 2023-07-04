@@ -1,2 +1,3 @@
 # save minimal environement for RPP simulation
-save(param, labargs, file=sprintf("%s.RData", baseshort))
+if (write_res)
+    save(param, labargs, file=file.path(dirres, "tmp", sprintf("%s.RData", baseshort)))

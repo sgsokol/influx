@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 """
+Deprecated. Use .tvar.sim with "influx_si --mtf" option instead.
+
 This program gets all fluxes (free, dependent and constrained) as well as free pool values from kvh file
 and put them in a ftbl file for free/dependent fluxes and free pools. Values are rounded to 9 digits
 (default value but can be changed with -r option).
@@ -26,6 +28,7 @@ import os
 import getopt
 import re
 from math import exp
+from pathlib import Path
 
 import influx_si
 import kvh.kvh as kv
@@ -61,26 +64,33 @@ if fkvh == "-":
     # read from standart input
     fkvh=sys.stdin
 else:
-    if os.path.isfile(fkvh):
-        if fkvh[-8:] == "_res.kvh":
-            fbase=fkvh[:-8]
+    fkvh=Path(fkvh)
+    if fkvh.is_file():
+        if fkvh.name[-8:] == "_res.kvh":
+            fbase=fkvh.parent/(fkvh.name[:-8])
         else:
             fbase=None
     else:
         fbase=fkvh
-        fkvh+="_res.kvh"
+        # try to find kvh in the same dir
+        fkvh=fbase.parent/(fbase.name+"_res.kvh")
+        if not fkvh.is_file():
+            fkvh=fbase.parent/(fbase.name+"_res")/"tmp"/(fbase.name+"_res.kvh")
 if (len(args) == 2):
-    ftbl=args[1]
+    ftbl=Path(args[1])
 elif not fbase is None:
-    ftbl=fbase+".ftbl"
+    ftbl=fbase.with_suffix(".ftbl")
+    if not ftbl.is_file():
+        # try new output scheme
+        ftbl=fbase.parent.parent/(fbase.name+".ftbl")
 else:
-    raise Exception("When _res.kvh and .ftbl have different basecpart of name, both file names must be provided.")
+    raise Exception("When _res.kvh and .ftbl have different basepart of name, both file names must be provided.")
 
 # get free and dependent fluxes from kvh
-ff=kv.kvh_get_matrix(fkvh, ["linear stats", "net-xch01 fluxes (sorted by name)"])
+ff=kv.kvh_get_matrix(str(fkvh), ["linear stats", "net-xch01 fluxes (sorted by name)"])
 # get constrained fluxes from kvh
 try:
-    ff+=kv.kvh_get_matrix(fkvh, ["constrained net-xch01 fluxes"])
+    ff+=kv.kvh_get_matrix(str(fkvh), ["constrained net-xch01 fluxes"])
 except:
     pass;
 
@@ -89,7 +99,7 @@ ff=dict((row[0], round(float(row[1]), nround)) for row in ff[1:])
 
 #print("ff=", ff)
 # read ftbl in a list of lines
-with open(ftbl, "r") as f:
+with ftbl.open("r") as f:
     lftbl=f.readlines()
 # detect flux definition section in ftbl
 ifl=[i for (i,l) in enumerate(lftbl) if re.match("^FLUXES\w*(//.*)*", l)][0]

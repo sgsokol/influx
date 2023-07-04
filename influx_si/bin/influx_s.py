@@ -1,48 +1,76 @@
 #!/usr/bin/env python3
 """Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file.
 """
-import sys, os, datetime as dt, subprocess as subp, re, time
+
+#import pdb
+
+import sys, os, datetime as dt, subprocess as subp, re, time, traceback
 import argparse
 from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
 from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
+from pathlib import Path
 
 import influx_si
 import txt2ftbl
-#from pdb import set_trace
+import ftbl2optR
 
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        #self.print_help(sys.stderr)
+        #self.exit(2, '%s: error: %s\n' % (self.prog, message))def now_s():
+        raise Exception(me+": ArgumentParser: "+message)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
 def qworker():
     while True:
         item=q.get()
         #print("item=", item)
-        retcode=launch_job(**item)
+        try:
+            retcode=launch_job(**item)
+        except Exception as e:
+            traceback.print_exc()
+            sys.stderr.write("Error: launch_job: "+"%s\n"%str(e)+"\n")
+            retcode=1
         qret.put(retcode)
         q.task_done()
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """
-    #import pdb; pdb.set_trace()
-    f=ft[:-5]
-    d=os.path.dirname(ft)
-    if len(d) and not os.path.exists(d):
+    #pdb.set_trace()
+    ft=Path(ft)
+    f=ft.with_suffix("")
+    d=Path(ft).parent
+    if not d.is_dir():
         sys.stderr.write("Error: directory of FTBL file '%s' does not exist.\n"%d)
         return(1)
-    try:
-        flog=open(f+".log", "w")
-    except Exception as e:
-        sys.stderr.write("%s\n"%str(e))
-        return(1);
-    try:
-        ferr=open(f+".err", "w")
-    except Exception as e:
-        sys.stderr.write("%s\n"%str(e))
-        flog.close()
-        return(1);
-       
-    #import pdb; pdb.set_trace()
+    if dirres:
+        if dirres == "default":
+            dres=d/(str(f.name)+"_res")
+        else:
+            dres=Path(dirres)
+        dres.mkdir(exist_ok=True, parents=True)
+        (dres/"tmp").mkdir(exist_ok=True)
+        fres=dres/(f.name+".res") # .res will be replaced with .log/.err
+        try:
+            flog=fres.with_suffix(".log").open("w", encoding="utf8")
+        except Exception as e:
+            sys.stderr.write("%s\n"%str(e))
+            return(1);
+        try:
+            ferr=fres.with_suffix(".err").open("w", encoding="utf8")
+        except Exception as e:
+            sys.stderr.write("%s\n"%str(e))
+            flog.close()
+            return(1);
+    else:
+        dres=""
+        fres=None
+        flog=sys.stdout
+        ferr=sys.stderr
+    
+    #pdb.set_trace()
     flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
 
     # code generation
@@ -53,16 +81,17 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     retcode=0
 
     try:
-        if not os.path.exists(ft):
+        if not ft.is_file():
             sys.stderr.write("Error: FTBL file '%s' does not exist.\n"%ft)
-            ferr.write("Error: FTBL file '%s' does not exist.\n"%ft)
             retcode=1
-            flog.close()
-            ferr.close()
+            if dirres:
+                ferr.write("Error: FTBL file '%s' does not exist.\n"%ft)
+                flog.close()
+                ferr.close()
             return(retcode);
         # parse commandArgs from the FTBL file
-        #import pdb; pdb.set_trace()
-        inp=open(ft, "rb").read()
+        #pdb.set_trace()
+        inp=ft.open("rb").read()
         for co in ["utf-8", "latin9", "utf-16", "utf-32"]:
             try:
                 inp=inp.decode(co)
@@ -71,66 +100,56 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
                 pass
         inp=inp.encode("utf-8").decode("utf-8")
         cmd=" ".join(re.findall("^\tcommandArgs\t(.*?)(?://.*)?$", inp, re.MULTILINE))
+        ldict_opts=dict_opts.copy()
         ftbl_opts=parser.parse_args(cmd.split())
-        #print ("cmd_opts=", cmd_opts)
-        #print ("ftbl_opts=", ftbl_opts)
         if len(ftbl_opts.ftbl):
             ferr.write("Warning: argument(s) '%s' from the field commandArgs of '%s' are ignored.\n"%(" ".join(ftbl_opts.ftbl), ft))
 
         # update ftbl_opts with cmd_opts with runtime options so rt options take precedence
         ftbl_opts=vars(ftbl_opts)
         ftbl_opts.update(dict((k,v) for (k,v) in vars(cmd_opts).items() if not v is None and v is not False and k != "ftbl"))
-        cmd_opts=dict((k,v) for k,v in ftbl_opts.items() if v is not None and v is not False and k != "ftbl")
-        if "meth" in cmd_opts and cmd_opts["meth"]:
-            cmd_opts["meth"]=",".join(cmd_opts["meth"])
-        #print("cmd_opts=", cmd_opts)
+        ldict_opts=dict((k,v) for k,v in ftbl_opts.items() if v is not None and v is not False and k != "ftbl")
+        if "meth" in dict_opts and dict_opts["meth"]:
+            ldict_opts["meth"]=",".join(ldict_opts["meth"])
 
         # generate the R code
         # leave python options as they are and put R options as arguments to --ropts
-        #import pdb; pdb.set_trace()
-        opt4py=["--"+kc for kc in pyoptnota.intersection(list(cmd_opts.keys()))] + \
-            [item for kc in pyopta.intersection(list(cmd_opts.keys())) if cmd_opts[kc] is not None for item in ("--"+kc, str(cmd_opts[kc]))] + \
-            ["--ropts", '"' + "; ".join(k+"="+("'"+v+"'" \
-            if isinstance(v, type("")) else "TRUE" if v is True else "FALSE" \
-            if v is False else str(v)) for k,v in cmd_opts.items() if k not in notropt) + '"'] + \
-            (["--case_i"] if case_i else []) + [ft]
-        pycmd=[sys.executable, os.path.join(dirbin, "ftbl2optR.py")] + opt4py
-        pycmd_s=" ".join(('' if item and item[0]=='"' else '"')+item+('' if item and item[0]=='"' else '"') for item in pycmd)
-        flog.write("executing: "+pycmd_s+"\n")
-        flog.flush()
+        #pdb.set_trace()
+        opt4py=["--"+kc for kc in pyoptnota.intersection(list(ldict_opts.keys()))] + \
+            [item for kc in pyopta.intersection(list(ldict_opts.keys())) if dict_opts[kc] is not None for item in ("--"+kc, str(ldict_opts[kc]))] + \
+            ["--ropts", '"' + "\n".join(k+"="+("'"+v+"'" \
+            if isinstance(v, type("")) else ("TRUE" if v is True else ("FALSE" \
+            if v is False else ("c('"+"', '".join(str(vv) for vv in v)+"')" if type(v) == list else str(v))))) for k,v in ldict_opts.items() if k not in notropt) + '"'] + \
+            (["--case_i"] if case_i else []) + ["--dirres", str(dres)] + [str(ft)]
         r_generated=True
-        retcode=subp.run(pycmd, stdout=flog, stderr=ferr).returncode
+        retcode=ftbl2optR.main(["ftbl2optR.main"] + opt4py)
         if retcode != 0:
             r_generated=False
-            s="=>Check "+ferr.name+"\n"
-            sys.stdout.write(s)
-            flog.write(s)
-            flog.close()
-            ferr.close()
+            if dirres:
+                s="=>Check "+ferr.name+"\n"
+                sys.stdout.write(s)
+                flog.write(s)
             # stop here because of error(s)
             return(retcode)
-        flog.close()
-        ferr.close()
-        if r_generated and "nocalc" not in cmd_opts:
-            qres.put(f+".R") # one or many R files in // will be launched outside
+        if r_generated:
+            qres.put((str(ft.with_suffix(".R")), ldict_opts.get("nocalc", False))) # one or many R files in // will be launched outside
         else:
             # we are done, end up all writings
-            flog=open(f+".log", "a")
             s="end     : "+now_s()+"\n"
-            flog.write(s)
+            if dirres:
+                flog.write(s)
             sys.stdout.write(fshort+s)
             if os.path.getsize(ferr.name) > 0:
                 s="=>Check "+ferr.name+"\n"
                 sys.stdout.write(s)
-                flog.write(s)
-            flog.close()
+                if dirres:
+                    flog.write(s)
             return(retcode)
     except Exception as e:
-        #print(sys.exc_info())
-        ferr.write(format(e))
-        flog.close()
-        ferr.close()
-        pass
+        #pdb.set_trace()
+        sys.tracebacklimit=ldict_opts.get("tblimit", 0)
+        ferr.write(("".join(traceback.format_exc())) + "\t(in "+ft.stem+")\n")
+        return(1)
     return(retcode)
 
 # my own name
@@ -180,7 +199,7 @@ class pvalAction(argparse.Action):
             if val <= 0. or val >= 1.:
                 raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
             setattr(namespace, self.dest, val)
-parser = argparse.ArgumentParser(description=__doc__)
+parser = ArgumentParser(description=__doc__)
 parser.add_argument(
 "--noopt", action="store_true",
     help="no optimization, just use free parameters as is (after a projection on feasibility domain), to calculate dependent fluxes, cumomers, stats and so on")
@@ -278,6 +297,9 @@ parser.add_argument(
 "--eprl", action=ordAction, help="option passed to txt2ftbl. See help there.")
 parser.add_argument(
 "--force", action=ordAction, help="option passed to txt2ftbl. See help there.")
+parser.add_argument(
+"-o", "--out",
+       help="output directory. Default: basename of input file without suffix + '_res'. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.")
 
 # install helper actions
 parser.add_argument(
@@ -306,14 +328,11 @@ if len(sys.argv) == 1:
     parser.print_usage(sys.stderr)
     sys.exit(1)
 # parse command line
+#pdb.set_trace()
 opts = parser.parse_args()
 
-#print ("opts=", opts)
-#print ("args=", args)
-#print ("ord_args=", ord_args)
 dict_opts=vars(opts)
-#print ("dict_opts=", dict_opts)
-#import pdb; pdb.set_trace()
+#pdb.set_trace()
 
 do_exit=False
 if dict_opts["copy_doc"]:
@@ -405,7 +424,15 @@ if ord_args:
 if len(args) < 1:
     parser.print_help(sys.stderr)
     parser.error("At least one FTBL_file or MTF set expected in argument")
-
+if len(args) > 1 and opts.out is not None and opts.out:
+    parser.error("When several FTBL_files or MTF sets are given in argument, --out can not be set to non empty value (got '%s')"%opts.out)
+if opts.out is None:
+    dirres="default"
+elif len(opts.out) == 0:
+    dirres=""
+else:
+    dirres=opts.out
+#pdb.set_trace()
 print((" ".join('"'+v+'"' for v in sys.argv)))
 #print("cpu=", cpu_count())
 np=dict_opts.get("np")
@@ -435,12 +462,13 @@ for ft in args:
         ft=ft+".ftbl"
     ftpr.append(ft)
     f=ft[:-5]
-    fshort="" if len(args) == 1 else os.path.basename(f)+": "
+    fshort="" if len(args) == 1 else ft.stem+": "
 
     item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "nb_ftbl": nb_ftbl, "case_i": case_i}
     q.put(item)
 if not ftpr:
     sys.exit(1)
+#pdb.set_trace()
 q.join()
 
 # get names of generated R files
@@ -456,77 +484,129 @@ retcode=max(rcodes)
 if len(rfiles) > 1:
     # write file parallel.R and launch it
     # //calcul on cluster
-    fpar=open("parallel.R", "w")
-    fpar.write("""
+    if not dict_opts["nocalc"]:
+        fpar=open("parallel.R", "w")
+        fpar.write("""
     suppressPackageStartupMessages(library(parallel))
     suppressPackageStartupMessages(library(Rcpp))
     dirx="%(dirx)s"
+    dirres="%(dirres)s" # can be "default" or empty
     source(file.path(dirx, "opt_cumo_tools.R"))
     doit=function(fR) {
        f=substr(fR, 1, nchar(fR)-2)
-       nm_flog=sprintf("%%s.log", f)
-       nm_ferr=sprintf("%%s.err", f)
        fshort=basename(f)
+       if (dirres == "default") {
+          nm_flog=sprintf("%%s_res/%%s.log", f, fshort)
+          nm_ferr=sprintf("%%s_res/%%s.err", f, fshort)
+          flog=file(nm_flog, "a")
+       } else {
+          flog=base::stdout()
+          ferr=base::stderr()
+       }
        now=Sys.time()
-       flog=file(nm_flog, "a")
+       
        cat("calcul  : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
-       close(flog)
+       if (dirres == "default") {
+          close(flog)
+       }
        source(fR)
        now=Sys.time()
-       flog=file(nm_flog, "a")
-       cat("end     : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
-       if (file.info(nm_ferr)$size > 0) {
-           cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
+       if (dirres == "default") {
+          flog=file(nm_flog, "a")
+       } else {
+          flog=base::stdout()
        }
-       close(flog)
+       cat("end     : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
+       if (dirres == "default") {
+          if (file.info(nm_ferr)$size > 0) {
+              cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
+          }
+          close(flog)
+       }
        return(retcode)
     }
     # build dyn lib
     nodes=%(np)d
     type="PSOCK"
     cl=makeCluster(nodes, type)
+    clusterExport(cl, "dirres")
     flist=c(%(flist)s)
-    retcode=max(unlist(parLapply(cl, flist, doit)))
+    retcode=max(abs(unlist(parLapply(cl, flist, doit))))
     stopCluster(cl)
     q("no", status=retcode)
-"""%{
-        "np": min(np, len(rfiles)),
-        "flist": ", ".join('"'+f.replace(os.path.sep, "/")+'"' for f in rfiles),
-        "dirx": os.path.join(dirinst, "R").replace(os.path.sep, "/")
-    })
-    fpar.close()
-    # execute R code on cluster
-    rcmd="R --vanilla --slave"
-    s="//calcul: "+now_s()+"\n"
-    sys.stdout.write(s)
-    retcode=subp.run(rcmd.split(), stdin=open(fpar.name, "r")).returncode
+    """%{
+        "np": min(np, len(fr for fr,noc in rfiles if not noc)),
+        "flist": ", ".join('"'+f.replace(os.path.sep, "/")+'"' for f,noc in rfiles if not noc),
+        "dirx": os.path.join(dirinst, "R").replace(os.path.sep, "/"),
+        "dirres": dirres
+        })
+        fpar.close()
+        # execute R code on cluster
+        rcmd="R --vanilla --slave"
+        s += "//calcul: "+now_s()+"\n"
+        retcode=subp.run(rcmd.split(), stdin=open(fpar.name, "r")).returncode
+    else:
+        retcode=0
     # end up writing
-    for fR in rfiles:
-        f=fR[:-2]
-        nm_ferr=f+".err"
-        if os.path.getsize(nm_ferr) > 0:
-            s="=>Check "+nm_ferr+"\n"
-            sys.stdout.write(s)
     s="//end   : "+now_s()+"\n"
-    sys.stdout.write(s)
-elif len(rfiles)==1:
+    for fR,noc in rfiles:
+        if noc:
+            continue
+        f=fR[:-2]
+        fp=Path(fR)
+        if dirres == "default":
+            fpe=(fp.parent/(fp.stem+"_res")/(fp.stem+".err"))
+            flog=(fp.parent/(fp.stem+"_res")/(fp.stem+".log"))
+            fp.rename(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
+        else:
+            fpe=""
+            flog=None
+        
+        if flog:
+            flog.open("a")
+            flog.write(s)
+            if fpe and fpe.stat().st_size > 0:
+                flog.write("=>Check "+str(fpe)+"\n")
+        sys.stdout.wite(s)
+        if fpe and fpe.stat().st_size > 0:
+            sys.stdout.write("=>Check "+str(fpe)+"\n")
+    sys.exit(retcode)
+else:
+    fp=Path(ftpr[0]).with_suffix(".R")
+    if dirres == "default":
+        flog=(fp.parent/(fp.stem+"_res")/(fp.stem+".log"))
+        fpe=(fp.parent/(fp.stem+"_res")/(fp.stem+".err"))
+    elif not dirres:
+        flog=None
+        fpe=None
+    else:
+        flog=(Path(dirres)/(fp.stem+".log"))
+        flog=(Path(dirres)/(fp.stem+".err"))
     # execute only one R code
-    f=rfiles[0][:-2]
-    rcmd="R --vanilla --slave"
-    flog=open(f+".log", "a")
-    flog.write("executing: "+rcmd+" < "+f+".R\n")
-    s="calcul  : "+now_s()+"\n"
-    flog.write(s)
-    flog.close()
-    sys.stdout.write(s)
-    retcode=subp.run(rcmd.split(), stdin=open(f+".R", "r")).returncode
-    s="end     : "+now_s()+"\n"
-    flog=open(f+".log", "a")
-    flog.write(s)
-    sys.stdout.write(s)
-    if os.path.getsize(f+".err") > 0:
-        s="=>Check "+f+".err"+"\n"
+    if rfiles and not rfiles[0][1]:
+        f=rfiles[0][0][:-2]
+        rcmd="R --vanilla --slave"
+        if flog:
+            with flog.open("a") as flp: flp.write("executing: "+rcmd+" < "+f+".R\n")
+        s="calcul  : "+now_s()+"\n"
         sys.stdout.write(s)
-        flog.write(s)
-    flog.close()
+        if flog:
+            with flog.open("a") as flp: flp.write(s)
+        retcode=subp.run(rcmd.split(), stdin=open(f+".R", "r")).returncode
+    s="end     : "+now_s()+"\n"
+    sys.stdout.write(s)
+    if flog:
+        with flog.open("a") as flp: flp.write(s)
+    # move .R
+    if rfiles:
+        if dirres == "default":
+            fp.rename(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
+        elif dirres:
+            fp.rename(Path(dirres)/"tmp"/fp.name)
+    #pdb.set_trace()
+    if fpe and fpe.stat().st_size > 0:
+        s="=>Check "+str(fpe)+"\n"
+        sys.stdout.write(s)
+        if flog:
+            with flog.open("a") as flp: flp.write(s)
 sys.exit(retcode)

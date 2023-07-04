@@ -58,7 +58,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
         header=""
         if suff == ".netw":
             # metab network
-            #import pdb; pdb.set_trace()
+            #pdb.set_trace()
             ltr=ftbl["long_trans"]
             for rnm,reac in ftbl["long_reac"].items():
                 for lr in ("left", "right"):
@@ -85,7 +85,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
             header="Id\tComment\tSpecie\tFragment\tDataset\tIsospecies\tValue\tSD\tTime\n"
             if case_i:
                 # pick file_labcin from opt
-                #import pdb; pdb.set_trace()
+                #pdb.set_trace()
                 flabcin=[d["OPT_VALUE"] for d in ftbl.get("OPTIONS", []) if d["OPT_NAME"] == "file_labcin"]
                 if not flabcin:
                     warn("option '--inst' was activated but a field 'file_labcin' was not found in OPTIONS in '%s'. Only simulations will be possible (not fitting)."%fftbl.name)
@@ -129,7 +129,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                     for ti in df_cin.columns[1:]:
                         res += f"\t\t{met}\t\tLAB-{labset}\t{cgr.replace('#', '')}\t{df_cin.loc[i, ti]}\t{sdv}\t{ti}\n"
             else:
-                #import pdb; pdb.set_trace()
+                #pdb.set_trace()
                 labset=0
                 for d in ftbl.get("LABEL_MEASUREMENTS", {}):
                     met=d["META_NAME"] if d["META_NAME"] else met
@@ -206,7 +206,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
                 ir=np.where(np.char.startswith(vrc, "m:"))[0]
                 last_met=last_frag=""
                 mset=0
-                #import pdb; pdb.set_trace()
+                #pdb.set_trace()
                 for i in ir:
                     let,met,frag,w,li=vrc[i].split(":")
                     if met != last_met or frag != last_frag:
@@ -248,7 +248,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
             for nx in ("NET", "XCH"):
                 for d in ftbl["FLUXES"][nx]:
                     #if d['NAME'] == "BM":
-                    #    import pdb; pdb.set_trace()
+                        #pdb.set_trace()
                     if nx == "XCH" and ((d["FCD"] == "C" and float(d['VALUE(F/C)']) == 0. and d['NAME'] in netan["sto_r_m"]) or (d["FCD"] == "D" and d["NAME"] in netan["flux_inout"])):
                         continue
                     res += f"\t\t{d['NAME']}\t{nx}\t{d['FCD']}\t{d['VALUE(F/C)']}\n"
@@ -283,7 +283,7 @@ def ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, suffs):
             if not cout.parent.exists():
                 cout.parent.mkdir(parents=True)
             print(str(cout))
-            cout.write_text(f"{scre} at {dtstamp()}\n# If edited by hand, remove these comments\n"+header+res, encoding="UTF-8")
+            cout.write_text(f"{scre}\n# Date: {dtstamp()}\n# influx_si version: {influx_si.__version__}\n# If edited by hand, remove these comments\n"+header+res, encoding="UTF-8")
 
 def main(argv=sys.argv[1:]):
     # parse options
@@ -306,9 +306,10 @@ def main(argv=sys.argv[1:]):
         if not fftbl.is_file():
             werr("file '"+str(fftbl)+"' does not exist.\n")
     # prepare out
+    #pdb.set_trace()
     if out:
         out=Path(out)
-        if out.is_dir() and type (fftbl) == type(Path()):
+        if (out.is_dir() or (opts.out and opts.out[0][-1:]=="/")) and type (fftbl) == type(Path()):
             out=out/fftbl.stem
     else:
         if type (fftbl) == type(Path()):
@@ -325,7 +326,7 @@ def main(argv=sys.argv[1:]):
             warn("Switching to instationary mode as non empty 'file_labcin' is found in OPTIONS")
             case_i=True
     #print("ftbl parsed=", ftbl)
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     netan=dict()
     C13_ftbl.ftbl_netan(ftbl, netan, case_i=case_i)
     if (not case_i) and ("OPTIONS" in ftbl and netan["opt"].get("file_labcin", [""])[0]):
@@ -333,7 +334,7 @@ def main(argv=sys.argv[1:]):
     bsl="\\" # backslash
     scre=f"# Created by '{me} {' '.join(v.replace(' ', bsl+' ') for v in argv)}'"
     ftbl2suff(ftbl, fftbl, case_i, netan, force, out, scre, (".netw", ".linp", ".miso", ".mflux", ".mmet", ".tvar", ".cnstr", ".opt"))
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     if "OPTIONS" in ftbl and "prl_exp" in netan["opt"]:
         for pftbl in netan["opt"]["prl_exp"].split(";"):
             pftbl=pftbl.strip()

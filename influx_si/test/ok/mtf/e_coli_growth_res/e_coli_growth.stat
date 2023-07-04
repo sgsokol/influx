@@ -1,0 +1,7 @@
+chi2_value	63.3458995137362
+chi2/df	1.62425383368554
+number_of_measurements	75
+number_of_parameters	36
+degrees_of_freedom	39
+p-value	0.991853543962544
+conclusion	At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD

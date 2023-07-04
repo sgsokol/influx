@@ -1,5 +1,5 @@
 # preparations
-load("mynetwork.RData")
+#load("mynetwork.RData") <--- adapt for your file name
 source(file.path(dirr, "libs.R"))
 source(file.path(dirr, "opt_cumo_tools.R"))
 source(file.path(dirr, "opt_icumo_tools.R")) # uncoment for influx_i use

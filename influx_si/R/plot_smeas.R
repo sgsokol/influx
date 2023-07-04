@@ -118,117 +118,119 @@ co=c(
 if (is.null(.GlobalEnv$jx_f) || is.null(jx_f$simlab)) {
    stop_mes("plot_smeas.R: simulated data are not available. Plotting skipped", file=fcerr)
 }
-for (iexp in seq_len(nb_exp)) {
-   sim=jx_f$simlab[[iexp]]
-   me=measurements$vec$labeled[[iexp]] # measured stationary ms data
+if (write_res) {
+   for (iexp in seq_len(nb_exp)) {
+      sim=jx_f$simlab[[iexp]]
+      me=measurements$vec$labeled[[iexp]] # measured stationary ms data
 
-   # get unique met-fragment names
-   nm_sel=grep("^m:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
-   pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]), width=8, height=6)
-   if (length(nm_sel) > 0) {
-      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
-      text(0.5, 0.05, lab="MS measurements\n(error bars=±2*dev)", cex=2)
-      nmf=natsort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":")))
-      for (metf in nmf) {
-         i=grep(sprintf("m:%s:", metf), nm_sel, fixed=TRUE, v=TRUE)
-         # count repeated fragments
-         nbf=length(grep(sprintf("m:%s:0", metf), i, fixed=TRUE, v=TRUE))
-         if (nbf > 1) {
-            isim=i[seq(length(i)/nbf)]
-         } else {
-            isim=i
-         }
-         mf=strsplit(metf, ":")[[1]]
-         met=mf[1]
-         fr=mf[2]
-         if (is.na(fr))
-            fr=""
-         metlen=clen[mets_in_res[[iexp]][i[1]]]
-         if (fr == "" || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
-            mainlab=met
-         } else {
-            mask=rep("0", metlen)
-            mask[eval(parse(text=paste0("c(", sub("~", ":", fr, fixed=TRUE), ")")))]="1"
-            mainlab=sprintf("%s #%s", met, paste0(mask, collapse=""))
-         }
-         plot_ms(sim[isim], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
-      }
-   }
-   # plot MS of non measured metabs
-#browser()
-   if (!is.null(.GlobalEnv$mid)) {
-      nm_sim=names(mid[,iexp])
-      # get "pyr" from "m:pyr:1~3:0:171" (on ms)
-      nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
-      # get "pyr" from "pyr:7+0" (on simulated)
-      nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
-      if (emu)
-         nmmid=unique(sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1))
-      nmp=sort(setdiff(nmmid, nmm))
-      if (length(nmp)) {
-         plot(0:1, c(0,0.1), type="n", axes=FALSE, xlab="", ylab="")
-         text(0.5, 0.05, lab="MS simulations", cex=2)
-      }
-      for (met in nmp) {
-         if (emu) {
-            i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
-            # take fragments
-            fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
-            for (f in fr) {
-               i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
-               fi=as.integer(f)
-               mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
-               plot_ms(mid[i, iexp], NULL, NULL, main=mainlab)
+      # get unique met-fragment names
+      nm_sel=grep("^m:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
+      pdf(sprintf("%s/%s.pdf", dirres, nm_exp[iexp]), width=8, height=6)
+      if (length(nm_sel) > 0) {
+         plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="MS measurements\n(error bars=±2*dev)", cex=2)
+         nmf=natsort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2:3,], 2, paste0, sep="", collapse=":")))
+         for (metf in nmf) {
+            i=grep(sprintf("m:%s:", metf), nm_sel, fixed=TRUE, v=TRUE)
+            # count repeated fragments
+            nbf=length(grep(sprintf("m:%s:0", metf), i, fixed=TRUE, v=TRUE))
+            if (nbf > 1) {
+               isim=i[seq(length(i)/nbf)]
+            } else {
+               isim=i
             }
-         } else {
-            i=grep(sprintf("^%s\\+[0-9]+$", met), nm_sim, v=TRUE)
-            plot_ms(mid[i, iexp], NULL, NULL, main=met)
+            mf=strsplit(metf, ":")[[1]]
+            met=mf[1]
+            fr=mf[2]
+            if (is.na(fr))
+               fr=""
+            metlen=clen[mets_in_res[[iexp]][i[1]]]
+            if (fr == "" || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
+               mainlab=met
+            } else {
+               mask=rep("0", metlen)
+               mask[eval(parse(text=paste0("c(", sub("~", ":", fr, fixed=TRUE), ")")))]="1"
+               mainlab=sprintf("%s #%s", met, paste0(mask, collapse=""))
+            }
+            plot_ms(sim[isim], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
          }
       }
-   }
-   # LABEL_MEASURMENTS
-   nm_sel=grep("^l:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
-   if (length(nm_sel) > 0) {
-      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
-      text(0.5, 0.05, lab="Label measurements\n(error bars=±2*dev)", cex=2)
-      nm=sort(unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 2)))
-      for (met in nm) {
-         i=grep(sprintf("l:%s:", met), nm_sel, fixed=TRUE, v=TRUE)
-         plot_lab(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=met)
+      # plot MS of non measured metabs
+   #browser()
+      if (!is.null(.GlobalEnv$mid)) {
+         nm_sim=names(mid[,iexp])
+         # get "pyr" from "m:pyr:1~3:0:171" (on ms)
+         nmm=unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 1:4)[2,])
+         # get "pyr" from "pyr:7+0" (on simulated)
+         nmmid=unique(sapply(strsplit(nm_sim, "+", fixed=TRUE), "[", 1))
+         if (emu)
+            nmmid=unique(sapply(strsplit(nmmid, ":", fixed=TRUE), "[", 1))
+         nmp=sort(setdiff(nmmid, nmm))
+         if (length(nmp)) {
+            plot(0:1, c(0,0.1), type="n", axes=FALSE, xlab="", ylab="")
+            text(0.5, 0.05, lab="MS simulations", cex=2)
+         }
+         for (met in nmp) {
+            if (emu) {
+               i=grep(sprintf("^%s:", met), nm_sim, v=TRUE)
+               # take fragments
+               fr=unique(sapply(strsplit(i, "[+:]"), "[", 2))
+               for (f in fr) {
+                  i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
+                  fi=as.integer(f)
+                  mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
+                  plot_ms(mid[i, iexp], NULL, NULL, main=mainlab)
+               }
+            } else {
+               i=grep(sprintf("^%s\\+[0-9]+$", met), nm_sim, v=TRUE)
+               plot_ms(mid[i, iexp], NULL, NULL, main=met)
+            }
+         }
       }
-   }
-   # PEAK_MEASURMENTS
-   nm_sel=grep("^p:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
-   if (length(nm_sel) > 0) {
-      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
-      text(0.5, 0.05, lab="Peak measurements\n(error bars=±2*dev)", cex=2)
-      nmp=sort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 2:3), 2, paste, collapse=":")))
-      for (metp in nmp) {
-         i=grep(sprintf("p:%s:", metp), nm_sel, fix=TRUE, v=TRUE)
-         plot_peak(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=metp)
+      # LABEL_MEASURMENTS
+      nm_sel=grep("^l:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
+      if (length(nm_sel) > 0) {
+         plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="Label measurements\n(error bars=±2*dev)", cex=2)
+         nm=sort(unique(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 2)))
+         for (met in nm) {
+            i=grep(sprintf("l:%s:", met), nm_sel, fixed=TRUE, v=TRUE)
+            plot_lab(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=met)
+         }
       }
-   }
-   # FLUX_MEASURMENTS
-   nm_sel=names(fmn)
-   if (length(nm_sel) > 0) {
-      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
-      text(0.5, 0.05, lab="Flux measurements\n(error bars=±2*dev)", cex=2)
-      nmf=sort(substring(nm_sel, 5))
-      for (f in nmf) {
-         i=grep(sprintf("^.\\.n\\.%s$", f), nm_sel, v=TRUE)
-         plot_flux(jx_f$simfmn[i], fmn[i], 2*measurements$dev$flux[i], main=f)
+      # PEAK_MEASURMENTS
+      nm_sel=grep("^p:", if (is.null(names(me))) names(sim) else names(me), v=TRUE)
+      if (length(nm_sel) > 0) {
+         plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="Peak measurements\n(error bars=±2*dev)", cex=2)
+         nmp=sort(unique(apply(sapply(strsplit(nm_sel, ":", fixed=TRUE), "[", 2:3), 2, paste, collapse=":")))
+         for (metp in nmp) {
+            i=grep(sprintf("p:%s:", metp), nm_sel, fix=TRUE, v=TRUE)
+            plot_peak(sim[i], me[i], 2*measurements$dev$labeled[[iexp]][i], main=metp)
+         }
       }
-   }
-   # POOL_MEASURMENTS
-   nm_sel=names(measurements$vec$pool)
-   if (length(nm_sel) > 0) {
-      plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
-      text(0.5, 0.05, lab="Metabolite pool measurements\n(error bars=±2*dev)", cex=2)
-      nmp=sort(substring(nm_sel, 4))
-      for (p in nmp) {
-         i=grep(sprintf("pm:%s", p), nm_sel, fixed=TRUE, v=TRUE)
-         plot_pool(jx_f$simpool[i], measurements$vec$pool[i], 2*measurements$dev$pool[i], main=p)
+      # FLUX_MEASURMENTS
+      nm_sel=names(fmn)
+      if (length(nm_sel) > 0) {
+         plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="Flux measurements\n(error bars=±2*dev)", cex=2)
+         nmf=sort(substring(nm_sel, 5))
+         for (f in nmf) {
+            i=grep(sprintf("^.\\.n\\.%s$", f), nm_sel, v=TRUE)
+            plot_flux(jx_f$simfmn[i], fmn[i], 2*measurements$dev$flux[i], main=f)
+         }
       }
+      # POOL_MEASURMENTS
+      nm_sel=names(measurements$vec$pool)
+      if (length(nm_sel) > 0) {
+         plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="Metabolite pool measurements\n(error bars=±2*dev)", cex=2)
+         nmp=sort(substring(nm_sel, 4))
+         for (p in nmp) {
+            i=grep(sprintf("pm:%s", p), nm_sel, fixed=TRUE, v=TRUE)
+            plot_pool(jx_f$simpool[i], measurements$vec$pool[i], 2*measurements$dev$pool[i], main=p)
+         }
+      }
+     dev.off()
    }
-  dev.off()
 }

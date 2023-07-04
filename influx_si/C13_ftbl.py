@@ -119,6 +119,7 @@ import re
 import copy
 import os
 import sys
+import math
 from codecs import BOM_UTF8, BOM_UTF16_BE, BOM_UTF16_LE, BOM_UTF32_BE, BOM_UTF32_LE
 
 #import pdb
@@ -1015,11 +1016,12 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
                     # dependent net
                     netan["flux_dep"]["net"][reac]=nval
             except:
-                werr("Error occured on the row %d or %d of ftbl file %s:\n"%(ncond["irow"], cond["irow"], ftbl["name"]))
+                werr("Error occured on the row %s or %s of ftbl file %s:\n"%(ncond["irow"], cond["irow"], ftbl["name"]))
                 raise
     except Exception as inst:
         #werr(join(" ", sys.exc_info())+"\n")
-        werr(": ".join(inst)+"\n")
+        #werr(": ".join(inst)+"\n")
+        werr("\n"+format(inst)+"\n")
     # complete variable growth exchange fluxes
     netan["flux_vgrowth"]["xch"]=dict((k, 0.) for k in netan["flux_vgrowth"]["net"])
     

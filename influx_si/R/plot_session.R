@@ -13,10 +13,10 @@ ix=grep("^Sed.*_cy", nmma, fix=F); plot_ti(tis, ms[ix,])
 mets=unique(sapply(nmm, function(n) strsplit(n, "[:+]")[[1]][2]))
 sapply(mets, function(m) {
    cat(m, "\n");
-   i=grep(join("", c(":", m)), nmm, fix=T);
+   i=grep(join("", c(":", m)), nmm, fix=TRUE);
    if (length(i) > 0) {
       pdf(join("", c(m, ".pdf")));
-      plot_ti(td$ti, td$usm[i,,drop=F], me[i,,drop=F], main=m);
+      plot_ti(td$ti, td$usm[i,,drop=FALSE], me[i,,drop=FALSE], main=m);
       dev.off()
    } else {
       cat("not found: ", m, "\n")

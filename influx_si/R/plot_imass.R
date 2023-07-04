@@ -46,6 +46,7 @@ plot_ti=function(ti, x, m=NULL, ...) {
    legend("topright", legend=nm_leg, lty=1:nb_curve, col=1:nb_curve, lwd=2, cex=0.75, bg=rgb(0.97,0.97,0.97, 0.75))
 }
 #browser()
+cat("***Warning: 'plot_imass.R' is deprecated. Use 'plot_ilab.R' instead.\n", file=fclog)
 for (iexp in seq_len(nb_exp)) {
    usmf=jx_f$usmf[[iexp]] # unscaled simulated measurements
    me=measurements$vec$kin[[iexp]] # measured dynamic labeling data
@@ -58,7 +59,7 @@ for (iexp in seq_len(nb_exp)) {
    # get unique fragment names
    nm_sel=grep("^m:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE)
    nm_sel=sort(nm_sel)
-   pdf(sprintf("%s/%s.pdf", dirw, nm_exp[iexp]))
+   pdf(sprintf("%s/%s.pdf", dirres, nm_exp[iexp]))
    if (length(nm_sel) > 0) {
       plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
       text(0.5, 0.05, lab="MS measurements", cex=2)

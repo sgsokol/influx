@@ -121,7 +121,7 @@ cumo_cost=function(param, labargs, resl=lab_resid(param, cjac=FALSE, labargs)) {
 param2fl=function(param, labargs) {
    # claculate all fluxes from free fluxes
    
-   # local variabl assignments form labargs
+   # local variabl assignments from labargs
    nm_local=c("nb_f", "nm", "invAfl", "p2bfl", "bp", "g2bfl", "fc")
    for (item in nm_local) {
       assign(item, labargs[[item]])
@@ -1323,7 +1323,7 @@ mc_sim=function(imc) {
    #set.seed(seeds[imc])
    #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", imc))
    labargs=get("labargs", envir=.GlobalEnv)
-   for (item in c("nb_f", "measurements", "case_i", "dirw", "baseshort", "nb_exp")) {
+   for (item in c("nb_f", "measurements", "case_i", "dirres", "baseshort", "nb_exp")) {
       assign(item, labargs[[item]])
    }
    # random measurement generation
@@ -1366,9 +1366,10 @@ mc_sim=function(imc) {
    res=opt_wrapper(param, tail(methods, 1L), measurements_mc, loc_jx_f, labargs, trace=0)
    #save(res, file=sprintf("mc_%d.RData", imc))
    if (res$err && !is.null(res$mes) && nchar(res$mes) > 0) {
-      fcerr=file(file.path(dirw, sprintf("%s.%smc%d.err", baseshort, runsuf, imc)), "wb")
-      cat((if (res$err) "Error" else "Warning"), " in Monte-Carlo i=", imc, ": ", res$mes, "\n", file=fcerr, sep="")
-      close(fcerr)
+   #if (TRUE) {
+      fclog=file(file.path(dirres, "tmp", sprintf("%s.%smc%d.log", baseshort, runsuf, imc)), "wb")
+      cat((if (res$err) "***Error" else "***Warning"), " in Monte-Carlo i=", imc, ": ", res$mes, "\n", file=fclog, sep="")
+      close(fclog)
       if (res$err) {
          res=list(cost=NA, it=res$it, normp=res$normp, par=res$par, err=res$err)
          rm(loc_jx_f)

@@ -196,8 +196,10 @@ def main(argv=sys.argv[1:]):
         # get fluxes from kvh if present
         fkvh=Path(bftbl+"_res.kvh")
         if not fkvh.is_file():
-            warn("warning: file '%s' is not found. No flux values are written in TSV files.\n"%str(fkvh))
-            continue
+            fkvh=Path(bftbl+"_res")/"tmp"/(fftbl.stem+"_res.kvh")
+            if not fkvh.is_file():
+                warn("warning: file '%s' is not found. No flux values are written in TSV files.\n"%str(fkvh))
+                continue
         dkvh=kv.kvh2dict(str(fkvh), strip=True)
         if not "linear stats" in dkvh or not "fwd-rev fluxes (sorted by name)" in dkvh["linear stats"]:
             warn("warning: field 'linear stats/fwd-rev fluxes (sorted by name)' is not found in file '%s'. No flux values are written in TSV files.\n"%str(fkvh))

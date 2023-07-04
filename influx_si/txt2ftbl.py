@@ -22,8 +22,9 @@ from numpy import diag
 vsadd=np.core.defchararray.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict
+from tools_ssg import valval
 
-import pdb
+#import pdb
 
 version="1.0"
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
@@ -33,7 +34,8 @@ invcomp={">=": "<=", "=>": "<=", "<=": ">=", "=<": ">="}
 
 def natural_sort_key(s, _re=re.compile(r'(\d+)')):
     # last 2 fields are inverted for sorting
-    return [int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li[:-3]+li[-1:]+li[-2:-4:-1])]
+    res=[int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li[:-3]+li[-1:]+li[-2:-4:-1])]
+    return res
 def plain_natural_key(s, _re=re.compile(r'(\d+)')):
     return [int(t) if i & 1 else t.lower() for li in (_re.split(s)[:-1],) for i, t in enumerate(li)]
 def dtstamp():
@@ -109,7 +111,7 @@ def try_ext(f, li):
     The first found is returned as Path() otherwise an exception is raised."""
     if type(f) in (type(Path()), str):
         # check if we need to add an extension
-        pth=Path(f)
+        pth=Path(f).expanduser()
         if not pth.is_file():
             for suf in li:
                 if not suf.startswith("."):
@@ -255,8 +257,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
                             werr("txt_parse: metabolite '%s' has different label lengths %d and %d. The last is in '%s': %d"%(m, dclen[m], len(t[0]), fname, iline))
                     else:
                         dclen[m]=len(t[0])
-                        
-            [[[(c,m,t[0]) ] ]]
+        
         if any(len(t) == 0 for side in lr for c,m,t in side):
             werr("txt_parse: wrong format for labeling pattern in '%s': %d."%(fname, iline))
         if not tr_reac:
@@ -268,13 +269,13 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
             # add a row to stoechiometric matrix
             if nm_reac in sto:
                 werr("txt_parse: reaction name '%s' was already used ('%s': %d)"%(nm_reac, fname, iline))
-            d={}
+            d={} # will contain summed stoichiometric coeffs
             d.update((m, -(float(c) if c else 1.)+d.get(m, 0.)) for c,m,t in lr[0])
             d.update((m, (float(c) if c else 1.)+d.get(m, 0.)) for c,m,t in lr[1])
             sto[nm_reac]=d
             # get m_left and m_right metab dicts
-            es=dict((m, 0) for c,m,t in lr[0])
-            ps=dict((m, 0) for c,m,t in lr[1])
+            es=dict((m, dclen.get(m, 0)) for c,m,t in lr[0])
+            ps=dict((m, dclen.get(m, 0)) for c,m,t in lr[1])
             if rev:
                 es.update(ps)
                 ps.update(es)
@@ -372,10 +373,12 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
     return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto, dclen]
 def parse_miso(fmiso, clen, case_i=False):
     "Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak"
+    prow_def={"center": 0, "v0": "", "v-1": "", "v1": "", "v-11": "", "dev0": "", "dev-1": "", "dev1": "", "dev-11": ""} # for building peak-row
     if "name" in dir(fmiso):
         fname=fmiso.name
     else:
         fname=fmiso
+    
     fname=os.path.basename(fname)
     #pdb.set_trace()
     df=tsv2df(fmiso)
@@ -391,13 +394,14 @@ def parse_miso(fmiso, clen, case_i=False):
         if "Time" in df and sum(df["Time"] == "") == 0:
             werr("parse_miso: we are in stationary case but 'Time' column is not empty in '%s'"%fname)
         df=df[df["Time"] == ""] if "Time" in df else df
-    res={"ms": [], "lab": []} # 'peak' and 'mean' are transformed into lab
+    res={"ms": [], "lab": [], "peak": []} # 'mean' is transformed into lab
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
     cgr=1
     #pdb.set_trace()
-    meas_seen=set()
     for kgr, ligr in df.groupby(["Specie", "Fragment", "Dataset"]).groups.items():
+        # all Time values are supposed to be here => Dataset must be the same
+        #   for all times for a given metab fragment
         #print("gr=", kgr, ligr)
         met,frag,dset=kgr
         #if met == "M_accoa_c":
@@ -431,8 +435,8 @@ def parse_miso(fmiso, clen, case_i=False):
             werr("parse_miso: in group %s, fragment length %d is greater than metabolite length %d in '%s'"%(kgr, flen, mlen, fname))
         if not dset:
             werr("parse_miso: dataset name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
-        if ligr[-1]-ligr[0]+1 != len(ligr):
-            werr("parse_miso: measurements %s are not contiguous in '%s'. They occupy rows: %s"%(kgr, fname, ", ".join((ligr+2).astype(str))))
+        #if ligr[-1]-ligr[0]+1 != len(ligr): # data should be allowed in any order
+        #    werr("parse_miso: measurements %s are not contiguous in '%s'. They occupy rows: %s"%(kgr, fname, ", ".join((ligr+2).astype(str))))
         # ftbl frag
         if flen == mlen:
             ffrag=""
@@ -469,7 +473,8 @@ def parse_miso(fmiso, clen, case_i=False):
                 u=np.unique(df.loc[spi, "SD"])
                 if len(u) != 1:
                     werr(f"parse_miso: SD must be the same at all time points for {kgr}, {sp}: '{fname}': "+", ".join(df.loc[spi, "iline"]))
-            ii0=sorted(ii0)
+            ii0=sorted(ii0) # index in ligr with Time=min
+            #pdb.set_trace()
         if kind == "ms":
             # ms group here, like M0, M1
             #print("ms gr=", kgr)
@@ -485,7 +490,6 @@ def parse_miso(fmiso, clen, case_i=False):
             if case_i:
                 #if met == "Phe":
                     #pdb.set_trace()
-
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 #pdb.set_trace()
@@ -495,7 +499,7 @@ def parse_miso(fmiso, clen, case_i=False):
             else:
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
-        elif kind == "lab" or kind == "peak" or kind == "mean":
+        elif kind == "lab" or kind == "mean":
             # label group (like 01x+1x1)
             if kind == "lab":
                 labs=[[vv.strip() for vv in v.split("+")] for v in df.loc[ligr, "Isospecies"]]
@@ -565,7 +569,7 @@ def parse_miso(fmiso, clen, case_i=False):
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for i,(sp,spi) in enumerate(dsp.items()):
                         #pdb.set_trace()
-                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[spi[0]])}:NA"])])
+                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[0])}:{df.loc[spi[0],'iline']}"])])
             else:
                 if met != last_met or frag != last_frag:
                     last_met=met
@@ -575,6 +579,58 @@ def parse_miso(fmiso, clen, case_i=False):
                 res["lab"] += [f"\t{met}\t{cgr}\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
                 res["lab"] += [f"\t\t{i+cgr if norma else cgr}\t{val[i]}\t{sdv[i]}\t"+"+".join("#"+v for v in labs[i])+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
                 cgr += len(ligr) if norma else 1
+        elif kind == "peak":
+            #pdb.set_trace()
+            # peak group here, like 2->1,3
+            icarb=np.fromiter(dsp.keys(), "S1024").astype("str") if case_i else df.loc[ligr, "Isospecies"].to_numpy().astype("str")
+            icarb=np.char.split(icarb, sep)
+            icarb=[np.array([int(vv) if vv else 0 for v in item for vv in v.split(",")]) for item in icarb]
+            # peak sanity check
+            if any(v > flen for v in valval(icarb)):
+                tmp=np.array(list(valval(icarb)))
+                werr("parse_miso: invalid carbon number '%s' in group %s, '%s':%d-%d"%(tmp[tmp>flen].astype(str)[0], kgr, fname, ist, iend))
+            if not case_i and len(ligr) > 4:
+                raise Excpetion("parse_miso: too many PEAK entries %d (max 4 expected) in group %s, '%s':%d-%d"%(len(ligr), kgr, fname, ist, iend))
+            # add this group to results
+            prow=prow_def.copy()
+            for i in range(len(spli) if case_i else len(ligr)):
+                if not i:
+                    prow["center"]=icarb[0][0]
+                    if prow["center"] <= 0:
+                        raise Excpetion("parse_miso: bad carbon number %d in group %s, '%s':%d-%d"%(prow["center"], kgr, fname, ist, iend))
+                else:
+                    if icarb[i][0] != prow["center"]:
+                        raise Excpetion("parse_miso: carbon number %d has changed to %d in group %s, '%s':%d-%d"%(prow["center"], icarb[i][0], kgr, fname, ist, iend))
+                icarb[i][1:]=np.sort(icarb[i][1:]) # 2->3,1 => 2->1,3
+                if len(icarb[i]) == 2 and not icarb[i][1]:
+                    icarb[i][1]=icarb[i][0]
+                suf=str(np.char.join("", (str(v) for v in icarb[i][1:]-prow["center"])))
+                prow["v"+suf]=val[i]
+                prow["dev"+suf]=sdv[i]
+            if case_i:
+                res["peak"] += [f"\t{met}\t{prow['center']}\t{'NA' if prow['v0'] else ''}\t{'NA' if prow['v-1'] else ''}\t{'NA' if prow['v1'] else ''}\t{'NA' if prow['v-11'] else ''}\t\t{prow['dev0']}\t{prow['dev-1']}\t{prow['dev1']}\t{prow['dev-11']}"+"   // %s: %d"%(fname, ist)]
+                if not dfgr[dfgr["Time"] != ""].empty:
+                    rowid=0
+                    for sp,spi in dsp.items():
+                        #pdb.set_trace()
+                        if not rowid:
+                            rowid=spi[0]
+                        # ptype is one of: S, D-, D+, DD
+                        li=sp.split(sep)
+                        li[0]=int(li[0])
+                        li[1]=np.array([int(v) if v else 0 for v in li[1].split(",")])
+                        if not li[1][0]:
+                            ptype="S"
+                        elif len(li[1]) == 2:
+                            ptype="DD"
+                        elif li[1][0] < li[0]:
+                            ptype="D-"
+                        else:
+                            ptype="D+"
+                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"p:{met}:{prow['center']}:{ptype}:{df.loc[rowid,'iline']}"])])
+            else:
+                res["peak"] += [f"\t{met}\t{prow['center']}\t{prow['v0']}\t{prow['v-1']}\t{prow['v1']}\t{prow['v-11']}\t\t{prow['dev0']}\t{prow['dev-1']}\t{prow['dev1']}\t{prow['dev-11']}"+"   // %s: %d"%(fname, ist)]
+
     if case_i:
         # reorder time moments in df_kin
         #pdb.set_trace()
@@ -654,7 +710,7 @@ def parse_tvar(f, dfl={}, lablen={}):
     df=tsv2df(f)
     #print("df=", df)
     fl={}
-    mets=[]
+    mets={}
     for kgr,ligr in sorted(df.groupby(["Kind", "Name"]).groups.items(), key=lambda t: (t[0][0], plain_natural_key(t[0][1]))):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         kind,nm=kgr
@@ -680,7 +736,9 @@ def parse_tvar(f, dfl={}, lablen={}):
                 continue
             if ty != "C":
                 val="-"+val
-            mets.append("\t%s\t%s   // %s: %s"%(nm, val, fname, il[0]))
+            if nm in mets:
+                werr("parse_tvar: specie '%s' is defined more than one time in '%s': %s"%(nm, fname, ", ".join(il)))
+            mets[nm]="\t%s\t%s   // %s: %s"%(nm, val, fname, il[0])
         else:
             if dfl and nm not in dfl:
                 werr("parse_tvar: flux '%s' was not seen in metabolic network, '%s': %s"%(nm, fname, il[0]))
@@ -860,7 +918,10 @@ def compile(mtf, cmd, case_i=False, clen=None):
         m_r=set(m_right.keys())
         m_inp=m_l-m_r
         m_out=m_r-m_l
+        # internal metabolites
         itnal_met=(m_l|m_r) - m_inp - m_out
+        # labeled metabolites
+        lab_met=set(m for m,l in dclen.items() if l > 0)
         nm_met=sorted(itnal_met, key=plain_natural_key)
         fl2i=dict((fl, i) for i, fl in enumerate(nm_flux))
         met2i=dict((m, i) for i, m in enumerate(nm_met))
@@ -939,6 +1000,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     else:
         dclen={} if clen is None else clen
         itnal_met=set()
+        lab_met=set()
         sto={}
         fluxes=[]
     sfl=set(sto.keys()) # set of fluxes
@@ -961,6 +1023,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
             #pdb.set_trace()
         else:
             meas=parse_miso(pth, dclen)
+        dsec["meas_peak"] += meas["peak"]
         dsec["meas_lab"] += meas["lab"]
         dsec["meas_ms"] += meas["ms"]
     else:
@@ -975,7 +1038,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         dsec["mflux"] += parse_mflux(pth, sfl)
     if "mmet" in mtf and mtf["mmet"]:
         pth=try_ext(mtf["mmet"], ["mmet", "tsv", "txt"])
-        dsec["mmet"] += parse_mmet(pth, itnal_met)
+        dsec["mmet"] += parse_mmet(pth, lab_met)
     if "opt" in mtf and mtf["opt"]:
         pth=try_ext(mtf["opt"], ["opt", "tsv", "txt"])
         dsec["opt"] += parse_opt(pth)
@@ -989,13 +1052,15 @@ def compile(mtf, cmd, case_i=False, clen=None):
             dsec["flux"][1]["NET"] += tf["NET"]
         if "XCH" in tf:
             dsec["flux"][1]["XCH"] += tf["XCH"]
-        dsec["met_pool"] += tm
+        dsec["met_pool"] += list(tm.values())
     else:
         #pdb.set_trace()
         stvar={"NET": dict(), "XCH": dict()}
-        dsec["met_pool"] += ["\t"+m+"\t0.1" for m in itnal_met]
+        tm=dict()
+        dsec["met_pool"] += ["\t"+m+"\t0.1" for m in (itnal_met&lab_met)]
         # add default values in dfdef["tvar"]
-        dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", m, "METAB", "C", 0.1) for m in itnal_met], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])])
+        #pdb.set_trace()
+        dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", m, "METAB", "C", 0.1) for m in (itnal_met&lab_met)-tm.keys()], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])])
 
     snrev=set() # set of non reversible fluxes
     for tpl in fluxes:
@@ -1022,8 +1087,6 @@ def compile(mtf, cmd, case_i=False, clen=None):
     #pdb.set_trace()
     dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", dict())]
     dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]
-    if "tvar" not in dfdef:
-        dfdef["tvar"]=pa.DataFrame(columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])
     dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", v[0], "NET", v[1], v[2]) for v in [vv.split() for k,vv in dtnet.items() if k not in stvar.get("NET", dict())]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])], ignore_index=True)
     dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", v[0], "XCH", v[1], v[2]) for v in [vv.split() for k,vv in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])], ignore_index=True)
     #pdb.set_trace()
@@ -1427,9 +1490,15 @@ is the argument value that will take precedence.
             if len(df) == 0:
                 continue
             #pdb.set_trace()
-            with Path(mtf["netw"]).with_suffix("."+k+".def").open("w", encoding="UTF-8") as fc:
+            p=Path(mtf["netw"]).with_suffix("."+k+".def")
+            pk=p.with_suffix("")
+            #if pk.is_file() and pk.stat().st_size > 0:
+            #    continue
+            with p.open("w", encoding="UTF-8") as fc:
                 fc.write(scre%dtstamp())
                 df.to_csv(fc, sep="\t", index=False)
+                if __name__ == "__main__" or __name__ == "influx_si.txt2ftbl":
+                    print(str(p))
     return 0
 if __name__ == "__main__" or __name__ == "influx_si.cli":
     main()

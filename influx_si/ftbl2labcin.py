@@ -11,6 +11,8 @@ Author: Serguei Sokol (sokol at insa-toulouse dot fr)
 License: Gnu Public License (GPL) v2 http://www.gnu.org/licenses/gpl.html
 """
 
+#import pdb
+
 import sys, os
 from glob import glob # wildcard expansion
 from pathlib import Path
@@ -27,7 +29,7 @@ def warn(mes):
 
 def ftbl_id(ftbl, d, netan, iprl=0):
     "make row id in labcin equal to those in ftbl"
-    #import pdb; pdb.set_trace()
+    #pdb.set_trace()
     # read labcin
     flabcin = [it["OPT_VALUE"] for it in d.get("OPTIONS", []) if it["OPT_NAME"] == "file_labcin"]
     if not flabcin:
@@ -50,8 +52,14 @@ def ftbl_id(ftbl, d, netan, iprl=0):
     # get id of measurements in flabcin
     mid = df_cin.iloc[:, 0].to_numpy().astype(str)
     # get id in ftbl
+    #pdb.set_trace()
     fid = [row["id"]
-        for mtype in ('label_meas', 'peak_meas', 'mass_meas')
+        for dit in netan['label_meas'][iprl].values()
+        for d2 in dit.values()
+        for row in d2
+    ]
+    fid += [row["id"]
+        for mtype in ('peak_meas', 'mass_meas')
         for dit in netan[mtype][iprl].values()
         for d2 in dit.values()
         for row in d2.values()

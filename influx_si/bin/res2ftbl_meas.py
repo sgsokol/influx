@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Parse _res.kvh file from stdin or from first parameter
+"""
+Deprecated. Use .miso.sim, .mflux.sim and .mmet.sim with "influx_si --mtf" option instead.
+
+Parse _res.kvh file from stdin or from first parameter
 and write the measurment section of ftbl file in file(s) suffixed with '_simN.ftbl'
 Where N is an integer corresponding to parallel experiment number.
 In case of instationary labeling, label kinetics are written in file(s)

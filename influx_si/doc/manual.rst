@@ -201,7 +201,7 @@ Constraints on fluxes and specie concentrations can look like: ::
 			NET	Glucupt_1+Glucupt_U	==		1
 			NET	edd			>=		0.0001
 
-Column ``Kind`` indicates if a constraint is on net fluxes: ``NET``; on exchange fluxes: ``XCH`` or on specie concentrations: ``MET``. The ``Formula`` content must be a linear function of involved entities. Column ``Value`` can have either a float number or a simple Python arithmetic expression which evaluates to a float number.
+Column ``Kind`` indicates if a constraint is on net fluxes: ``NET``; on exchange fluxes: ``XCH`` or on specie concentrations: ``MET``. The ``Formula`` content must be a linear function of involved entities. If numeric factors are involved in the formula, they must preceed the variable name, e.g. ``0.632*BM`` and not ``BM*0.632``. Column ``Value`` can have either a float number or a simple Python arithmetic expression which evaluates to a float number, e.g. ``math.sqrt(2)/2`` or ``np.sqrt(2)/2`` (here ``np`` stands for ``numpy``).
 
 .tvar
 -----

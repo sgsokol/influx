@@ -1449,7 +1449,7 @@ as.function.formula=function(f, envir=parent.frame()) {
       },
       {
          rhs=f[[3]]
-         arg=if (is.character(f[[2]])) strsplit(f[[2]], ",")[[1]] else all.vars(f[[2]])
+         arg=if (is.character(f[[2]])) strsplit(f[[2]], ",", fixed=TRUE)[[1]] else all.vars(f[[2]])
       }
    )
    arg=if (length(arg)) eval(parse(text=paste0("alist(", paste0(paste0(arg, "="),collapse=", "), ")"))) else alist()
@@ -1550,3 +1550,30 @@ natsort=function(s, ...) {
    s[natorder(s, ...)]
 }
 vgrep=base::Vectorize(base::grep, "pattern")
+strsplitlim=function(..., lim=0L, strict=FALSE) {
+   # strsplit() with limit number of items in output vector
+   # if lim <= 0, no limit is applied
+   res=base::strsplit(...)
+   if (is.na(lim))
+      lim=max(sapply(res, length))
+   lim=as.integer(lim)
+   if (lim > 0L) {
+      call=as.list(sys.call(sys.parent()))
+      call$lim=NULL
+      call$strict=NULL
+      call=as.call(call)
+      sep=as.list(match.call(definition=args(base::strsplit), call=call))[["split"]]
+      i=seq_len(lim-1L)
+      if (strict) {
+         res=lapply(res, function(v) {n=length(v); if (lim < n) c(v[i], paste0(v[-i], collapse=sep)) else c(v, rep("", lim-n))})
+      } else {
+         res=lapply(res, function(v) if (lim < length(v)) v=c(v[i], paste0(v[-i], collapse=sep)) else v)
+      }
+   }
+   res
+}
+clamp=function(x, low, high) {
+   x[x < low]=low
+   x[x > high]=high
+   x
+}

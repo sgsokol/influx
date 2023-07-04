@@ -1,4 +1,7 @@
-# Created by 'ftbl2mtf e_coli_growth.ftbl -o mtf/' at 2022-05-25 17:04:35 CEST +0200
+# Created by 'ftbl2mtf e_coli_growth -o mtf/'
+# Date: 2023-06-30 10:33:36 CEST +0200
+# influx_si version: 6.1.0.12
+# If edited by hand, remove these comments
 Id	Comment	Kind	Formula	Operator	Value
 		NET	fum_a-fum_b	==	0
 		NET	Glucupt_1+Glucupt_U	==	1

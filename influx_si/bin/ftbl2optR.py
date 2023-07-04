@@ -103,45 +103,40 @@ Functions:
 # 2010-10-16 sokol: fortran code is no more generated, R Matrix package is used for sparse matrices.
 # 2014-04-14 sokol:adapted for both "s" and "i" cases
 
-if __name__ == "__main__" or __name__ == "influx_si.cli":
-    import sys
-    import os
-    import stat
-    import time
-    import copy
-    import getopt
-    import math
-    import influx_si
-    #import pdb
+#import pdb
 
-    me=os.path.realpath(sys.argv[0])
+import sys
+import os
+import stat
+import time
+import copy
+import getopt
+import math
+from pathlib import Path
+import influx_si
+    
+from tools_ssg import *
+import C13_ftbl
+import ftbl2code
+
+def main(argv=sys.argv):
+    me=os.path.realpath(argv[0])
     dirbin=os.path.join(os.path.dirname(influx_si.__file__), "bin")
     sys.path.append(dirbin)
     me=os.path.basename(me)
 
-    from tools_ssg import *
-    import C13_ftbl
-
-    try:
-        import psyco
-        psyco.full()
-        #psyco.log()
-        #psyco.profile()
-    except ImportError:
-        #print 'Psyco not installed, the program will just run slower'
-        pass
 
     def usage():
         sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--tblimit[=0]] [--ropts ROPTS] network_name[.ftbl]\n")
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i", "ffguess"])
+        opts,args=getopt.getopt(argv[1:], "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i", "ffguess", "dirres="])
     except getopt.GetoptError as err:
         #pass
         sys.stderr.write(str(err)+"\n")
         usage()
-        sys.exit(1)
+        return 1
 
     fullsys=False
     emu=False
@@ -153,7 +148,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     for o,a in opts:
         if o in ("-h", "--help"):
             usage()
-            sys.exit(0)
+            return 0
         elif o=="--fullsys":
             fullsys=True
         elif o=="--emu":
@@ -168,18 +163,21 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
             tblimit=int(a)
         elif o=="--ffguess":
             ffguess=True
+        elif o=="--dirres":
+           dirres=a
         else:
             #assert False, "unhandled option"
             # unknown options can come from shell
             # which passes all options both to python and R scripts
             # so just ignore unknown options
             #pass
-            raise
+            #pdb.set_trace()
+            raise Exception("unhandled option '%s'"%o)
     #aff("args", args);##
     #aff("opts", opts);##
     if len(args) != 1:
         usage()
-        exit(1)
+        return 1
     org=os.path.basename(args[0])
     dirorg=os.path.dirname(args[0]) or '.'
     sys.tracebacklimit=tblimit
@@ -190,7 +188,6 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     fullorg=os.path.join(dirorg, org)
 
     #-->
-    import ftbl2code
     ftbl2code.case_i=case_i
     C13_ftbl.clownr=clownr
     C13_ftbl.ffguess=ffguess
@@ -219,7 +216,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     rAb=C13_ftbl.rcumo_sys(netan, emu)
 
     # write initialization part of R code
-    ftbl2code.netan2Rinit(netan, org, f, fullsys, emu, ropts)
+    ftbl2code.netan2Rinit(netan, org, f, fullsys, emu, ropts, dirres)
 
     ropts_s="\n\t\t".join(ropts)
     if ropts_s and ropts_s[0]=='"':
@@ -313,13 +310,13 @@ dimnames(measmatpool)=list(nm_poolm, nm_poolall)
 i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=T)
 measmatpool[i]=1.
 
-"""%{
+    """%{
     "nb_poolm": len(netan["metab_measured"]),
     "nm_poolm": join(", ", list(netan["metab_measured"].keys()), '"pm:', '"'),
     "v_poolm": join(", ", (item["val"] for item in list(netan["metab_measured"].values()))).replace("nan", "NA"),
     "poolmdev": join(", ", (item["dev"] for item in list(netan["metab_measured"].values()))),
     "imeasmatpool": join(", ", valval((ir,netan["vpool"]["all2i"][m]) for (ir, ml) in enumerate(netan["metab_measured"].keys()) for m in ml.split("+"))),
-})
+    })
     if case_i:
         f.write("""
 ## variables for isotopomer kinetics
@@ -351,7 +348,7 @@ measvecti=ti=tifull=tifull2=vector("list", nb_exp)
 nb_ti=nb_tifu=nb_tifu2=integer(nb_exp)
 nsubdiv_dt=pmax(1L, as.integer(c(%(nsubdiv_dt)s)))
 nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
-nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":")), ncol=2, byrow=T)[,1L]]
+nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":", fixed=TRUE)), ncol=2, byrow=T)[,1L]]
 for (iexp in seq_len(nb_exp)) {
    if (tmax[iexp] < 0) {
       stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), file=fcerr)
@@ -382,11 +379,12 @@ for (iexp in seq_len(nb_exp)) {
       nm_row=rownames(measvecti[[iexp]])
       # put in the same row order as simulated measurements
       # check if nm_meas are all in rownames
+#browser()
       if (all(nm_meas[[iexp]] %%in%% nm_row)) {
          measvecti[[iexp]]=measvecti[[iexp]][nm_meas[[iexp]],,drop=FALSE]
       } else {
          # try to strip row number from measure id
-         nm_strip=sapply(strsplit(nm_meas[[iexp]], ":"), function(v) {
+         nm_strip=sapply(strsplit(nm_meas[[iexp]], ":", fixed=TRUE), function(v) {
             paste(c(v[-length(v)], ""), sep="", collapse=":")
          })
          im=pmatch(nm_strip, nm_row)
@@ -397,7 +395,6 @@ for (iexp in seq_len(nb_exp)) {
          }
          measvecti[[iexp]]=measvecti[[iexp]][im,,drop=FALSE]
          #stopifnot(all(!is.na(measvecti)))
-#browser()
          if (typeof(measvecti[[iexp]])!="double") {
             # check for weird  entries
             tmp=measvecti[[iexp]]
@@ -415,7 +412,7 @@ for (iexp in seq_len(nb_exp)) {
       }
       ti[[iexp]]=as.double(colnames(measvecti[[iexp]]))
       if (any(is.na(ti[[iexp]]))) {
-         mes=sprintf("All time moments (in column names) could not be converted to real numbers in the file '%%s'\\nConverted times:\\n%%s", flabcin[[iexp]], join("\\n", ti[[iexp]]))
+         mes=sprintf("Some time moments (in column names) could not be converted to real numbers in the file '%%s'\\nConverted times:\\n%%s", flabcin[[iexp]], join("\\n", ti[[iexp]]))
          stop_mes(mes, file=fcerr)
       }
       if (length(ti[[iexp]]) < 1L) {
@@ -445,9 +442,9 @@ for (iexp in seq_len(nb_exp)) {
       }
       ti[[iexp]]=seq(tstart, tmax[[iexp]], by=dt[iexp])
       if (optimize) {
-         cat(sprintf("Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in '%%s.ftbl' file.
-   The fitting is ignored as if '--noopt' option were asked.\\n", nm_exp[[iexp]]), file=fcerr)
-         optimize=F
+         cat(sprintf("***Warning: a fitting is requested but no file with label data is provided by 'file_labcin' option in '%%s.ftbl' file.
+   The fitting is ignored as if '--noopt' option were asked.\\n", nm_exp[[iexp]]), file=fclog)
+         optimize=FALSE
       }
    }
    # recalculate nb_exp from measvecti
@@ -480,14 +477,14 @@ for (iexp in seq_len(nb_exp)) {
       dp_ones[[iexp]]=matrix(aperm(array(dp_ones[[iexp]], c(dim(dp_ones[[iexp]]), nb_ti[[iexp]]-1L)), c(1L, 3L, 2L)), ncol=nb_poolf)
    }
 
-"""%{
-    "dt": join(", ", netan["opt"]["dt"]),
-    "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
-    "flabcin": join(", ", netan["opt"]["file_labcin"], '"', '"'),
-    "nsubdiv_dt": join(", ", netan["opt"]["nsubdiv_dt"]),
-    "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["funlab"])),
-    "funlabR": join(", ", netan["opt"]["funlabR"], '"', '"')
-})
+      """%{
+          "dt": join(", ", netan["opt"]["dt"]),
+          "tmax": join(", ", ["Inf" if math.isinf(v) else v for v in netan["opt"]["tmax"]]),
+          "flabcin": join(", ", netan["opt"]["file_labcin"], '"', '"'),
+          "nsubdiv_dt": join(", ", netan["opt"]["nsubdiv_dt"]),
+          "funlabli": join(", ", (C13_ftbl.mkfunlabli(v) for v in netan["funlab"])),
+          "funlabR": join(", ", netan["opt"]["funlabR"], '"', '"')
+         })
 
         f.write("""
    # prepare mapping of metab pools on cumomers
@@ -549,7 +546,7 @@ nb_f$tifu2=nb_tifu2
 # label state at t=0 (by default=0 but later it should be able to be specified by user)
 x0=NULL
 nb_f$ti=nb_ti
-""")
+    """)
     f.write("""
 # gather all measurement information
 measurements=list(
@@ -581,7 +578,7 @@ if (nchar(fseries) > 0) {
       # fill the rest of rows with random values
       i=nm_par %in% rownames(pstart)
       n=sum(!i)
-      pstart=rbind(pstart, matrix(runif(n*nseries), n, nseries))
+      pstart=rbind(pstart, structure(matrix(runif(n*nseries), n, nseries), dimnames=list(NULL, sprintf(paste0("V%0", ceiling(log10(nseries+1)), "d"), seq(nseries)))))
       rownames(pstart)=c(rownames(pstart)[seq_len(nb_param-n)], nm_par[!i])
    }
    if (nchar(iseries) > 0) {
@@ -599,7 +596,7 @@ if (nchar(fseries) > 0) {
    iseries=unique(as.integer(eval(parse(t="c("%s+%iseries%s+%")"))))
    nseries=max(iseries)
    pstart=matrix(rep(param, nseries), nrow=nb_param, ncol=nseries)
-   dimnames(pstart)=list(nm_par, paste("V", seq_len(nseries), sep=""))
+   dimnames(pstart)=list(nm_par, sprintf(paste0("V%0", ceiling(log10(nseries+1)), "d"), seq(nseries)))
    if (initrand) {
       # fill pstart with random values
       pstart[]=runif(length(pstart))
@@ -664,11 +661,11 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
-""")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
+    """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
-""")
+        """)
     f.write("""
 if (TIMEIT) {
    cat("labargs : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
@@ -693,7 +690,11 @@ if (case_i && (time_order == "2" || time_order == "1,2")) {
 }
 
 # formated output in kvh file
-fkvh_saved=file.path(dirw, sprintf("%s_res.kvh", baseshort))
+if (write_res) {
+   fkvh_saved=file.path(dirres, "tmp", sprintf("%s_res.kvh", baseshort))
+} else {
+   fkvh_saved=NULL
+}
 """)
     f.write(r"""
 retcode=numeric(nseries)
@@ -768,7 +769,11 @@ for (irun in seq_len(nseries)) {
    if (length(nseries) > 0) {
       cat("Starting point", runsuf, "\n", sep="", file=fclog)
    }
-   fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) %s+% runsuf %s+% ".kvh", "w");
+   if (write_res) {
+      fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) %s+% runsuf %s+% ".kvh", "w");
+   } else {
+      fkvh=NULL
+   }
 
    # remove zc inequalities from previous runs
    izc=grep("^zc ", nm_i)
@@ -788,7 +793,11 @@ for (irun in seq_len(nseries)) {
       i=ineq[ineq<= -tol_ineq]
       cat(paste(names(i), i, sep="\t", collapse="\n"), "\n", sep="", file=fclog)
       # put them inside
-      capture.output(pinside <- put_inside(param, ui, ci), file=fclog)
+      if (write_res) {
+         capture.output(pinside <- put_inside(param, ui, ci), file=fclog)
+      } else {
+         pinside <- put_inside(param, ui, ci)
+      }
       if (any(is.na(pinside))) {
          if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
             # fatal error occured
@@ -865,8 +874,8 @@ for (irun in seq_len(nseries)) {
 
       inotsat=ci_zc[zi]>tol_ineq
       if (any(inotsat)) {
-         cat("Warning: The following constant zc inequalities are not satisfied:\n", file=fcerr)
-         cat(nm_izc[zi][inotsat], sep="\n", file=fcerr)
+         cat("***Warning: the following constant zc inequalities are not satisfied:\n", file=fclog)
+         cat(nm_izc[zi][inotsat], sep="\n", file=fclog)
       }
       ui_zc=ui_zc[!zi,,drop=FALSE]
       ci_zc=ci_zc[!zi]
@@ -906,11 +915,15 @@ for (irun in seq_len(nseries)) {
    # set initial scale values to sum(measvec*simlab/dev**2)/sum(simlab**2/dev**2)
    # for corresponding measurements
    if (nb_sc_tot > 0) {
-      if (optimize) {
+      if (TRUE) { # always estimate scaling params even for --noopt
          if (TIMEIT) {
             cat("res esti: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
-         capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
+         if (write_res) {
+            capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
+         } else {
+            rres <- lab_resid(param, cjac=FALSE, labargs)
+         }
          if (!is.null(rres$err) && rres$err) {
             cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
             #close(fkvh)
@@ -964,29 +977,37 @@ for (irun in seq_len(nseries)) {
 """)
     # main part: call optimization
     f.write("""
-   cat("influx\\n", file=fkvh)
-   cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="")
-   cat("\\tlabeling\\t", if (case_i) "instationary" else "stationary", "\\n", file=fkvh, sep="")
-   # save options of command line
-   cat("\\truntime options\\n", file=fkvh)
-   cat("\\t\\t%s\\n", file=fkvh)
+   if (write_res) {
+      cat("influx\\n", file=fkvh)
+      cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="")
+      cat("\\tlabeling\\t", if (case_i) "instationary" else "stationary", "\\n", file=fkvh, sep="")
+      # save options of command line
+      cat("\\truntime options\\n", file=fkvh)
+      cat("\\t\\t%s\\n", file=fkvh)
+   }
    """%ropts_s)
     f.write("""
-   obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
-   cat("\\tR command line\\n", file=fkvh)
-   obj2kvh(opts, "opts", fkvh, indent=2)
-   cat("\\t\\texecution date\t", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fkvh)
-
-   # resume system sizes
-   obj2kvh(nb_sys, "system sizes", fkvh)
-
-   # save initial param
-   cat("starting point\\n", file=fkvh)
-   names(param)=nm_par
-   obj2kvh(param, "starting free parameters", fkvh, indent=1)
+   if (write_res) {
+      obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
+      cat("\\tR command line\\n", file=fkvh)
+      obj2kvh(opts, "opts", fkvh, indent=2)
+      cat("\\t\\texecution date\t", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fkvh)
+      
+      # resume system sizes
+      obj2kvh(nb_sys, "system sizes", fkvh)
+      
+      # save initial param
+      cat("starting point\\n", file=fkvh)
+      names(param)=nm_par
+      obj2kvh(param, "starting free parameters", fkvh, indent=1)
+   }
 #browser()
    if (!length(rres)) {
-      capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
+      if (write_res) {
+         capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
+      } else {
+         rres <- lab_resid(param, cjac=FALSE, labargs)
+      }
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
          #close(fkvh)
@@ -1001,17 +1022,20 @@ for (irun in seq_len(nseries)) {
       }
    }
    rcost=if (length(rres$res) && !all(ina <- is.na(rres$res))) sum(crossprod(rres$res[!ina])) else NA
-   obj2kvh(rcost, "starting cost value", fkvh, indent=1)
-
-   obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
+   if (write_res) {
+      obj2kvh(rcost, "starting cost value", fkvh, indent=1)
+      obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
+   }
    fg=numeric(nb_f$nb_fgr)
    names(fg)=nm_list$fgr
    if (nb_f$nb_fgr > 0) {
       fg[paste("g.n.", substring(nm_list$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm_list$poolf]
    }
-   btmp=as.numeric(p2bfl%stm%param[seq_len(nb_f$nb_ff)]+bp+g2bfl%stm%fg)
-   names(btmp)=dimnames(Afl)[[1]]
-   obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
+   if (write_res) {
+      btmp=as.numeric(p2bfl%stm%param[seq_len(nb_f$nb_ff)]+bp+g2bfl%stm%fg)
+      names(btmp)=dimnames(Afl)[[1]]
+      obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
+   }
 
    #cat("mass vector:\\n", file=fclog)
    #print_mass(x)
@@ -1060,7 +1084,9 @@ for (irun in seq_len(nseries)) {
             cat(sprintf("Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:\\n%s\\nJacobian dr_dff is written in the result kvh file.\\n",
                paste(nm_uns, sep=", ", collapse=", ")),
                file=fcerr)
-            obj2kvh(jx_f$dr_dff, "Jacobian dr_dff", fkvh, indent=0)
+            if (write_res) {
+               obj2kvh(jx_f$dr_dff, "Jacobian dr_dff", fkvh, indent=0)
+            }
             #close(fkvh)
             retcode[irun]=1
             next
@@ -1073,24 +1099,31 @@ for (irun in seq_len(nseries)) {
       if (time_order=="1,2")
          labargs$time_order="1" # start with order 1, later continue with 2
       for (method in methods) {
-         capture.output(res <- opt_wrapper(param, method, measurements, jx_f, labargs), file=fclog)
+         if (write_res) {
+            capture.output(res <- opt_wrapper(param, method, measurements, jx_f, labargs), file=fclog)
+         } else {
+            res <- opt_wrapper(param, method, measurements, jx_f, labargs)
+         }
          if ((!is.null(res$err) && res$err) || is.null(res$par)) {
-            cat("error in first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+            cat("***Warning: error occured in first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fclog)
             res$par=rep(NA, length(param))
             res$cost=NA
          } else if (!is.null(res$mes) && nchar(res$mes)) {
-            cat("warning in first optimization pass", runsuf, ": ", res$mes, "\\n", sep="", file=fcerr)
+            cat("***Warning: in first optimization pass in run ", runsuf, ": ", res$mes, "\\n", sep="", file=fclog)
          }
          if (any(is.na(res$par))) {
+#browser()
             res$retres$jx_f=NULL # to avoid writing of huge data
-            obj2kvh(res, "failed first pass optimization process information", fkvh)
-            cat("Optimization failed", runsuf, "\\n", file=fcerr, sep="")
+            if (write_res) {
+               obj2kvh(res, "failed first pass optimization process information", fkvh)
+            }
+            cat("Optimization failed", runsuf, ": ", res$mes, "\\n", file=fcerr, sep="")
             #close(fkvh) # some additional information can be written into fkvh
             retcode[irun]=max(res$err, 1)
             next
          }
          param=res$par
-   #browser()
+#browser()
          if (zerocross && !is.null(mi_zc)) {
             if (TIMEIT) {
                cat("secondzc: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
@@ -1121,25 +1154,33 @@ for (irun in seq_len(nseries)) {
                names(ci)=nm_i
                # enforce new inequalities
                reopt=TRUE
-               capture.output(pinside <- put_inside(res$par, ui, ci), file=fclog)
+               if (write_res) {
+                  capture.output(pinside <- put_inside(res$par, ui, ci), file=fclog)
+               } else {
+                  pinside <- put_inside(res$par, ui, ci)
+               }
                if (any(is.na(pinside))) {
                   if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
                      # fatal error occured, don't reoptimize
-                     cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
+                     cat(paste("***Warning: put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fclog)
                      reopt=FALSE
                   }
                } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0){
                   # non fatal problem
-                  cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
+                  cat(paste("***Warning: put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
                }
                # reoptimize
                if (reopt) {
                   cat("Second zero crossing pass", runsuf, "\\n", sep="", file=fclog)
-                  capture.output(reso <- opt_wrapper(pinside, method, measurements, new.env(), labargs), file=fclog)
+                  if (write_res) {
+                     capture.output(reso <- opt_wrapper(pinside, method, measurements, new.env(), labargs), file=fclog)
+                  } else {
+                     reso <- opt_wrapper(pinside, method, measurements, new.env(), labargs)
+                  }
                   if (reso$err || is.null(reso$par)) {
-                     cat("second zero crossing pass: ", reso$mes, "\\n", sep="", file=fcerr)
+                     cat("***Warning: error in second zero crossing pass: ", reso$mes, "\\n", sep="", file=fclog)
                   } else if (!is.null(reso$mes) && nchar(reso$mes)) {
-                     cat("second zero crossing pass", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
+                     cat("***Warning: second zero crossing pass", runsuf, ": ", reso$mes, "\\n", sep="", file=fclog)
                   }
                   if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
                      param=reso$par
@@ -1148,8 +1189,9 @@ for (irun in seq_len(nseries)) {
                   }
                   if (any(is.na(reso$par))) {
                      reso$retres$jx_f=NULL # to avoid writing of huge data
-                     obj2kvh(reso, "failed second pass optimization process information", fkvh)
-                     cat("Second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fcerr, sep="")
+                     if (write_res)
+                        obj2kvh(reso, "failed second pass optimization process information", fkvh)
+                     cat("***Warning: second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fclog, sep="")
                   }
                }
                # last pass, free all zc constraints
@@ -1162,9 +1204,13 @@ for (irun in seq_len(nseries)) {
                   ci=ci[-i]
                   nm_i=nm_i[-i]
                   cat("Last zero crossing pass (free of zc constraints)", runsuf, "\\n", sep="", file=fclog)
-                  capture.output(reso <- opt_wrapper(param, method, measurements, new.env(), labargs), file=fclog)
+                  if (write_res) {
+                     capture.output(reso <- opt_wrapper(param, method, measurements, new.env(), labargs), file=fclog)
+                  } else {
+                     reso <- opt_wrapper(param, method, measurements, new.env(), labargs)
+                  }
                   if (reso$err || is.null(reso$par) || (!is.null(res$mes) && nchar(res$mes))) {
-                     cat("last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fcerr)
+                     cat("***Warning: last zero crossing (free of zc)", runsuf, ": ", reso$mes, "\\n", sep="", file=fclog)
                   }
                   if(!reso$err && !is.null(reso$par) && !any(is.na(reso$par))) {
                      param=reso$par
@@ -1173,8 +1219,9 @@ for (irun in seq_len(nseries)) {
                   }
                   if (any(is.na(res$par))) {
                      res$retres$jx_f=NULL # to avoid writing of huge data
-                     obj2kvh(res, "failed last pass optimization process information", fkvh)
-                     cat("Last zero crossing pass failed. Keep free parameters from previous passes", runsuf, "\\n", file=fcerr, sep="")
+                     if (write_res)
+                        obj2kvh(res, "failed last pass optimization process information", fkvh)
+                     cat("***Warning: last zero crossing pass failed. Keep free parameters from previous passes", runsuf, "\\n", file=fclog, sep="")
                   }
                }
             } else {
@@ -1201,12 +1248,16 @@ for (irun in seq_len(nseries)) {
             write.table(outtab, file=fclog, append=TRUE, quote=FALSE, sep="\\t", col.names=FALSE)
             
             # optimize with the last method from methods
-            capture.output(reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs), file=fclog)
+            if (write_res) {
+               capture.output(reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs), file=fclog)
+            } else {
+               reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs)
+            }
             if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
-               cat("wo outliers: ", reso$mes, "\\n", sep="", file=fcerr)
+               cat("***Warning: error without outliers: ", reso$mes, "\\n", sep="", file=fclog)
             }
             if (any(is.na(reso$par))) {
-               cat("Optimization with outliers excluded has failed, run= ", runsuf, "\\n", file=fcerr, sep="")
+               cat("***Warning: optimization with outliers excluded has failed", runsuf, "\\n", file=fclog, sep="")
                # continue without outlier exclusion
                measurements$outlier=NULL
             } else {
@@ -1215,10 +1266,11 @@ for (irun in seq_len(nseries)) {
                names(param)=nm_par
                jx_f=labargs$jx_f
                labargs$measurements=measurements # store outliers
-               obj2kvh(outtab, "excluded outliers", fkvh)
+               if (write_res)
+                  obj2kvh(outtab, "excluded outliers", fkvh)
             }
          } else {
-            cat("Outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this level.", "\\n", sep="", file=fcerr)
+            cat("***Warning: outlier exclusion at p-value "%s+%excl_outliers%s+%" has been requested but no outlier was detected at this p-value threshold.", "\\n", sep="", file=fclog)
          }
       }
       if (case_i && time_order=="1,2") {
@@ -1226,12 +1278,16 @@ for (irun in seq_len(nseries)) {
             cat("order 2 : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
          }
          labargs$time_order="2" # continue with the 2-nd order
-         capture.output(reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs), file=fclog)
+         if (write_res) {
+            capture.output(reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs), file=fclog)
+         } else {
+            reso <- opt_wrapper(param, tail(methods, 1L), measurements, new.env(), labargs)
+         }
          if (reso$err || is.null(reso$par) || (!is.null(reso$mes) && nchar(reso$mes))) {
-            cat("order2: ", reso$mes, "\\n", sep="", file=fcerr)
+            cat("***Warning: order2: ", reso$mes, "\\n", sep="", file=fclog)
          }
          if (any(is.na(reso$par))) {
-            cat("Optimization time_order 2 (in '1,2' suite) has failed, run=", runsuf, "\\n", file=fcerr, sep="")
+            cat("***Warning: optimization time_order 2 (in '1,2' suite) has failed, run=", runsuf, "\\n", file=fclog, sep="")
          } else {
             res=reso
             param=reso$par
@@ -1248,7 +1304,8 @@ for (irun in seq_len(nseries)) {
          "convergence history"=res$hist,
          "exit message"=res$mes
       )
-      obj2kvh(optinfo, "optimization process information", fkvh)
+      if (write_res)
+         obj2kvh(optinfo, "optimization process information", fkvh)
       rres=res$retres
    } else {
       rres=lab_resid(param, TRUE, labargs)
@@ -1259,7 +1316,7 @@ for (irun in seq_len(nseries)) {
    # active constraints
    if (!all(is.na(param))) {
       ine=as.numeric(abs(ui%*%param-ci))<tol_ineq
-      if (any(ine)) {
+      if (any(ine) && write_res) {
          obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
       }
    }
@@ -1268,10 +1325,15 @@ for (irun in seq_len(nseries)) {
 #browser()
    if (is.null(jx_f$jacobian)) {
       # final jacobian calculation
-      capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
+      if (write_res) {
+         capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
+      } else {
+         rres <- lab_resid(param, cjac=TRUE, labargs)
+      }
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-         close(fkvh)
+         if (write_res)
+            close(fkvh)
          retcode[irun]=rres$err
          next
       }
@@ -1279,122 +1341,199 @@ for (irun in seq_len(nseries)) {
    rcost=cumo_cost(param, labargs, rres)
    pres[,irun]=param
    costres[irun]=rcost
-   obj2kvh(rcost, "final cost", fkvh)
+   if (write_res) {
+      obj2kvh(rcost, "final cost", fkvh)
 #browser()
-   # get z p-values on residual vector
-   zpval=rz.pval.bi(rres$res)
-   resid=list()
-   if (sum(nb_meas)) {
-      resid[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) if (is.matrix(jx_f$reslab[[iexp]])) jx_f$reslab[[iexp]] else cbind(residual=jx_f$reslab[[iexp]], `p-value`=zpval[seq_along(jx_f$reslab[[iexp]])]))
-      names(resid[["labeled data"]])=nm_exp
-   
+      # get z p-values on residual vector
+      zpval=rz.pval.bi(rres$res)
+      resid=list()
+      if (sum(nb_meas)) {
+         resid[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) if (is.matrix(jx_f$reslab[[iexp]])) jx_f$reslab[[iexp]] else cbind(residual=jx_f$reslab[[iexp]], `p-value`=zpval[seq_along(jx_f$reslab[[iexp]])]))
+         names(resid[["labeled data"]])=nm_exp
+      
+         if (case_i) {
+            resid[["labeled data p-value"]]=vector("list", nb_exp)
+            names(resid[["labeled data p-value"]])=nm_exp
+            for (iexp in seq_len(nb_exp)) {
+               mtmp=zpval[seq_along(jx_f$reslab[[iexp]])]
+               dim(mtmp)=dim(jx_f$reslab[[iexp]])
+               dimnames(mtmp)=dimnames(jx_f$reslab[[iexp]])
+               resid[["labeled data p-value"]][[iexp]]=mtmp
+               rm(mtmp)
+            }
+         }
+      }
+      nb_reslab_tot=sum(sapply(jx_f$reslab, length))
+      if (length(jx_f$resflu))
+         resid[["measured fluxes"]]=cbind(residual=jx_f$resflu, `p-value`=zpval[nb_reslab_tot+seq_along(jx_f$resflu)])
+      if (length(jx_f$respool))
+         resid[["measured pools"]]=cbind(residual=if (is.matrix(jx_f$respool)) jx_f$respool[,1] else jx_f$respool, `p-value`=zpval[nb_reslab_tot+length(jx_f$resflu)+seq_along(jx_f$respool)])
+      obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
+
+      # simulated measurements -> kvh
+      simul=list()
+#browser()
       if (case_i) {
-         resid[["labeled data p-value"]]=vector("list", nb_exp)
-         names(resid[["labeled data p-value"]])=nm_exp
-         for (iexp in seq_len(nb_exp)) {
-            mtmp=zpval[seq_along(jx_f$reslab[[iexp]])]
-            dim(mtmp)=dim(jx_f$reslab[[iexp]])
-            dimnames(mtmp)=dimnames(jx_f$reslab[[iexp]])
-            resid[["labeled data p-value"]][[iexp]]=mtmp
-            rm(mtmp)
+         if (sum(nb_meas)) {
+            if (addnoise) {
+               simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) jx_f$usm[[iexp]]+rnorm(length(jx_f$usm[[iexp]]))*measurements$dev$labeled[[iexp]])
+               names(simul[["labeled data"]])=nm_exp
+            } else {
+               # move mass in usm into valid interval [0, 1] and sum=1
+               simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) {
+                  x=clamp(jx_f$usm[[iexp]], 0, 1)
+                  # get unique mass names to sum up to 1
+                  nmx=rownames(x)
+                  nm_m=nmx[startsWith(nmx, "m:")]
+                  if (length(nm_m)) {
+                     # get unique fragments
+                     fr_u=unique(sapply(strsplit(nm_m, ":", fixed=TRUE), function(v) paste0(c(v[1L:3L], ""), collapse=":")))
+                     lapply(fr_u, function(nm) {
+                        # get indexes per fragment
+                        i=which(startsWith(nmx, nm))
+                        mets=strsplit(nm, ":", fixed=TRUE)[[1L]][2L]
+                        met1=strsplit(mets, "+", fixed=TRUE)[[1L]][1L]
+                        if (length(i) < clen[met1]+1)
+                           return(NULL)
+                        s=colSums(x[i,,drop=FALSE])
+                        x[i,] <<- arrApply::arrApply(x[i,,drop=FALSE], 2, "multv", v=1./s)
+                        NULL
+                     })
+                  }
+                  x
+               })
+               names(simul[["labeled data"]])=nm_exp
+            }
+            # simul --> .miso.sim
+            mlp2LAB=c(m="MS", l="LAB", p="PEAK")
+            cnm=c("Id", "Comment", "Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time", "Residual", "Pvalue")
+            for (fnm in nm_exp) {
+               rnm=gsub("#", "", rownames(simul[["labeled data"]][[fnm]]), fixed=TRUE)
+               mnm=strsplitlim(rnm, ":", fixed=TRUE, lim=NA, strict=TRUE)
+               mnm=matrix(unlist(mnm), ncol=length(mnm[[1L]]), byrow=TRUE)
+               ct=rep(colnames(simul[["labeled data"]][[fnm]]), each=nrow(simul[["labeled data"]][[fnm]]))
+               c3=suppressWarnings(as.integer(mnm[, 3L]))
+               df=cbind(
+                  "",
+                  "",
+                  Specie=mnm[, 2L],
+                  Fragment=ifelse(mnm[, 1L] == "m", mnm[, 3L], ""),
+                  Dataset=paste0(mlp2LAB[mnm[, 1L]], "_", mnm[, 2L], "_", mnm[, 3L]),
+                  Isospecies=ifelse(mnm[, 1L] == "m",
+                     paste0("M", mnm[, 4L]), # MS: M0, M1, etc
+                     ifelse(mnm[, 1L] == "l", mnm[, 3L], # label: 01x+00x etc
+                     paste0(mnm[, 3L], "->", # peak: 2->1,3 etc.
+                           ifelse(mnm[, 4L] == "S", "",
+                           ifelse(mnm[, 4L] == "D-", c3-1,
+                           ifelse(mnm[, 4L] == "D+", c3+1,
+                           paste0(c3-1, ",", c3+1) # DD
+                           )))))),
+                  Value=c(simul[["labeled data"]][[fnm]]),
+                  SD=measdev[[fnm]],
+                  Time=ct,
+                  Resid=c(resid[["labeled data"]][[fnm]]),
+                  Pvalue=c(resid[["labeled data p-value"]][[fnm]])
+               )
+               colnames(df)=cnm
+               write.table(df, sep="\t", quote=FALSE, row.names=FALSE, fileEncoding="utf8", file=file.path(dirres, paste0(fnm, runsuf, ".miso.sim")))
+            }
          }
-      }
-   }
-   nb_reslab_tot=sum(sapply(jx_f$reslab, length))
-   if (length(jx_f$resflu))
-      resid[["measured fluxes"]]=cbind(residual=jx_f$resflu, `p-value`=zpval[nb_reslab_tot+seq_along(jx_f$resflu)])
-   if (length(jx_f$respool))
-      resid[["measured pools"]]=cbind(residual=if (is.matrix(jx_f$respool)) jx_f$respool[,1] else jx_f$respool, `p-value`=zpval[nb_reslab_tot+length(jx_f$resflu)+seq_along(jx_f$respool)])
-   obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
-   rm(resid, zpval)
-
-   # simulated measurements -> kvh
-   simul=list()
-#browser()
-   if (case_i) {
-      if (sum(nb_meas)) {
-         if (addnoise) {
-            simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) jx_f$usm[[iexp]]+rnorm(length(jx_f$usm[[iexp]]))*measurements$dev$labeled[[iexp]])
-            names(simul[["labeled data"]])=nm_exp
-         } else {
-            # move mass in usm into valid interval [0, 1] and sum=1
-            simul[["labeled data"]]=lapply(seq_len(nb_exp), function(iexp) {
-               x=jx_f$usm[[iexp]]
-               x[x < 0.]=0.
-               x[x > 1.]=1.
-               # get unique mass names to sum up to 1
-               nmx=rownames(x)
-               nm_m=nmx[startsWith(nmx, "m:")]
-               if (length(nm_m)) {
-                  # get unique fragments
-                  fr_u=unique(sapply(strsplit(nm_m, ":", fixed=TRUE), function(v) paste0(c(v[1L:3L], ""), collapse=":")))
-                  lapply(fr_u, function(nm) {
-                     # get indexes per fragment
-                     i=which(startsWith(nmx, nm))
-                     s=colSums(x[i,,drop=FALSE])
-                     x[i,] <<- arrApply::arrApply(x[i,,drop=FALSE], 2, "multv", v=1./s)
-                     NULL
-                  })
-               }
-               x
-            })
-            names(simul[["labeled data"]])=nm_exp
-         }
-      }
-   } else {
-      if (sum(nb_meas)) {
-         if (addnoise) {
-            simlab=lapply(seq_len(nb_exp), function(iexp) jx_f$simlab[[iexp]]+rnorm(length(jx_f$simlab[[iexp]]))*measurements$dev$labeled[[iexp]])
-            names(simlab)=nm_exp
-         } else {
-            simlab=jx_f$simlab
-            names(simlab)=nm_exp
-         }
-         if (nb_sc_tot > 0) {
-            simul[["labeled data (unscaled)"]]=jx_f$usimlab
-            simul[["labeled data (scaled)"]]=simlab
-         } else {
-            simul[["labeled data"]]=simlab
-         }
-      }
-   }
-   if (nb_fmn) {
-      if (addnoise)
-         simul[["measured fluxes"]]=jx_f$simfmn+rnorm(length(jx_f$simfm))*measurements$dev$flux
-      else
-         simul[["measured fluxes"]]=jx_f$simfmn
-   }
-   if (nb_poolm) {
-      if (addnoise)
-         simul[["measured pools"]]=jx_f$simpool+rnorm(length(jx_f$simpool))*measurements$dev$pool
-      else
-         simul[["measured pools"]]=jx_f$simpool
-   }
-   obj2kvh(simul, "simulated measurements", fkvh)
-   
-   # SD -> kvh
-   # get index of non null components
-   iget=sapply(names(measurements$dev), function(nm) !is.null(measurements$dev[[nm]]) & nm %in% c("labeled", "flux", "pool"))
-   obj2kvh(measurements$dev[iget], "measurement SD", fkvh)
-
-   # gradient -> kvh
-   if (length(jx_f$res) && !all(ina <- is.na(jx_f$res))) {
-      if (any(ina)) {
-         gr=2*as.numeric(crossprod(jx_f$res[!ina], jx_f$jacobian[!ina,,drop=FALSE]))
       } else {
-         gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
+         if (sum(nb_meas)) {
+            if (addnoise) {
+               simlab=lapply(seq_len(nb_exp), function(iexp) jx_f$simlab[[iexp]]+rnorm(length(jx_f$simlab[[iexp]]))*measurements$dev$labeled[[iexp]])
+               names(simlab)=nm_exp
+            } else {
+               simlab=jx_f$simlab
+               names(simlab)=nm_exp
+            }
+            if (nb_sc_tot > 0) {
+               simul[["labeled data (unscaled)"]]=jx_f$usimlab
+               simul[["labeled data (scaled)"]]=simlab
+            } else {
+               simul[["labeled data"]]=simlab
+            }
+            # simlab --> .miso.sim
+            mlp2LAB=c(m="MS", l="LAB", p="PEAK")
+            cnm=c("Id", "Comment", "Specie", "Fragment", "Dataset", "Isospecies", "Value", "SD", "Time", "Residual", "Pvalue")
+            for (fnm in nm_exp) {
+               rnm=gsub("#", "", names(simlab[[fnm]]), fixed=TRUE)
+               mnm=strsplitlim(rnm, ":", fixed=TRUE, lim=NA, strict=TRUE)
+               mnm=matrix(unlist(mnm), ncol=length(mnm[[1L]]), byrow=TRUE)
+               c3=suppressWarnings(as.integer(mnm[, 3L]))
+               df=cbind(
+                  "",
+                  "",
+                  Specie=mnm[, 2L],
+                  Fragment=ifelse(mnm[, 1L] == "m", mnm[, 3L], ""),
+                  Dataset=paste0(mlp2LAB[mnm[, 1L]], "_", mnm[, 2L], "_", mnm[, 3L]),
+                  Isospecies=ifelse(mnm[, 1L] == "m",
+                     paste0("M", mnm[, 4L]), # MS: M0, M1, etc
+                     ifelse(mnm[, 1L] == "l", mnm[, 3L], # label: 01x+00x etc
+                     paste0(mnm[, 3L], "->", # peak: 2->1,3 etc.
+                           ifelse(mnm[, 4L] == "S", "",
+                           ifelse(mnm[, 4L] == "D-", c3-1,
+                           ifelse(mnm[, 4L] == "D+", c3+1,
+                           paste0(c3-1, ",", c3+1) # DD
+                           )))))),
+                  Value=simlab[[fnm]],
+                  SD=measdev[[fnm]],
+                  Time="",
+                  resid[["labeled data"]][[fnm]]
+               )
+               colnames(df)=cnm
+               write.table(df, sep="\t", quote=FALSE, row.names=FALSE, fileEncoding="utf8", file=file.path(dirres, paste0(fnm, runsuf, ".miso.sim")))
+            }
+         }
       }
-      names(gr)=nm_par
-      obj2kvh(gr, "gradient vector", fkvh)
-   }
-   colnames(jx_f$udr_dp)=nm_par
-   obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
-   # generalized inverse of non reduced jacobian
-   if (length(jx_f$udr_dp) > 0L) {
-      svj=svd(jx_f$udr_dp)
-      invj=svj$v%*%(t(svj$u)/svj$d)
-      dimnames(invj)=rev(dimnames(jx_f$udr_dp))
-      obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
+      #browser()
+      if (nb_fmn) {
+         if (addnoise)
+            simul[["measured fluxes"]]=jx_f$simfmn+rnorm(length(jx_f$simfm))*measurements$dev$flux
+         else
+            simul[["measured fluxes"]]=jx_f$simfmn
+         # measured fluxes --> .mflux
+         cnm=c("Id", "Comment", "Flux", "Value", "SD", "Residual", "Pvalue")
+         df=structure(cbind("", "", substring(names(simul[["measured fluxes"]]), 5), simul[["measured fluxes"]], measurements$dev$flux, resid[["measured fluxes"]]), dimnames=list(NULL, cnm))
+         write.table(df, sep="\t", quote=FALSE, row.names=FALSE, file=file.path(dirres, paste0(baseshort, runsuf, ".mflux.sim")))
+      }
+      if (nb_poolm) {
+         if (addnoise)
+            simul[["measured pools"]]=jx_f$simpool+rnorm(length(jx_f$simpool))*measurements$dev$pool
+         else
+            simul[["measured pools"]]=jx_f$simpool
+         # measured metabolites --> .mmet
+         cnm=c("Id", "Comment", "Specie", "Value", "SD", "Residual", "Pvalue")
+         df=structure(cbind("", "", substring(names(simul[["measured pools"]]), 4), simul[["measured pools"]], measurements$dev$pool, resid[["measured pools"]]), dimnames=list(NULL, cnm))
+         write.table(df, sep="\t", quote=FALSE, row.names=FALSE, file=file.path(dirres, paste0(baseshort, runsuf, ".mmet.sim")))
+      }
+      rm(resid, zpval)
+      obj2kvh(simul, "simulated measurements", fkvh)
+   
+      # SD -> kvh
+      # get index of non null components
+      iget=sapply(names(measurements$dev), function(nm) !is.null(measurements$dev[[nm]]) & nm %in% c("labeled", "flux", "pool"))
+      obj2kvh(measurements$dev[iget], "measurement SD", fkvh)
+
+      # gradient -> kvh
+      if (length(jx_f$res) && !all(ina <- is.na(jx_f$res))) {
+         if (any(ina)) {
+            gr=2*as.numeric(crossprod(jx_f$res[!ina], jx_f$jacobian[!ina,,drop=FALSE]))
+         } else {
+            gr=2*as.numeric(crossprod(jx_f$res, jx_f$jacobian))
+         }
+         names(gr)=nm_par
+         obj2kvh(gr, "gradient vector", fkvh)
+      }
+      colnames(jx_f$udr_dp)=nm_par
+      obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
+      # generalized inverse of non reduced jacobian
+      if (length(jx_f$udr_dp) > 0L) {
+         svj=svd(jx_f$udr_dp)
+         invj=svj$v%*%(t(svj$u)/svj$d)
+         dimnames(invj)=rev(dimnames(jx_f$udr_dp))
+         obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
+      }
    }
 
    labargs$getx=TRUE
@@ -1403,7 +1542,8 @@ for (irun in seq_len(nseries)) {
       nm_flist=nm_list
       nm_flist$rcumo=nm_cumo
       nm_flist$rcumo_in_cumo=match(nm_rcumo, nm_cumo)
-      nb_f$cumos=nb_cumos""")
+      nb_f$cumos=nb_cumos
+   """)
     cu_keys=list(netan["cumo_input"][0].keys()) if netan["fullsys"] else []
     f.write("""
       nm_xi_f=c(%s)
@@ -1423,17 +1563,18 @@ for (irun in seq_len(nseries)) {
    }
 
    # write some info in result kvh
-   mid=cumo2mass(x)
-   if (case_i) {
-      mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])
-   } else if (length(mid)) {
-      mid=mid[sort(rownames(mid)),,drop=FALSE]
+   if (write_res) {
+      mid=cumo2mass(x)
+      if (case_i) {
+         mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])
+      } else if (length(mid)) {
+         mid=mid[sort(rownames(mid)),,drop=FALSE]
+      }
+      obj2kvh(mid, "MID vector", fkvh)
+      
+      # constrained fluxes to kvh
+      obj2kvh(fallnx[nm_fc], "constrained net-xch01 fluxes", fkvh)
    }
-   obj2kvh(mid, "MID vector", fkvh)
-   
-   # constrained fluxes to kvh
-   obj2kvh(fallnx[nm_fc], "constrained net-xch01 fluxes", fkvh)
-
    fwrv=v$lf$fwrv
    fallnx=v$lf$fallnx
    flnx=v$lf$flnx
@@ -1468,34 +1609,36 @@ for (irun in seq_len(nseries)) {
       }
       free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
-         cat("Parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fcerr)
+         cat("***Warning: parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fclog)
          free_mc=matrix(NA, nb_param+2, 0)
       }
       cost_mc=free_mc[1,]
       nmc_real=nmc-sum(is.na(free_mc[4,]))
-      cat("monte-carlo\\n", file=fkvh)
-      indent=1
-      obj2kvh(cl_type, "cluster type", fkvh, indent)
-      obj2kvh(avaco, "detected cores", fkvh, indent)
-      avaco=max(1, avaco, na.rm=T)
-      obj2kvh(min(avaco, np, na.rm=T), "used cores", fkvh, indent)
-      cat("\\tfitting samples\\n", file=fkvh)
-      indent=2
-      obj2kvh(nmc, "requested number", fkvh, indent)
-      obj2kvh(nmc_real, "calculated number", fkvh, indent)
-      obj2kvh(nmc-nmc_real, "failed to calculate", fkvh, indent)
-      # convergence section in kvh
-      indent=1
-      mout=rbind(round(free_mc[1:2,,drop=FALSE], 2),
-         format(free_mc[3,,drop=FALSE], di=2, sci=T))
-      dimnames(mout)=list(c("cost", "it.numb", "normp"), seq_len(ncol(free_mc)))
-      obj2kvh(mout, "convergence per sample", fkvh, indent)
+      if (write_res) {
+         cat("monte-carlo\\n", file=fkvh)
+         indent=1
+         obj2kvh(cl_type, "cluster type", fkvh, indent)
+         obj2kvh(avaco, "detected cores", fkvh, indent)
+         avaco=max(1, avaco, na.rm=T)
+         obj2kvh(min(avaco, np, na.rm=T), "used cores", fkvh, indent)
+         cat("\\tfitting samples\\n", file=fkvh)
+         indent=2
+         obj2kvh(nmc, "requested number", fkvh, indent)
+         obj2kvh(nmc_real, "calculated number", fkvh, indent)
+         obj2kvh(nmc-nmc_real, "failed to calculate", fkvh, indent)
+         # convergence section in kvh
+         indent=1
+         mout=rbind(round(free_mc[1:2,,drop=FALSE], 2),
+            format(free_mc[3,,drop=FALSE], di=2, sci=T))
+         dimnames(mout)=list(c("cost", "it.numb", "normp"), seq_len(ncol(free_mc)))
+         obj2kvh(mout, "convergence per sample", fkvh, indent)
+      }
       # remove failed m-c iterations
       free_mc=free_mc[-(1:3),,drop=FALSE]
       ifa=which(is.na(free_mc[1,]))
       if (length(ifa)) {
          if (ncol(free_mc) > length(ifa)) {
-            cat("Some Monte-Carlo iterations failed.", "\\n", sep="", file=fcerr)
+            cat("***Warning: some Monte-Carlo iterations failed.", "\\n", sep="", file=fclog)
          }
          free_mc=free_mc[,-ifa,drop=FALSE]
          cost_mc=cost_mc[-ifa]
@@ -1509,88 +1652,90 @@ for (irun in seq_len(nseries)) {
       rownames(free_mc)=nm_par
       
       # cost section in kvh
-      cat("\\tcost\\n", file=fkvh)
-      indent=2
-      obj2kvh(mean(cost_mc), "mean", fkvh, indent)
-      obj2kvh(median(cost_mc), "median", fkvh, indent)
-      obj2kvh(sd(cost_mc), "sd", fkvh, indent)
-      obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent)
-      obj2kvh(quantile(cost_mc, c(0.025, 0.95, 0.975)), "ci", fkvh, indent)
-      
-      # free parameters section in kvh
-      cat("\\tStatistics\\n", file=fkvh)
-      mout=c()
-      indent=2
-      # param stats
-      # mean
-      parmean=apply(free_mc, 1, mean)
-      # median
-      parmed=apply(free_mc, 1, median)
-#browser()
-      # covariance matrix
-      covmc=cov(t(free_mc))
-      obj2kvh(covmc, "covariance", fkvh, indent)
-      # sd
-      sdmc=sqrt(diag(covmc))
-      # confidence intervals
-      ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
-      ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
-      colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
-      mout=cbind(mout, mean=parmean, median=parmed, sd=sdmc,
-         "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
-      obj2kvh(mout, "free parameters", fkvh, indent)
-
-      # net-xch01 stats
-      fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fallnx)
-      fallnx=param2fl(param, labargs)$fallnx
-      if (length(fallnx_mc)) {
-         dimnames(fallnx_mc)[[1]]=nm_fallnx
-         # form a matrix output
-         fallout=matrix(0, nrow=nrow(fallnx_mc), ncol=0)
+      if (write_res) {
+         cat("\\tcost\\n", file=fkvh)
+         indent=2
+         obj2kvh(mean(cost_mc), "mean", fkvh, indent)
+         obj2kvh(median(cost_mc), "median", fkvh, indent)
+         obj2kvh(sd(cost_mc), "sd", fkvh, indent)
+         obj2kvh(sd(cost_mc)*100/mean(cost_mc), "rsd (%)", fkvh, indent)
+         obj2kvh(quantile(cost_mc, c(0.025, 0.95, 0.975)), "ci", fkvh, indent)
+         
+         # free parameters section in kvh
+         cat("\\tStatistics\\n", file=fkvh)
+         mout=c()
+         indent=2
+         # param stats
          # mean
-#browser()
-         parmean=apply(fallnx_mc, 1, mean)
+         parmean=apply(free_mc, 1, mean)
          # median
-         parmed=apply(fallnx_mc, 1, median)
+         parmed=apply(free_mc, 1, median)
+#browser()
          # covariance matrix
-         covmc=cov(t(fallnx_mc))
-         dimnames(covmc)=list(nm_fallnx, nm_fallnx)
+         covmc=cov(t(free_mc))
+         obj2kvh(covmc, "covariance", fkvh, indent)
          # sd
          sdmc=sqrt(diag(covmc))
          # confidence intervals
-         ci_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
+         ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
          ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cbind(ci_mc, ci_mc[,3]*100/abs(parmean))
-         colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-         fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
-            "rsd (%)"=sdmc*100/abs(fallnx), ci_mc)
-         o=order(nm_fallnx)
-         obj2kvh(fallout[o,,drop=FALSE], "all net-xch01 fluxes", fkvh, indent)
-         obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent)
-
-         # fwd-rev stats
-         fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fwrv)
-         dimnames(fwrv_mc)[[1]]=nm_fwrv
-         fallout=matrix(0, nrow=nrow(fwrv_mc), ncol=0)
-         # mean
-         parmean=apply(fwrv_mc, 1, mean)
-         # median
-         parmed=apply(fwrv_mc, 1, median)
-         # covariance matrix
-         covmc=cov(t(fwrv_mc))
-         dimnames(covmc)=list(nm_fwrv, nm_fwrv)
-         # sd
-         sdmc=sqrt(diag(covmc))
-         # confidence intervals
-         ci_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)))
-         ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
-         ci_mc=cbind(ci_mc, ci_mc[,3]*100/abs(fwrv))
-         dimnames(ci_mc)[[2]]=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-         fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
+         colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
+         mout=cbind(mout, mean=parmean, median=parmed, sd=sdmc,
             "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
-         o=order(nm_fwrv)
-         obj2kvh(fallout[o,,drop=FALSE], "forward-reverse fluxes", fkvh, indent)
-         obj2kvh(covmc[o,o], "covariance of forward-reverse fluxes", fkvh, indent)
+         obj2kvh(mout, "free parameters", fkvh, indent)
+
+         # net-xch01 stats
+         fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fallnx)
+         fallnx=param2fl(param, labargs)$fallnx
+         if (length(fallnx_mc)) {
+            dimnames(fallnx_mc)[[1]]=nm_fallnx
+            # form a matrix output
+            fallout=matrix(0, nrow=nrow(fallnx_mc), ncol=0)
+            # mean
+#browser()
+            parmean=apply(fallnx_mc, 1, mean)
+            # median
+            parmed=apply(fallnx_mc, 1, median)
+            # covariance matrix
+            covmc=cov(t(fallnx_mc))
+            dimnames(covmc)=list(nm_fallnx, nm_fallnx)
+            # sd
+            sdmc=sqrt(diag(covmc))
+            # confidence intervals
+            cinx_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
+            cinx_mc=cbind(cinx_mc, t(diff(t(cinx_mc))))
+            cinx_mc=cbind(cinx_mc, cinx_mc[,3]*100/abs(parmean))
+            colnames(cinx_mc)=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
+            fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
+               "rsd (%)"=sdmc*100/abs(fallnx), cinx_mc)
+            o=order(nm_fallnx)
+            obj2kvh(fallout[o,,drop=FALSE], "all net-xch01 fluxes", fkvh, indent)
+            obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent)
+
+            # fwd-rev stats
+            fwrv_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fwrv)
+            dimnames(fwrv_mc)[[1]]=nm_fwrv
+            fallout=matrix(0, nrow=nrow(fwrv_mc), ncol=0)
+            # mean
+            parmean=apply(fwrv_mc, 1, mean)
+            # median
+            parmed=apply(fwrv_mc, 1, median)
+            # covariance matrix
+            covmc=cov(t(fwrv_mc))
+            dimnames(covmc)=list(nm_fwrv, nm_fwrv)
+            # sd
+            sdmc=sqrt(diag(covmc))
+            # confidence intervals
+            cif_mc=t(apply(fwrv_mc, 1, quantile, probs=c(0.025, 0.975)))
+            cif_mc=cbind(cif_mc, t(diff(t(cif_mc))))
+            cif_mc=cbind(cif_mc, cif_mc[,3]*100/abs(fwrv))
+            dimnames(cif_mc)[[2]]=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
+            fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
+               "rsd (%)"=sdmc*100/abs(parmean), cif_mc)
+            o=order(nm_fwrv)
+            obj2kvh(fallout[o,,drop=FALSE], "forward-reverse fluxes", fkvh, indent)
+            obj2kvh(covmc[o,o], "covariance of forward-reverse fluxes", fkvh, indent)
+         }
       }
       break
    }
@@ -1606,10 +1751,15 @@ for (irun in seq_len(nseries)) {
    # Linear method based on jacobian x_f
    # reset fluxes and jacobians according to param
    if (is.null(jx_f$jacobian)) {
-      capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
+      if (write_res) {
+         capture.output(rres <- lab_resid(param, cjac=TRUE, labargs), file=fclog)
+      } else {
+         rres <- lab_resid(param, cjac=TRUE, labargs)
+      }
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-         close(fkvh)
+         if (write_res)
+            close(fkvh)
          retcode[irun]=rres$err
          next
       }
@@ -1630,72 +1780,114 @@ for (irun in seq_len(nseries)) {
       ibad=apply(svj$v[, i, drop=FALSE], 2, which.contrib)
       ibad=unique(unlist(ibad))
       if (length(ibad) > 0) {
-         cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "Inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
-            paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fcerr)
+         cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "***Warning: inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
+            paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fclog)
       }
       # "square root" of covariance matrix (to preserve numerical positive definitness)
       rtcov=(svj$u)%*%(t(svj$v)/svj$d)
-      # standart deviations of free fluxes
-      cat("linear stats\\n", file=fkvh)
+      # standard deviations of free fluxes
+      if (write_res) {
+         cat("linear stats\\n", file=fkvh)
 
-      # sd free+dependent+growth net-xch01 fluxes
-      nm_flfd=c(nm_ff, nm_fgr, nm_fl)
-      if (nb_ff > 0 || nb_fgr > 0) {
-         i=1:nb_param
-         i=c(head(i, nb_ff), tail(i, nb_fgr))
-         covfl=crossprod(rtcov[, i, drop=FALSE]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
-         dimnames(covfl)=list(nm_flfd, nm_flfd)
-         sdfl=sqrt(diag(covfl))
-      } else {
-         sdfl=rep(0., nb_fl)
-         covfl=matrix(0., nb_fl, nb_fl)
-      }
-      fl=c(head(param, nb_ff), fgr, flnx)
-      stats_nx=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
-      rownames(stats_nx)=nm_flfd
-      o=order(nm_flfd)
-      obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
-      obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
-
-      # sd of all fwd-rev
-      if (nb_ff > 0 || nb_fgr > 0) {
-         i=1:nb_param
-         i=c(head(i, nb_ff), tail(i, nb_fgr))
-         covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=FALSE], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
-         dimnames(covf)=list(nm_fwrv, nm_fwrv)
-         sdf=sqrt(diag(covf))
-      } else {
-         sdf=rep(0., length(fwrv))
-      }
-      mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
-      dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
-      o=order(nm_fwrv)
-      obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
-      if (nb_ff > 0 || nb_fgr > 0) {
-         obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
-      }
-      # pool -> kvh
-      sdpf=poolall
-      sdpf[]=0.
-
-      if (nb_poolf > 0) {
-         # covariance matrix of free pools
-         # "square root" of covariance matrix (to preserve numerical positive definitness)
-         poolall[nm_poolf]=param[nm_poolf]
-         # cov poolf
-         covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=FALSE])
-         dimnames(covpf)=list(nm_poolf, nm_poolf)
-         sdpf[nm_poolf]=sqrt(diag(covpf))
-      }
-      if (length(poolall) > 0) {
-         mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
-         rownames(mtmp)=nm_poolall
-         o=order(nm_poolall)
-         obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
-         if (nb_poolf > 0) {
-            o=order(nm_poolf)
-            obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+         # sd free+dependent+growth net-xch01 fluxes
+         nm_flfd=c(nm_ff, nm_fgr, nm_fl)
+         if (nb_ff > 0 || nb_fgr > 0) {
+            i=1:nb_param
+            i=c(head(i, nb_ff), tail(i, nb_fgr))
+            covfl=crossprod(rtcov[, i, drop=FALSE]%mmt%(rbind(diag(nb_ff+nb_fgr), dfl_dffg)%mrv%c(rep.int(1., nb_ff), fgr)))
+            dimnames(covfl)=list(nm_flfd, nm_flfd)
+            sdfl=sqrt(diag(covfl))
+         } else {
+            sdfl=rep(0., nb_fl)
+            covfl=matrix(0., nb_fl, nb_fl)
          }
+         fl=c(head(param, nb_ff), fgr, flnx)
+         stats_nx=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
+         rownames(stats_nx)=nm_flfd
+         o=order(nm_flfd)
+         obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
+         obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
+         
+         # flux, pool --> .tvar
+#browser()
+         rnm=grep("_gr$", nm_fallnx, invert=TRUE, value=TRUE)
+         cnm=c("Id", "Comment", "Name", "Kind", "Type", "Value", "SD", "Struct_identif")
+         if (sensitive == "mc") {
+            cnm=c(cnm, "Low_mc", "Up_mc")
+         }
+         nx2suf=c(n="NET", x="XCH")
+         fd2cap=c(f="F", d="D", c="C")
+
+         mnm=matrix(unlist(strsplitlim(rnm, ".", fixed=TRUE, lim=3L)), ncol=3L, byrow=TRUE)
+         o=natorder(mnm[, 3L])
+         rnm=rnm[o]
+         mnm=mnm[o,,drop=FALSE]
+         vfl=fallnx[rnm]
+         vfl=ifelse(mnm[,2L] == "x", clamp(vfl, 0, 1), vfl)
+         vsd=sdfl[rnm]
+         vsd[is.na(vsd)]=0.
+         df=cbind("", "", mnm[, 3L], nx2suf[mnm[, 2L]], fd2cap[mnm[, 1L]], vfl, vsd, ifelse(vsd > 10000, "no", "yes"))
+         if (sensitive == "mc") {
+            df=cbind(df, cinx_mc[rnm, 1L:2L])
+         }
+
+         # sd of all fwd-rev
+         if (nb_ff > 0 || nb_fgr > 0) {
+            i=1:nb_param
+            i=c(head(i, nb_ff), tail(i, nb_fgr))
+            covf=crossprod(tcrossprod_simple_triplet_matrix(rtcov[,i, drop=FALSE], jx_f$df_dffp%mrv%c(rep.int(1., nb_ff), head(poolall[nm_poolf], nb_fgr))))
+            dimnames(covf)=list(nm_fwrv, nm_fwrv)
+            sdf=sqrt(diag(covf))
+         } else {
+            sdf=rep(0., length(fwrv))
+         }
+         mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
+         dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
+         o=order(nm_fwrv)
+         obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
+         if (nb_ff > 0 || nb_fgr > 0) {
+            obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
+         }
+         # pool -> kvh
+         sdpf=poolall
+         sdpf[]=0.
+
+         if (nb_poolf > 0) {
+            # covariance matrix of free pools
+            # "square root" of covariance matrix (to preserve numerical positive definitness)
+            poolall[nm_poolf]=param[nm_poolf]
+            # cov poolf
+            covpf=crossprod(rtcov[,nb_ff+nb_sc_tot+seq_len(nb_poolf), drop=FALSE])
+            dimnames(covpf)=list(nm_poolf, nm_poolf)
+            sdpf[nm_poolf]=sqrt(diag(covpf))
+         }
+         if (length(poolall) > 0) {
+            mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
+            rownames(mtmp)=nm_poolall
+            o=order(nm_poolall)
+            obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
+            if (nb_poolf > 0) {
+               o=order(nm_poolf)
+               obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+            }
+            rnm=names(poolall)
+            mnm=matrix(unlist(strsplitlim(rnm, ":", fixed=TRUE, lim=2L)), ncol=2L, byrow=TRUE)
+            o=natorder(mnm[, 2L])
+            rnm=rnm[o]
+            mnm=mnm[o,,drop=FALSE]
+            pfc2cap=c(pf="F", pc="C")
+            vsd=sdpf[rnm]
+            vsd[is.na(vsd)]=0.
+            dfp=cbind("", "", mnm[, 2L], "METAB", pfc2cap[mnm[,1L]], poolall[rnm], vsd, ifelse(vsd >= 10000., "no", "yes"))
+            if (sensitive == "mc") {
+               mci=ci_mc[nm_poolf, 1L:2L]
+               mci=rbind(mci, cbind(poolall[nm_poolc], poolall[nm_poolc]))
+               dfp=cbind(dfp, mci[rnm,])
+            }
+            df=rbind(df, dfp)
+         }
+         colnames(df)=cnm
+         write.table(df, sep="\t", quote=FALSE, row.names=FALSE, file=file.path(dirres, paste0(baseshort, runsuf, ".tvar.sim")))
       }
    }
 
@@ -1703,43 +1895,52 @@ for (irun in seq_len(nseries)) {
    # goodness of fit (chi2 test)
    if (length(jx_f$res)) {
       nvres=sum(!is.na(jx_f$res))
-      if (nvres >= nb_param) {
+      if (nvres > nb_param) {
          chi2test=list("chi2 value"=rcost, "data points"=nvres,
             "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
          chi2test$`chi2 reduced value`=chi2test$`chi2 value`/chi2test$`degrees of freedom`
          chi2test$`p-value, i.e. P(X^2<=value)`=pchisq(chi2test$`chi2 value`, df=chi2test$`degrees of freedom`)
          chi2test$conclusion=if (chi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
-         obj2kvh(chi2test, "goodness of fit (chi2 test)", fkvh, indent=1)
+         if (write_res) {
+            obj2kvh(chi2test, "goodness of fit (chi2 test)", fkvh, indent=1)
+            fstat=file(file.path(dirres, sprintf("%s%s.stat", baseshort,  runsuf)), "w")
+            df=c(rcost, rcost/(nvres-nb_param), nvres, nb_param, nvres-nb_param, chi2test$`p-value, i.e. P(X^2<=value)`, chi2test$conclusion)
+            names(df)=c("chi2_value", "chi2/df", "number_of_measurements", "number_of_parameters", "degrees_of_freedom", "p-value", "conclusion")
+            write.table(df, sep="\t", quote=FALSE, row.names=TRUE, file=fstat, col.names=FALSE)
+            close(fstat)
+         }
       } else {
-         cat(sprintf("chi2: Measurement number %d is lower than parameter number %d. Chi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fcerr)
+         cat(sprintf("***Warning: chi2: Measurement number %d is lower or equal to parameter number %d. Chi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fclog)
       }
    }
    if (prof) {
       Rprof(NULL)
    }
-   close(fkvh)
-   # write edge.netflux property
-   fedge=file(file.path(dirw, sprintf("edge.netflux.%s%s.attrs", baseshort,  runsuf)), "w")
-   cat("netflux (class=Double)\\n", sep="", file=fedge)
-   nm_edge=names(edge2fl)
-   cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge)
-   close(fedge)
+   if (write_res) {
+      close(fkvh)
+      # write edge.netflux property
+      fedge=file(file.path(dirres, "tmp", sprintf("edge.netflux.%s%s.attrs", baseshort,  runsuf)), "w")
+      cat("netflux (class=Double)\\n", sep="", file=fedge)
+      nm_edge=names(edge2fl)
+      cat(paste(nm_edge, fallnx[edge2fl], sep=" = "), sep="\\n" , file=fedge)
+      close(fedge)
 
-   # write edge.xchflux property
-   fedge=file(file.path(dirw, sprintf("edge.xchflux.%s%s.attrs", baseshort,  runsuf)), "w")
-   flxch=paste(".x", substring(edge2fl, 4), sep="")
-   ifl=charmatch(flxch, substring(names(fallnx), 2))
-   cat("xchflux (class=Double)\\n", sep="", file=fedge)
-   cat(paste(nm_edge, fallnx[ifl], sep=" = "), sep="\\n" , file=fedge)
-   close(fedge)
+      # write edge.xchflux property
+      fedge=file(file.path(dirres, "tmp",  sprintf("edge.xchflux.%s%s.attrs", baseshort,  runsuf)), "w")
+      flxch=paste(".x", substring(edge2fl, 4), sep="")
+      ifl=charmatch(flxch, substring(names(fallnx), 2))
+      cat("xchflux (class=Double)\\n", sep="", file=fedge)
+      cat(paste(nm_edge, fallnx[ifl], sep=" = "), sep="\\n" , file=fedge)
+      close(fedge)
 
-   # write node.log2pool property
-   if (length(poolall)> 0) {
-      fnode=file(file.path(dirw, sprintf("node.log2pool.%s%s.attrs", baseshort,  runsuf)), "w")
-      cat("log2pool (class=Double)\\n", sep="", file=fnode)
-      nm_node=substring(names(poolall), 4)
-      cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)
-      close(fnode)
+      # write node.log2pool property
+      if (length(poolall)> 0) {
+         fnode=file(file.path(dirres, "tmp", sprintf("node.log2pool.%s%s.attrs", baseshort,  runsuf)), "w")
+         cat("log2pool (class=Double)\\n", sep="", file=fnode)
+         nm_node=substring(names(poolall), 4)
+         cat(paste(nm_node, log2(poolall), sep=" = "), sep="\\n" , file=fnode)
+         close(fnode)
+      }
    }
 }
 if (!is.null(cl)) {
@@ -1747,11 +1948,13 @@ if (!is.null(cl)) {
    labargs$cl=cl=NULL
 }
 
-pres=rbind(cost=costres, pres)
-fco=file(file.path(dirw, sprintf("%s.pres.csv", baseshort)), open="w")
-cat("row_col\t", file=fco)
-write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
-close(fco)
+if (write_res) {
+   pres=rbind(cost=costres, pres)
+   fco=file(file.path(dirres, "tmp", sprintf("%s.pres.csv", baseshort)), open="w")
+   cat("row_col\t", file=fco)
+   write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
+   close(fco)
+}
 if (TIMEIT) {
    cat("rend    : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
@@ -1769,20 +1972,22 @@ for (post in postlist) {
       if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
          source(fpostR)
       } else {
-         cat(sprintf("Posttreatment R file '%%s' does not exist in ftbl directory neither in influx_si one. Ignored.\\n", post), file=fcerr)
+         cat(sprintf("***Warning: posttreatment R file '%%s' does not exist in working directory neither in influx_si one. Ignored.\\n", post), file=fclog)
       }
    }
 }
 xgc=gc(verbose=FALSE) # to avoid the message "Error in (function (x)  : tentative d'appliquer un objet qui n'est pas une fonction"
-close(fclog)
-close(fcerr)
+if (write_res) {
+   close(fclog)
+   close(fcerr)
+}
 retcode=max(retcode)
 if (format(parent.frame()) == format(.GlobalEnv)) {
    q("no", status=retcode)
 }
-"""%{
-    "postlist": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
-})
+    """%{
+         "postlist": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
+         })
 
     f.close()
     # try to make output files just readable to avoid later casual edition
@@ -1790,3 +1995,7 @@ if (format(parent.frame()) == format(.GlobalEnv)) {
         os.chmod(n_R, stat.S_IREAD)
     except:
         pass
+    return 0
+
+if __name__ == "__main__" or __name__ == "influx_si.cli":
+    sys.exit(main(sys.argv))
