@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Change Log for influx_si &#8212; influx_si 6.1 documentation</title>
+    <title>Change Log for influx_si &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="intro.html" title="Introduction"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Change Log for influx_si</a></li> 
       </ul>
     </div>  
@@ -50,11 +50,28 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this heading">¶</a></h1>
-<section id="version-6-1-1">
-<h2>2022-12-18 version 6.1.1<a class="headerlink" href="#version-6-1-1" title="Permalink to this heading">¶</a></h2>
+<section id="version-7-0">
+<h2>2023-07-11 version 7.0<a class="headerlink" href="#version-7-0" title="Permalink to this heading">¶</a></h2>
 <dl class="simple">
 <dt>New feature:</dt><dd><ul class="simple">
-<li><p>in influx_i, unscaled simulated mass measurements (in _res.kvh: “simulated measurements/labeled data”) are clamped to [0; 1] and normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)</p></li>
+<li><p>new output format is introduced. All result files go in <code class="docutils literal notranslate"><span class="pre">&lt;mynetwork&gt;_res</span></code> directory</p></li>
+<li><p>ff2ftbl and res2ftbl_meas are now deprecated. Use *.sim files from new output format.</p></li>
+<li><p>in influx_i, unscaled simulated mass measurements (in .miso.sim) are clamped to [0; 1] and full MID sets are normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)</p></li>
+<li><p>default MTF values lacking in input files are now explicitly written in newly created files .def</p></li>
+<li><p>scaling factors are now calculated even if –noopt is set.</p></li>
+<li><p>pooled measurements with spaces around “+” sign are now allowed (seen at Magalie Poirier Pocovi, U. of Bordeaux, France)</p></li>
+<li><p>plot_imes.R is deprecated, use plot_ilab.R instead</p></li>
+<li><p>txt2ftbl: now, peak measurements are translated to PEAK_MEASUREMENTS and no more to LABEL_MEASUREMENTS in ftbl</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>fixed error messages from funlab in which reported time point could be erroneous.</p></li>
+<li><p>fixed plot_ilab.R in simulation mode</p></li>
+<li><p>fixed non ordered time points in .ikin while converted from .miso (seen at Magalie Poirier Pocovi, U. of Bordeaux, France)</p></li>
+<li><p>txt2ftbl: fixed a possible appearance of non labeled metabolites in METABILITE_POOLS</p></li>
+<li><p>influx_si: better Exception handling and error reporting</p></li>
+<li><p>ftbl2labcin: fixed mapping ftbl&lt;-&gt;miso for peak and label measurements</p></li>
+<li><p>influx_si: better handling of file names with a dot “.” in the name</p></li>
 </ul>
 </dd>
 </dl>
@@ -810,7 +827,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
-<li><a class="reference internal" href="#version-6-1-1">2022-12-18 version 6.1.1</a></li>
+<li><a class="reference internal" href="#version-7-0">2023-07-11 version 7.0</a></li>
 <li><a class="reference internal" href="#version-6-1">2022-10-11 version 6.1</a></li>
 <li><a class="reference internal" href="#version-6-0-4">2022-06-23 version 6.0.4</a></li>
 <li><a class="reference internal" href="#version-6-0-1">2022-06-13 version 6.0.1</a></li>
@@ -906,7 +923,7 @@ all fluxes are free or constrained;</p></li>
         <li class="right" >
           <a href="intro.html" title="Introduction"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Change Log for influx_si</a></li> 
       </ul>
     </div>

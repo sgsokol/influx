@@ -3,6 +3,13 @@
 
 .. highlight:: bash
 
+.. _Python: https://www.python.org/
+
+.. _R: https://www.r-project.org/
+
+.. _Anaconda: https://www.anaconda.com/
+
+.. _miniconda: https://docs.conda.io/en/latest/miniconda.html
 
 ============
 Installation
@@ -14,7 +21,7 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
 .. note:: The code examples here after are given for Unix shell environment.
  On Windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix's one.
 
-.. note:: In command examples to run, we use script names with extension `.py`. However, starting from version 5.0.3, this extension can be omitted as all Python scripts are doubled with executable files without '.py'. For example, commands: ::
+.. note:: In command examples to run, we use script names with extension `.py`. However, starting from version 5.0.3, this extension can be omitted as all Python_ scripts are doubled with executable files without '.py'. For example, commands: ::
 
  $ influx_s.py --prefix e_coli
  
@@ -22,7 +29,7 @@ but can be used both on Linux (or other UNIX, MacOS included) and Windows platfo
 
  $ influx_s --prefix e_coli
  
- are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows, where supplementary effort can be required to associate .py file with Python interpreter. Using executable programs (i.e. without .py extension) makes this extra configuration step no more mandatory.
+ are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows, where supplementary effort can be required to associate ``.py`` file with Python interpreter. Using executable programs (i.e. without ``.py`` extension) makes this extra configuration step no more mandatory.
 
 Installation with ``conda``
 ---------------------------
@@ -54,8 +61,8 @@ To use the software ``influx_si``, you'll need some R dependencies listed below.
 
 If this procedure fails, you'll have to solve the underlying problem identified from its error messages and rerun the command again.
 
-R dependencies
---------------
+R_ dependencies
+---------------
 
 As of influx_si version 5.0, user has not to install R dependencies manually from an R session. So they are listed here just for information.
 
@@ -71,15 +78,15 @@ As of influx_si version 5.0, user has not to install R dependencies manually fro
 .. warning:: As of this writing (September 17, 2014), an R package ``nnls`` distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the ``Path`` system variable has the R path ending by ``\bin\x64`` and not just by ``\bin``.
 
 
-Python dependencies
--------------------
+Python_ dependencies
+--------------------
 
 As of influx_si version 5.0, user has not to install Python dependencies manually. So they are listed here just for information.
 
 - python 3.6 (or higher) and modules
 
   + scipy
-  + libsbml (optional, needed for ftbl2metxml.py)
+  + libsbml (optional, needed for ``ftbl2metxml.py``)
 
 ********************
 Test of installation
@@ -97,8 +104,7 @@ then you can get in the newly created directory ``test`` and run some tests:
      $ cd test/mtf
      $ influx_s.py --prefix e_coli
 
-If everything was correctly installed, you should see in your shell window an
-output looking like:
+If everything was correctly installed, you should see in your shell window an output looking like:
 
 .. code-block:: text
 
@@ -109,15 +115,13 @@ output looking like:
 
 The meaning of this output is quit simple. First, an R code is generated from input MTF files (cf. :ref:`MTF format <mtf>` for more details) then it is executed till it ends. Time moments at which these three events occur are reported.
 
-The calculation result will be written in ``e_coli_res.kvh``.
-It should be almost identical to the same file in ``ok/mtf`` subdirectory.
-On Unix you can do ::
+The calculation result will be written in directory ``e_coli_res``.
+It should be almost identical to the same directory in ``ok/mtf`` subdirectory.
+On Unix you can do for example ::
 
-$ diff e_coli_res.kvh ../ok/mtf/e_coli_res.kvh
+$ diff e_coli_res/e_coli.tvar.sim ../ok/mtf/e_coli_res/e_coli.tvar.sim
 
-to see if there is any difference. Some small differences in numerical
-values can be ok. They might come from variations in versions of R and
-underlying numerical libraries (BLAS, LAPACK and so on).
+to see if there is any difference in estimated fluxes. Some small differences in numerical values can be ok. They might come from variations in versions of R and underlying numerical libraries (BLAS, LAPACK and so on).
 
 If something went wrong, check the error messages in ``e_coli.err``,
 interpret them, try to figure out why the errors occurred and correct them.
@@ -131,7 +135,6 @@ In this case, the output looks sightly different than in one by one run:
 
 .. code-block:: text
 
-  "/home-local/sokol/.local/bin/influx_s" "--pref" "e_coli" "--pref" "e_coli_growth"
   e_coli_growth: code gen: 2022-05-25 14:44:56
   e_coli: code gen: 2022-05-25 14:44:56
   //calcul: 2022-05-25 14:44:57
@@ -142,7 +145,7 @@ The time moments for code generation is preceded by a short version of file name
 It is the operating system that dispatches and equilibrates the charge
 among available CPUs and cores, not ``influx_si`` who simply launches these processes.
 
-One of the main interest of MTF format is an ability to multiplex constant and variable parts of information describing a set of experiments. In this case, many calculations can run in parallel on inter-dependent input files, cf. ``.vmtf`` description in :ref:`MTF format <mtf>`.
+One of the main interest of MTF format introduced in v6.0 is an ability to multiplex constant and variable parts of information describing a set of experiments. In this case, many calculations can run in parallel on inter-dependent input files, cf. ``.vmtf`` description in :ref:`MTF format <mtf>`.
 
 For a quick test of ``influx_i``, you can run in the same directory: ::
 
@@ -152,12 +155,11 @@ Normal output looks like
 
 .. code-block:: text
 
-  "/home-local/sokol/.local/bin/influx_i.py" "--pref" "e_coli_i"
   code gen: 2022-05-25 14:50:51
   calcul  : 2022-05-25 14:50:52
   end     : 2022-05-25 14:51:02
 
-Calculation results are written in ``e_coli_i_res.kvh`` and they can be compared with the same file in the ``ok/mtf`` sub-directory. You can also visually check a generated graphic file ``e_coli_i.pdf`` to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.
+Calculation results are written in ``e_coli_i_res`` directory and they can be compared with the sames files in the ``../ok/mtf/e_coli_i_re`` sub-directory. You can also visually check a generated graphic file ``e_coli_i_res/e_coli_i.pdf`` to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.
 
 *****************************
 Installation of documentation
@@ -167,9 +169,9 @@ Installation of documentation
 
  $ influx_s.py --copy_doc
 
-It will create a subdirectory ``doc`` in the current directory. This subdirectory contains ``influx_si.pdf``, all-in-one documentation file but also an ``html`` subdirectory with the documentation browsable in your prefered navigator.
+It will create a subdirectory ``doc`` in the current directory. This subdirectory contains ``influx_si.pdf``, all-in-one documentation file but also an ``html`` subdirectory with the documentation viewable in your preferred browser.
 
-The both documentation versions are also available on-line: `pdf <https://metasys.insa-toulouse.fr/software/influx/influx_si.pdf>`_  and `html <https://metasys.insa-toulouse.fr/software/influx/doc/>`_.
+The documentation is also available `on-line <https://influx-si.readthedocs.io/>`_.
 
 For a quick reminder of available options, launch ::
 

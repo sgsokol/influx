@@ -98,3 +98,6 @@ mtfdef	True	txt2ftbl cases/mtf/sbml1	None==setvar("p", Path("cases/mtf/sbml1.tva
 
 # monotonous time in .ikin from .miso
 tmono	True	txt2ftbl --prefix cases/mtf/tmono --inst	np.all(np.diff(pa.read_csv("cases/mtf/tmono.ikin", sep="\t").columns[1:].to_numpy(float)) > 0)
+
+# multi input
+multi	True	influx_s cases/e_coli cases/e_coli_growth

@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>User’s manual &#8212; influx_si 6.1 documentation</title>
+    <title>User’s manual &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User’s manual</a></li> 
       </ul>
     </div>  
@@ -53,7 +53,8 @@
 <section id="mtf-format">
 <span id="mtf"></span><h2>MTF format<a class="headerlink" href="#mtf-format" title="Permalink to this heading">¶</a></h2>
 <p>Let start by describing file formats used by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.
-MTF (Multiple TSV files) format was introduced in v6.0 of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. Its introduction came in replacement to FTBL format and served several purposes:</p>
+MTF (Multiple TSV files) format was introduced in v6.0 of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> and was developed in collaboration and on demand from <a class="reference external" href="https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/metatoul/">MetaToul-FluxoMet platform</a> and <a class="reference external" href="https://www.toulouse-biotechnology-institute.fr/en/poles/equipe-metasys/">MetaSys team</a> of Toulouse Biotechnology Institute. Since v7.0, MTF is also used for output files.</p>
+<p>Originally, MTF introduction came in replacement to FTBL format and served several purposes:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>to simplify network and other information formatting;</p></li>
@@ -61,9 +62,9 @@ MTF (Multiple TSV files) format was introduced in v6.0 of <code class="docutils 
 <li><p>to facilitate automatic assembling of network/data/options coming from tiers workflows such as MS or NMR data treatment.</p></li>
 </ul>
 <p>Even if FTBL format was replaced as front-end format in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>, it is still a valid
-format for calculation and continues to be used behind the scene on in accompanying utilities.</p>
+format for calculation and continues to be used behind the scene in accompanying utilities.</p>
 </div></blockquote>
-<p>MTF format is composed of a series of plain text files, each having a particular role and distinguished by their suffixes:</p>
+<p>MTF format is composed of a series of plain text (tab separated when necessary) files, each having a particular role and designated by their suffixes:</p>
 <blockquote>
 <div><dl class="simple">
 <dt>.netw</dt><dd><p>describes biochemical reactions and label transitions.</p>
@@ -85,7 +86,7 @@ format for calculation and continues to be used behind the scene on in accompany
 </dl>
 </div></blockquote>
 <p>These suffixes will be used throughout this manual, as they facilitate <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> usage. But they are not mandatory. For example, a classical .tsv or .txt suffixes can be used instead. In this case, a file meaning can be indicated in <code class="docutils literal notranslate"><span class="pre">--mtf</span></code> option of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> of <code class="docutils literal notranslate"><span class="pre">txt2ftbl</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">--mtf</span> <span class="pre">netw=ecoli.txt,miso=gcms.tsv,linp=glucoseU.8.tsv</span></code></p>
-<p>Only the first 3 are mandatory, the rest of MTF set is optional.</p>
+<p>Only the first 3 are mandatory as input files, the rest of MTF set is optional.</p>
 <p>Now, we pass in more detailed review each of the file content.</p>
 <section id="netw">
 <h3>.netw<a class="headerlink" href="#netw" title="Permalink to this heading">¶</a></h3>
@@ -239,7 +240,7 @@ This file contains the following column names:</p>
                 NET     edd                     &gt;<span class="o">=</span>              <span class="m">0</span>.0001
 </pre></div>
 </div>
-<p>Column <code class="docutils literal notranslate"><span class="pre">Kind</span></code> indicates if a constraint is on net fluxes: <code class="docutils literal notranslate"><span class="pre">NET</span></code>; on exchange fluxes: <code class="docutils literal notranslate"><span class="pre">XCH</span></code> or on specie concentrations: <code class="docutils literal notranslate"><span class="pre">MET</span></code>. The <code class="docutils literal notranslate"><span class="pre">Formula</span></code> content must be a linear function of involved entities. Column <code class="docutils literal notranslate"><span class="pre">Value</span></code> can have either a float number or a simple Python arithmetic expression which evaluates to a float number.</p>
+<p>Column <code class="docutils literal notranslate"><span class="pre">Kind</span></code> indicates if a constraint is on net fluxes: <code class="docutils literal notranslate"><span class="pre">NET</span></code>; on exchange fluxes: <code class="docutils literal notranslate"><span class="pre">XCH</span></code> or on specie concentrations: <code class="docutils literal notranslate"><span class="pre">MET</span></code>. The <code class="docutils literal notranslate"><span class="pre">Formula</span></code> content must be a linear function of involved entities. If numeric factors are involved in the formula, they must preceed the variable name, e.g. <code class="docutils literal notranslate"><span class="pre">0.632*BM</span></code> and not <code class="docutils literal notranslate"><span class="pre">BM*0.632</span></code>. Column <code class="docutils literal notranslate"><span class="pre">Value</span></code> can have either a float number or a simple Python arithmetic expression which evaluates to a float number, e.g. <code class="docutils literal notranslate"><span class="pre">math.sqrt(2)/2</span></code> or <code class="docutils literal notranslate"><span class="pre">np.sqrt(2)/2</span></code> (here <code class="docutils literal notranslate"><span class="pre">np</span></code> stands for <code class="docutils literal notranslate"><span class="pre">numpy</span></code>).</p>
 </section>
 <section id="tvar">
 <h3>.tvar<a class="headerlink" href="#tvar" title="Permalink to this heading">¶</a></h3>
@@ -323,6 +324,138 @@ a file name is given without extension, it is deduced from column name. Example 
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--prefix ecoli --mtf variable.vmtf
 </pre></div>
 </div>
+</section>
+</section>
+<section id="output-format">
+<h2>Output format<a class="headerlink" href="#output-format" title="Permalink to this heading">¶</a></h2>
+<p>Since v7.0, MTF is also used as output format for most result files. However, compared to input files, some additional columns were added. We will describe them in appropriate subsections.</p>
+<p>The whole set of output files go to <code class="docutils literal notranslate"><span class="pre">mynetwork_res</span></code> directory if this name is not overwritten with <code class="docutils literal notranslate"><span class="pre">--out</span></code> option. Here <code class="docutils literal notranslate"><span class="pre">mynetwork</span></code> is just a name example to be adapted to your situation. Let review output files.
+By default, the result subdirectory is located in the same directory as input MTF files.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All result files are silently overwritten if already exist.
+So take care to copy your results elsewhere if you want to protect them from overwriting.</p>
+</div>
+<section id="mynetwork-log">
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.log</span></code><a class="headerlink" href="#mynetwork-log" title="Permalink to this heading">¶</a></h3>
+<p>contains the run-time log messages, in particular,
+it contains a report on convergence history during the fitting process.
+It can be helpful for identifying potential problems. Some warnings can be written in this file, so user should scrutinize this file for lines starting with <code class="docutils literal notranslate"><span class="pre">***Warning:</span></code> to be informed about potential issues.</p>
+<p>For example, a warning about structurally non identifiable fluxes can look like:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>***Warning: inverse of covariance matrix is numerically singular.
+Statistically undefined parameter(s) seems to be:
+f.x.pyk
+For a more complete list, see SD column in &#39;.tvar.sim&#39; result file.
+</pre></div>
+</div>
+</section>
+<section id="mynetwork-err">
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code><a class="headerlink" href="#mynetwork-err" title="Permalink to this heading">¶</a></h3>
+<p>This file contains critical error messages preventing from normal program execution. Normally, it should be empty (0 byte size). If it is not, there is something definitely wrong either in the input files or with the program itself that should be fixed before going on.</p>
+<p>Problems can appear in all stages of a software run:</p>
+<ul>
+<li><p>parsing MTF/FTBL files</p></li>
+<li><p>R code writing</p></li>
+<li><p>R code execution</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>vector-matrix initialization</p></li>
+<li><p>optimization</p></li>
+<li><p>post-optimization treatment</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p>Most of the error messages are automatically generated by underlying languages Python and R. These messages can appear somewhat cryptic for a user unfamiliar with these languages. But the most critical error messages are edited to be as explicit as possible. For example, a message about badly structurally defined network could be similar to</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Error : Provided measurements (isotopomers and fluxes) are not
+        sufficient to resolve all free fluxes.
+Unsolvable fluxes may be:
+        f.x.tk2, f.n.Xylupt_1, f.x.maldh, f.x.pfk, f.x.ta, f.x.tk1
+Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
+</pre></div>
+</div>
+<p>a message about singular cumomer balance matrix could resemble to</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>lab_sim: Cumomer matrix is singular. Try &#39;--clownr N&#39; or/and &#39;--zc N&#39; options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero Zero rows in cumomer matrix A at weight 1:
+cit_c:16
+ac_c:2
+...
+Zero fluxes are:
+fwd.ACITL
+...
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<blockquote>
+<div><p>In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here <code class="docutils literal notranslate"><span class="pre">cit_c:&lt;N&gt;</span></code> cumomers, where &lt;N&gt; is an integer, its binary mask indicates the “1”s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the <code class="docutils literal notranslate"><span class="pre">.cnstr</span></code> file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option <code class="docutils literal notranslate"><span class="pre">--cinout=CINOUT</span></code> or even all non-reversible ones with the option <code class="docutils literal notranslate"><span class="pre">--clownr=CLOWNR</span></code>) to stay out of 0, e.g.:</p>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">influx_s.py</span> <span class="pre">--clownr</span> <span class="pre">0.0001</span> <span class="pre">--prefix</span> <span class="pre">mynetwork</span></code></p>
+<p>Adding such inequalities does not guaranty that cumomer matrix will become invertible, but often it does help.
+It’s up to the user to check that an addition of such inequalities does not contradict biological sens of his network.</p>
+</div>
+<p>and so on.</p>
+<p>A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to see if other problems are still here. Sometimes, an issue can induce several others. So, fixing the first issue could eliminate some others. Repeat this process, till all the troubles are eliminated.</p>
+</section>
+<section id="mynetwork-miso-sim-mynetwork-mflux-sim-mynetwork-mmet-sim">
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.miso.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mflux.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mmet.sim</span></code><a class="headerlink" href="#mynetwork-miso-sim-mynetwork-mflux-sim-mynetwork-mmet-sim" title="Permalink to this heading">¶</a></h3>
+<p>These files contain simulated values and are formatted as input files for isotopic, flux and concentration measurements. Additional columns are:</p>
+<blockquote>
+<div><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">Residual</span></code></dt><dd><p>containing reduced residual values calculated as “(simulated - measured)/SD”;</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">Pvalue</span></code></dt><dd><p>result of Z-test on residual value. Lower p-value corresponds to higher (in absolute value) residual.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>If multiple starting points were used (e.g. with <code class="docutils literal notranslate"><span class="pre">--fseries</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--iseries</span></code> options) then result corresponding to each starting point will be numbered with prefix <code class="docutils literal notranslate"><span class="pre">.V</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.V10.miso.sim</span></code> for tenth staring point.</p>
+</section>
+<section id="mynetwork-tvar-sim">
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.tvar.sim</span></code><a class="headerlink" href="#mynetwork-tvar-sim" title="Permalink to this heading">¶</a></h3>
+<p>Estimated fluxes and specie concentrations (if any) are all gathered in this file, in column <code class="docutils literal notranslate"><span class="pre">Value</span></code>. Additional columns are:</p>
+<blockquote>
+<div><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">SD</span></code></dt><dd><p>Estimated Standard Deviation</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">Struct_identif</span></code></dt><dd><p>Contains “yes” if the value on the current row is considered as structurally identifiable (“no” otherwise). We arbitrary set a threshold for “yes” decision at SD &lt;= 10000. Note that a value can be structurally identifiable but still statistically poorly defined.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">Low_mc</span></code>, <code class="docutils literal notranslate"><span class="pre">Up_mc</span></code></dt><dd><p>If Monte-Carlo method for sensitivity estimation is used (cf. option <code class="docutils literal notranslate"><span class="pre">--sens</span> <span class="pre">mc=MC</span></code>) then these columns contain lower and upper 95% confidence interval limits. They are estimated at quantile levels 2.5% and 97.5% respectively.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>In case of multiple starting points, this file is numbered.</p>
+</section>
+<section id="mynetwork-stat">
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.stat</span></code><a class="headerlink" href="#mynetwork-stat" title="Permalink to this heading">¶</a></h3>
+<p>This file contains results of chi2 statistical test. Its content can look like:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>chi2_value              61.5141593189625
+chi2/df                 1.86406543390795
+number_of_measurements  54
+number_of_parameters    21
+degrees_of_freedom      33
+p-value                 0.998130284339227
+conclusion              At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD
+</pre></div>
+</div>
+<p>The field names are self explanatory. In case of multiple starting points, this file is numbered.</p>
+</section>
+<section id="custom-files">
+<h3>Custom files<a class="headerlink" href="#custom-files" title="Permalink to this heading">¶</a></h3>
+<p>These files (e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.pdf</span></code>) can be produced by user supplied scripts that are executed at the end of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> simulations. For example, we provide a script <code class="docutils literal notranslate"><span class="pre">plot_ilab.R</span></code> which can be used to plot label kinetics simulated by <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> or <code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> for <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>. One or many of such custom scripts can be given in .opt file, field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> (cf. e_coli_i.opt for example)</p>
+</section>
+<section id="old-result-files">
+<h3>Old result files<a class="headerlink" href="#old-result-files" title="Permalink to this heading">¶</a></h3>
+<p>For users willing to continue usage of old result files, namely <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code>, we kept them in <code class="docutils literal notranslate"><span class="pre">tmp</span></code> subdirectory.</p>
+<p>Thus typically, a <code class="docutils literal notranslate"><span class="pre">tmp</span></code> subdir contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mynetwork.pres.csv</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mynetwork.R</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwork.attrs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwork.attrs</span></code></p></li>
+</ul>
+</div></blockquote>
 </section>
 </section>
 <section id="basic-influx-si-usage">
@@ -536,6 +669,9 @@ An optional p-value used here does not give a proportion of residuals that will 
 </dd>
 <dt><kbd><span class="option">--force <var>FORCE</var></span></kbd></dt>
 <dd><p>option passed to txt2ftbl. See help there.</p>
+</dd>
+<dt><kbd><span class="option">-o <var>OUT</var></span>, <span class="option">--out <var>OUT</var></span></kbd></dt>
+<dd><p>output directory. Default: basename of input file without suffix + ‘_res’. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.</p>
 </dd>
 <dt><kbd><span class="option">--copy_doc</span></kbd></dt>
 <dd><p>copy documentation directory in the current directory and
@@ -883,8 +1019,12 @@ Gluc_1  100000          {T1=2; T2=2; ppulses(t, c(T1,T2))}
 </div></blockquote>
 </section>
 </section>
-<section id="result-file-fields">
-<h2>Result file fields<a class="headerlink" href="#result-file-fields" title="Permalink to this heading">¶</a></h2>
+<section id="old-result-file-fields">
+<h2>Old Result File Fields<a class="headerlink" href="#old-result-file-fields" title="Permalink to this heading">¶</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting from v7.0 results are written in MTF format described above. So this section is kept only for legacy reason and is not more necessary for reading.</p>
+</div>
 <p>Generally speaking, the names of the fields in the result KVH file are chosen to be self-explanatory. So there is no so much to say about them. Here, we provide only some key fields and name conventions used in the result file.</p>
 <p>At the beginning of the <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> file, some system information is provided. Here, “system” should be taken in two sens: informatics and biological. The information is reported in the fields  <code class="docutils literal notranslate"><span class="pre">influx</span></code> and  <code class="docutils literal notranslate"><span class="pre">system</span> <span class="pre">sizes</span></code>. These fields are followed by  <code class="docutils literal notranslate"><span class="pre">starting</span> <span class="pre">point</span></code> information regrouping <code class="docutils literal notranslate"><span class="pre">starting</span> <span class="pre">free</span> <span class="pre">parameters</span></code>,  <code class="docutils literal notranslate"><span class="pre">starting</span> <span class="pre">cost</span> <span class="pre">value</span></code>, <code class="docutils literal notranslate"><span class="pre">flux</span> <span class="pre">system</span> <span class="pre">(Afl)</span></code> and <code class="docutils literal notranslate"><span class="pre">flux</span> <span class="pre">system</span> <span class="pre">(bfl)</span></code>. Name conventions used in these and other fields are the following:</p>
 <blockquote>
@@ -922,74 +1062,9 @@ Growth fluxes which depend on constant specie concentrations can be found in con
 </section>
 <section id="network-values-for-cytoscape">
 <h2>Network values for Cytoscape<a class="headerlink" href="#network-values-for-cytoscape" title="Permalink to this heading">¶</a></h2>
-<p>Several network values formatted for cytoscape are written by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of them. All these files are written at the end of calculations, so if an error has interrupted this process, no such file will be produced. Take care to don’t use an outdated copy of these files.</p>
+<p>Several network values formatted for cytoscape are written by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of them. These files are written at the end of calculations, so if an error has interrupted this process, no such file will be produced. Take care to don’t use an outdated copy of these files.</p>
 <p>A file named <code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwork.attrs</span></code> can help to map net flux values on edges of a studied network. A file <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwork.attrs</span></code> do the same with exchange fluxes. And finally, <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork.attrs</span></code> provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.</p>
-<p>See <a class="reference internal" href="#additional-tools">Additional tools</a> section, <a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: cytoscape view</a> paragraph to know how to produce files importable in Cytoscape from a given FTBL file. User’s manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.</p>
-</section>
-<section id="warning-and-error-messages">
-<h2>Warning and error messages<a class="headerlink" href="#warning-and-error-messages" title="Permalink to this heading">¶</a></h2>
-<p>The warning and error messages are logged in the <code class="docutils literal notranslate"><span class="pre">.err</span></code> suffixed file. For example, after running:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s --prefix mynetwok
-</pre></div>
-</div>
-<p>the warnings and errors will be written in the <code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code> file.
-This kind of messages are important for user not only to be aware that during calculations something went wrong but also to understand what exactly went wrong and to have an insight on how to fix it.</p>
-<p>Problems can appear in all stages of a software run:</p>
-<ul>
-<li><p>parsing MTF/FTBL files</p></li>
-<li><p>R code writing</p></li>
-<li><p>R code execution</p>
-<blockquote>
-<div><ul class="simple">
-<li><p>vector-matrix initialization</p></li>
-<li><p>optimization</p></li>
-<li><p>post-optimization treatment</p></li>
-</ul>
-</div></blockquote>
-</li>
-</ul>
-<p>Most of the error messages are automatically generated by underlying languages Python and R. These messages can appear somewhat cryptic for a user unfamiliar with these languages. But the most critical error messages are edited to be as explicit as possible. For example, a message telling that free fluxes are badly chosen could look like:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Error : Flux matrix is not square or singular: <span class="o">(</span>56eq x 57unk<span class="o">)</span>
-You have to change your choice of free fluxes <span class="k">in</span> the <span class="s1">&#39;mynetwork.ftbl&#39;</span> file.
-Candidate<span class="o">(</span>s<span class="o">)</span> <span class="k">for</span> free flux<span class="o">(</span>es<span class="o">)</span>:
-d.n.Xylupt_U
-</pre></div>
-</div>
-<p>a message about badly structurally defined network could be similar to</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Error : Provided measurements (isotopomers and fluxes) are not
-        sufficient to resolve all free fluxes.
-Unsolvable fluxes may be:
-        f.x.tk2, f.n.Xylupt_1, f.x.maldh, f.x.pfk, f.x.ta, f.x.tk1
-Jacobian dr_dff is dumped in dbg_dr_dff_singular.txt
-</pre></div>
-</div>
-<p>a message about singular cumomer balance matrix could resemble to</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>lab_sim: Cumomer matrix is singular. Try &#39;--clownr N&#39; or/and &#39;--zc N&#39; options with small N, say 1.e-3 or constrain some of the fluxes listed below to be non zero Zero rows in cumomer matrix A at weight 1:
-cit_c:16
-ac_c:2
-...
-Zero fluxes are:
-fwd.ACITL
-...
-</pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>In this error message, we report cumomers whose balance gave a zero row in the cumomer matrix (here <code class="docutils literal notranslate"><span class="pre">cit_c:&lt;N&gt;</span></code> cumomers, where &lt;N&gt; is an integer, its binary mask indicates the “1”s in the cumomer definition) as well as a list of fluxes having 0 value. This information could help a user to get insight about a flux whose zero value led to a singular matrix. A workaround for such situation could be setting in the <code class="docutils literal notranslate"><span class="pre">.cnstr</span></code> file an inequality constraining a faulty flux to keep a small non zero value. A more radical workaround could be restricting some flux classes (input-output  fluxes with the option <code class="docutils literal notranslate"><span class="pre">--cinout=CINOUT</span></code> or even all non-reversible ones with the option <code class="docutils literal notranslate"><span class="pre">--clownr=CLOWNR</span></code>) to stay out of 0, e.g.:</p>
-<p><code class="docutils literal notranslate"><span class="pre">$</span> <span class="pre">influx_s.py</span> <span class="pre">--clownr</span> <span class="pre">0.0001</span> <span class="pre">--prefix</span> <span class="pre">mynetwork</span></code></p>
-<p>Adding such inequalities does not guaranty that cumomer matrix will become invertible, but often it does help.
-It’s up to the user to check that an addition of such inequalities does not contradict biological sens of his network.</p>
-</div>
-<p>a message about badly statistically defined network could appear like</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Inverse of covariance matrix is numerically singular.
-Statistically undefined parameter(s) seems to be:
-f.x.pyk
-For more complete list, see sd columns in &#39;/linear stats&#39;
-in the result file.
-</pre></div>
-</div>
-<p>and so on.</p>
-<p>A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to see if other problems are still here. Sometimes, an issue can induce several others. So, fixing the first issue could eliminate some others. Repeat this process, till all the troubles are eliminated.</p>
+<p>See <a class="reference internal" href="#additional-tools">Additional tools</a> section, <a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: cytoscape view</a> paragraph to know how to produce files importable in Cytoscape from a given MTF set. User’s manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.</p>
 </section>
 <section id="problematic-cases">
 <h2>Problematic cases<a class="headerlink" href="#problematic-cases" title="Permalink to this heading">¶</a></h2>
@@ -1260,7 +1335,7 @@ optional arguments:
 </div></blockquote>
 </section>
 <section id="ftbl2xgmml-cytoscape-view">
-<h3>ftbl2xgmml: cytoscape view<a class="headerlink" href="#ftbl2xgmml-cytoscape-view" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2xgmml: Cytoscape view<a class="headerlink" href="#ftbl2xgmml-cytoscape-view" title="Permalink to this heading">¶</a></h3>
 <p>Once a valid MTF set (or FTBL file) is generated, a user can visualize a graph representing his metabolic network in <a class="reference external" href="https://www.cytoscape.org">Cytoscape</a> program. To produce necessary graph files, user can run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ftbl2xgmml.py --prefix mynetwork <span class="o">[</span>&gt; mynetwotk.xgmml<span class="o">]</span>
 </pre></div>
@@ -1348,6 +1423,17 @@ To extract additional equation from an expa file, <code class="docutils literal 
 </section>
 <section id="res2ftbl-meas-simulated-data">
 <h3>res2ftbl_meas: simulated data<a class="headerlink" href="#res2ftbl-meas-simulated-data" title="Permalink to this heading">¶</a></h3>
+<div class="admonition note" id="ex-sim1">
+<p class="admonition-title">Note</p>
+<p>Deprecated since v7.0. User can use <code class="docutils literal notranslate"><span class="pre">.miso.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">.mflux.sim</span></code> and <code class="docutils literal notranslate"><span class="pre">.mmet.sim</span></code> as measurement files in a new calculation. E.g.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>influx_s --pref mynetwork --mtf \
+miso=mynetwork_res/mynetwork.miso.sim,\
+mflux=mynetwork_res/mynetwork.mflux.sim \
+-o tmp
+</pre></div>
+</div>
+<p>here, new output directory <code class="docutils literal notranslate"><span class="pre">tmp</span></code> is used to avoid an overwriting of previous results.</p>
+</div>
 <p>During preparation of a study, one of the questions that biologist can ask is “Will the intended collected data be sufficient for flux resolution in a given network?”
 Some clue can be obtained by making “dry runs” of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> with <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> (i.e. no optimization) option. User can prepare an FTBL file with a given network and supposed data to be collected. At first, the measurement values can be replaced by NAs while the SD values for measurements must be given in realistic manner. After running:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --noopt mynetwork
@@ -1362,6 +1448,16 @@ Getting an ftbl file with real values instead of NAs in measurement sections giv
 </section>
 <section id="ffres2ftbl-import-free-fluxes">
 <h3>ffres2ftbl: import free fluxes<a class="headerlink" href="#ffres2ftbl-import-free-fluxes" title="Permalink to this heading">¶</a></h3>
+<div class="admonition note" id="ex-sim2">
+<p class="admonition-title">Note</p>
+<p>Deprecated since v7.0. User can use <code class="docutils literal notranslate"><span class="pre">.tvar.sim</span></code> as starting values in a new calculation. E.g.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>influx_s --pref mynetwork --mtf \
+tvar=mynetwork_res/mynetwork.tvar.sim \
+-o tmp
+</pre></div>
+</div>
+<p>here, new output directory <code class="docutils literal notranslate"><span class="pre">tmp</span></code> is used to avoid an overwriting of previous results.</p>
+</div>
 <p>This utility imports free flux values and specie concentrations (if any) from a result file _res.kvh and inject them into an FTBL file. Usage:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ffres2ftbl.sh mynetwork_res.kvh <span class="o">[</span>base.ftbl<span class="o">]</span> &gt; new.ftbl
 </pre></div>
@@ -1415,6 +1511,16 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
 <li><a class="reference internal" href="#vmtf">.vmtf</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#output-format">Output format</a><ul>
+<li><a class="reference internal" href="#mynetwork-log"><code class="docutils literal notranslate"><span class="pre">mynetwork.log</span></code></a></li>
+<li><a class="reference internal" href="#mynetwork-err"><code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code></a></li>
+<li><a class="reference internal" href="#mynetwork-miso-sim-mynetwork-mflux-sim-mynetwork-mmet-sim"><code class="docutils literal notranslate"><span class="pre">mynetwork.miso.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mflux.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mmet.sim</span></code></a></li>
+<li><a class="reference internal" href="#mynetwork-tvar-sim"><code class="docutils literal notranslate"><span class="pre">mynetwork.tvar.sim</span></code></a></li>
+<li><a class="reference internal" href="#mynetwork-stat"><code class="docutils literal notranslate"><span class="pre">mynetwork.stat</span></code></a></li>
+<li><a class="reference internal" href="#custom-files">Custom files</a></li>
+<li><a class="reference internal" href="#old-result-files">Old result files</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#basic-influx-si-usage">Basic influx_si usage</a><ul>
 <li><a class="reference internal" href="#influx-si-command-line-options"><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> command line options</a></li>
 </ul>
@@ -1432,9 +1538,8 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
 <li><a class="reference internal" href="#exclusive-influx-i-options">Exclusive <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> options</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#result-file-fields">Result file fields</a></li>
+<li><a class="reference internal" href="#old-result-file-fields">Old Result File Fields</a></li>
 <li><a class="reference internal" href="#network-values-for-cytoscape">Network values for Cytoscape</a></li>
-<li><a class="reference internal" href="#warning-and-error-messages">Warning and error messages</a></li>
 <li><a class="reference internal" href="#problematic-cases">Problematic cases</a><ul>
 <li><a class="reference internal" href="#structurally-non-identifiable-fluxes">Structurally non-identifiable fluxes</a></li>
 <li><a class="reference internal" href="#badly-defined-fluxes">Badly defined fluxes</a></li>
@@ -1445,7 +1550,7 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
 <li><a class="reference internal" href="#additional-tools">Additional tools</a><ul>
 <li><a class="reference internal" href="#ftbl2mtf-conversion-of-ftbl-to-mtf-format">ftbl2mtf: conversion of FTBL to MTF format</a></li>
 <li><a class="reference internal" href="#txt2ftbl-conversion-of-mtf-format-to-ftbl-format">txt2ftbl: conversion of MTF format to FTBL format</a></li>
-<li><a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: cytoscape view</a></li>
+<li><a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: Cytoscape view</a></li>
 <li><a class="reference internal" href="#ftbl2netan-mtf-ftbl-parsing">ftbl2netan: MTF/FTBL parsing</a></li>
 <li><a class="reference internal" href="#ftbl2cumoab-human-readable-equations">ftbl2cumoAb: human-readable equations</a></li>
 <li><a class="reference internal" href="#expa2ftbl-non-carbon-carrying-fluxes">expa2ftbl: non-carbon carrying fluxes</a></li>
@@ -1507,7 +1612,7 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User’s manual</a></li> 
       </ul>
     </div>

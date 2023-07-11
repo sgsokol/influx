@@ -1,4 +1,7 @@
-// Created by 'txt2ftbl --inst --prefix e_coli_iv' at 2022-05-25 17:54:29 CEST +0200
+// Created by 'txt2ftbl --inst --prefix e_coli_iv'
+// Date: 2023-07-11 10:47:41 CEST +0200
+// influx_si version: 7.0
+// If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
 	e_coli_iv.netw	1.0			command='txt2ftbl --inst --prefix e_coli_iv'

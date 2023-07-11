@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Introduction &#8212; influx_si 6.1 documentation</title>
+    <title>Introduction &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to influx_si’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Introduction</a></li> 
       </ul>
     </div>  
@@ -49,13 +49,11 @@
             
   <section id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> are programs designed for estimation of flux and chemical specie concentrations based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, … is also possible). <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> works with stationary data while the <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>
-is able to simulate instationary labeling (hence the <code class="docutils literal notranslate"><span class="pre">_i</span></code> in the name). Both work in metabolically stationary context. The whole project is referred as <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. Note also that the term <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is used in contexts where <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> are interchangeable.</p>
+<p><code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> are programs written in <a class="reference external" href="https://www.python.org/">Python</a>, <a class="reference external" href="https://www.r-project.org/">R</a> and C++ and designed for estimation of flux and chemical specie concentrations based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, … is also possible). <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> works with stationary data while the <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> is able to simulate instationary labeling (hence the <code class="docutils literal notranslate"><span class="pre">_s</span></code> and <code class="docutils literal notranslate"><span class="pre">_i</span></code> in the names). Both work in metabolically stationary context. The whole project is referred as <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. Note also that the term <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is used in contexts where a proposition holds for both <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>.</p>
 <section id="influx-si">
 <h2><code class="docutils literal notranslate"><span class="pre">influx_si</span></code><a class="headerlink" href="#influx-si" title="Permalink to this heading">¶</a></h2>
 <p>Flux and metabolite concentration values are obtained
-as a result of a fitting between simulated labeling data and the data measured
-by MS or NMR techniques. In this documentation, the terms <cite>fitting</cite> and <cite>optimization</cite>
+as a result of a fitting between simulated labeling data and the data measured by MS or NMR techniques. In this documentation, the terms <cite>fitting</cite> and <cite>optimization</cite>
 are used as synonyms.</p>
 </section>
 <section id="influx-s">
@@ -86,7 +84,7 @@ for fitting purposes. This algorithm provides:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>both cumomer and EMU frameworks for describing label distribution in the metabolites;</p></li>
-<li><p>parallel experiment treatment both in stationary and instationary modes;</p></li>
+<li><p>parallel experiment (i.e. same flux/concentration map but different labeling strategies) both in stationary and instationary modes;</p></li>
 <li><p>estimation of specie concentration in particular in stationary contexts (since v2.0. A methodology behind metabolite concentration evaluation is not yet published at the moment of this writing.);</p></li>
 <li><p>a possibility to deal with metabolite pool confusion appearing either in compartmentation or in coelution;</p></li>
 <li><p>taking into account non-carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;</p></li>
@@ -94,17 +92,17 @@ for fitting purposes. This algorithm provides:</p>
 <li><p>optional equality and inequality constraint on fluxes and metabolite concentrations;</p></li>
 <li><p>short time execution and design for many core computers. So it facilitates high throughput flux calculations in parallel way;</p></li>
 <li><p>a ‘least norm’ option that, in presence of structurally non identifiable fluxes, still allows to estimate some of fluxes (those remained identifiable);</p></li>
-<li><p>a khi2 statistical test ‘goodness of fit’</p></li>
+<li><p>a chi2 statistical test ‘goodness of fit’</p></li>
 <li><p>an optional automatic elimination of outliers;</p></li>
 <li><p>a command line interface letting an easy integration in automatic processing chains as well as many others features and options;</p></li>
 <li><p>a possible scripting of post-treatment or graphic generating tasks;</p></li>
-<li><p>multi-platform support. It runs everywhere R and Python run, i.e. on Linux, Windows, MacOS and other Unix variants.</p></li>
+<li><p>multi-platform support. It runs everywhere <a class="reference external" href="https://www.r-project.org/">R</a> and <a class="reference external" href="https://www.python.org/">Python</a> run, i.e. on Linux, Windows, MacOS and other Unix variants.</p></li>
 </ul>
 </div></blockquote>
 </section>
 <section id="influx-i">
 <h2><code class="docutils literal notranslate"><span class="pre">influx_i</span></code><a class="headerlink" href="#influx-i" title="Permalink to this heading">¶</a></h2>
-<p>Instationary labeling (hence the final ‘i’ in the name) is the domain of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>.
+<p>Instationary labeling is the domain of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>.
 The theory of instationary labeling was developed, for example in</p>
 <p>Katharina Nöh, Wolfgang Wiechert (2006)
 Experimental Design Principles for Isotopically Instationary 13C Labeling Experiments
@@ -112,8 +110,8 @@ Experimental Design Principles for Isotopically Instationary 13C Labeling Experi
 <p>Sokol S, Portais J-C (2015)
 Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks under Step and Periodic Inputs.
 <em>PLoS ONE</em> 10(12): e0144652. doi:10.1371/journal.pone.0144652</p>
-<p>As <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> capitalizes on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> development and shares a big part of code, <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
-Some of advantages of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> over the concurrent software coping with instationary labeling data are:</p>
+<p>As <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> capitalizes on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> development and shares a big part of code, <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> presents the same advantages as listed in the previous section. It uses the same input/output file formats for network, measurements definitions and simulated results. It includes all options available for <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>. Instationary labeling data can be supplied by giving non empty values in <code class="docutils literal notranslate"><span class="pre">Time</span></code> column in input file <code class="docutils literal notranslate"><span class="pre">.miso</span></code> thus making a shift from stationary to instationary calculations as simple as possible.
+Some of advantages of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> over other software coping with instationary labeling data are:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, <code class="docutils literal notranslate"><span class="pre">e_coli_i</span></code> case runs in 17s while the most important part devoted to optimization takes as low as 10s);</p></li>
@@ -125,28 +123,24 @@ Some of advantages of <code class="docutils literal notranslate"><span class="pr
 </section>
 <section id="documentation-organization">
 <h2>Documentation organization<a class="headerlink" href="#documentation-organization" title="Permalink to this heading">¶</a></h2>
-<p>Changes brought to every new version and bug fixes are resumed at the beginning of
-the next chapter <a class="reference internal" href="changelog.html"><span class="doc">Change Log</span></a> which is also distributed as a stand alone PDF file.</p>
+<p>Changes brought to every new version and bug fixes are resumed at the beginning of the next chapter <a class="reference internal" href="changelog.html"><span class="doc">Change Log</span></a>.</p>
 <p>The rest of the documentation is organized as follows. <a class="reference internal" href="install.html"><span class="doc">Installation</span></a> chapter provides brief instructions for software installation. <a class="reference internal" href="quick.html"><span class="doc">Quick start</span></a> chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short <a class="reference internal" href="manual.html"><span class="doc">User’s manual</span></a> precedes a <a class="reference internal" href="progdoc.html"><span class="doc">Programmer’s documentation</span></a>. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. A small collection of <a class="reference internal" href="howto.html"><span class="doc">How to…</span></a> and <a class="reference internal" href="trouble.html"><span class="doc">Troubleshooting</span></a> notice conclude the documentation.</p>
 </section>
 <section id="licensing">
 <h2>Licensing<a class="headerlink" href="#licensing" title="Permalink to this heading">¶</a></h2>
-<p>The original version of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.</p>
+<p>The original version of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software was developed in the MetaSys team in the LISBP (TBI since 2018), Toulouse, FRANCE.</p>
 <p>The software is licensed under the GNU Public License, Version
 2.0 or higher at your convenience (the “License”); you may not use this software and documentation except in compliance with the License.</p>
 <p>A file <code class="docutils literal notranslate"><span class="pre">influx_si/R/psoptim_ic.R</span></code> is based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original code is licensed under LGPL-3 terms so our modifications are licensed under the <a class="reference external" href="https://www.gnu.org/licenses/lgpl-3.0.en.html">same terms</a> .</p>
 <p>If you publish results obtained with <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> you have to cite the original paper in Bioinformatics 2012 (cf. above). A paper describing <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> is yet to publish.</p>
 <p>You may obtain a copy of the License <a class="reference internal" href="license.html"><span class="doc">here</span></a> or at</p>
 <p><a class="reference external" href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">https://www.gnu.org/licenses/old-licenses/gpl-2.0.html</a></p>
-<p>Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied. See the License for the
-specific language governing permissions and limitations under the License.</p>
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
 <p>Software and documentation author:</p>
 <blockquote>
 <div><p>Serguei SOKOL, INRAE, France &lt;sokol [at] insa-toulouse.fr&gt;</p>
 </div></blockquote>
-<p>Copyright 2011-2022, INRAE/CNRS/INSA</p>
+<p>Copyright 2011-2023, INRAE/CNRS/INSA</p>
 </section>
 </section>
 
@@ -217,7 +211,7 @@ specific language governing permissions and limitations under the License.</p>
         <li class="right" >
           <a href="index.html" title="Welcome to influx_si’s documentation!"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Introduction</a></li> 
       </ul>
     </div>

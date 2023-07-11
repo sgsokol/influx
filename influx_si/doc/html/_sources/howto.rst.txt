@@ -7,9 +7,9 @@ How to ...
 
 .. describe:: ... choose free fluxes?
 
- You can define in FTBL all not constrained fluxes as dependent (put a letter ``D`` in the column ``FCD`` of the FTBL sections ``FLUXES/NET`` and ``FLUXES/XCH``), run ``influx_si`` and see an error message that will suggest some candidates for free fluxes. For these fluxes, put a letter ``F`` in the column ``FCD`` and some numeric value in the next column ``VALUE(F/C)`` to provide a starting value for the fitting. Don't use 0 as starting value as it might lead to singular matrices in cumomer balances.
- 
- If you want to create an FTBL *de novo*, consider using application ``txt2ftbl.py`` included in ``influx_si`` package. Not only it translates an easily readable/writable text format into FTBL one, but it also automatically assigns some fluxes to be free.
+ Since v7.0, this step is not really necessary. Using MTF input format allows user to create its ``.netw`` file with just a network. And at first run of ``influx_si``, a new file ``.tvar.def`` with default values will be generated. It can be used as ``.tvar`` file with partition between free and dependent fluxes. User can label some fluxes as constrained in this ``.tvar``. In which case, a newly introduced possible incoherence in flux partition will be signaled as error and recommendations will be given about how to avoid such situation.
+
+ Don't use 0 as starting value in NET fluxes as it might lead to singular matrices in cumomer balances.
 
 .. describe:: ... get statistical information for a given set of free fluxes without
    fitting measurements?
@@ -29,6 +29,8 @@ How to ...
  By default, this value is 50 which should be largely sufficient for most cases. If not, you can set another value via ``optctrl:nlsic:maxit`` option in the FTBL file (section ``OPTIONS``). But most probably, you would like to check your network definition or to add some data or to change a substrate labeling, anyway to do something to get a well defined network instead of trying to make converge the fitting on some biologically almost meaningless situation.
 
 .. describe:: ... make FTBL file with synthetic data?
+
+ .. note:: Deprecated since v7.0. Simply use ``*.sim`` files as MTF input files (cf. examples in notes of :ref:`res2ftbl_meas: simulated data <ex_sim1>` and :ref:`ffres2ftbl: import free fluxes <ex_sim2>`)
 
  Follow for example steps outlined hereafter:
   - edit FTBL file(s) with ``NA`` in measurements and realistic SD, name it e.g. ``new_NA.ftbl``
@@ -54,7 +56,7 @@ How to ...
  .. code-block:: r
   
   # preparations
-  load("mynetwork.RData")
+  load("mynetwork.RData") # to obtain .RData file in 'my_res/my/tmp/', use 'posttreat_R save_all.R' in 'my.opt' file
   source(file.path(dirx, "libs.R"))
   source(file.path(dirx, "opt_cumo_tools.R"))
   #source(file.path(dirx, "opt_icumo_tools.R")) # uncoment for influx_i use

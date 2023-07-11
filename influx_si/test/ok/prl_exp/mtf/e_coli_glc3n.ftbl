@@ -1,6 +1,6 @@
 // Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n'
-// Date: 2023-06-30 11:09:18 CEST +0200
-// influx_si version: 6.1.0.12
+// Date: 2023-07-11 10:46:51 CEST +0200
+// influx_si version: 7.0
 // If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT

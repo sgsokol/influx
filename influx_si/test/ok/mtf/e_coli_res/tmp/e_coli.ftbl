@@ -1,10 +1,13 @@
-// Created by 'txt2ftbl --prefix influx_si/test/mtf/e_coli' at 2022-05-25 14:44:56 CEST +0200
+// Created by 'txt2ftbl --prefix e_coli'
+// Date: 2023-07-11 10:46:50 CEST +0200
+// influx_si version: 7.0
+// If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
-	e_coli.netw	1.0			command='txt2ftbl --prefix influx_si/test/mtf/e_coli'
+	e_coli.netw	1.0			command='txt2ftbl --prefix e_coli'
 NETWORK
 	FLUX_NAME	EDUCT_1	EDUCT_2	PRODUCT_1	PRODUCT_2
-// Created by 'ftbl2mtf ../e_coli -o .' at 2022-05-25 12:10:48 CEST +0200
+// Created by 'ftbl2mtf e_coli.ftbl -o mtf/' at 2022-05-25 17:04:34 CEST +0200
 	Glucupt_1	Gluc_1		Glc6P
 		#ABCDEF		#ABCDEF
 	Glucupt_U	Gluc_U		Glc6P

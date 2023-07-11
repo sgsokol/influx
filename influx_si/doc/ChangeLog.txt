@@ -2,18 +2,18 @@
 Change Log for influx_si
 ========================
 
-2023-06-30 version 6.2.0
-------------------------
+2023-07-11 version 7.0
+----------------------
 
 New feature:
- - new output format is introduced. All result files go in `<mynetwork>_res` directory
- - ff2ftbl and res2ftbl_meas are now deprecated. Use *.sim files from new output format.
- - in influx_i, unscaled simulated mass measurements (in _res.kvh: "simulated measurements/labeled data") are clamped to [0; 1] and full MID sets are normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)
+ - new output format is introduced. All result files go in ``<mynetwork>_res`` directory
+ - ff2ftbl and res2ftbl_meas are now deprecated. Use \*.sim files from new output format.
+ - in influx_i, unscaled simulated mass measurements (in .miso.sim) are clamped to [0; 1] and full MID sets are normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)
  - default MTF values lacking in input files are now explicitly written in newly created files .def
  - scaling factors are now calculated even if --noopt is set.
  - pooled measurements with spaces around "+" sign are now allowed (seen at Magalie Poirier Pocovi, U. of Bordeaux, France)
  - plot_imes.R is deprecated, use plot_ilab.R instead
- - txt2ftbl: now peak measurements are translated to PEAK_MEASUREMENTS and no more to LABEL_MEASUREMENTS in ftbl
+ - txt2ftbl: now, peak measurements are translated to PEAK_MEASUREMENTS and no more to LABEL_MEASUREMENTS in ftbl
 
 Bug fix:
  - fixed error messages from funlab in which reported time point could be erroneous.

@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Programmer’s documentation for influx_si &#8212; influx_si 6.1 documentation</title>
+    <title>Programmer’s documentation for influx_si &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="ftblevo.html" title="FTBL format evolution"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Programmer’s documentation for influx_si</a></li> 
       </ul>
     </div>  
@@ -323,7 +323,7 @@ Matrix A is a dictionnary, v is a list ordering keys of A.</p>
 The general form of each term is ‘coef*metab’.
 coef (if present) must be separated from metab by ‘*’ and be convertible to float.
 metab can start with a number (e.g. ‘6PG’) so the presence of ‘*’ is mandatory to
-separate coef from metab.If coef is absent, it is considered to be 1. 
+separate coef from metab. If coef is absent, it is considered to be 1. 
 Return a list of (or a single for str) tuples (metab (str), coef (real)).</p>
 </dd></dl>
 
@@ -601,6 +601,11 @@ License: Gnu Public License (GPL) v2 <a class="reference external" href="http://
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="txt2ftbl.revineq">
+<span class="sig-prename descclassname"><span class="pre">txt2ftbl.</span></span><span class="sig-name descname"><span class="pre">revineq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ine</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#revineq"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#txt2ftbl.revineq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="txt2ftbl.try_ext">
 <span class="sig-prename descclassname"><span class="pre">txt2ftbl.</span></span><span class="sig-name descname"><span class="pre">try_ext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">li</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#try_ext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#txt2ftbl.try_ext" title="Permalink to this definition">¶</a></dt>
 <dd><p>See if file ‘f’ exists, if not try with extensions from ‘li’.
@@ -769,7 +774,7 @@ for more details cf. netan2Rinit()</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="ftbl2code.netan2Rinit">
-<span class="sig-prename descclassname"><span class="pre">ftbl2code.</span></span><span class="sig-name descname"><span class="pre">netan2Rinit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">netan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">org</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fullsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ropts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2Rinit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ftbl2code.netan2Rinit" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">ftbl2code.</span></span><span class="sig-name descname"><span class="pre">netan2Rinit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">netan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">org</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fullsys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ropts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dirres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2code.html#netan2Rinit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ftbl2code.netan2Rinit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write R code for initialization of all variables before
 cumomer system resolution by chi2 minimization.
 :param netan: a collection of parsed ftbl information
@@ -905,6 +910,11 @@ collection</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="ftbl2optR.main">
+<span class="sig-prename descclassname"><span class="pre">ftbl2optR.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['/home/sokol/.local/bin/sphinx-build-3',</span> <span class="pre">'-b',</span> <span class="pre">'html',</span> <span class="pre">'-d',</span> <span class="pre">'_build/doctrees',</span> <span class="pre">'.',</span> <span class="pre">'_build/html']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ftbl2optR.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ftbl2optR.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </section>
 <section id="module-ftbl2xgmml">
 <span id="ftbl2xgmml"></span><h2>ftbl2xgmml<a class="headerlink" href="#module-ftbl2xgmml" title="Permalink to this heading">¶</a></h2>
@@ -930,6 +940,22 @@ Compatibility: cytoscape v2.8.3 and v3.0</p>
 <p>Copyright 2014-2022, INRAE/INSA/CNRS, France
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
 License: Gnu Public License (GPL) v3 <a class="reference external" href="http://www.gnu.org/licenses/gpl.html">http://www.gnu.org/licenses/gpl.html</a></p>
+<dl class="py function">
+<dt class="sig sig-object py" id="ftbl2xgmml.werr">
+<span class="sig-prename descclassname"><span class="pre">ftbl2xgmml.</span></span><span class="sig-name descname"><span class="pre">werr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ftbl2xgmml.werr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write string to stream.
+Returns the number of characters written (which is always equal to
+the length of the string).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ftbl2xgmml.wout">
+<span class="sig-prename descclassname"><span class="pre">ftbl2xgmml.</span></span><span class="sig-name descname"><span class="pre">wout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ftbl2xgmml.wout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write string to stream.
+Returns the number of characters written (which is always equal to
+the length of the string).</p>
+</dd></dl>
+
 </section>
 <section id="module-tools_ssg">
 <span id="tools-ssg"></span><h2>tools_ssg<a class="headerlink" href="#module-tools_ssg" title="Permalink to this heading">¶</a></h2>
@@ -1232,6 +1258,7 @@ License: Gnu Public License (GPL) v3 <a class="reference external" href="http://
 <li><a class="reference internal" href="#txt2ftbl.parse_opt"><code class="docutils literal notranslate"><span class="pre">parse_opt()</span></code></a></li>
 <li><a class="reference internal" href="#txt2ftbl.parse_tvar"><code class="docutils literal notranslate"><span class="pre">parse_tvar()</span></code></a></li>
 <li><a class="reference internal" href="#txt2ftbl.plain_natural_key"><code class="docutils literal notranslate"><span class="pre">plain_natural_key()</span></code></a></li>
+<li><a class="reference internal" href="#txt2ftbl.revineq"><code class="docutils literal notranslate"><span class="pre">revineq()</span></code></a></li>
 <li><a class="reference internal" href="#txt2ftbl.try_ext"><code class="docutils literal notranslate"><span class="pre">try_ext()</span></code></a></li>
 <li><a class="reference internal" href="#txt2ftbl.tsv2df"><code class="docutils literal notranslate"><span class="pre">tsv2df()</span></code></a></li>
 <li><a class="reference internal" href="#txt2ftbl.txt_parse"><code class="docutils literal notranslate"><span class="pre">txt_parse()</span></code></a></li>
@@ -1260,8 +1287,15 @@ License: Gnu Public License (GPL) v3 <a class="reference external" href="http://
 </ul>
 </li>
 <li><a class="reference internal" href="#module-ftbl2netan">ftbl2netan</a></li>
-<li><a class="reference internal" href="#module-ftbl2optR">ftbl2optR</a></li>
-<li><a class="reference internal" href="#module-ftbl2xgmml">ftbl2xgmml</a></li>
+<li><a class="reference internal" href="#module-ftbl2optR">ftbl2optR</a><ul>
+<li><a class="reference internal" href="#ftbl2optR.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-ftbl2xgmml">ftbl2xgmml</a><ul>
+<li><a class="reference internal" href="#ftbl2xgmml.werr"><code class="docutils literal notranslate"><span class="pre">werr()</span></code></a></li>
+<li><a class="reference internal" href="#ftbl2xgmml.wout"><code class="docutils literal notranslate"><span class="pre">wout()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-tools_ssg">tools_ssg</a><ul>
 <li><a class="reference internal" href="#tools_ssg.aff"><code class="docutils literal notranslate"><span class="pre">aff()</span></code></a></li>
 <li><a class="reference internal" href="#tools_ssg.arr2pbm"><code class="docutils literal notranslate"><span class="pre">arr2pbm()</span></code></a></li>
@@ -1342,7 +1376,7 @@ License: Gnu Public License (GPL) v3 <a class="reference external" href="http://
         <li class="right" >
           <a href="ftblevo.html" title="FTBL format evolution"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Programmer’s documentation for influx_si</a></li> 
       </ul>
     </div>

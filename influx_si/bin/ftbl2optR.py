@@ -1781,7 +1781,7 @@ for (irun in seq_len(nseries)) {
       ibad=unique(unlist(ibad))
       if (length(ibad) > 0) {
          cat(paste(if (nchar(runsuf)) runsuf%s+%": " else "", "***Warning: inverse of covariance matrix is numerically singular.\\nStatistically undefined parameter(s) seems to be:\\n",
-            paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor more complete list, see sd columns in '/linear stats'\\nin the result file.", sep=""), "\\n", sep="", file=fclog)
+            paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor a more complete list, see SD column in '.tvar.sim' result file.", sep=""), "\\n", sep="", file=fclog)
       }
       # "square root" of covariance matrix (to preserve numerical positive definitness)
       rtcov=(svj$u)%*%(t(svj$v)/svj$d)

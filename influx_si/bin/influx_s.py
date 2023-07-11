@@ -35,6 +35,16 @@ def qworker():
             retcode=1
         qret.put(retcode)
         q.task_done()
+def move2tmp(dirres, fp):
+    "Move file fp to <dirres>/tmp dir"
+    if fp:
+        fp=Path(fp)
+    else:
+        return
+    if dirres == "default":
+        fp.rename(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
+    elif dirres:
+        fp.rename(Path(dirres)/"tmp"/fp.name)
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """
@@ -122,6 +132,7 @@ def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
             if v is False else ("c('"+"', '".join(str(vv) for vv in v)+"')" if type(v) == list else str(v))))) for k,v in ldict_opts.items() if k not in notropt) + '"'] + \
             (["--case_i"] if case_i else []) + ["--dirres", str(dres)] + [str(ft)]
         r_generated=True
+        #pdb.set_trace()
         retcode=ftbl2optR.main(["ftbl2optR.main"] + opt4py)
         if retcode != 0:
             r_generated=False
@@ -200,129 +211,131 @@ class pvalAction(argparse.Action):
                 raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
             setattr(namespace, self.dest, val)
 parser = ArgumentParser(description=__doc__)
-parser.add_argument(
-"--noopt", action="store_true",
-    help="no optimization, just use free parameters as is (after a projection on feasibility domain), to calculate dependent fluxes, cumomers, stats and so on")
-parser.add_argument(
-"--noscale", action="store_true",
-    help="no scaling factors to optimize => all scaling factors are assumed to be 1")
-parser.add_argument(
-"--meth", action="append",
-    choices=["BFGS", "Nelder-Mead", "nlsic", "pso"],
-    help="method for optimization, one of 'nlsic|BFGS|Nelder-Mead|pso'. Default: 'nlsic'. Multiple occurrences of this option can appear on command line. In this case, specified minimization methods are applied successively, e.g. '--meth pso --meth nlsic' means that 'pso' will be used first, then 'nlsic' will take over from the point where 'pso' ends. In case of multiple methods, it is recommended to start with non-gradient methods like 'pso' or 'Nelder-Mead' and make them follow by gradient based methods like 'nlsic' or 'BFGS'. If 'pso' or 'Nelder-Mead' are indeed used as the first method, it is not recommended to combine them with '--zc' option.")
-parser.add_argument(
-"--fullsys", action="store_true",
-    help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)")
-parser.add_argument(
-"--emu", action="store_true",
-    help="simulate labeling in EMU approach")
-parser.add_argument(
-"--irand", action="store_true",
-    help="ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries option) and use random values drawn uniformly from [0,1] interval")
-parser.add_argument(
-"--sens",
-    help="sensitivity method: SENS can be 'mc[=N]', mc stands for Monte-Carlo. N is an optional number of Monte-Carlo simulations. Default for N: 10")
-parser.add_argument(
-"--cupx", type=float,
-    help="upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999")
-parser.add_argument(
-"--cupn", type=float,
-    help="absolute limit for net fluxes: -cupn <= netflux <= cupn. Must be non negative. Value 0 means no limit. Default: 1.e3")
-parser.add_argument(
-"--cupp", type=float,
-    help="upper limit for metabolite pool. Default: 1.e5"),
-parser.add_argument(
-"--clownr", type=float,
-    help="lower limit for not reversible free and dependent fluxes. Zero value (default) means no lower limit")
-parser.add_argument(
-"--cinout", type=float,
-    help="lower limit for input/output free and dependent fluxes. Must be non negative. Default: 0")
-parser.add_argument(
-"--clowp",  type=float,
-    help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
-parser.add_argument(
-"--np", type=float,
-    help="""When integer >= 1, it is a number of parallel subprocesses used in Monte-Carlo (MC) simulations or for multiple FTBL inputs. When NP is a float number between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for MC simulations.""")
-parser.add_argument(
-"--ln", action="store_true",
-    help="Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
-parser.add_argument(
-"--sln", action="store_true",
-    help="Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient")
-parser.add_argument(
-"--tikhreg", action="store_true",
-    help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
-parser.add_argument(
-"--lim", action="store_true",
-    help="The same as --ln but with a function limSolve::lsei()")
-parser.add_argument(
-"--zc", type=float,
-    help="Apply zero crossing strategy with non negative threshold for net fluxes")
-parser.add_argument(
-"--ffguess", action="store_true",
-       help="Don't use free/dependent flux definitions from FTBL file(s). Make an automatic guess."),
-#parser.add_argument(
-#"--fdfit", action="store_true",
-#       help="Choose starting values for free fluxes such that they match at best free and dependent values given in FTBL file."),
-parser.add_argument(
-"--fseries",
-       help="File name with free parameter values for multiple starting points. Default: '' (empty, i.e. only one starting point from the FTBL file is used)"),
-parser.add_argument(
-"--iseries",
-       help="Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default: '' (empty, i.e. all provided starting points are used)")
-parser.add_argument(
-"--seed", type=int,
-       help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis. Default: none, i.e. current system value is used, so random drawing will be varying at each run.")
-parser.add_argument(
-"--excl_outliers", nargs="?", action=pvalAction,
-       help="This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.")
-parser.add_argument(
-"--nocalc", action="store_true",
-       help="generate an R code but not execute it.")
-parser.add_argument(
-"--addnoise", action="store_true",
-       help="Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from FTBL file"),
+if True: # just to make a collapsible code block
+    parser.add_argument(
+    "--noopt", action="store_true",
+        help="no optimization, just use free parameters as is (after a projection on feasibility domain), to calculate dependent fluxes, cumomers, stats and so on")
+    parser.add_argument(
+    "--noscale", action="store_true",
+        help="no scaling factors to optimize => all scaling factors are assumed to be 1")
+    parser.add_argument(
+    "--meth", action="append",
+        choices=["BFGS", "Nelder-Mead", "nlsic", "pso"],
+        help="method for optimization, one of 'nlsic|BFGS|Nelder-Mead|pso'. Default: 'nlsic'. Multiple occurrences of this option can appear on command line. In this case, specified minimization methods are applied successively, e.g. '--meth pso --meth nlsic' means that 'pso' will be used first, then 'nlsic' will take over from the point where 'pso' ends. In case of multiple methods, it is recommended to start with non-gradient methods like 'pso' or 'Nelder-Mead' and make them follow by gradient based methods like 'nlsic' or 'BFGS'. If 'pso' or 'Nelder-Mead' are indeed used as the first method, it is not recommended to combine them with '--zc' option.")
+    parser.add_argument(
+    "--fullsys", action="store_true",
+        help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)")
+    parser.add_argument(
+    "--emu", action="store_true",
+        help="simulate labeling in EMU approach")
+    parser.add_argument(
+    "--irand", action="store_true",
+        help="ignore initial approximation for free parameters (free fluxes and metabolite concentrations) from the FTBL file or from a dedicated file (cf --fseries and --iseries option) and use random values drawn uniformly from [0,1] interval")
+    parser.add_argument(
+    "--sens",
+        help="sensitivity method: SENS can be 'mc[=N]', mc stands for Monte-Carlo. N is an optional number of Monte-Carlo simulations. Default for N: 10")
+    parser.add_argument(
+    "--cupx", type=float,
+        help="upper limit for reverse fluxes. Must be in interval [0, 1]. Default: 0.999")
+    parser.add_argument(
+    "--cupn", type=float,
+        help="absolute limit for net fluxes: -cupn <= netflux <= cupn. Must be non negative. Value 0 means no limit. Default: 1.e3")
+    parser.add_argument(
+    "--cupp", type=float,
+        help="upper limit for metabolite pool. Default: 1.e5"),
+    parser.add_argument(
+    "--clownr", type=float,
+        help="lower limit for not reversible free and dependent fluxes. Zero value (default) means no lower limit")
+    parser.add_argument(
+    "--cinout", type=float,
+        help="lower limit for input/output free and dependent fluxes. Must be non negative. Default: 0")
+    parser.add_argument(
+    "--clowp",  type=float,
+        help="lower limit for free metabolite pools. Must be positive. Default 1.e-8")
+    parser.add_argument(
+    "--np", type=float,
+        help="""When integer >= 1, it is a number of parallel subprocesses used in Monte-Carlo (MC) simulations or for multiple FTBL inputs. When NP is a float number between 0 and 1, it gives a fraction of available cores (rounded to closest integer) to be used. Without this option or for NP=0, all available cores in a given node are used for MC simulations.""")
+    parser.add_argument(
+    "--ln", action="store_true",
+        help="Least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
+    parser.add_argument(
+    "--sln", action="store_true",
+        help="Least norm of the solution of linearized problem (and not just of increments) is used when Jacobian is rank deficient")
+    parser.add_argument(
+    "--tikhreg", action="store_true",
+        help="Approximate least norm solution is used for increments during the non-linear iterations when Jacobian is rank deficient")
+    parser.add_argument(
+    "--lim", action="store_true",
+        help="The same as --ln but with a function limSolve::lsei()")
+    parser.add_argument(
+    "--zc", type=float,
+        help="Apply zero crossing strategy with non negative threshold for net fluxes")
+    parser.add_argument(
+    "--ffguess", action="store_true",
+           help="Don't use free/dependent flux definitions from FTBL file(s). Make an automatic guess."),
+    #parser.add_argument(
+    #"--fdfit", action="store_true",
+    #       help="Choose starting values for free fluxes such that they match at best free and dependent values given in FTBL file."),
+    parser.add_argument(
+    "--fseries",
+           help="File name with free parameter values for multiple starting points. Default: '' (empty, i.e. only one starting point from the FTBL file is used)"),
+    parser.add_argument(
+    "--iseries",
+           help="Indexes of starting points to use. Format: '1:10' -- use only first ten starting points; '1,3' -- use the the first and third starting points; '1:10,15,91:100' -- a mix of both formats is allowed. Default: '' (empty, i.e. all provided starting points are used)")
+    parser.add_argument(
+    "--seed", type=int,
+           help="Integer (preferably a prime integer) used for reproducible random number generating. It makes reproducible random starting points (--irand) but also Monte-Carlo simulations for sensitivity analysis. Default: none, i.e. current system value is used, so random drawing will be varying at each run.")
+    parser.add_argument(
+    "--excl_outliers", nargs="?", action=pvalAction,
+           help="This option takes an optional argument, a p-value between 0 and 1 which is used to filter out measurement outliers. The filtering is based on Z statistics calculated on reduced residual distribution. Default: 0.01.")
+    parser.add_argument(
+    "--nocalc", action="store_true",
+           help="generate an R code but not execute it.")
+    parser.add_argument(
+    "--addnoise", action="store_true",
+           help="Add centered gaussian noise to simulated measurements written to _res.kvh file. SD of this noise is taken from FTBL file"),
 if case_i:
     parser.add_argument(
 "--time_order",
        choices=[None, "1", "2", "1,2"],
        help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to start solving the ODE with the first order scheme then continues with the order 2.")
-parser.add_argument('--version', action='version', version=version)
-# add MTF options, they are passed through to txt2ftbl
-parser.add_argument(
-"--mtf", action=ordAction, help="option passed to txt2ftbl. See help there.")
-parser.add_argument(
-"--prefix", action=ordAction, help="option passed to txt2ftbl. See help there.")
-parser.add_argument(
-"--eprl", action=ordAction, help="option passed to txt2ftbl. See help there.")
-parser.add_argument(
-"--force", action=ordAction, help="option passed to txt2ftbl. See help there.")
-parser.add_argument(
-"-o", "--out",
-       help="output directory. Default: basename of input file without suffix + '_res'. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.")
+if True:
+    parser.add_argument('--version', action='version', version=version)
+    # add MTF options, they are passed through to txt2ftbl
+    parser.add_argument(
+    "--mtf", action=ordAction, help="option passed to txt2ftbl. See help there.")
+    parser.add_argument(
+    "--prefix", action=ordAction, help="option passed to txt2ftbl. See help there.")
+    parser.add_argument(
+    "--eprl", action=ordAction, help="option passed to txt2ftbl. See help there.")
+    parser.add_argument(
+    "--force", action=ordAction, help="option passed to txt2ftbl. See help there.")
+    parser.add_argument(
+    "-o", "--out",
+           help="output directory. Default: basename of input file without suffix + '_res'. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.")
 
-# install helper actions
-parser.add_argument(
-"--copy_doc", action="store_true",
-    help="copy documentation directory in the current directory and exit. If ./doc exists, its content is silently owerriten.")
-parser.add_argument(
-"--copy_test", action="store_true",
-    help="copy test directory in the current directory and exit. If ./test exists, its content is silently owerriten.")
-parser.add_argument(
-"--install_rdep", action="store_true",
-    help="install R dependencies and exit.")
-parser.add_argument(
-"--TIMEIT", action="store_true",
-    help="developer option: measure cpu time or not")
-parser.add_argument(
-"--prof", action="store_true",
-    help="developer option: do time profiling or not")
-parser.add_argument(
-"--tblimit", type=int, default=0,
-    help="developer option: set trace back limit for python error messages")
-parser.add_argument(
-"ftbl",
-    help="FTBL file name to process", nargs="*")
+    # install helper actions
+    parser.add_argument(
+    "--copy_doc", action="store_true",
+        help="copy documentation directory in the current directory and exit. If ./doc exists, its content is silently owerriten.")
+    parser.add_argument(
+    "--copy_test", action="store_true",
+        help="copy test directory in the current directory and exit. If ./test exists, its content is silently owerriten.")
+    parser.add_argument(
+    "--install_rdep", action="store_true",
+        help="install R dependencies and exit.")
+    parser.add_argument(
+    "--TIMEIT", action="store_true",
+        help="developer option: measure cpu time or not")
+    parser.add_argument(
+    "--prof", action="store_true",
+        help="developer option: do time profiling or not")
+    parser.add_argument(
+    "--tblimit", type=int, default=0,
+        help="developer option: set trace back limit for python error messages")
+    parser.add_argument(
+    "ftbl",
+        help="FTBL file name to process", nargs="*")
 
 if len(sys.argv) == 1:
     parser.print_usage(sys.stderr)
@@ -397,9 +410,9 @@ if len(args) > 0:
     # make args unique
     args=sorted(set(args))
 # treat MTF options if any
+li_ftbl=[]
+mtf_opts=[]
 if ord_args:
-    li_ftbl=[]
-    mtf_opts=[]
     if case_i:
         mtf_opts += ["--inst"]
     # check that multiple --prefix is not mixed with other --mtf or --eprl
@@ -412,14 +425,16 @@ if ord_args:
         if len(ocount) > 1:
             raise Exception("If several occurrences of '--prefix' options are present, no other MTF options can be used (got '%s')"%"', '".join(k for k in ocount if k != "--prefix"))
         for t in ord_args:
-            li_ftbl=[]
-            txt2ftbl.main(mtf_opts+list(t), li_ftbl)
-            args += li_ftbl
+            tmp_ftbl=[]
+            txt2ftbl.main(mtf_opts+list(t), tmp_ftbl)
+            args += tmp_ftbl
+            li_ftbl += tmp_ftbl
     else:
         mtf_opts += [v for t in ord_args for v in t]
         #print("mtf_opts=", mtf_opts)
         txt2ftbl.main(mtf_opts, li_ftbl)
         args += li_ftbl
+set_ftbl=set(li_ftbl)
     
 if len(args) < 1:
     parser.print_help(sys.stderr)
@@ -433,7 +448,7 @@ elif len(opts.out) == 0:
 else:
     dirres=opts.out
 #pdb.set_trace()
-print((" ".join('"'+v+'"' for v in sys.argv)))
+#print((" ".join('"'+v+'"' for v in sys.argv)))
 #print("cpu=", cpu_count())
 np=dict_opts.get("np")
 avaco=cpu_count()
@@ -462,7 +477,7 @@ for ft in args:
         ft=ft+".ftbl"
     ftpr.append(ft)
     f=ft[:-5]
-    fshort="" if len(args) == 1 else ft.stem+": "
+    fshort="" if len(args) == 1 else Path(ft).stem+": "
 
     item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "nb_ftbl": nb_ftbl, "case_i": case_i}
     q.put(item)
@@ -484,7 +499,7 @@ retcode=max(rcodes)
 if len(rfiles) > 1:
     # write file parallel.R and launch it
     # //calcul on cluster
-    if not dict_opts["nocalc"]:
+    if not retcode and not dict_opts["nocalc"]:
         fpar=open("parallel.R", "w")
         fpar.write("""
     suppressPackageStartupMessages(library(parallel))
@@ -535,42 +550,39 @@ if len(rfiles) > 1:
     stopCluster(cl)
     q("no", status=retcode)
     """%{
-        "np": min(np, len(fr for fr,noc in rfiles if not noc)),
+        "np": min(np, len([fr for fr,noc in rfiles if not noc])),
         "flist": ", ".join('"'+f.replace(os.path.sep, "/")+'"' for f,noc in rfiles if not noc),
         "dirx": os.path.join(dirinst, "R").replace(os.path.sep, "/"),
         "dirres": dirres
         })
         fpar.close()
         # execute R code on cluster
+        s="//calcul:  "+now_s()+"\n"
+        sys.stdout.write(s)
         rcmd="R --vanilla --slave"
-        s += "//calcul: "+now_s()+"\n"
         retcode=subp.run(rcmd.split(), stdin=open(fpar.name, "r")).returncode
-    else:
-        retcode=0
-    # end up writing
-    s="//end   : "+now_s()+"\n"
+        # end up writing
+        s="//end   : "+now_s()+"\n"
+        sys.stdout.write(s)
+    #pdb.set_trace()
     for fR,noc in rfiles:
-        if noc:
-            continue
         f=fR[:-2]
         fp=Path(fR)
         if dirres == "default":
             fpe=(fp.parent/(fp.stem+"_res")/(fp.stem+".err"))
             flog=(fp.parent/(fp.stem+"_res")/(fp.stem+".log"))
-            fp.rename(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
-        else:
+        else: # non empty dirres with multiple inputs cannot be
             fpe=""
             flog=None
-        
-        if flog:
-            flog.open("a")
-            flog.write(s)
-            if fpe and fpe.stat().st_size > 0:
-                flog.write("=>Check "+str(fpe)+"\n")
-        sys.stdout.wite(s)
+        move2tmp(dirres, fp)
+        fp=fp.with_suffix(".ftbl")
+        if str(fp) in set_ftbl:
+            move2tmp(dirres, fp)
+
         if fpe and fpe.stat().st_size > 0:
-            sys.stdout.write("=>Check "+str(fpe)+"\n")
-    sys.exit(retcode)
+            s="=>Check "+str(fpe)+"\n"
+            with flog.open("a") as flp: flp.write(s)
+            sys.stdout.write(s)
 else:
     fp=Path(ftpr[0]).with_suffix(".R")
     if dirres == "default":
@@ -583,7 +595,7 @@ else:
         flog=(Path(dirres)/(fp.stem+".log"))
         flog=(Path(dirres)/(fp.stem+".err"))
     # execute only one R code
-    if rfiles and not rfiles[0][1]:
+    if not retcode and rfiles:
         f=rfiles[0][0][:-2]
         rcmd="R --vanilla --slave"
         if flog:
@@ -597,12 +609,11 @@ else:
     sys.stdout.write(s)
     if flog:
         with flog.open("a") as flp: flp.write(s)
-    # move .R
-    if rfiles:
-        if dirres == "default":
-            fp.rename(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
-        elif dirres:
-            fp.rename(Path(dirres)/"tmp"/fp.name)
+    # move .R (and .ftbl if --prefix)
+    move2tmp(dirres, fp)
+    if ftpr[0] in set_ftbl:
+        move2tmp(dirres, ftpr[0])
+
     #pdb.set_trace()
     if fpe and fpe.stat().st_size > 0:
         s="=>Check "+str(fpe)+"\n"

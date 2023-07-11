@@ -1,16 +1,19 @@
+
+.. _Python: https://www.python.org/
+
+.. _R: https://www.r-project.org/
+
 ============
 Introduction
 ============
 
-``influx_s`` and ``influx_i`` are programs designed for estimation of flux and chemical specie concentrations based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, ... is also possible). ``influx_s`` works with stationary data while the ``influx_i``
-is able to simulate instationary labeling (hence the ``_i`` in the name). Both work in metabolically stationary context. The whole project is referred as ``influx_si``. Note also that the term ``influx_si`` is used in contexts where ``influx_s`` and ``influx_i`` are interchangeable.
+``influx_s`` and ``influx_i`` are programs written in Python_, R_ and C++ and designed for estimation of flux and chemical specie concentrations based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, ... is also possible). ``influx_s`` works with stationary data while the ``influx_i`` is able to simulate instationary labeling (hence the ``_s`` and ``_i`` in the names). Both work in metabolically stationary context. The whole project is referred as ``influx_si``. Note also that the term ``influx_si`` is used in contexts where a proposition holds for both ``influx_s`` and ``influx_i``.
 
 ``influx_si``
 -------------
 
 Flux and metabolite concentration values are obtained
-as a result of a fitting between simulated labeling data and the data measured
-by MS or NMR techniques. In this documentation, the terms `fitting` and `optimization`
+as a result of a fitting between simulated labeling data and the data measured by MS or NMR techniques. In this documentation, the terms `fitting` and `optimization`
 are used as synonyms.
 
 ``influx_s``
@@ -45,7 +48,7 @@ For more details, see the paper on ``influx_s`` cited above.
 Moreover, ``influx_s`` provides:
 
  - both cumomer and EMU frameworks for describing label distribution in the metabolites;
- - parallel experiment treatment both in stationary and instationary modes;
+ - parallel experiment (i.e. same flux/concentration map but different labeling strategies) both in stationary and instationary modes;
  - estimation of specie concentration in particular in stationary contexts (since v2.0. A methodology behind metabolite concentration evaluation is not yet published at the moment of this writing.); 
  - a possibility to deal with metabolite pool confusion appearing either in compartmentation or in coelution;
  - taking into account non-carbon carrying fluxes like the balances of ADP/ATP, H2O, energy, electrons and so on;
@@ -53,16 +56,16 @@ Moreover, ``influx_s`` provides:
  - optional equality and inequality constraint on fluxes and metabolite concentrations;
  - short time execution and design for many core computers. So it facilitates high throughput flux calculations in parallel way;
  - a 'least norm' option that, in presence of structurally non identifiable fluxes, still allows to estimate some of fluxes (those remained identifiable);
- - a khi2 statistical test 'goodness of fit'
+ - a chi2 statistical test 'goodness of fit'
  - an optional automatic elimination of outliers;
  - a command line interface letting an easy integration in automatic processing chains as well as many others features and options;
  - a possible scripting of post-treatment or graphic generating tasks;
- - multi-platform support. It runs everywhere R and Python run, i.e. on Linux, Windows, MacOS and other Unix variants.
+ - multi-platform support. It runs everywhere R_ and Python_ run, i.e. on Linux, Windows, MacOS and other Unix variants.
 
 ``influx_i``
 ------------
 
-Instationary labeling (hence the final 'i' in the name) is the domain of ``influx_i``.
+Instationary labeling is the domain of ``influx_i``.
 The theory of instationary labeling was developed, for example in
 
 Katharina Nöh, Wolfgang Wiechert (2006)
@@ -73,8 +76,8 @@ Sokol S, Portais J-C (2015)
 Theoretical Basis for Dynamic Label Propagation in Stationary Metabolic Networks under Step and Periodic Inputs.
 *PLoS ONE* 10(12): e0144652. doi:10.1371/journal.pone.0144652
 
-As ``influx_i`` capitalizes on ``influx_s`` development and shares a big part of code, ``influx_i`` presents the same advantages as listed in the previous section. It uses the same FTBL file format for network and measurements definitions and includes all options available for ``influx_s``. Instationary labeling data can be supplied by an additional tab formatted ASCII file making a shift from stationary to instationary calculations as simple as possible.
-Some of advantages of ``influx_i`` over the concurrent software coping with instationary labeling data are:
+As ``influx_i`` capitalizes on ``influx_s`` development and shares a big part of code, ``influx_i`` presents the same advantages as listed in the previous section. It uses the same input/output file formats for network, measurements definitions and simulated results. It includes all options available for ``influx_s``. Instationary labeling data can be supplied by giving non empty values in ``Time`` column in input file ``.miso`` thus making a shift from stationary to instationary calculations as simple as possible.
+Some of advantages of ``influx_i`` over other software coping with instationary labeling data are:
 
  - fast calculations (e.g. on our Intel Xeon 2.50GHz workstation, ``e_coli_i`` case runs in 17s while the most important part devoted to optimization takes as low as 10s);
  - parallel experiment treatment;
@@ -84,15 +87,14 @@ Some of advantages of ``influx_i`` over the concurrent software coping with inst
 Documentation organization
 --------------------------
 
-Changes brought to every new version and bug fixes are resumed at the beginning of
-the next chapter :doc:`Change Log<changelog>` which is also distributed as a stand alone PDF file.
+Changes brought to every new version and bug fixes are resumed at the beginning of the next chapter :doc:`Change Log<changelog>`.
 
 The rest of the documentation is organized as follows. :doc:`Installation <install>` chapter provides brief instructions for software installation. :doc:`Quick start <quick>` chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short :doc:`User's manual <manual>` precedes a :doc:`Programmer's documentation <progdoc>`. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in ``influx_si``. A small collection of :doc:`How to... <howto>` and :doc:`Troubleshooting <trouble>` notice conclude the documentation.
 
 Licensing
 ---------
 
-The original version of ``influx_si`` software was developed in the MetaSys team in the LISBP, Toulouse, FRANCE.
+The original version of ``influx_si`` software was developed in the MetaSys team in the LISBP (TBI since 2018), Toulouse, FRANCE.
 
 The software is licensed under the GNU Public License, Version
 2.0 or higher at your convenience (the "License"); you may not use this software and documentation except in compliance with the License.
@@ -105,14 +107,11 @@ You may obtain a copy of the License :doc:`here <license>` or at
 
 https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
-Unless required by applicable law or agreed to in writing, software distributed
-under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-CONDITIONS OF ANY KIND, either express or implied. See the License for the
-specific language governing permissions and limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 
 Software and documentation author:
 
   Serguei SOKOL, INRAE, France <sokol [at] insa-toulouse.fr>
 
-Copyright 2011-2022, INRAE/CNRS/INSA
+Copyright 2011-2023, INRAE/CNRS/INSA

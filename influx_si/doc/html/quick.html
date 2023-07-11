@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Quick Start &#8212; influx_si 6.1 documentation</title>
+    <title>Quick Start &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="install.html" title="Installation"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Quick Start</a></li> 
       </ul>
     </div>  
@@ -52,12 +52,12 @@
 <span id="quick"></span><h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading">¶</a></h1>
 <p>A basic work-flow with <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is composed of the following steps:</p>
 <ol class="arabic simple">
-<li><p>Create a MTF file set (Multiple TSV Files) describing your metabolic reactions and carbon transitions (.netw), experimental data (.miso) label input (.linp) and some non mandatory measurements options (.mflux, .mmet, .tvar, .cntsr, .opt). Let an example MTF set has a prefix <code class="docutils literal notranslate"><span class="pre">mynetwork</span></code>. The syntax rules for reactions will be more or less obvious to someone working on metabolism biochemistry. So, to go quickly, you can inspire from example files <code class="docutils literal notranslate"><span class="pre">test/mtf/e_coli.netw</span></code> and co. distributed with the <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software (run <code class="docutils literal notranslate"><span class="pre">influx_s</span> <span class="pre">--copy_test</span></code> to bring them to your current directory). You can also consult the help message from <code class="docutils literal notranslate"><span class="pre">txt2ftbl</span> <span class="pre">-h</span></code> for <code class="docutils literal notranslate"><span class="pre">--mtf</span></code> option.</p></li>
+<li><p>Create a MTF file set (Multiple TSV Files) describing your metabolic reactions and carbon transitions (.netw), experimental data (.miso) label input (.linp), some non mandatory measurements (.mflux, .mmet) and optional files providing initial values for estimated parameters, constraints and so on (.tvar, .cntsr, .opt). Let an example MTF set have a prefix <code class="docutils literal notranslate"><span class="pre">mynetwork</span></code>. The syntax rules for reactions will be more or less obvious to someone working on metabolism biochemistry. So, to go quickly, you can inspire from example files <code class="docutils literal notranslate"><span class="pre">test/mtf/e_coli.netw</span></code> and co. distributed with the <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software (run <code class="docutils literal notranslate"><span class="pre">influx_s</span> <span class="pre">--copy_test</span></code> to bring them to your current directory). You can also consult the help message from <code class="docutils literal notranslate"><span class="pre">txt2ftbl</span> <span class="pre">-h</span></code> for <code class="docutils literal notranslate"><span class="pre">--mtf</span></code> option.</p></li>
 </ol>
 <blockquote>
 <div><div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">NA</span></code> values (as “Non Available”) are admitted as measurements values where appropriate. The difference with the situation where measurements are simply omitted is that NA measurements are simulated and are present in the vectors <code class="docutils literal notranslate"><span class="pre">simulated</span> <span class="pre">unscaled</span> <span class="pre">labeling</span> <span class="pre">measurements</span></code> and <code class="docutils literal notranslate"><span class="pre">simulated</span> <span class="pre">scaled</span> <span class="pre">labeling</span> <span class="pre">measurements</span></code> in the result kvh file.</p>
+<p><code class="docutils literal notranslate"><span class="pre">NA</span></code> values (as “Non Available”) are admitted as measurements values where appropriate. The difference with the situation where measurements are simply omitted from a file is that NA measurements are simulated and are present in the result files <code class="docutils literal notranslate"><span class="pre">*.sim</span></code> while absent measurements are not.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -78,42 +78,7 @@ Empty cells in <code class="docutils literal notranslate"><span class="pre">Valu
 </pre></div>
 </div>
 <p>depending on stationary or instationary labeling context. We suppose here that directory of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> binaries is in the PATH variable.</p>
-<p>An <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run will produce the following files in the same directory that <code class="docutils literal notranslate"><span class="pre">mynetwok.*</span></code>:</p>
-<dl>
-<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code></dt><dd><p>FTBL is a previously used format as a front-end format. It is still in use but behind the scenes. This file can be necessary as entry for <code class="docutils literal notranslate"><span class="pre">ftbl2*</span></code> utilities.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.log</span></code></dt><dd><p>contains the run-time output from various scripts, in particular,
-it contains a report on convergence history during the fitting process.
-It can be helpful for identifying potential problems, but if everything
-is going well, the user does not have to examine the content of this file;</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code></dt><dd><p>contains the warning and error messages.
-Normally, this file should be empty (0 byte size);</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code></dt><dd><p>contains all the results. <a class="reference external" href="http://serguei.sokol.free.fr/kvh-format/">KVH format</a> is a
-lightweight plain text format for hierarchically structured data. It can be seen in a text editor or in a spreadsheet software as its fields are tab separated. It can also be processed by user’s custom software for post-processing, graphics output and alike. If <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is run on a series of starting points, there will be generated a common result
-file <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> which contains common information to all starting points
-but also a series of kvh files, one by starting point, e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork_res.V1.kvh</span></code>,
-<code class="docutils literal notranslate"><span class="pre">mynetwork_res.V2.kvh</span></code> and so on;</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">mynetwork.pres.csv</span></code></dt><dd><p>contains a matrix of fitted parameters and final cost values. Each column
-corresponds to a particular starting point if run with <code class="docutils literal notranslate"><span class="pre">--fseries</span></code> and /or
-<code class="docutils literal notranslate"><span class="pre">--iseries</span></code> options. If <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> was run without these options, the file
-will contain only one column corresponding to the starting point defined
-in the <code class="docutils literal notranslate"><span class="pre">mynetwork.tvar</span></code> file or to the random starting point.</p>
-</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwok</span></code>, <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwok</span></code>, <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork</span></code></dt><dd><p>as the middle name of these files suggest, they can be used to map the corresponding
-values on the network graph in the <a class="reference external" href="http://www.cytoscape.org">cytoscape</a> software.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>All these files are silently overwritten if already exist.
-So take care to copy your results elsewhere if you want to protect them
-from overwriting.</p>
-</div>
-</dd>
-<dt>custom files (e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.pdf</span></code>)</dt><dd><p>These files can be produced by user supplied scripts that are executed at the end of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> simulations. For example, we provide a script <code class="docutils literal notranslate"><span class="pre">plot_ilab.R</span></code> which can be used to plot label kinetics simulated by <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>. One or many of such custom scripts can be given in .opt file, field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> (cf. e_coli_i.opt for example)</p>
-</dd>
-</dl>
+<p>An <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run will produce result files in <code class="docutils literal notranslate"><span class="pre">mynetwok_res</span></code> directory. The detailed description of these files can be found in the next section. However, general idea is that simulated measurements are written in the files similar to MTF format with <code class="docutils literal notranslate"><span class="pre">.sim</span></code> (as “simulated”) suffix appended, e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.miso.sim</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>It can be helpful to do some “dry runs” by executing</p>
@@ -126,8 +91,8 @@ from overwriting.</p>
 </div></blockquote>
 <ol class="arabic simple" start="3">
 <li><p>See warning and error messages in <code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code> if any. Correct what has to be corrected and retry p. 2</p></li>
-<li><p>Extract and use the numerical results from the <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> file.</p></li>
-<li><p>Optionally, visualize net fluxes (or exchange fluxes or logarithm of metabolite concentrations <span class="math notranslate nohighlight">\(\log_2(M)\)</span>) in cytoscape using <code class="docutils literal notranslate"><span class="pre">ftbl2xgmml</span></code> to produce a .xgmml file and then mapping <code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwok.attrs</span></code>, <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwok.attrs</span></code> or <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork.attrs</span></code> on graphical attributes like edge width, color etc. in cytoscape.</p></li>
+<li><p>Extract and use the numerical results from the <code class="docutils literal notranslate"><span class="pre">mynetwork_res/*.sim</span></code> files.</p></li>
+<li><p>Optionally, visualize net fluxes (or exchange fluxes or logarithm of metabolite concentrations <span class="math notranslate nohighlight">\(\log_2(M)\)</span>) in cytoscape using <code class="docutils literal notranslate"><span class="pre">ftbl2xgmml</span></code> to produce a .xgmml file and then mapping files from <code class="docutils literal notranslate"><span class="pre">mynetwork_res/tmp</span></code> (<code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwok.attrs</span></code>, <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwok.attrs</span></code> or <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork.attrs</span></code>) to graphical attributes like edge width, color etc. in cytoscape.</p></li>
 </ol>
 </section>
 
@@ -184,7 +149,7 @@ from overwriting.</p>
         <li class="right" >
           <a href="install.html" title="Installation"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Quick Start</a></li> 
       </ul>
     </div>

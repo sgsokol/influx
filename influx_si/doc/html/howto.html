@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>How to … &#8212; influx_si 6.1 documentation</title>
+    <title>How to … &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="progdoc.html" title="Programmer’s documentation for influx_si"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">How to …</a></li> 
       </ul>
     </div>  
@@ -52,8 +52,8 @@
 <dl class="describe">
 <dt class="sig sig-object">
 <span class="sig-name descname"><span class="pre">...</span> <span class="pre">choose</span> <span class="pre">free</span> <span class="pre">fluxes?</span></span></dt>
-<dd><p>You can define in FTBL all not constrained fluxes as dependent (put a letter <code class="docutils literal notranslate"><span class="pre">D</span></code> in the column <code class="docutils literal notranslate"><span class="pre">FCD</span></code> of the FTBL sections <code class="docutils literal notranslate"><span class="pre">FLUXES/NET</span></code> and <code class="docutils literal notranslate"><span class="pre">FLUXES/XCH</span></code>), run <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> and see an error message that will suggest some candidates for free fluxes. For these fluxes, put a letter <code class="docutils literal notranslate"><span class="pre">F</span></code> in the column <code class="docutils literal notranslate"><span class="pre">FCD</span></code> and some numeric value in the next column <code class="docutils literal notranslate"><span class="pre">VALUE(F/C)</span></code> to provide a starting value for the fitting. Don’t use 0 as starting value as it might lead to singular matrices in cumomer balances.</p>
-<p>If you want to create an FTBL <em>de novo</em>, consider using application <code class="docutils literal notranslate"><span class="pre">txt2ftbl.py</span></code> included in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> package. Not only it translates an easily readable/writable text format into FTBL one, but it also automatically assigns some fluxes to be free.</p>
+<dd><p>Since v7.0, this step is not really necessary. Using MTF input format allows user to create its <code class="docutils literal notranslate"><span class="pre">.netw</span></code> file with just a network. And at first run of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>, a new file <code class="docutils literal notranslate"><span class="pre">.tvar.def</span></code> with default values will be generated. It can be used as <code class="docutils literal notranslate"><span class="pre">.tvar</span></code> file with partition between free and dependent fluxes. User can label some fluxes as constrained in this <code class="docutils literal notranslate"><span class="pre">.tvar</span></code>. In which case, a newly introduced possible incoherence in flux partition will be signaled as error and recommendations will be given about how to avoid such situation.</p>
+<p>Don’t use 0 as starting value in NET fluxes as it might lead to singular matrices in cumomer balances.</p>
 </dd></dl>
 
 <dl class="describe">
@@ -81,7 +81,11 @@
 <dl class="describe">
 <dt class="sig sig-object">
 <span class="sig-name descname"><span class="pre">...</span> <span class="pre">make</span> <span class="pre">FTBL</span> <span class="pre">file</span> <span class="pre">with</span> <span class="pre">synthetic</span> <span class="pre">data?</span></span></dt>
-<dd><dl>
+<dd><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Deprecated since v7.0. Simply use <code class="docutils literal notranslate"><span class="pre">*.sim</span></code> files as MTF input files (cf. examples in notes of <a class="reference internal" href="manual.html#ex-sim1"><span class="std std-ref">res2ftbl_meas: simulated data</span></a> and <a class="reference internal" href="manual.html#ex-sim2"><span class="std std-ref">ffres2ftbl: import free fluxes</span></a>)</p>
+</div>
+<dl>
 <dt>Follow for example steps outlined hereafter:</dt><dd><ul>
 <li><p>edit FTBL file(s) with <code class="docutils literal notranslate"><span class="pre">NA</span></code> in measurements and realistic SD, name it e.g. <code class="docutils literal notranslate"><span class="pre">new_NA.ftbl</span></code></p></li>
 <li><p>simulate data:</p>
@@ -112,7 +116,7 @@
 <dd><p>Let suppose you want to filter some of Monte-Carlo (MC) iterations based on their cost values.
 In <code class="docutils literal notranslate"><span class="pre">OPTIONS/posttreat_R</span></code> of your FTBL file add <code class="docutils literal notranslate"><span class="pre">save_all.R</span></code>. The file <code class="docutils literal notranslate"><span class="pre">save_all.R</span></code> can be found in <code class="docutils literal notranslate"><span class="pre">R</span></code> directory of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> distribution. Execution of <code class="docutils literal notranslate"><span class="pre">save_all.R</span></code> at the end of calculations will simply save all session variables in <code class="docutils literal notranslate"><span class="pre">mynetwork.RData</span></code> file (supposing that your FTBL file is named <code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code>). In particular, you need <code class="docutils literal notranslate"><span class="pre">free_mc</span></code> matrix which contains free parameters (each column results from a given MC iteration). After that you can open an interactive R session in your working directory and run something similar to:</p>
 <div class="highlight-r notranslate"><div class="highlight"><pre><span></span><span class="c1"># preparations</span>
-<span class="nf">load</span><span class="p">(</span><span class="s">&quot;mynetwork.RData&quot;</span><span class="p">)</span>
+<span class="nf">load</span><span class="p">(</span><span class="s">&quot;mynetwork.RData&quot;</span><span class="p">)</span> <span class="c1"># to obtain .RData file in &#39;my_res/my/tmp/&#39;, use &#39;posttreat_R save_all.R&#39; in &#39;my.opt&#39; file</span>
 <span class="nf">source</span><span class="p">(</span><span class="nf">file.path</span><span class="p">(</span><span class="n">dirx</span><span class="p">,</span> <span class="s">&quot;libs.R&quot;</span><span class="p">))</span>
 <span class="nf">source</span><span class="p">(</span><span class="nf">file.path</span><span class="p">(</span><span class="n">dirx</span><span class="p">,</span> <span class="s">&quot;opt_cumo_tools.R&quot;</span><span class="p">))</span>
 <span class="c1">#source(file.path(dirx, &quot;opt_icumo_tools.R&quot;)) # uncoment for influx_i use</span>
@@ -190,7 +194,7 @@ In <code class="docutils literal notranslate"><span class="pre">OPTIONS/posttrea
         <li class="right" >
           <a href="progdoc.html" title="Programmer’s documentation for influx_si"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">How to …</a></li> 
       </ul>
     </div>

@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Troubleshooting &#8212; influx_si 6.1 documentation</title>
+    <title>Troubleshooting &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
@@ -37,7 +37,7 @@
         <li class="right" >
           <a href="howto.html" title="How to …"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Troubleshooting</a></li> 
       </ul>
     </div>  
@@ -55,13 +55,9 @@
 <div><ul class="simple">
 <li><p>partners and clients of MetaToul-RéseauxMétaboliques can benefit from advices of their dedicated stuff. If you are not a partner/client but would like to become one, for example to get help for your label experiment design and/or realization, you can contact platform MetaToul (cf. <a class="reference internal" href="consulting.html"><span class="doc">Consulting and more</span></a>);</p></li>
 <li><p>you can search for similar problem discussion in the forum <a class="reference external" href="https://groups.google.com/forum/#!forum/influx_si">https://groups.google.com/forum/#!forum/influx_si</a>. If you don’t find your answer and wish to ask a new question you’ll have to subscribe to this group.</p></li>
-<li><p>if you think that you face a bug, try the latest version of the software to see if this bug was already fixed. If it is still present, you can report it on <a class="reference external" href="https://github.com/sgsokol/influx/issues">https://github.com/sgsokol/influx/issues</a>. Please note that we can’t guarantee that any particular bug can be fixed in any particular release or can be fixed at all. It is possible, that we ask you to send us (in a private email not in <a class="reference external" href="mailto:influx_si&#37;&#52;&#48;googlegroups&#46;com">influx_si<span>&#64;</span>googlegroups<span>&#46;</span>com</a>) an ftbl file on which an error occur. It will be used only for purposes of bug reproducing and its identification. The received ftbl file will not be transmitted to any third party.</p></li>
-<li><p>if you have a problem with FTBL editing, you can read the documentation from <a class="reference external" href="https://www.13cflux.net">13CFlux</a> and/or interpret error messages generated during FTBL parsing.</p></li>
-<li><p>if you have some difficulties in choosing free fluxes, define all not constrained fluxes as dependent (put a letter <code class="docutils literal notranslate"><span class="pre">D</span></code> in the column <code class="docutils literal notranslate"><span class="pre">FCD</span></code> of the FTBL sections <code class="docutils literal notranslate"><span class="pre">FLUXES/NET</span></code> and <code class="docutils literal notranslate"><span class="pre">FLUXES/XCH</span></code>) and see an error message that will suggest candidates for free fluxes. Another option is to use <code class="docutils literal notranslate"><span class="pre">--ffguess</span></code> flag that will automatically partition not constrained fluxes between free and dependent.</p></li>
-<li><p>if your resulting fluxes are badly defined (statistically or structurally), i.e. they have big confidence intervals or the Jacobian is rank deficient, you can try to play with input labeling (cf. IsoDesign software at <a class="reference external" href="http://metatoul.insa-toulouse.fr/metasys/software/isodes/">http://metatoul.insa-toulouse.fr/metasys/software/isodes/</a>) or try to collect some additional data on metabolites not yet measured. To have some insights on what part of the network is already well defined and which one still needs additional measurements, you can try to run <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> with an option <code class="docutils literal notranslate"><span class="pre">--ln</span></code> (as <cite>least norm</cite>) (in addition to <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> option) and examine standard deviation of the fluxes/concentrations in the resulting KVH file. Another possibility is to use <a class="reference external" href="https://doi.org/10.1016/j.ymben.2012.11.010">parallel labeling experiments</a> (cf. manual section <a class="reference internal" href="manual.html#prlexp"><span class="std std-ref">Parallel experiments</span></a>)</p></li>
+<li><p>if you think that you face a bug, try the latest version of the software to see if this bug was already fixed. If it is still present, you can report it on <a class="reference external" href="https://github.com/sgsokol/influx/issues">https://github.com/sgsokol/influx/issues</a>. Please note that we can’t guarantee that any particular bug can be fixed in any particular release or can be fixed at all. It is possible, that we ask you to send us (in a private email not in <a class="reference external" href="mailto:influx_si&#37;&#52;&#48;googlegroups&#46;com">influx_si<span>&#64;</span>googlegroups<span>&#46;</span>com</a>) your input files to reproduce the error on our side. It will be used only for purposes of issue resolving. The received files will not be transmitted to any third party.</p></li>
 </ul>
 </div></blockquote>
-<p>Once again, if you could not resolve your problem during these steps, see the next section  <a class="reference internal" href="consulting.html"><span class="doc">Consulting and more</span></a>.</p>
 </section>
 
 
@@ -117,7 +113,7 @@
         <li class="right" >
           <a href="howto.html" title="How to …"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Troubleshooting</a></li> 
       </ul>
     </div>
