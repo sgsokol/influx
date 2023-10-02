@@ -2,6 +2,15 @@
 Change Log for influx_si
 ========================
 
+2023-10-?? version 7.0.1
+------------------------
+
+New feature:
+
+Bug fix:
+ - fixed move of .ikin file to tmp/ directory
+ - fixed moving files on Windows
+
 2023-07-11 version 7.0
 ----------------------
 

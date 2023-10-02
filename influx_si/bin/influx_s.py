@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optimize free fluxes and optionaly metabolite concentrations of a given static metabolic network defined in an FTBL file to fit 13C data provided in the same FTBL file.
+"""Optimize free fluxes and optionally metabolite concentrations of a given static metabolic network defined in .netw files to fit 13C data provided in the .miso, .mflux and .mmet files.
 """
 
 #import pdb
@@ -42,9 +42,9 @@ def move2tmp(dirres, fp):
     else:
         return
     if dirres == "default":
-        fp.rename(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
+        fp.replace(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
     elif dirres:
-        fp.rename(Path(dirres)/"tmp"/fp.name)
+        fp.replace(Path(dirres)/"tmp"/fp.name)
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """
@@ -224,7 +224,7 @@ if True: # just to make a collapsible code block
         help="method for optimization, one of 'nlsic|BFGS|Nelder-Mead|pso'. Default: 'nlsic'. Multiple occurrences of this option can appear on command line. In this case, specified minimization methods are applied successively, e.g. '--meth pso --meth nlsic' means that 'pso' will be used first, then 'nlsic' will take over from the point where 'pso' ends. In case of multiple methods, it is recommended to start with non-gradient methods like 'pso' or 'Nelder-Mead' and make them follow by gradient based methods like 'nlsic' or 'BFGS'. If 'pso' or 'Nelder-Mead' are indeed used as the first method, it is not recommended to combine them with '--zc' option.")
     parser.add_argument(
     "--fullsys", action="store_true",
-        help="calculate all cumomer set (not just the reduced one necesary to simulate measurements)")
+        help="calculate all cumomer set (not just the reduced one necessary to simulate measurements)")
     parser.add_argument(
     "--emu", action="store_true",
         help="simulate labeling in EMU approach")
@@ -317,10 +317,10 @@ if True:
     # install helper actions
     parser.add_argument(
     "--copy_doc", action="store_true",
-        help="copy documentation directory in the current directory and exit. If ./doc exists, its content is silently owerriten.")
+        help="copy documentation directory in the current directory and exit. If ./doc exists, its content is silently overwritten.")
     parser.add_argument(
     "--copy_test", action="store_true",
-        help="copy test directory in the current directory and exit. If ./test exists, its content is silently owerriten.")
+        help="copy test directory in the current directory and exit. If ./test exists, its content is silently overwritten.")
     parser.add_argument(
     "--install_rdep", action="store_true",
         help="install R dependencies and exit.")
@@ -578,6 +578,8 @@ if len(rfiles) > 1:
         fp=fp.with_suffix(".ftbl")
         if str(fp) in set_ftbl:
             move2tmp(dirres, fp)
+            if case_i:
+                move2tmp(dirres, fp.with_suffix(".ikin"))
 
         if fpe and fpe.stat().st_size > 0:
             s="=>Check "+str(fpe)+"\n"
@@ -613,6 +615,8 @@ else:
     move2tmp(dirres, fp)
     if ftpr[0] in set_ftbl:
         move2tmp(dirres, ftpr[0])
+        if case_i:
+            move2tmp(dirres, fp.with_suffix(".ikin"))
 
     #pdb.set_trace()
     if fpe and fpe.stat().st_size > 0:

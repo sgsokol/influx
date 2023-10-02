@@ -1577,3 +1577,22 @@ clamp=function(x, low, high) {
    x[x > high]=high
    x
 }
+#' multiple assignments
+#'
+#' .(a,b) %m=% 1:2 <=> a <- 1; b <- 2
+#' .(a,b,) %m=% 1:10 <=> a <- 1; b <- 2; the rest (i.e. 3:10) is ignored
+#' .(a,,b) %m=% 1:3 <=> a <- 1; b <- 3; "2" is skipped
+#' .(a,b) %m=% 1:3 => error, not enough symbols on lhs
+#' .(a,b) %m=% 1 => error, too many symbols on lhs
+`%m=%`=function(lhs, rhs, envir=parent.frame()) {
+   nm_lhs=as.list(substitute(lhs))[-(1L)]
+   stopifnot(all(sapply(nm_lhs, is.symbol)))
+   nm_lhs=as.character(nm_lhs)
+   print(nm_lhs)
+   if (nchar(tail(nm_lhs, 1L)) == 0L)
+      stopifnot(length(nm_lhs) <= length(rhs))
+   else
+      stopifnot(length(nm_lhs) == length(rhs))
+   lapply(seq_along(nm_lhs), function(i) {nm=nm_lhs[[i]]; if (nchar(nm)) assign(nm, rhs[[i]], envir=envir)})
+   invisible(NULL)
+}
