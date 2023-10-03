@@ -4,7 +4,7 @@
 
 #import pdb
 
-import sys, os, datetime as dt, subprocess as subp, re, time, traceback
+import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat
 import argparse
 from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count
@@ -42,9 +42,13 @@ def move2tmp(dirres, fp):
     else:
         return
     if dirres == "default":
-        fp.replace(fp.parent/(fp.stem+"_res")/"tmp"/fp.name)
+        ft=fp.parent/(fp.stem+"_res")/"tmp"/fp.name
     elif dirres:
-        fp.replace(Path(dirres)/"tmp"/fp.name)
+        ft=Path(dirres)/"tmp"/fp.name
+    fp.chmod(stat.S_IWRITE)
+    if ft.exists():
+        ft.chmod(stat.S_IWRITE)
+    fp.replace(ft)
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
 """

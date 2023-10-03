@@ -10,6 +10,7 @@ New feature:
 Bug fix:
  - fixed move of .ikin file to tmp/ directory
  - fixed moving files on Windows
+ - fixed panda warning about concatenation of empty DataFrame
 
 2023-07-11 version 7.0
 ----------------------

@@ -55,13 +55,23 @@ def itvl2li(v):
     else:
         return [str(i) for i in range(int(li[0]), int(li[1])+1)]
 def dsec2out(dsec, fout):
-    "write lines from dsec to fout"
+    "write lines from section dictionary 'dsec' to 'fout'"
     for k,li in dsec.items():
         for item in li:
             if type(item) == dict:
                 dsec2out(item, fout)
             else:
                 fout.write(item+"\n")
+def dfconcat(df1, df2, **kw):
+    "concat 2 dataframes if not empty"
+    if df1 is None:
+        return df2
+    elif len(df1) and len(df2):
+        return pa.concat([df1, df2], **kw)
+    elif len(df2):
+        return df2
+    else:
+        return df1
 def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline", encodings=["UTF-8", "windows-1250", "windows-1252"]):
     "Read file 'f' as TSV and return a DataFrame. Separator is 'sep', comment char is 'comment', blank lines are skept, header is in the first row, file line numbers are stored in a column 'line_nb' if there is no a column with this name"
     if type(f) == str or type(f) == type(Path()):
@@ -495,7 +505,7 @@ def parse_miso(fmiso, clen, case_i=False):
                 #pdb.set_trace()
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for sp,spi in dsp.items():
-                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{ffrag}:{sp[1:]}:{df.loc[spi[0],'iline']}"])])
+                        df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{ffrag}:{sp[1:]}:{df.loc[spi[0],'iline']}"]))
             else:
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
@@ -569,7 +579,7 @@ def parse_miso(fmiso, clen, case_i=False):
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for i,(sp,spi) in enumerate(dsp.items()):
                         #pdb.set_trace()
-                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[0])}:{df.loc[spi[0],'iline']}"])])
+                        df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[0])}:{df.loc[spi[0],'iline']}"]))
             else:
                 if met != last_met or frag != last_frag:
                     last_met=met
@@ -627,7 +637,7 @@ def parse_miso(fmiso, clen, case_i=False):
                             ptype="D-"
                         else:
                             ptype="D+"
-                        df_kin=pa.concat([df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"p:{met}:{prow['center']}:{ptype}:{df.loc[rowid,'iline']}"])])
+                        df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"p:{met}:{prow['center']}:{ptype}:{df.loc[rowid,'iline']}"]))
             else:
                 res["peak"] += [f"\t{met}\t{prow['center']}\t{prow['v0']}\t{prow['v-1']}\t{prow['v1']}\t{prow['v-11']}\t\t{prow['dev0']}\t{prow['dev-1']}\t{prow['dev1']}\t{prow['dev-11']}"+"   // %s: %d"%(fname, ist)]
 
@@ -1060,7 +1070,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         dsec["met_pool"] += ["\t"+m+"\t0.1" for m in (itnal_met&lab_met)]
         # add default values in dfdef["tvar"]
         #pdb.set_trace()
-        dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", m, "METAB", "C", 0.1) for m in (itnal_met&lab_met)-tm.keys()], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])])
+        dfdef["tvar"]=dfconcat(dfdef["tvar"], pa.DataFrame([("", "", m, "METAB", "C", 0.1) for m in (itnal_met&lab_met)-tm.keys()], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"]))
 
     snrev=set() # set of non reversible fluxes
     for tpl in fluxes:
@@ -1087,8 +1097,8 @@ def compile(mtf, cmd, case_i=False, clen=None):
     #pdb.set_trace()
     dsec["flux"][1]["NET"] += [v for k,v in dtnet.items() if k not in stvar.get("NET", dict())]
     dsec["flux"][1]["XCH"] += [v for k,v in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]
-    dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", v[0], "NET", v[1], v[2]) for v in [vv.split() for k,vv in dtnet.items() if k not in stvar.get("NET", dict())]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])], ignore_index=True)
-    dfdef["tvar"]=pa.concat([dfdef["tvar"], pa.DataFrame([("", "", v[0], "XCH", v[1], v[2]) for v in [vv.split() for k,vv in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"])], ignore_index=True)
+    dfdef["tvar"]=dfconcat(dfdef["tvar"], pa.DataFrame([("", "", v[0], "NET", v[1], v[2]) for v in [vv.split() for k,vv in dtnet.items() if k not in stvar.get("NET", dict())]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"]), ignore_index=True)
+    dfdef["tvar"]=dfconcat(dfdef["tvar"], pa.DataFrame([("", "", v[0], "XCH", v[1], v[2]) for v in [vv.split() for k,vv in dtxch.items() if k not in stvar.get("XCH", dict()).keys() | snrev ]], columns=["Id", "Comment", "Name", "Kind", "Type", "Value"]), ignore_index=True)
     #pdb.set_trace()
     # sort dfdef
     for k,df in dfdef.items():
