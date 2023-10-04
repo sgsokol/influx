@@ -108,7 +108,6 @@ If everything was correctly installed, you should see in your shell window an ou
 
 .. code-block:: text
 
- "/home-local/sokol/.local/bin/influx_s" "--prefix" "e_coli"
  code gen: 2022-05-25 12:10:53
  calcul  : 2022-05-25 12:10:53
  end     : 2022-05-25 12:10:55

@@ -15,7 +15,7 @@ setup(
    long_description=long_description,
    author='Serguei Sokol',
    author_email='sokol@insa-toulouse.fr',
-   url="https://metasys.insa-toulouse.fr/software/influx/",
+   url="https://github.com/sgsokol/influx/",
    packages=['influx_si'],
    package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', 'doc/html/*', 'doc/*.pdf', 'doc/*.html']},
    include_package_data=True,
@@ -65,7 +65,7 @@ setup(
       'Topic :: Scientific/Engineering :: Bio-Informatics',
    ],
    project_urls={
-      'Documentation': 'https://metasys.insa-toulouse.fr/software/influx/doc/',
+      'Documentation': 'https://influx-si.readthedocs.io/',
       'Source': 'https://github.com/sgsokol/influx',
       'Tracker': 'https://github.com/sgsokol/influx/issues',
    },

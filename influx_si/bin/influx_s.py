@@ -41,13 +41,15 @@ def move2tmp(dirres, fp):
         fp=Path(fp)
     else:
         return
+    if not fp.exists():
+        return
     if dirres == "default":
         ft=fp.parent/(fp.stem+"_res")/"tmp"/fp.name
     elif dirres:
         ft=Path(dirres)/"tmp"/fp.name
-    fp.chmod(stat.S_IWRITE)
+    fp.chmod(fp.stat().st_mode | stat.S_IWRITE)
     if ft.exists():
-        ft.chmod(stat.S_IWRITE)
+        ft.chmod(ft.stat().st_mode | stat.S_IWRITE)
     fp.replace(ft)
 def launch_job(ft, fshort, cmd_opts, nb_ftbl, case_i):
     r"""Launch R code generation and then its execution
