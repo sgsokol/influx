@@ -921,6 +921,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     if "netw" in mtf and mtf["netw"]:
         pth=try_ext(mtf["netw"], ["netw", "txt"])
         (netw, notr_netw, eqs, ineqs, fluxes, (m_left, m_right), sto, dclen)=txt_parse(pth)
+        #pdb.set_trace()
         # build afl matrix: each row is a balance on an internal metabolite, each column is a flux values
         nb_flux=len(sto)
         nm_flux=sorted(sto.keys(), key=plain_natural_key)

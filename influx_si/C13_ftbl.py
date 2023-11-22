@@ -925,7 +925,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
 
         # check that all reactions from EQUALITY are at least in FLUX/NET/XCH section
         fnetxch=oset( row["NAME"] for row in net+xch if row["NAME"] and row["FCD"] in fcd )
-        unk=eqflux-fnet-oset(netan["flux_growth"]["net"])-oset(netan["flux_vgrowth"]["net"])
+        unk = eqflux - fnet - oset(netan["flux_growth"]["net"]) - oset(netan["flux_vgrowth"]["net"])
         if len(unk):
             raise Exception("The flux name(s) '%s' from the NETWORK section is (are) not defined in the FLUX/NET section."%(", ".join(unk)))
     else:

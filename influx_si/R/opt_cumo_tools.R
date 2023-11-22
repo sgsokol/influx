@@ -900,7 +900,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
       # check that we are not too far outside
       if (any(ineqd < -tol_out)) {
          param=NA
-         attr(param, "mes")="Inequality system is ill-conditionned. Failed to solve."
+         attr(param, "mes")="Inequality system is ill-conditioned. Failed to solve."
          attr(param, "err")=1
          return(param)
       }
