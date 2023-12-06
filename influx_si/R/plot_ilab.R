@@ -6,6 +6,7 @@ plot_mti=function(ti, x, m=NULL, ...) {
    if (is.null(nm)) {
       nb_curve=nrow(x)
       nm=seq_len(nb_curve)
+      nm_leg=as.character(seq_len(nb_curve))
    } else {
       nb_curve=if (is.null(m)) nrow(x) else nrow(m)
       # strip the ftbl row number
@@ -53,6 +54,7 @@ plot_lti=function(ti, x, m=NULL, ...) {
    if (is.null(nm)) {
       nb_curve=nrow(x)
       nm=seq_len(nb_curve)
+      nm_leg=as.character(seq_len(nb_curve))
    } else {
       nb_curve=if (is.null(m)) nrow(x) else nrow(m)
       # strip the ftbl row number
@@ -61,7 +63,7 @@ plot_lti=function(ti, x, m=NULL, ...) {
       if (length(nms <- strsplit(nm, ":", fixed=TRUE)[[1L]]) > 2L) {
          nm_leg=paste0(nms[c(1L,3L)], collapse=":")
       } else {
-         nm_leg=as.characetr(seq_len(nb_curve))
+         nm_leg=as.character(seq_len(nb_curve))
       }
    }
    # x and m may have different time moments
@@ -141,16 +143,22 @@ if (write_res) {
          for (met in nmp) {
             if (emu) {
                i=grep(sprintf("^%s:", met), nm_simm, v=TRUE)
+               if (length(i) == 0L)
+                  next
                # take fragments
                fr=unique(sapply(strsplit(i, "[+:]"), "[", 2L))
                for (f in fr) {
                   i=grep(sprintf("^%s:%s\\+", met, f), nm_simm, v=TRUE)
+                  if (length(i) == 0L)
+                     next
                   fi=as.integer(f)
                   mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s:%s", met, fr)
                   plot_mti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=mainlab, ylim=0:1)
                }
             } else {
                i=grep(sprintf("^%s\\+", met), nm_simm, v=TRUE)
+               if (length(i) == 0L)
+                  next
                plot_mti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
             }
          }
@@ -164,6 +172,8 @@ if (write_res) {
                i=grep(sprintf("%s:", metf), nm_sell, fix=TRUE, v=TRUE)
                #isim=pmatch(sapply(strsplit(i, ":", fixed=TRUE), function(v) paste0(v[-length(v)], collapse=":")), rownames(usmf))
                isim=grep(sprintf("%s:", metf), rownames(usmf), fix=TRUE, v=TRUE)
+               if (length(isim) == 0L)
+                  next
                mf=strsplit(metf, ":", fixed=TRUE)[[1L]]
                met=mf[2L]
                fr=mf[3L]

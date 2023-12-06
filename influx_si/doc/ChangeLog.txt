@@ -2,6 +2,13 @@
 Change Log for influx_si
 ========================
 
+2023-12-06 version 7.0.2
+------------------------
+
+Bug fix:
+ - fixed plot_ilab.R for empty simulated data (seen in case submitted by Cécilia Berges, TBI, France)
+ - fixed python exception for '-o outdir'
+
 2023-10-04 version 7.0.1
 ------------------------
 

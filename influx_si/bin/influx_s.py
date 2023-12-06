@@ -601,7 +601,7 @@ else:
         fpe=None
     else:
         flog=(Path(dirres)/(fp.stem+".log"))
-        flog=(Path(dirres)/(fp.stem+".err"))
+        fpe=(Path(dirres)/(fp.stem+".err"))
     # execute only one R code
     if not retcode and rfiles:
         f=rfiles[0][0][:-2]
