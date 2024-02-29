@@ -114,7 +114,8 @@ def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"
             rli.append(ili+1)
         rows=np.vstack((rows, rli))
     df=pa.DataFrame(rows)
-    df.columns=cnm
+    if len(df.columns) == len(cnm) and len(cnm) > 0:
+        df.columns=cnm
     return df
 def try_ext(f, li):
     """See if file 'f' exists, if not try with extensions from 'li'.
@@ -392,6 +393,9 @@ def parse_miso(fmiso, clen, case_i=False):
     fname=os.path.basename(fname)
     #pdb.set_trace()
     df=tsv2df(fmiso)
+    res={"ms": [], "lab": [], "peak": []} # 'mean' is transformed into lab
+    if len(df) == 0:
+        return (res, pa.DataFrame()) if case_i else res
     if "Metabolite" in df.columns and "Species" in df.columns:
         df.rename({"Metabolite": "Specie", "Species": "Isospecies"}, inplace=True, axis=1)
     if case_i:
@@ -404,7 +408,6 @@ def parse_miso(fmiso, clen, case_i=False):
         if "Time" in df and sum(df["Time"] == "") == 0:
             werr("parse_miso: we are in stationary case but 'Time' column is not empty in '%s'"%fname)
         df=df[df["Time"] == ""] if "Time" in df else df
-    res={"ms": [], "lab": [], "peak": []} # 'mean' is transformed into lab
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
     cgr=1
@@ -661,6 +664,8 @@ def parse_linp(f, clen={}):
 
     #print("df=", df)
     res=[]
+    if len(df) == 0:
+        return res
     for met, ligr in df.groupby(["Specie"]).groups.items():
         mlen=clen.get(met)
         il=df.loc[ligr, "iline"].to_numpy() # strings
@@ -689,6 +694,8 @@ def parse_mflux(f, dfl={}):
     df=tsv2df(f)
     #print("df=", df)
     res=[]
+    if len(df) == 0:
+        return res
     for flux,ligr in df.groupby(["Flux"]).groups.items():
         il=df.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
@@ -706,11 +713,15 @@ def parse_opt(f):
         fname=f
     fname=os.path.basename(fname)
     
-    df=tsv2df(f).loc[:, ["Name", "Value"]].to_numpy().astype(str)
-    res=vsadd(vsadd("\t", vsadd(df[:,0], "\t")), df[:,1]).tolist()
+    df=tsv2df(f)
+    if len(df):
+        df=df.loc[:, ["Name", "Value"]].to_numpy().astype(str)
+        res=vsadd(vsadd("\t", vsadd(df[:,0], "\t")), df[:,1]).tolist()
+    else:
+        res=list()
     return res
 def parse_tvar(f, dfl={}, lablen={}):
-    "Parse variable type TSV file. Return a tuple of a dict and a list with lines to add to ftbl"
+    "Parse variable type TSV file. Return a tuple of 2 dict fl and mets with lines to add to ftbl"
     if "name" in dir(f):
         fname=f.name
     else:
@@ -721,6 +732,8 @@ def parse_tvar(f, dfl={}, lablen={}):
     #print("df=", df)
     fl={}
     mets={}
+    if len(df) == 0:
+        return (fl, mets)
     for kgr,ligr in sorted(df.groupby(["Kind", "Name"]).groups.items(), key=lambda t: (t[0][0], plain_natural_key(t[0][1]))):
         il=df.loc[ligr, "iline"].to_numpy() # strings
         kind,nm=kgr
@@ -767,6 +780,8 @@ def parse_cnstr(f):
     #print("df=", df)
     eq={}
     ineq={}
+    if len(df) == 0:
+        return (eq, ineq, df)
     for kgr,ligr in df.groupby(["Kind", "Formula", "Operator"]).groups.items():
         il=df.loc[ligr, "iline"].to_numpy() # strings
         kind,frml,op=kgr
@@ -795,11 +810,13 @@ def parse_mmet(f, smet=set()):
         fname=f
     fname=os.path.basename(fname)
     
+    res=[]
     df=tsv2df(f)
+    if len(df) == 0:
+        return res
     if "Metabolite" in df.columns:
         df.rename({"Metabolite": "Specie"}, inplace=True, axis=1)
     #print("df=", df)
-    res=[]
     for met,ligr in df.groupby(["Specie"]).groups.items():
         il=df.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
@@ -1016,7 +1033,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         fluxes=[]
     sfl=set(sto.keys()) # set of fluxes
     if "cnstr" in mtf and mtf["cnstr"]:
-        pth=try_ext(mtf["cnstr"], ["cntsr", "tsv", "txt"])
+        pth=try_ext(mtf["cnstr"], ["cnstr", "tsv", "txt"])
         ce,ci,df=parse_cnstr(pth)
         for k,v in ce.items():
             dsec["eq"][1][k] += v
@@ -1105,7 +1122,12 @@ def compile(mtf, cmd, case_i=False, clen=None):
     for k,df in dfdef.items():
         dfdef[k]=df.sort_values(defsort[k])
     return (dsec, dclen, dfdef) if not case_i else (dsec, dclen, dfdef, df_kin)
-def main(argv=sys.argv[1:], res_ftbl=None):
+def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
+    """translate MTF file(s) to FTBL format
+    :param argv: list of CLI options and their arguments
+    :param res_ftbl: if not None, a list of produced FTBL files. In case of parallel experiments, only main FTBL are returned in this list
+    :param prl_ftbl: if not None, a dict() showing which parallel FTBLs correspond to each main FTBL. Applicable only in case of parallel experiments
+    :return code: integer 0 - OK; non 0 - error"""
     ord_args=[]
     class ordAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
@@ -1307,7 +1329,7 @@ is the argument value that will take precedence.
         dfopt=tsv2df(mtf["opt"])
     # prepare prl
     # if no --eprl, get prl_exp from .opt
-    if not opts.eprl and "opt" in mtf:
+    if not opts.eprl and "opt" in mtf and len(dfopt):
         wd=Path(mtf["opt"]).parent
         fli=[v.replace(";", ",") for v in dfopt.loc[dfopt["Name"] == "prl_exp", "Value"]]
         #print("fli=", fli)
@@ -1495,7 +1517,8 @@ is the argument value that will take precedence.
             renum([str(ftbl)])
         if res_ftbl is not None:
             res_ftbl.append(out.name)
-        out.close()
+        if prl_ftbl is not None and prl_li:
+            prl_ftbl[out.name]=prl_li
         # output default mtf
         for k,df in dfdef.items():
             if len(df) == 0:
@@ -1512,4 +1535,4 @@ is the argument value that will take precedence.
                     print(str(p))
     return 0
 if __name__ == "__main__" or __name__ == "influx_si.cli":
-    main()
+    sys.exit(main())

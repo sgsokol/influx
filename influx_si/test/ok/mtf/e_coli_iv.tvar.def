@@ -1,6 +1,6 @@
 // Created by 'txt2ftbl --inst --prefix e_coli_iv'
-// Date: 2023-10-04 17:22:21 CEST +0200
-// influx_si version: 7.0.1
+// Date: 2024-02-29 14:24:45 CET +0100
+// influx_si version: 7.0.2
 // If edited by hand, remove these comments.
 Id	Comment	Name	Kind	Type	Value
 		Glucupt_1	XCH	C	0

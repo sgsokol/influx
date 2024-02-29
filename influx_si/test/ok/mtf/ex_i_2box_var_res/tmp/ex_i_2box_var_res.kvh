@@ -1,5 +1,5 @@
 influx
-	version	7.0.1
+	version	7.0.2
 	labeling	instationary
 	runtime options
 		noopt=TRUE
@@ -13,14 +13,14 @@ TIMEIT=TRUE
 		system	x86_64, linux-gnu
 		status	
 		major	4
-		minor	3.1
+		minor	3.2
 		year	2023
-		month	06
-		day	16
-		svn rev	84548
+		month	10
+		day	31
+		svn rev	85441
 		language	R
-		version.string	R version 4.3.1 (2023-06-16)
-		nickname	Beagle Scouts
+		version.string	R version 4.3.2 (2023-10-31)
+		nickname	Eye Holes
 	R command line
 		opts
 			1	/usr/lib/R/bin/exec/R
@@ -30,13 +30,13 @@ TIMEIT=TRUE
 			5	tryCatch(parallel:::.workRSOCK,error=function(e)parallel:::.slaveRSOCK)()
 			6	--args
 			7	MASTER=localhost
-			8	PORT=11701
+			8	PORT=11967
 			9	OUT=/dev/null
 			10	SETUPTIMEOUT=120
 			11	TIMEOUT=2592000
 			12	XDR=TRUE
 			13	SETUPSTRATEGY=parallel
-		execution date	2023-10-04 17:22:25.62 cpu=1.214
+		execution date	2024-02-29 14:24:50.10 cpu=1.158
 system sizes
 	reactions
 		reversible	0

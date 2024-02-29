@@ -29,14 +29,14 @@ import pandas as pa
 
 import random # for debug only
 
-def eval_item(item, fd):
+def eval_item(item, ith, icase, nm, fd):
     """eval python code in item and return its results.
     In case of exception, return None
     """
     try:
         res=eval(item)
     except Exception as e:
-        mes="%s\n\tin code: %s\n"%(str(e), item)
+        mes="%s\n\tin code: %s\n\tith=%d; icase=%d; test='%s'\n"%(str(e), item, ith, icase, nm)
         sys.stderr.write(mes)
         fd.write(mes)
         res=None
@@ -119,7 +119,7 @@ def do_case(ith, icase, line):
         addmes = " Exception was raised (cf. test_case.err)"
     elif ok and testcmd and not dry:
         with lock: # globals() can be modified in checks via varset()
-            res = [(eval_item(item, fd_err), item) for item in testcmd.split(";") if item.strip()]
+            res = [(eval_item(item, ith, icase, fields[0], fd_err), item) for item in testcmd.split(";") if item.strip()]
         #print res
         nb_fail = sum(not t for (t, item) in res)
         if nb_fail:

@@ -3,5 +3,5 @@ Id	Comment	Name	Value
 		dt	0.01
 		nsubdiv_dt	1
 		tmax	5
-		posttreat_R	plot_imass.R
+		posttreat_R	plot_ilab.R
 		funlabR	ex_i_2box_lin.funlab.R

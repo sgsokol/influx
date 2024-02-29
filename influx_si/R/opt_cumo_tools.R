@@ -143,7 +143,7 @@ param2fl=function(param, labargs) {
    return(lf)
 }
 
-param2fl_x=function(param, cjac=TRUE, labargs) {
+param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
    # translate free params (fluxes+scales) to fluxes and cumomers
    # or emus
    # local variabl assignments form labargs
@@ -151,14 +151,25 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    for (item in nm_local) {
       assign(item, labargs[[item]])
    }
-   
-   nb_xi=nb_f$xi
+   if (fullsys) {
+      nb_x=nb_f$xf
+      nb_xi=nb_f$xif
+      xi=xif
+      nm_x=nm_list$xf
+      spa=spaf
+   } else {
+      nb_x=nb_f$x
+      nb_xi=nb_f$xi
+      nm_x=nm_list$x
+      nb_x=nb_f$x
+   }
+   nb_w=length(nb_x)
+   nbc_x=cumsum(c(0., nb_x))
    nb_ff=nb_f$nb_ff
    nb_poolf=nb_f$nb_poolf
    nb_fgr=nb_f$nb_fgr
    nb_meas=nb_f$nb_meas
    nm_exp=nm_list$nm_exp
-   nm_x=nm_list$x
    nb_sc=nb_f$nb_sc
    nb_sc_tot=nb_f$nb_sc_tot
    fg=nb_f$mu*param[nm$poolf] # the same alphabetical order
@@ -168,16 +179,16 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
    # calculate all fluxes from free fluxes
    lf=param2fl(param, labargs)
    if (is.null(jx_f$x)) {
-      jx_f$x=matrix(0, nrow=sum(nb_f$x), nb_exp)
+      jx_f$x=matrix(0, nrow=sum(nb_x), nb_exp)
       dimnames(jx_f$x)=list(nm_x, nm_exp)
       jx_f$usimlab=vector("list", nb_exp)
       names(jx_f$usimlab)=nm_exp
    }
    x=jx_f$x
    usimlab=jx_f$usimlab
-
+#browser()
    if (is.null(labargs$incu)) {
-      labargs$incu=incu=lapply(seq_len(nb_exp), function(iexp) c(1, xi[,iexp], double(nbc_x[nb_w+1L])))
+      labargs$incu=incu=lapply(seq_len(nb_exp), function(iexp) c(1, xi[[iexp]], double(nbc_x[nb_w+1L])))
       # unreduced residuals derivated by scale params
       labargs$dur_dsc=dur_dsc=lapply(seq_len(nb_exp), function(iexp) matrix(0., nrow=nb_meas[[iexp]], ncol=nb_sc_tot))
       labargs$dux_dp=dux_dp=lapply(seq_len(nb_exp), function(iexp) matrix(0., nb_meas[[iexp]], nb_ff+nb_sc_tot+nb_poolf))
@@ -220,7 +231,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             next
          }
          ixw=nbc_x[iw]+seq_len(nb_x[iw])
-         incuw=(1L+nb_xi)+ixw
+         incuw=(1L+nb_xi[1L])+ixw
 #cat("iw=", iw, "\there 1\n")
 #if (iw==1) {
 #   print(labargs)
@@ -252,7 +263,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             } else {
                mes=as.character(rerr$message)
             }
-            return(list(x=NULL, fA=Ali[[iw]], err=1L, mes=mes))
+            return(list(x=NULL, iw=iw, fA=Ali[[iw]], err=1L, mes=mes))
          }
          if (emu) {
             xw=c(xw, 1.-rowSums(xw))
@@ -276,7 +287,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
             if (inherits(tmp, "try-error")) {
                #browser()
                mes="Some obscure problem with label matrix.\n"
-               return(list(x=NULL, fA=Ali[[iw]], err=1L, mes=mes))
+               return(list(x=NULL, iw=iw, fA=Ali[[iw]], err=1L, mes=mes))
             } else {
                bop(j_rhsw, 1, "=", tmp)
             }
@@ -294,7 +305,7 @@ param2fl_x=function(param, cjac=TRUE, labargs) {
       }
    
       #rownames(incu)=c("one", nm$inp, nm$x)
-      x[, iexp]=tail(incu[[iexp]], -nb_xi-1L)
+      x[, iexp]=tail(incu[[iexp]], -nb_xi[1L]-1L)
       
       # calculate unreduced and unscaled measurements
       if (nrow(x) == ncol(measmat[[iexp]])) {
@@ -447,7 +458,7 @@ cumo2mass=function(x, sep=":", emusep="+") {
    }
    if (emu) {
       # just take the longest fragments and return their MID
-      spl=data.frame(t(vapply(strsplit(nm_x, "["%s+%sep%s+%emusep%s+%"]"), c, character(3))),
+      spl=data.frame(t(vapply(strsplit(nm_x, "[" %s+% sep %s+% emusep %s+% "]"), c, character(3))),
          stringsAsFactors=F)
       spl[,2]=as.integer(spl[,2])
       longest=tapply(spl[,2], list(spl[,1]), max)
@@ -723,6 +734,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    # as matrix columns (there are nco of them) . output is a matrix with dim
    # (nb_x*nco, nb_fwrv)
    # 2014-07-15 sokol
+   # cannot work for fullsys as nb contains numbers for reduced system
    
    # we derivate a*x=b implicitly
    # a_f*x + a*x_f=b_f + b_xl*xl_f
@@ -736,6 +748,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    nb_fwrv=spAbr$nb_fwrv
    nb_cl=spAbr$nb_cl
    w=spAbr$w
+   nb_xi=nb$xi[1L]
    
    # a_fx
    ind_a=spAbr$ind_a
@@ -830,7 +843,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
       }
       spAbr$a_fxx[[nm_a_fx]]=l
    }
-   x=incu[(1L+nb$xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=FALSE]
+   x=incu[(1L+nb_xi+nb$nbc_x[w])+seq_len(nb_xw),,drop=FALSE]
    aux=spAbr$a_fxx[[nm_a_fx]]
    if (emu) {
       redim(x, c(nb_c, w, nco))
@@ -1143,6 +1156,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    if (nw < 1) {
       return(spemu)
    }
+   nb_xiemu=nb$xiemu[1L]
    #x2tb_f=spr[[1]]$x2tb_f
    nme2iemu=seq_along(nm_inemu)
    names(nme2iemu)=nm_inemu
@@ -1169,7 +1183,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
       nm_c=nm_incu[c(ind_b[,2+seq_len(nprodx)])]
       iprodx=seq_len(nprodx)
       if (iwc > 1 && nprodx > 1) {
-         ba_e=1+nb$xiemu
+         ba_e=1+nb_xiemu
          # prepare names
          dim(nm_c)=c(nb_ind, nprodx)
          # get fragment length for each ind_x which is product of several terms

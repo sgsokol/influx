@@ -169,11 +169,11 @@ if (nb_c > 0) {
    "ind_a": join(", ", valval((ifl, ir, ic)
       for (ir, lt) in enumerate(l_ia)
       for (ic, lf) in lt
-      for ifl in lf)),
+      for ifl in lf), width=120),
    "ind_b": join(", ", valval((ifl, ir+1, ", ".join(str(i) for i in ii))
        for (ir, lt) in enumerate(l_ib)
        for (ifl, ii) in lt
-   )),
+   ), width=120),
 })
         ba_xw+=ncumo
         ncucumo+=ncumo
@@ -394,7 +394,7 @@ if (cinout < 0) {
 # minimization method
 validmethods=c("BFGS", "Nelder-Mead", "SANN", "ipopt", "nlsic", "pso")
 if (! all(igood <- (methods %%in%% validmethods))) {
-   cat(paste("Warning: optimization methods ", paste0(methods[!igood], collapse=", "), " are not implemented. 'nlsic' is used instead."), "\\n", sep="", file=fcerr)
+   cat(paste("***Warning: optimization methods ", paste0(methods[!igood], collapse=", "), " are not implemented. 'nlsic' is used instead."), "\\n", sep="", file=fclog)
    methods[!igood]="nlsic"
 }
 if ("ipopt" %%in%% methods) {
@@ -521,28 +521,28 @@ nb_f=list()
     netan2R_fl(netan, org, f)
     d=netan2R_rcumo(netan, org, f, emu)
     res.update(d)
-    rc_keys=list(netan["rcumo_input"][0].keys())
-    emu_keys=list(netan["emu_input"][0].keys()) if emu else []
+    rc_keys_all=[list(d.keys()) for d in netan["rcumo_input"]]
+    emu_keys_all=[list(d.keys()) for d in netan["emu_input"]] if emu else []
     #pdb.set_trace()
     f.write("""
 nb_exp=%(nb_exp)d
 nm_exp=c(%(nm_exp)s)
 nm_list$nm_exp=nm_exp
 # input cumomer vectors
-xi=c(%(xi)s)
-if (length(xi)) {
-   dim(xi)=c(length(xi)/nb_exp, nb_exp)
-} else {
-   stop_mes("No reduced label entry is defined (may be because no measurement defined in FTBL). Cannot continue.", file=fcerr)
+xi=list(%(xi)s)
+if (any(lengths(xi) == 0)) {
+   stop_mes("No reduced label entry is defined (may be because no measurement provided). Cannot continue.", file=fcerr)
 }
-nm_xi=c(%(nm_xi)s)
-rownames(xi)=nm_xi
+nm_xi=list(%(nm_xi)s)
+for (i in seq_along(xi)) {
+   names(xi[[i]])=nm_xi[[i]]
+}
 nm_list$xi=nm_xi
-nb_xi=length(nm_xi)
+nb_xi=lengths(nm_xi)
 nb_f$xi=nb_xi
 nb_cumoi=nb_xi
 nm_inp=nm_xi
-nm_incu=c("one", nm_xi, nm_rcumo)
+nm_incu=c("one", nm_xi[[1L]], nm_rcumo)
 nm_inlab=nm_incu
 spa=spAbr
 nm_x=nm_rcumo
@@ -556,17 +556,19 @@ if (emu) {
    nm_list$emu=nm_emu
    nm_x=nm_emu
    nb_x=nb_emus
-   xiemu=matrix(c(%(xiemu)s), ncol=nb_exp)
-   nm_xiemu=c(%(nm_xiemu)s)
+   xiemu=list(%(xiemu)s)
+   nm_xiemu=list(%(nm_xiemu)s)
    nm_list$xiemu=nm_xiemu
-   rownames(xiemu)=nm_xiemu
-   nb_xiemu=length(nm_xiemu)
+   for (i in seq_along(xiemu)) {
+       names(xiemu[[i]])=nm_xiemu[[i]]
+    }
+   nb_xiemu=lengths(nm_xiemu)
    nb_f$xiemu=nb_xiemu
    nb_f$xi=nb_xiemu
    nb_xi=nb_xiemu
    nm_inp=nm_xiemu
    xi=xiemu
-   nm_inemu=c("one", nm_xiemu, nm_emu)
+   nm_inemu=c("one", nm_xiemu[[1L]], nm_emu)
    nm_inlab=nm_inemu
    spa=spr2emu(spAbr, nm_incu, nm_inemu, nb_f)
 }
@@ -580,18 +582,24 @@ nm_list$inp=nm_inp
 nb_f$x=nb_x
     """%{
         "nb_exp": len(netan["iso_input"]),
-        "nm_exp": join(", ", netan["exp_names"], '"', '"'),
-        "xi": join(", ", [li[k] if li[k]==li[k] else "NA" for li in netan["rcumo_input"] for k in rc_keys]),
-        "nm_xi": join(", ", rc_keys, '"', '"'),
-        "xiemu": join(", ", [li[k] if li[k]==li[k] else "NA" for li in netan["emu_input"] for k in emu_keys]),
-        "nm_xiemu": join(", ", emu_keys, '"', '"'),
-        "nm_emu": join(", ", valval(netan.get('vemu', [])), '"', '"'),
+        "nm_exp": join(", ", netan["exp_names"], '"', '"', width=120),
+        "xi": join(",\n", list(join(", ", [li[k] if li[k]==li[k] else "NA"  for k in rc_keys_all[i]], width=120) for i,li in enumerate(netan["rcumo_input"])), "c(", ")"),
+        "nm_xi": join(",\n", list(join(", ", rc_keys, '"', '"', width=120) for rc_keys in rc_keys_all), "c(", ")"),
+        "xiemu": join(",\n", list(join(", ", [li[k] if li[k]==li[k] else "NA" for k in emu_keys_all[i]], width=120) for i,li in enumerate(netan["emu_input"])), "c(", ")"),
+        "nm_xiemu": join(",\n", list(join(", ", emu_keys, '"', '"', width=120) for emu_keys in emu_keys_all), "c(", ")"),
+        "nm_emu": join(", ", valval(netan.get('vemu', [])), '"', '"', width=120),
         })
     if fullsys:
         d=netan2R_cumo(netan, org, f)
         res.update(d)
+        f.write("""
+spaf=sparse2spa(spAbr_f)
+""")
     else:
-        f.write("nm_cumo=NULL\n")
+        f.write("""
+nm_cumo=NULL
+spaf=NULL
+""")
     d=netan2R_meas(netan, org, f, emu)
     res.update(d)
     netan2R_ineq(netan, org, f)
@@ -804,27 +812,27 @@ if (nb_fl) {
    Afl=matrix(0, nrow=nb_flr, ncol=nb_fl)
     """%{
         "nb_flr": len(netan["Afl"]),
-        "nm_fwrv": join(", ", netan["vflux_fwrv"]["fwrv"], '"', '"'),
-        "nm_fln": join(", ", netan["vflux"]["net"], '"d.n.', '"'),
-        "fln": join(", ", (netan["flux_dep"]["net"][k] for k in netan["vflux"]["net"])),
-        "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"'),
-        "flx": join(", ", (netan["flux_dep"]["xch"][k] for k in netan["vflux"]["xch"])),
-        "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.items() for e in l)),
-        "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.items() for e in l)),
-        "clen": join(",", list(netan["Clen"].values())),
-        "nm_metab": join(",", list(netan["Clen"].keys()), '"', '"'),
-        "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"])),
-        "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"'),
-        "poolc": join(", ", (netan["met_pools"][m] for m in netan["vpool"]["constrained"])),
-        "nm_poolc": join(", ", netan["vpool"]["constrained"], '"pc:', '"'),
+        "nm_fwrv": join(", ", netan["vflux_fwrv"]["fwrv"], '"', '"', width=120),
+        "nm_fln": join(", ", netan["vflux"]["net"], '"d.n.', '"', width=120),
+        "fln": join(", ", (netan["flux_dep"]["net"][k] for k in netan["vflux"]["net"]), width=120),
+        "nm_flx": join(", ", netan["vflux"]["xch"], '"d.x.', '"', width=120),
+        "flx": join(", ", (netan["flux_dep"]["xch"][k] for k in netan["vflux"]["xch"]), width=120),
+        "edge2fl": join(", ", ('"'+netan["f2dfcg_nx_f"]["net"][fl]+'"' for (fl,l) in f2edge.items() for e in l), width=120),
+        "nedge2fl": join(", ", ('"'+e+'"' for (fl,l) in f2edge.items() for e in l), width=120),
+        "clen": join(",", list(netan["Clen"].values()), width=120),
+        "nm_metab": join(",", list(netan["Clen"].keys()), '"', '"', width=120),
+        "poolf": join(", ", (-netan["met_pools"][m] for m in netan["vpool"]["free"]), width=120),
+        "nm_poolf": join(", ", netan["vpool"]["free"], '"pf:', '"', width=120),
+        "poolc": join(", ", (netan["met_pools"][m] for m in netan["vpool"]["constrained"]), width=120),
+        "nm_poolc": join(", ", netan["vpool"]["constrained"], '"pc:', '"', width=120),
     })
     for (i,row) in enumerate(netan["Afl"]):
         f.write(
 """   Afl[%(i)d, c(%(ic)s)]=c(%(v)s)
         """%{
             "i": i+1,
-            "ic": join(", ", (i+1 for (i,v) in enumerate(row) if v!=0.)),
-            "v": join(", ", (v for v in row if v!=0.)),
+            "ic": join(", ", (i+1 for (i,v) in enumerate(row) if v!=0.), width=120),
+            "v": join(", ", (v for v in row if v!=0.), width=120),
         })
     #pdb.set_trace()
     f.write(
@@ -900,29 +908,29 @@ nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
    include_growth_flux=%(inc_gr_f)s,
    mu=%(mu)s))
     """%{
-        "nm_rows": join(", ", netan["vrowAfl"], '"', '"'),
+        "nm_rows": join(", ", netan["vrowAfl"], '"', '"', width=120),
         "nb_ffn": nb_ffn,
         "nb_ffx": nb_ffx,
-        "nm_ffn": join(", ", netan["vflux_free"]["net"], '"f.n.', '"'),
-        "nm_ffx": join(", ", netan["vflux_free"]["xch"], '"f.x.', '"'),
+        "nm_ffn": join(", ", netan["vflux_free"]["net"], '"f.n.', '"', width=120),
+        "nm_ffx": join(", ", netan["vflux_free"]["xch"], '"f.x.', '"', width=120),
         "ffn": join(", ", [netan["flux_free"]["net"][fl]
-            for fl in netan["vflux_free"]["net"]]),
+            for fl in netan["vflux_free"]["net"]], width=120),
         "ffx": join(", ", [netan["flux_free"]["xch"][fl]
-            for fl in netan["vflux_free"]["xch"]]),
+            for fl in netan["vflux_free"]["xch"]], width=120),
         "nb_fcn": len(netan["flux_constr"]["net"]),
         "nb_fcx": len(netan["flux_constr"]["xch"]),
-        "nm_fcn": join(", ", netan["vflux_constr"]["net"], '"c.n.', '"'),
-        "nm_fcx": join(", ", netan["vflux_constr"]["xch"], '"c.x.', '"'),
+        "nm_fcn": join(", ", netan["vflux_constr"]["net"], '"c.n.', '"', width=120),
+        "nm_fcx": join(", ", netan["vflux_constr"]["xch"], '"c.x.', '"', width=120),
         "fcn": join(", ", [netan["flux_constr"]["net"][fl]
-            for fl in netan["vflux_constr"]["net"]]),
+            for fl in netan["vflux_constr"]["net"]], width=120),
         "fcx": join(", ", [netan["flux_constr"]["xch"][fl]
-            for fl in netan["vflux_constr"]["xch"]]),
+            for fl in netan["vflux_constr"]["xch"]], width=120),
         "inc_gr_f": "TRUE" if netan["opt"].get("include_growth_flux") else "FALSE",
         "mu": str(netan["opt"].get("mu", "NULL")),
         "nb_fgr": len(netan["vflux_growth"]["net"]),
-        "nm_fgr": join(", ", netan["vflux_growth"]["net"], '"g.n.', '"'),
+        "nm_fgr": join(", ", netan["vflux_growth"]["net"], '"g.n.', '"', width=120),
         "fgr": join(", ", [netan["flux_vgrowth"]["net"][fl]
-            for fl in netan["vflux_growth"]["net"]]),
+            for fl in netan["vflux_growth"]["net"]], width=120),
     })
     f.write("""
 # prepare p2bfl, c2bfl, g2bfl, cnst2bfl matrices such that p2bfl%*%param[1:nb_ff]+
@@ -951,20 +959,20 @@ colnames(g2bfl)=nm_fgr
         if row["f"]:
             f.write("p2bfl[%(i)d, pmatch(c(%(if)s), nm_par)]=c(%(rowf)s);\n"%\
                 {"i": i+1,
-                "if": join(", ", list(row["f"].keys()), p='"', s='"'),
-                "rowf": join(", ", list(row["f"].values())),
+                "if": join(", ", list(row["f"].keys()), p='"', s='"', width=120),
+                "rowf": join(", ", list(row["f"].values()), width=120),
                 })
         if row["c"]:
             f.write("c2bfl[%(i)d, pmatch(c(%(ic)s), nm_fc)]=c(%(rowc)s);\n"%\
                 {"i": i+1,
-                "ic": join(", ", list(row["c"].keys()), p='"', s='"'),
-                "rowc": join(", ", list(row["c"].values())),
+                "ic": join(", ", list(row["c"].keys()), p='"', s='"', width=120),
+                "rowc": join(", ", list(row["c"].values()), width=120),
                 })
         if row["g"]:
             f.write("g2bfl[%(i)d, pmatch(c(%(ig)s), nm_fgr)]=c(%(rowg)s);\n"%\
                 {"i": i+1,
-                "ig": join(", ", list(row["g"].keys()), p='"', s='"'),
-                "rowg": join(", ", list(row["g"].values())),
+                "ig": join(", ", list(row["g"].keys()), p='"', s='"', width=120),
+                "rowg": join(", ", list(row["g"].values()), width=120),
                 })
         if row["cnst"]:
             f.write("cnst2bfl[%(i)d]=%(rowcnst)s;\n"%{"i": i+1, "rowcnst": row["cnst"],})
@@ -1071,10 +1079,10 @@ if (nrow(Afl) > rankr) {
    idep=qrow$pivot[(rankr+1):nrow(Afl)]
    dcoef=qr.solve(t(aful[-idep,,drop=FALSE]), t(aful[idep,,drop=FALSE]))
    lidep=apply(dcoef, 2, function(v) names(which(abs(v) >= 1.e-10)), simplify=FALSE)
-   prop=sprintf("Warning: Among %d equations (rows), %d are redundant.\\nThe dependencies are:\\n\\t", nrow(Afl), nrow(Afl)-rankr)
+   prop=sprintf("***Warning: Among %d equations (rows), %d are redundant.\\nThe dependencies are:\\n\\t", nrow(Afl), nrow(Afl)-rankr)
    prop=paste0(prop, paste0(lapply(names(lidep), function(nm) paste0(nm, ": ", paste0(lidep[[nm]], collapse=", "))), collapse="\\n\\t"), "\\nThe redundant balances for species '", paste0(names(lidep), collapse="', '"), "' will be ignored.\\n")
    #browser()
-   cat(prop, file=fcerr)
+   cat(prop, file=fclog)
    Afl=Afl[-idep,,drop=FALSE]
    rankr=nrow(Afl)
    qrAfl=qr(Afl, LAPACK=TRUE)
@@ -1300,8 +1308,8 @@ if (!noscale) {
    names(param)=nm_par
             """ % {
                 "meas": meas,
-                "sc": join(", ", ["1"]*len(o_sc[ili][meas])),
-                "sc_names": join(", ", o_sc[ili][meas], '"'+str(ili+1)+":"+meas+';', '"'),
+                "sc": join(", ", ["1"]*len(o_sc[ili][meas]), width=120),
+                "sc_names": join(", ", o_sc[ili][meas], '"'+str(ili+1)+":"+meas+';', '"', width=120),
                 })
 
         f.write("""
@@ -1327,12 +1335,14 @@ if (!noscale) {
 """ % {
         "iexp": ili+1,
         "meas": meas,
-        "ir2isc": join(", ", ((str(ir2isc[ili][meas][ir]+base_isc) if ir2isc[ili][meas][ir]>=0 else 1) for ir in range(len(ir2isc[ili][meas]))))
+        "ir2isc": join(", ", ((str(ir2isc[ili][meas][ir]+base_isc) if ir2isc[ili][meas][ir]>=0 else 1) for ir in range(len(ir2isc[ili][meas]))), width=120)
         })
             base_isc=base_isc+len(scale[ili][meas])
         f.write("""
-   isc=ir2isc[[%(iexp)d]] != 1
-   ir2isc[[%(iexp)d]][isc]=ir2isc[[%(iexp)d]][isc]+nb_ff
+   if (!is.null(ir2isc[[%(iexp)d]])) {
+      isc=ir2isc[[%(iexp)d]] != 1
+      ir2isc[[%(iexp)d]][isc]=ir2isc[[%(iexp)d]][isc]+nb_ff
+   }
 """%{"iexp": ili+1})
 
     f.write("""
@@ -1381,6 +1391,8 @@ nm_measmat=nm_meas=nb_meas=nb_measmat=measmat=memaone=measvec=measdev=ipooled=ve
         nb_mcumo=len(o_mcumos)
         f.write("""
 nm_measmat[[%(ili)d]]=c(%(idmeasmat)s)
+if (length(nm_measmat[[%(ili)d]]) == 0)
+   stop_mes("At least one labeling measurement must be given in experiment '", nm_exp[%(ili)d], "'", file=fcerr)
 nm_meas[[%(ili)d]]=c(%(idmeas)s)
 nb_meas[[%(ili)d]]=length(nm_meas[[%(ili)d]])
 nb_measmat[[%(ili)d]]=length(nm_measmat[[%(ili)d]])
@@ -1398,11 +1410,11 @@ ipooled[[%(ili)d]]=list(ishort=pmatch(nm_meas[[%(ili)d]], nm_measmat[[%(ili)d]])
     "ncol": sum(len(l) for l in (netan["vemu"] if emu else netan["vrcumo"])),
     "idmeasmat": join(", ", (row["id"] for row in
         valval(measures[o][ili]["mat"] for o in o_meas)),
-        p='"', s='"'),
-    "idmeas": join(", ",  valval([v for o in o_meas for v in measures[o][ili]["ids"]]), p='"', s='"'),
-    "vmeas": join(", ", valval(measures[o][ili]["vec"] for o in o_meas)).replace("nan", "NA"),
+        p='"', s='"', width=120),
+    "idmeas": join(", ",  valval([v for o in o_meas for v in measures[o][ili]["ids"]]), p='"', s='"', width=120),
+    "vmeas": join(", ", valval(measures[o][ili]["vec"] for o in o_meas), width=120).replace("nan", "NA"),
     "dev": join(", ", (sd for sd in valval(measures[o][ili]["dev"]
-        for o in o_meas))),
+        for o in o_meas)), width=120),
     })
     f.write("""
 nm_meas_tot=unlist(nm_meas)
@@ -1429,7 +1441,7 @@ ipooled[[%(ili)d]][["%(rowid)s"]]=1+%(basep)d+c(%(ind)s)
                 """%{
                     "ili": ili+1,
                     "rowid": metpool[0],
-                    "ind": join(", ", metpool[1:]),
+                    "ind": join(", ", metpool[1:], width=120),
                     "basep": base_pooled,
                     }
                 )
@@ -1440,7 +1452,8 @@ names(measvec)=names(measdev)=nm_exp
 
 if (!noscale) {
    for (iexp in seq_len(nb_exp))
-      ir2isc[[iexp]]=ir2isc[[iexp]][ipooled[[iexp]]$ishort]
+      if (length(ipooled[[iexp]]$ishort))
+         ir2isc[[iexp]]=ir2isc[[iexp]][ipooled[[iexp]]$ishort]
 
    # prepare indexes of dispatching scale params in jacobian
    if (nb_sc_tot > 0) {
@@ -1477,7 +1490,7 @@ ind_mema=matrix(c(
                 f.write("""%(iricval)s,
                     """%{
                         "iricval": join(", ", valval((i, lab2i0[metab+":"+str(k)]+1, v)
-                            for (k, v) in row[fcoef].items() if k != onelab))
+                            for (k, v) in row[fcoef].items() if k != onelab), width=120)
                     })
 
         f.write(r"""
@@ -1488,7 +1501,7 @@ memaone[[%(iexp)d]]=c(%(memaone)s)
             "iexp": ili+1,
             "memaone": join(", ", (row[fcoef].get(onelab, 0.)
                 for meas in o_meas
-                for row in measures[meas][ili]["mat"])),
+                for row in measures[meas][ili]["mat"]), width=120),
         })
     f.write(r"""
 pwe=ipwe=ip2ipwe=pool_factor=ijpwef=dp_ones=meas2sum=dpw_dpf=ipf_in_ppw=vector("list", nb_exp)
@@ -1563,11 +1576,11 @@ if (nb_fmn)
 # combining unknown (dependent), free, constrainded and groth fluxes
 ifmn=match(nm_fmn, nm_fallnx)
     """%{
-        "nm_fmn": join(", ", netan["vflux_meas"]["net"], '"', '"'),
+        "nm_fmn": join(", ", netan["vflux_meas"]["net"], '"', '"', width=120),
         "fmn": join(", ", (netan["flux_measured"][fl]["val"]
-            for fl in netan["vflux_meas"]["net"])).replace("nan", "NA"),
+            for fl in netan["vflux_meas"]["net"]), width=120).replace("nan", "NA"),
         "fmndev": join(", ", (netan["flux_measured"][fl]["dev"]
-            for fl in netan["vflux_meas"]["net"])),
+            for fl in netan["vflux_meas"]["net"]), width=120),
         })
     return {
         "o_meas": o_meas,
@@ -1620,14 +1633,14 @@ def netan2R_rcumo(netan, org, f, emu=False):
 nb_rw=%(nb_rw)d
 # cumomer count by weight
 nb_rcumos=c(%(nb_rc)s)
-nbc_cumos=c(0, cumsum(nb_rcumos))
+nbc_rcumos=c(0, cumsum(nb_rcumos))
 # cumo names
 nm_rcumo=c(%(nm_rcumo)s)
 nm_list$rcumo=nm_rcumo
     """%{
         "nb_rw": len(rAb["A"]),
-        "nb_rc": join(", ", (len(a) for a in rAb["A"])),
-        "nm_rcumo": join(", ", valval(netan['vrcumo']), '"', '"'),
+        "nb_rc": join(", ", (len(a) for a in rAb["A"]), width=120),
+        "nm_rcumo": join(", ", valval(netan['vrcumo']), '"', '"', width=120),
     })
     f.write("""
 if (case_i) {
@@ -1667,17 +1680,22 @@ if (TIMEIT) {
 }
 
 # weight count
-nb_w=%(nb_w)d
+nb_wf=%(nb_w)d
 
 # cumomer count by weight
 nb_cumos=c(%(nb_c)s)
+nbc_cumos=c(0, cumsum(nb_cumos))
+nb_f$xf=nb_cumos
+nb_f$nbc_xf=nbc_cumos
 
 # cumo names
 nm_cumo=c(%(nm_cumo)s)
-    """%{
+nm_list$cumo=nm_cumo
+nm_list$cumo=nm_cumo
+"""%{
         "nb_w": len(netan["cumo_sys"]["A"]),
-        "nb_c": join(", ", (len(a) for a in netan["cumo_sys"]["A"])),
-        "nm_cumo": join(", ", valval(netan['vcumo']), '"', '"'),
+        "nb_c": join(", ", (len(a) for a in netan["cumo_sys"]["A"]), width=120),
+        "nm_cumo": join(", ", valval(netan['vcumo']), '"', '"', width=120),
     })
     netan["cumo2i"]=cumo2i
     return {
@@ -1710,11 +1728,11 @@ dimnames(mi)=list(nm_i, nm_fallnx)
        "nm_in": join(", ", (join("", (ineq[0], ineq[1], join("+",
             ((str(fa)+"*" if fa != 1. else "")+fl
             for (fl,fa) in ineq[2].items()))))
-            for ineq in netan["flux_inequal"]["net"]), p='"n:', s='"'),
+            for ineq in netan["flux_inequal"]["net"]), p='"n:', s='"', width=120),
        "nm_ix": join(", ", (join("", (ineq[0], ineq[1], join("+",
             ((str(fa)+"*" if fa != 1. else "")+fl
             for (fl,fa) in ineq[2].items()))))
-            for ineq in netan["flux_inequal"]["xch"]), p='"x:', s='"'),
+            for ineq in netan["flux_inequal"]["xch"]), p='"x:', s='"', width=120),
     })
     
     for (i, ineq) in enumerate(netan["flux_inequal"]["net"]):
@@ -1725,8 +1743,8 @@ li[%(i)s]=%(sign)s%(li)g
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", list(ineq[2].keys()), p='"', s='"'),
-    "coef": join(", ", list(ineq[2].values())),
+    "f": join(", ", list(ineq[2].keys()), p='"', s='"', width=120),
+    "coef": join(", ", list(ineq[2].values()), width=120),
     "li": ineq[0],
     })
     for (i, ineq) in enumerate(netan["flux_inequal"]["xch"]):
@@ -1737,8 +1755,8 @@ li[%(i)s]=%(sign)s%(li)g
     # as R inequality is always ">=" we have to inverse the sign for "<=" in ftbl
     "i": len(netan["flux_inequal"]["net"])+i+1,
     "sign": ("" if ineq[1]=="<=" or ineq[1]=="=<" else "-"),
-    "f": join(", ", list(ineq[2].keys()), p='"', s='"'),
-    "coef": join(", ", list(ineq[2].values())),
+    "f": join(", ", list(ineq[2].keys()), p='"', s='"', width=120),
+    "coef": join(", ", list(ineq[2].values()), width=120),
     "li": ineq[0],
     })
 
@@ -1883,8 +1901,8 @@ if (cupn != 0 && nb_fn > 0) {
 """%{
 #   "nb_notrev": len([fli for (fli,t,nxi) in tfallnx
 #      if nxi=="n" and t!="c" and fli in netan["notrev"]]),
-   "nm_notrev": join(", ", netan["notrev"], p='"', s='"'),
-   "nm_inout": join(", ", netan["flux_inout"], p='"', s='"'),
+   "nm_notrev": join(", ", netan["notrev"], p='"', s='"', width=120),
+   "nm_inout": join(", ", netan["flux_inout"], p='"', s='"', width=120),
 })
 
     f.write("nb_ineq=NROW(li);\n")
@@ -1966,9 +1984,9 @@ if (ncol(ui)) {
 }
 
 if (!all(ci[zi]<=1.e-10)) {
-   cat("The following constant inequalities are not satisfied:\\n", file=fcerr)
-   cat(nm_i[zi][ci[zi]>1.e-10], sep="\\n", file=fcerr)
-   cat("They are simply ignored.\\n", file=fcerr)
+   cat("The following constant inequalities are not satisfied:\\n", file=fclog)
+   cat(nm_i[zi][ci[zi]>1.e-10], sep="\\n", file=fclog)
+   cat("They are simply ignored.\\n", file=fclog)
    #stop_mes("", file=fcerr)
 }
 ui=ui[!zi,,drop=FALSE]

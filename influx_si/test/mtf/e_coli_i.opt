@@ -11,4 +11,4 @@ Id	Comment	Name	Value
 		optctrl_btfrac	0.5
 		optctrl_adaptbt	1
 		optctrl_monotone	1
-		posttreat_R	plot_imass.R
+		posttreat_R	plot_ilab.R

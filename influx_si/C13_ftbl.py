@@ -169,8 +169,11 @@ BOMS = (
     (BOM_UTF16_LE, "UTF-16-LE"),
 )
 
-werr=sys.stderr.write
-wout=sys.stdout.write
+try: werr
+except NameError: werr = sys.stderr.write
+try: wout
+except NameError: wout = sys.stdout.write
+
 me=os.path.realpath(sys.argv[0])
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
@@ -217,7 +220,7 @@ req_prl=(
 )
 if "ffguess" not in locals():
     ffguess=False
-def ftbl_parse(f):
+def ftbl_parse(f, wout=wout, werr=werr):
     """ftbl_parse(f) -> dict
     read and parse .ftbl file. The only input parameter f is a stream pointer
     with read permission or a file name.
@@ -475,7 +478,7 @@ def ftbl_parse(f):
     ftbl["long_trans"]=long_trans
     return ftbl
 
-def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
+def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wout=wout, werr=werr):
     """
     analyse ftbl dictionary to find
      
@@ -849,8 +852,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # number of non constrained fluxes in a formula
         nb_nonc=sum(fl not in fcnstr for fl in dicf)
         if nb_nonc==0:
-            wout("Warning: in EQUALITIES/NET section, the formula '"+
-                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (%s: %s).\n"%(ftbl["name"], row["irow"]))
+            wout("***Warning: in EQUALITIES/NET section, the formula '"+
+                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es).\nThe equality is ignored as meaningless (%s: %s).\n"%(ftbl["name"], row["irow"]))
             continue
         netan["flux_equal"]["net"].append((
                 eval(row["VALUE"]),
@@ -864,8 +867,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         # number of non constrained fluxes in a formula
         nb_nonc=sum(fl not in fcnstr for fl in dicf)
         if nb_nonc==0:
-            wout("Warning: in EQUALITIES/XCH section, the formula '"+
-                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es)\n.The equality is ignored as meaningless (%s: %s).\n"%(ftbl["name"], row["irow"]))
+            wout("***Warning: in EQUALITIES/XCH section, the formula '"+
+                row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es).\nThe equality is ignored as meaningless (%s: %s).\n"%(ftbl["name"], row["irow"]))
             continue
         netan["flux_equal"]["xch"].append((
                 eval(row["VALUE"]),
@@ -1088,7 +1091,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         dicf=formula2dict(row["FORMULA"])
         fl=list(dicf.keys())[0]
         if len(dicf)==1 and fl in netan["flux_constr"]["net"]:
-            wout("Warning: Inequalities: in NET section, the formula '"+
+            wout("***Warning: Inequalities: in NET section, the formula '"+
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+"' involves a constrained flux\n"+
                 " having a value "+str(netan["flux_constr"]["net"][fl])+". The inequality is ignored as meaningless ((%s: %s)).\n"%(ftbl["name"], row["irow"]))
             continue
@@ -1503,7 +1506,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False):
         for (i,row) in enumerate(res):
             if not ffguess and (row == qry or (np.array(row) == mqry).all()):
                 inz=set(i for i,coef in enumerate(row) if coef !=0)
-                wout("Warning: when trying to add a balance equation for metabolite '"+metab+
+                wout("***Warning: when trying to add a balance equation for metabolite '"+metab+
                     "', got equation redundant with those for '"+netan["vrowAfl"][i]+"'\n")
                 wout("metab:\t"+join("\t", [fl for i,fl in enumerate(netan["vflux"]["net"]+netan["vflux"]["xch"]) if i in inz])+"\n")
                 wout(netan["vrowAfl"][i]+":\t"+join("\t", [coef for i,coef in enumerate(row) if i in inz])+"\n")

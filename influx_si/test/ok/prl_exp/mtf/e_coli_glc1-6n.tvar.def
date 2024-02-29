@@ -1,6 +1,6 @@
 // Created by 'txt2ftbl --prefix ../prl_exp/mtf/e_coli_glc1-6n'
-// Date: 2023-10-04 17:21:32 CEST +0200
-// influx_si version: 7.0.1
+// Date: 2024-02-29 14:24:09 CET +0100
+// influx_si version: 7.0.2
 // If edited by hand, remove these comments.
 Id	Comment	Name	Kind	Type	Value
 		v1	XCH	C	0

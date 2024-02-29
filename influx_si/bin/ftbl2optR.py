@@ -58,7 +58,7 @@ Vector names:
 Important R variables:
 
 Scalars:
-   * nb_w, nb_cumos, nb_fln, nb_flx, nb_fl (dependent or unknown fluxes),
+   * nb_w, nb_rw, nb_cumos, nb_fln, nb_flx, nb_fl (dependent or unknown fluxes),
    * nb_ffn, nb_ffx, nb_ff (free fluxes),
    * nb_fcn, nb_fcx, nb_fc (constrained fluxes),
    * nb_ineq, nb_param, nb_fmn
@@ -119,11 +119,10 @@ from tools_ssg import *
 import C13_ftbl
 import ftbl2code
 
-def main(argv=sys.argv):
-    me=os.path.realpath(argv[0])
+def main(argv=sys.argv[1:], wout=sys.stdout.write, werr=sys.stderr.write):
+    me="ftbl2opt"
     dirbin=os.path.join(os.path.dirname(influx_si.__file__), "bin")
     sys.path.append(dirbin)
-    me=os.path.basename(me)
 
 
     def usage():
@@ -131,7 +130,7 @@ def main(argv=sys.argv):
 
     #<--skip in interactive session
     try:
-        opts,args=getopt.getopt(argv[1:], "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i", "ffguess", "dirres="])
+        opts,args=getopt.getopt(argv, "h", ["help", "fullsys", "emu", "clownr", "tblimit=", "ropts=", "case_i", "ffguess", "dirres="])
     except getopt.GetoptError as err:
         #pass
         sys.stderr.write(str(err)+"\n")
@@ -191,6 +190,7 @@ def main(argv=sys.argv):
     ftbl2code.case_i=case_i
     C13_ftbl.clownr=clownr
     C13_ftbl.ffguess=ffguess
+    
     #org="ex3"
     #org="PPP_exact"
 
@@ -204,13 +204,13 @@ def main(argv=sys.argv):
     f=open(n_R, "w")
 
     # parse ftbl
-    ftbl=C13_ftbl.ftbl_parse(n_ftbl)
+    ftbl=C13_ftbl.ftbl_parse(n_ftbl, wout=wout, werr=werr)
 
     # analyse network
     # reload(C13_ftbl)
 
     netan=dict();
-    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys, case_i)
+    C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys, case_i, wout=wout, werr=werr)
 
     # prepare rcumo system
     rAb=C13_ftbl.rcumo_sys(netan, emu)
@@ -489,9 +489,9 @@ for (iexp in seq_len(nb_exp)) {
         f.write("""
    # prepare mapping of metab pools on cumomers
    nb_f$ipf2ircumo[[iexp]]=nb_f$ipf2ircumo2[[iexp]]=list()
-   for (iw in seq_len(nb_w)) {
+   for (iw in seq_len(nb_rw)) {
       ix=seq_len(nb_rcumos[iw])
-      ipf2ircumo=ipf2ircumo2=match(nminvm[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
+      ipf2ircumo=ipf2ircumo2=match(nminvm[nbc_rcumos[iw]+ix], nm_poolf, nomatch=0L)
       dims=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu[iexp]-1L)
       dims2=c(1L, nb_rcumos[iw], ifelse(emu, iw, 1L), nb_tifu2[iexp]-1L)
       i=as.matrix(ipf2ircumo)
@@ -520,8 +520,8 @@ for (iexp in seq(nb_exp)) {
    if (length(fli) == 0) {
       # replicate first column in xi as many times as there are time points
       if (time_order == "2" || time_order == "1,2")
-         xi2[[iexp]]=matrix(xi[,iexp], nrow=nrow(xi), ncol=nb_tifu2[[iexp]])
-      xil[[iexp]]=matrix(xi[,iexp], nrow=nrow(xi), ncol=nb_tifu[[iexp]])
+         xi2[[iexp]]=matrix(xi[[iexp]], nrow=length(xi[[iexp]]), ncol=nb_tifu2[[iexp]])
+      xil[[iexp]]=matrix(xi[[iexp]], nrow=length(xi[[iexp]]), ncol=nb_tifu[[iexp]])
    }  else {
       # use funlab
       env=new.env() # funlab code won't see influx's variables
@@ -532,9 +532,9 @@ for (iexp in seq(nb_exp)) {
             stop_mes("funlab script R '", funlabR[[iexp]], "' from '", nm_exp[[iexp]],"' does not exist.", file=fcerr)
          }
       }
-      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp, fli, env, emu, nm_exp[[iexp]], fcerr)
+      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp[[iexp]], fli, env, emu, nm_exp[[iexp]], fcerr)
       if (time_order == "2" || time_order == "1,2")
-         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, env, emu, nm_exp[[iexp]], fcerr)
+         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp[[iexp]], fli, env, emu, nm_exp[[iexp]], fcerr)
    }
 }
 xi=xil
@@ -661,7 +661,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
     """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
@@ -714,7 +714,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
       if (TIMEIT) {
          cat("cl expor: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
-      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "methods", "sln", "labargs", "dirr", "emu", "%stm%", "case_i", "time_order"))
+      clusterExport(cl, c("lsi_fun", "df_dffp", "lab_sim", "is.diff", "lab_resid", "ui", "ci", "ep", "cp", "control_ftbl", "methods", "sln", "labargs", "dirr", "emu", "%stm%", "case_i", "time_order", "fullsys", "nm_inp"))
       if (TIMEIT) {
          cat("cl sourc: ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
@@ -809,7 +809,7 @@ for (irun in seq_len(nseries)) {
          }
       } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0) {
          # non fatal problem
-         cat(paste("put_inside: ", attr(pinside, "mes"), collapse=""), "\n", file=fcerr)
+         cat(paste("***Warning: put_inside: ", attr(pinside, "mes"), collapse=""), "\n", file=fclog)
       }
       param[]=pinside
    }
@@ -1162,12 +1162,12 @@ for (irun in seq_len(nseries)) {
                if (any(is.na(pinside))) {
                   if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
                      # fatal error occured, don't reoptimize
-                     cat(paste("***Warning: put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fclog)
+                     cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
                      reopt=FALSE
                   }
                } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0){
                   # non fatal problem
-                  cat(paste("***Warning: put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
+                  cat(paste("***Warning: put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fclog)
                }
                # reoptimize
                if (reopt) {
@@ -1539,22 +1539,25 @@ for (irun in seq_len(nseries)) {
    labargs$getx=TRUE
    labargs$labargs2getx=TRUE
    if (fullsys) {
-      nm_flist=nm_list
-      nm_flist$rcumo=nm_cumo
-      nm_flist$rcumo_in_cumo=match(nm_rcumo, nm_cumo)
-      nb_f$cumos=nb_cumos
    """)
     cu_keys=list(netan["cumo_input"][0].keys()) if netan["fullsys"] else []
     f.write("""
-      nm_xi_f=c(%s)
-      xi_f=matrix(c(%s), ncol=nb_exp)"""%(join(", ", cu_keys, '"', '"'),
-         join(", ", [li[k] for li in netan["cumo_input"] for k in cu_keys], '"', '"'),
+      nm_xif=c(%s)
+      # full label input is the same for all experiments
+      xif=rep(list(c(%s)), nb_exp)"""%(join(", ", cu_keys, '"', '"'),
+         join(", ", [li[k] for li in netan["cumo_input"] for k in cu_keys]),
     ))
     f.write("""
-      dimnames(xi_f)[[1]]=nm_xi_f
-      nm_flist$xi=nm_xi_f
-      labargs$emu=F
-      v=lab_sim(param, cjac=FALSE, labargs)
+      xif=lapply(xif, setNames, nm_xif)
+      nm_list$xif=nm_xif
+      labargs$emu=FALSE
+      labargs$xif=xif
+      labargs$nb_f$xif=lengths(xif)
+      v=lab_sim(param, cjac=FALSE, labargs, fullsys)
+      if (identical(v$err, 1L)) {
+         save(v$fA$triplet(), file="singular237_triplet.RData")
+         stop_mes("fullsys: weight=", v$iw, "; ", v$mes, file=fcerr)
+      }
       labargs$emu=emu
       x=if (case_i) v$xf else v$x
    } else {
@@ -1998,4 +2001,4 @@ if (format(parent.frame()) == format(.GlobalEnv)) {
     return 0
 
 if __name__ == "__main__" or __name__ == "influx_si.cli":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

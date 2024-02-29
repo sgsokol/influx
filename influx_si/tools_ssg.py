@@ -4,6 +4,7 @@ import string
 import numpy as np
 from math import *
 from kvh.kvh import *
+from textwrap import fill
 letters=string.ascii_lowercase
 
 def aff(name, obj, ident=0, f=sys.stdout):
@@ -106,10 +107,11 @@ def valval(o, keepNone=True):
                     elif i1 is not None:
                             yield i1
 
-def join(c,l,p='',s='',a=''):
-    r"""join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional"""
-    i=0
-    return c.join(p+str(i)+s for i in l) or a
+def join(c, l, p='', s='', a='', width: int = 0, break_long_words: bool = False):
+    r"""join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional.
+    if width is integer > 0, then textwrap.fill() is used to wrap the result with textwrap.fill(res, width, break_long_lines)."""
+    res=c.join(p+str(i)+s for i in l) or a
+    return res if width <= 0 else fill(res, width=width, break_long_words=break_long_words)
 def joint(c,l,p='',s='',a=''):
     r"""join "true" items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional"""
     i=0

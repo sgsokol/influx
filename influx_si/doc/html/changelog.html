@@ -50,6 +50,28 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this heading">¶</a></h1>
+<section id="version-7-0-2">
+<h2>2024-02-20 version 7.0.2<a class="headerlink" href="#version-7-0-2" title="Permalink to this heading">¶</a></h2>
+<dl class="simple">
+<dt>New feature:</dt><dd><ul class="simple">
+<li><p>influx_si can be called from python as ‘influx_s.main(argv)’</p></li>
+<li><p>an absence of labeling measurements is now signaled as error in influx_si (issue #6 submitted by Loic Le Gregam, TBI, France)</p></li>
+<li><p>ftbl2netan get an option ‘–eprl’ for parallel experiments</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>fixed plot_ilab.R for empty simulated data (seen in case submitted by Cécilia Berges, TBI, France)</p></li>
+<li><p>fixed python exception for ‘-o outdir’</p></li>
+<li><p>fixed some warnings written in .err or stdout instead of .log</p></li>
+<li><p>fixed option –nocalc not working in case of one network</p></li>
+<li><p>fixed parsing present but empty MTF files</p></li>
+<li><p>fixed moving .ftbl and .ikib files to tmp/ dir from parallel experiments</p></li>
+<li><p>fixed typo in ‘.cnstr’ suffix for .vmtf case (issue #7 reported by Rochelle Kouakou, TBI, France)</p></li>
+<li><p>fixed moving .R files to tmp/ dir in case of multiple inputs when one or several of them finished with an error.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-0-1">
 <h2>2023-10-04 version 7.0.1<a class="headerlink" href="#version-7-0-1" title="Permalink to this heading">¶</a></h2>
 <dl class="simple">
@@ -838,6 +860,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-7-0-2">2024-02-20 version 7.0.2</a></li>
 <li><a class="reference internal" href="#version-7-0-1">2023-10-04 version 7.0.1</a></li>
 <li><a class="reference internal" href="#version-7-0">2023-07-11 version 7.0</a></li>
 <li><a class="reference internal" href="#version-6-1">2022-10-11 version 6.1</a></li>

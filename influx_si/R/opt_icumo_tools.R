@@ -165,7 +165,7 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
    return(s)
 }
 
-param2fl_usm_eul2=function(param, cjac, labargs) {
+param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    # translate free params (fluxes+scales+pools) to fluxes and
    # unscaled simulated measurements (usm) for label propagation.
    # tifull may be more fine grained than ti. All ti must be in tifull
@@ -186,12 +186,24 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    }
    if (is.null(labargs$getx))
       getx=FALSE
+   if (fullsys) {
+      spa=spaf
+      nb_rcumos=nb_f$cumos
+      nbc_cumos=c(0L, cumsum(nb_rcumos))
+      nm_x=nm$xf
+      nbc_x=nb_f$nbc_xf
+      xi=xif
+      nm_xi=nm$xif
+   } else {
+      nb_rcumos=nb_f$rcumos
+      nbc_cumos=c(0L, cumsum(nb_rcumos))
+      nm_x=nm$x
+   }
    nb_w=length(spa)
    nb_ti=nb_f$ti
    nb_tifu=nb_f$tifu
    # cumulated sum
-   nb_rcumos=nb_f$rcumos
-   nbc_cumos=c(0L, cumsum(nb_rcumos))
+   
    # calculate all fluxes from free fluxes
    fgr=numeric(nb_f$nb_fgr)
    names(fgr)=nm$nm_fgr
@@ -218,7 +230,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       #cat("param2fl_usm_eul2: recalculate jacobian\n")
       jx_f$df_dffp=df_dffp(param, lf$flnx, nb_f, nm_list)
    }
-   Alit=lapply(seq_len(nb_w), function(iw) -fwrv2Abr(fwrv, spa[[iw]], NULL, nm$x[nbc_x[iw]+seq_len(nb_x[iw])], getb=FALSE,  emu=emu)$A$triplet())
+   Alit=lapply(seq_len(nb_w), function(iw) -fwrv2Abr(fwrv, spa[[iw]], NULL, nm_x[nbc_x[iw]+seq_len(nb_x[iw])], getb=FALSE,  emu=emu)$A$triplet())
    dtru=unique(unlist(lapply(seq_len(nb_exp), function(iexp) as.character(round(diff(tifull[[iexp]]), 6)))))
    # prepare place for (diag(vm)/dt-a)^-1 common to all iexp
    if (is.null(labargs$ali_w)) {
@@ -260,7 +272,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       # prepare vectors at t1=0 with zero labeling
       # incu, xi is supposed to be in [0; 1]
       x1=c(1., xi[[iexp]][,1L], rep(0., nbc_x[nb_w+1])) # later set m+0 to 1 in x1
-      names(x1)=c("one", nm$inp, nm$x)
+      names(x1)=c("one", nm_inp[[iexp]], nm_x)
       # prepare time vectors
       dt=diff(tifull[[iexp]])
       stopifnot(all(dt > 0.))
@@ -278,7 +290,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       
 #browser()
       xsim=matrix(x1, nrow=length(x1), ncol=ntico)
-      bop(xsim, c(1, 1, nb_xi), "=", xi[[iexp]][,-1])
+      bop(xsim, c(1, 1, nb_xi[iexp]), "=", xi[[iexp]][,-1])
       
       dimnames(xsim)=list(names(x1), tifull[[iexp]][-1L])
       if (cjac) {
@@ -302,9 +314,9 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
             next
 #browser()
          ixw=nbc_x[iw]+seq_len(nb_x[iw])
-         inxw=(1L+nb_xi)+ixw
+         inxw=(1L+nb_xi[iexp])+ixw
          nb_row=nb_c*emuw
-         inrow=(1L+nb_xi+nbc_x[iw])+seq_len(nb_row)
+         inrow=(1L+nb_xi[iexp]+nbc_x[iw])+seq_len(nb_row)
          imw=nbc_x[iw]+seq_len(nb_row) # mass index in x (all but last)
          vmw=vm[nbc_cumos[iw]+seq_len(nb_c)]
          vmw=rep(vmw, emuw)
@@ -331,7 +343,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          ilua=pmatch(dtr, names(ali_w[[iw]]), dup=T)
          if (emu) {
             # for the first time point, set m+0 to 1 in x1
-            x1[(1L+nb_xi+nbc_x[iw])+seq_len(nb_c)]=1.
+            x1[(1L+nb_xi[iexp]+nbc_x[iw])+seq_len(nb_c)]=1.
             xsim[inxw,1L]=x1[inxw]
             imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
          }
@@ -359,10 +371,10 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          solve_ieu(invdt, xw1, vmw, ali_w[[iw]], st, ilua)
          #       dim(xw2)=c(nb_c, emuw, ntico)
          #xsim[inrow,]=st #xw2
-         bop(xsim, c(1, 1L+nb_xi+nbc_x[iw], nb_row), "=", st)
+         bop(xsim, c(1, 1L+nb_xi[iexp]+nbc_x[iw], nb_row), "=", st)
          if (emu) {
-            #xsim[1L+nb_xi+imwl,]=1.-arrApply(st, 2, "sum")
-            bop(xsim, c(1, 1L+nb_xi+nbc_x[iw]+nb_row, nb_c), "=", 1.-arrApply(st, 2, "sum"))
+            #xsim[1L+nb_xi[iexp]+imwl,]=1.-arrApply(st, 2, "sum")
+            bop(xsim, c(1, 1L+nb_xi[iexp]+nbc_x[iw]+nb_row, nb_c), "=", 1.-arrApply(st, 2, "sum"))
          }
          if (cjac) {
 #browser()
@@ -459,7 +471,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
       # get ti moments corresponding to measurements
       isel=itifu[tifull[[iexp]] %in% ti[[iexp]]][-1L]-1L
       ntise=length(isel)
-      xsim=xsim[-seq_len(1L+nb_xi),, drop=FALSE]
+      xsim=xsim[-seq_len(1L+nb_xi[iexp]),, drop=FALSE]
       if (getx) {
          xsimf=xsim # full simulation (in time)
          xsim=xsim[,isel,drop=FALSE]
@@ -492,7 +504,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
          #dux_dp=measmat[[iexp]]%stm%xpf
          dux_dp=mm_xpf(measmat[[iexp]], xpf, isel)
          #redim(xpf, c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf)))
-         #dimnames(xpf)=list(nm$x, ti[[iexp]][-1], nm$par)
+         #dimnames(xpf)=list(nm_x, ti[[iexp]][-1], nm$par)
          nr=nrow(measmat[[iexp]])
          if (length(ipooled[[iexp]]) > 1L) {
             redim(dux_dp, c(dim(dux_dp)[1], ntise*(nb_ff+nb_poolf)))
@@ -536,7 +548,7 @@ param2fl_usm_eul2=function(param, cjac, labargs) {
    return(res)
 }
 
-param2fl_usm_rich=function(param, cjac, labargs) {
+param2fl_usm_rich=function(param, cjac, labargs, fullsys=FALSE) {
    # Richardson extrapolation to get order 2 in ODE solve
    if (labargs$time_order=="2") {
       getx=FALSE
@@ -546,7 +558,7 @@ param2fl_usm_rich=function(param, cjac, labargs) {
       # solve with step=h/2
       if (!is.null(labargs$cl) && is.null(.GlobalEnv$mc_iter)) {
          # do in parallel only out off MC iterations
-         clusterExport(labargs$cl, c("param", "cjac"), envir=environment())
+         clusterExport(labargs$cl, c("param", "cjac", "fullsys"), envir=environment())
 #print(labargs$cl[[1]])
 #lila=parLapply(labargs$cl, c("labargs", "labargs"), function(nm) format(labargs))
 #cat("lila=\n")
@@ -556,11 +568,11 @@ param2fl_usm_rich=function(param, cjac, labargs) {
             clusterEvalQ(labargs$cl, {labargs$labargs2$getx=labargs$getx=TRUE})
          else
             clusterEvalQ(labargs$cl, {labargs$labargs2$getx=labargs$getx=FALSE})
-         res=clusterEvalQ(labargs$cl, if (idw < 3) param2fl_usm_eul2(param, cjac, if (idw == 1) labargs else labargs$labargs2))
+         res=clusterEvalQ(labargs$cl, if (idw < 3) param2fl_usm_eul2(param, cjac, if (idw == 1) labargs else labargs$labargs2, fullsys))
          #res=parLapply(labargs$cl, seq(2), function(ith) {cat ("parlap ith=", ith, "\n"); print (labargs); cl_worker(funth=param2fl_usm_eul2, argth=list(param=param, cjac=cjac, labargs=if (ith == 1) labargs else labargs$labargs2))})
       } else {
          # do sequentially
-         res=lapply(seq(2), function(i) param2fl_usm_eul2(param, cjac, if (i == 1) labargs else labargs$labargs2))
+         res=lapply(seq(2), function(i) param2fl_usm_eul2(param, cjac, if (i == 1) labargs else labargs$labargs2, fullsys))
       }
       res1=res[[1]]
       if (!is.null(res1$err) && res1$err) {
@@ -592,7 +604,7 @@ param2fl_usm_rich=function(param, cjac, labargs) {
          res1$x[]=jx_f$xsim
       }
    } else {
-      res1=param2fl_usm_eul2(param, cjac, labargs)
+      res1=param2fl_usm_eul2(param, cjac, labargs, fullsys)
    }
    return(res1)
 }

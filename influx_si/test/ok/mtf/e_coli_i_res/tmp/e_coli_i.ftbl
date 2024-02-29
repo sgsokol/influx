@@ -1,6 +1,6 @@
 // Created by 'txt2ftbl --inst --prefix e_coli_i'
-// Date: 2023-10-04 17:22:21 CEST +0200
-// influx_si version: 7.0.1
+// Date: 2024-02-29 14:24:45 CET +0100
+// influx_si version: 7.0.2
 // If edited by hand, remove these comments.
 PROJECT
 	NAME	VERSION	FORMAT	DATE	COMMENT
@@ -525,5 +525,5 @@ OPTIONS
 	optctrl_btfrac	0.5
 	optctrl_adaptbt	1
 	optctrl_monotone	1
-	posttreat_R	plot_imass.R
+	posttreat_R	plot_ilab.R
 	file_labcin	e_coli_i.ikin

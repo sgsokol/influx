@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tools_ssg &#8212; influx_si 6.1 documentation</title>
+    <title>tools_ssg &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
     
@@ -28,7 +28,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">tools_ssg</a></li> 
       </ul>
@@ -46,6 +46,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">kvh.kvh</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">fill</span>
 <span class="n">letters</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span>
 
 <div class="viewcode-block" id="aff"><a class="viewcode-back" href="../progdoc.html#tools_ssg.aff">[docs]</a><span class="k">def</span> <span class="nf">aff</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">ident</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
@@ -148,10 +149,11 @@
                     <span class="k">elif</span> <span class="n">i1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="k">yield</span> <span class="n">i1</span></div>
 
-<div class="viewcode-block" id="join"><a class="viewcode-back" href="../progdoc.html#tools_ssg.join">[docs]</a><span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional&quot;&quot;&quot;</span>
-    <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
-    <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span> <span class="ow">or</span> <span class="n">a</span></div>
+<div class="viewcode-block" id="join"><a class="viewcode-back" href="../progdoc.html#tools_ssg.join">[docs]</a><span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">break_long_words</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional.</span>
+<span class="sd">    if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with textwrap.fill(res, width, break_long_lines).&quot;&quot;&quot;</span>
+    <span class="n">res</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span> <span class="ow">or</span> <span class="n">a</span>
+    <span class="k">return</span> <span class="n">res</span> <span class="k">if</span> <span class="n">width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">fill</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">break_long_words</span><span class="o">=</span><span class="n">break_long_words</span><span class="p">)</span></div>
 <div class="viewcode-block" id="joint"><a class="viewcode-back" href="../progdoc.html#tools_ssg.joint">[docs]</a><span class="k">def</span> <span class="nf">joint</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join &quot;true&quot; items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional&quot;&quot;&quot;</span>
     <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
@@ -343,7 +345,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 6.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">tools_ssg</a></li> 
       </ul>

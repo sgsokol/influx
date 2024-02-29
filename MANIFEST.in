@@ -1,1 +1,1 @@
-recursive-include influx_si/test *
+recursive-include influx_si/test/ *

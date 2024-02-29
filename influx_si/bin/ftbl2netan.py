@@ -18,7 +18,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
 
     me=os.path.basename(sys.argv[0])
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "hi", ["help", "emu", "clownr", "fullsys", "prefix=", "mtf="])
+        opts,args=getopt.getopt(sys.argv[1:], "hi", ["help", "emu", "clownr", "fullsys", "prefix=", "mtf=", "eprl="])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -28,6 +28,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     fullsys=False
     case_i=False
     li_ftbl=[]
+    prl_ftbl=dict()
     mtf_opts=[]
     for o,a in opts:
         if o in ("-h", "--help"):
@@ -42,7 +43,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
             clownr=True
         elif o=="--fullsys":
             fullsys=True
-        elif o=="--prefix" or o=="--mtf":
+        elif o=="--prefix" or o=="--mtf" or o=="--eprl":
             mtf_opts += [o, a]
         else:
             assert False, "unhandled option '"+o+"'"

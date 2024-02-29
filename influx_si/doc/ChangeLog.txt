@@ -2,12 +2,23 @@
 Change Log for influx_si
 ========================
 
-2023-12-06 version 7.0.2
+2024-02-29 version 7.0.2
 ------------------------
+New feature:
+ - influx_si can be called from python as 'influx_s.main(argv)'
+ - an absence of labeling measurements is now signaled as error in influx_si (issue #6 submitted by Loic Le Gregam, TBI, France)
+ - ftbl2netan get an option '--eprl' for parallel experiments
+ - documentation is excluded from package, see it on https://influx-si.readthedocs.io/
 
 Bug fix:
  - fixed plot_ilab.R for empty simulated data (seen in case submitted by Cécilia Berges, TBI, France)
  - fixed python exception for '-o outdir'
+ - fixed some warnings written in .err or stdout instead of .log
+ - fixed option --nocalc not working in case of one network
+ - fixed parsing present but empty MTF files
+ - fixed moving .ftbl and .ikib files to tmp/ dir from parallel experiments
+ - fixed typo in '.cnstr' suffix for .vmtf case (issue #7 reported by Rochelle Kouakou, TBI, France)
+ - fixed moving .R files to tmp/ dir in case of multiple inputs when one or several of them finished with an error.
 
 2023-10-04 version 7.0.1
 ------------------------
