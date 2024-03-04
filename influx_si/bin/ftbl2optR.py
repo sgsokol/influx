@@ -447,7 +447,7 @@ for (iexp in seq_len(nb_exp)) {
          optimize=FALSE
       }
    }
-   # recalculate nb_exp from measvecti
+   # recalculate nb_meas from measvecti
    nb_meas=sapply(measvecti, NROW)
    nb_meas_cumo=c(0., cumsum(nb_meas[-nb_exp]))
    iexp_meas=lapply(seq_len(nb_exp), function(iexp) seq_len(nb_meas[iexp])+nb_meas_cumo[iexp])
@@ -1541,24 +1541,27 @@ for (irun in seq_len(nseries)) {
    if (fullsys) {
    """)
     cu_keys=list(netan["cumo_input"][0].keys()) if netan["fullsys"] else []
+    import pdb; pdb.set_trace()
     f.write("""
       nm_xif=c(%s)
       # full label input is the same for all experiments
-      xif=rep(list(c(%s)), nb_exp)"""%(join(", ", cu_keys, '"', '"'),
-         join(", ", [li[k] for li in netan["cumo_input"] for k in cu_keys]),
+      xif=rep(list(c(%s)), nb_exp)"""%(join(", ", cu_keys, '"', '"', width=120),
+         join(", ", [li[k] for li in netan["cumo_input"] for k in cu_keys], width=120),
     ))
     f.write("""
       xif=lapply(xif, setNames, nm_xif)
-      nm_list$xif=nm_xif
+      labargs$nm_list$xif=nm_xif
       labargs$emu=FALSE
       labargs$xif=xif
       labargs$nb_f$xif=lengths(xif)
+      labargs$nm_list$xf=nm_list$cumo
       v=lab_sim(param, cjac=FALSE, labargs, fullsys)
       if (identical(v$err, 1L)) {
          save(v$fA$triplet(), file="singular237_triplet.RData")
          stop_mes("fullsys: weight=", v$iw, "; ", v$mes, file=fcerr)
       }
       labargs$emu=emu
+      
       x=if (case_i) v$xf else v$x
    } else {
       v=lab_sim(param, cjac=FALSE, labargs)

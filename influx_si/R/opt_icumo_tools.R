@@ -194,6 +194,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       nbc_x=nb_f$nbc_xf
       xi=xif
       nm_xi=nm$xif
+      rcumo_in_cumo=match(nm$rcumo, nm_x)
    } else {
       nb_rcumos=nb_f$rcumos
       nbc_cumos=c(0L, cumsum(nb_rcumos))
@@ -476,7 +477,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          xsimf=xsim # full simulation (in time)
          xsim=xsim[,isel,drop=FALSE]
          # usm
-         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsimf else xsimf[nm$rcumo_in_cumo,,drop=FALSE])+memaone[[iexp]]
+         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsimf else xsimf[rcumo_in_cumo,,drop=FALSE])+memaone[[iexp]]
          if (length(ipooled[[iexp]]) > 1L) {
             usmf=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx)) # full simulated measurements (in time)
          } else {
@@ -485,7 +486,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          usm=usmf[,isel,drop=FALSE]
       } else {
          # usm
-         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsim[,isel,drop=FALSE] else xsim[nm$rcumo_in_cumo,isel,drop=FALSE])+memaone[[iexp]]
+         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsim[,isel,drop=FALSE] else xsim[rcumo_in_cumo,isel,drop=FALSE])+memaone[[iexp]]
          if (length(ipooled[[iexp]]) > 1L) {
             usm=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx))
          } else {

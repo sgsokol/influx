@@ -459,9 +459,9 @@ def parse_miso(fmiso, clen, case_i=False):
         sdv=df.loc[ligr, "SD"].to_numpy()
         # detect kind of species
         spec=df.loc[ligr, "Isospecies"]
-        if all(spec.str.match("^ *M\d+ *$")):
+        if all(spec.str.match(r"^ *M\d+ *$")):
             kind="ms"
-        elif all(spec.str.match("^[ 01x+]+$")):
+        elif all(spec.str.match(r"^[ 01x+]+$")):
             kind="lab"
         elif all(spec.str.contains("->")):
             sep="->"
@@ -501,8 +501,6 @@ def parse_miso(fmiso, clen, case_i=False):
             #if frag == "":
             #    frag=",".join(str(i) for i in range(1,flen+1))
             if case_i:
-                #if met == "Phe":
-                    #pdb.set_trace()
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\tNA\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i0]}\tNA\t{sdv[i0]}"+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
                 #pdb.set_trace()
@@ -510,6 +508,8 @@ def parse_miso(fmiso, clen, case_i=False):
                     for sp,spi in dsp.items():
                         df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{ffrag}:{sp[1:]}:{df.loc[spi[0],'iline']}"]))
             else:
+                #if met == "Phe":
+                    #pdb.set_trace()
                 res["ms"] += [f"\t{met}\t{ffrag}\t{w[0]}\t{val[0]}\t{sdv[0]}"+"   // %s: %d"%(fname, ist)]
                 res["ms"] += [f"\t\t\t{w[i]}\t{val[i]}\t{sdv[i]}"+"   // %s: %s"%(fname, df.loc[ligr[i], "iline"]) for i in range(1, len(ligr))]
         elif kind == "lab" or kind == "mean":

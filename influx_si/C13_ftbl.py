@@ -279,10 +279,10 @@ def ftbl_parse(f, wout=wout, werr=werr):
     ftbl["pathway"]=dict()
     
     #print f;##
-    reblank=re.compile("^[\t ]*$")
-    recomm=re.compile("^[\t ]*//.*$")
-    repath=re.compile("^[\t ]*//##[\t ]*(.*)[\t ]*$")
-    comm=re.compile("^([^(//)]+|.+)//.*$")
+    reblank=re.compile(r"^[\t ]*$")
+    recomm=re.compile(r"^[\t ]*//.*$")
+    repath=re.compile(r"^[\t ]*//##[\t ]*(.*)[\t ]*$")
+    comm=re.compile(r"^([^(//)]+|.+)//.*$")
     reading="sec_name"
     col_names=[]
     sec_name=subsec_name=""
@@ -1295,6 +1295,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                         # in_w cannot be > w because of src_ind()
     except Exception as inst:
         werr(": ".join(inst)+"\n")
+    #netan["cumo_input"]=[dict((k,(v if v==v else 0.)) for k,v in d.items()) for d in netan["cumo_input"]]
     # ordered cumomer lists
     for w in range(1,netan["Cmax"]+1):
         # weight 1 equations have all metabolites
@@ -2404,6 +2405,8 @@ def rcumo_sys(netan, emu=False):
                     A[w-1][cumo]=A[w-1].get(cumo,{cumo:[]})
                     #print("adding b:", cumo, b[w-1][cumo].keys());##
                     A[w-1][cumo][cumo]+=[*b[w-1][cumo].keys()]
+    #import pdb; pdb.set_trace()
+    #netan["rcumo_input"]=[dict((k, (v if v==v else 0.)) for k,v in d.items()) for d in netan["rcumo_input"]]
     #aff("to_v", to_visit);##
     # make ordered list for reduced cumomer set
     netan["vrcumo"]=[[*a.keys()] for a in A]
@@ -2556,7 +2559,7 @@ def ntimes(n):
     return("once" if n==1 else "twice" if n==2 else "%d times"%n)
 def proc_label_input(ftbl, netan, case_i=False):
     """Proceed LABEL_INPUT section in ftbl and add result to the list netan["iso_input"] and netan["funlab"] (case_i)
-    List item is a dict {}metab;{isotop_int_index:fraction}}
+    List item is a dict {metab;{isotop_int_index:fraction}}
     """
     ili=len(netan["iso_input"]) # label_input list index
     netan["iso_input"]+=[{}]
@@ -2565,6 +2568,7 @@ def proc_label_input(ftbl, netan, case_i=False):
         resf=netan["funlab"][ili]
     res=netan["iso_input"][ili]
     # input isotopomers
+    #import pdb; pdb.set_trace()
     for row in ftbl.get("LABEL_INPUT",[]):
         metab=row.get("META_NAME", "") or metab
         if metab not in netan["Clen"]:

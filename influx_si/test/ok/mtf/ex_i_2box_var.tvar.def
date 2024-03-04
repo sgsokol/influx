@@ -1,8 +1,0 @@
-// Created by 'txt2ftbl --inst --prefix ex_i_2box_var'
-// Date: 2024-02-29 14:24:45 CET +0100
-// influx_si version: 7.0.2
-// If edited by hand, remove these comments.
-Id	Comment	Name	Kind	Type	Value
-		v1	XCH	C	0
-		v2	XCH	C	0
-		v3	XCH	C	0

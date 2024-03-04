@@ -157,6 +157,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
       xi=xif
       nm_x=nm_list$xf
       spa=spaf
+      rcumo_in_cumo=match(nm_list$rcumo, nm_x)
    } else {
       nb_x=nb_f$x
       nb_xi=nb_f$xi
@@ -178,7 +179,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
 
    # calculate all fluxes from free fluxes
    lf=param2fl(param, labargs)
-   if (is.null(jx_f$x)) {
+   if (is.null(jx_f$x) || nrow(jx_f$x) != sum(nb_x)) {
       jx_f$x=matrix(0, nrow=sum(nb_x), nb_exp)
       dimnames(jx_f$x)=list(nm_x, nm_exp)
       jx_f$usimlab=vector("list", nb_exp)
@@ -187,7 +188,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
    x=jx_f$x
    usimlab=jx_f$usimlab
 #browser()
-   if (is.null(labargs$incu)) {
+   if (is.null(labargs$incu) || length(labargs$incu) != 1+nb_xi+nbc_x[nb_w+1L]) {
       labargs$incu=incu=lapply(seq_len(nb_exp), function(iexp) c(1, xi[[iexp]], double(nbc_x[nb_w+1L])))
       # unreduced residuals derivated by scale params
       labargs$dur_dsc=dur_dsc=lapply(seq_len(nb_exp), function(iexp) matrix(0., nrow=nb_meas[[iexp]], ncol=nb_sc_tot))
@@ -240,7 +241,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
          if (emu) {
             b=fwrv2Abr(lf$fwrv, spa[[iw]], incu[[iexp]], nm$emu[[iexp]][ixw], getA=FALSE, emu=emu)$b
          } else {
-            b=fwrv2Abr(lf$fwrv, spa[[iw]], incu[[iexp]], nm$rcumo[[iexp]][ixw], getA=FALSE, emu=emu)$b
+            b=fwrv2Abr(lf$fwrv, spa[[iw]], incu[[iexp]], nm_x[ixw], getA=FALSE, emu=emu)$b
          }
 #browser()
          xw=try(solve(Ali[[iw]], b), silent=TRUE)
@@ -256,7 +257,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
                izf=names(which(abs(lf$fwrv)<1.e-7))
                mes=paste("Cumomer matrix is singular. Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
                   "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-                  paste(nm$rcumo[ixw][izc+1], collapse="\n"), "\n",
+                  paste(nm$x[ixw][izc+1], collapse="\n"), "\n",
                   "Zero fluxes are:\n",
                   paste(izf, collapse="\n"), "\n",
                   sep="")
@@ -311,7 +312,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
       if (nrow(x) == ncol(measmat[[iexp]])) {
          mx=(measmat[[iexp]]%stm%x[, iexp])[,1]+memaone[[iexp]]
       } else {
-         mx=(measmat[[iexp]]%stm%x[nm$rcumo_in_cumo, iexp])[,1]+memaone[[iexp]]
+         mx=(measmat[[iexp]]%stm%x[rcumo_in_cumo, iexp])[,1]+memaone[[iexp]]
       }
       # measurement vector before pool ponderation
 #browser()

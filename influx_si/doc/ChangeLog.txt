@@ -2,6 +2,15 @@
 Change Log for influx_si
 ========================
 
+2024-??-?? version 7.0.3
+------------------------
+New feature:
+
+Bug fix:
+ - fixed SyntaxWarning for Python-3.12
+
+
+
 2024-02-29 version 7.0.2
 ------------------------
 New feature:
