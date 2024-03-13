@@ -321,10 +321,10 @@
     <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;pathway&quot;</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
     
     <span class="c1">#print f;##</span>
-    <span class="n">reblank</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;^[</span><span class="se">\t</span><span class="s2"> ]*$&quot;</span><span class="p">)</span>
-    <span class="n">recomm</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;^[</span><span class="se">\t</span><span class="s2"> ]*//.*$&quot;</span><span class="p">)</span>
-    <span class="n">repath</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;^[</span><span class="se">\t</span><span class="s2"> ]*//##[</span><span class="se">\t</span><span class="s2"> ]*(.*)[</span><span class="se">\t</span><span class="s2"> ]*$&quot;</span><span class="p">)</span>
-    <span class="n">comm</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;^([^(//)]+|.+)//.*$&quot;</span><span class="p">)</span>
+    <span class="n">reblank</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[\t ]*$&quot;</span><span class="p">)</span>
+    <span class="n">recomm</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[\t ]*//.*$&quot;</span><span class="p">)</span>
+    <span class="n">repath</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[\t ]*//##[\t ]*(.*)[\t ]*$&quot;</span><span class="p">)</span>
+    <span class="n">comm</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([^(//)]+|.+)//.*$&quot;</span><span class="p">)</span>
     <span class="n">reading</span><span class="o">=</span><span class="s2">&quot;sec_name&quot;</span>
     <span class="n">col_names</span><span class="o">=</span><span class="p">[]</span>
     <span class="n">sec_name</span><span class="o">=</span><span class="n">subsec_name</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
@@ -464,6 +464,7 @@
                             <span class="n">dic</span><span class="p">[</span><span class="n">col_names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">=</span><span class="n">oldval</span>
                 <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
                     <span class="k">pass</span>
+            <span class="c1">#import pdb; pdb.set_trace()</span>
             <span class="k">if</span> <span class="n">sec_name</span> <span class="o">==</span> <span class="s2">&quot;NETWORK&quot;</span> <span class="ow">and</span> <span class="n">pathway</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">pathway</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;pathway&quot;</span><span class="p">]:</span>
                     <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;pathway&quot;</span><span class="p">][</span><span class="n">pathway</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
@@ -1337,21 +1338,23 @@
                         <span class="c1"># in_w cannot be &gt; w because of src_ind()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">inst</span><span class="p">:</span>
         <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;: &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">inst</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1">#netan[&quot;cumo_input&quot;]=[dict((k,(v if v==v else 0.)) for k,v in d.items()) for d in netan[&quot;cumo_input&quot;]]</span>
     <span class="c1"># ordered cumomer lists</span>
-    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Cmax&quot;</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+    <span class="c1">#for w in range(1,netan[&quot;Cmax&quot;]+1):</span>
         <span class="c1"># weight 1 equations have all metabolites</span>
         <span class="c1">##aff(&quot;A &quot;+str(w), netan[&quot;cumo_sys&quot;][&quot;A&quot;][w-1]);#</span>
         <span class="c1">##aff(&quot;b &quot;+str(w), netan[&quot;cumo_sys&quot;][&quot;b&quot;][w-1]);#</span>
         <span class="c1"># order cumos along pathways</span>
         <span class="c1"># starts are input cumomers</span>
-        <span class="n">starts</span><span class="o">=</span><span class="p">[</span><span class="n">cumo</span> <span class="k">for</span> <span class="n">cumo</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;cumo_sys&quot;</span><span class="p">][</span><span class="s2">&quot;A&quot;</span><span class="p">][</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> \
-            <span class="k">if</span> <span class="n">cumo</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]]</span>
+    <span class="c1">#    starts=[cumo for cumo in netan[&quot;cumo_sys&quot;][&quot;A&quot;][w-1] \</span>
+    <span class="c1">#        if cumo.split(&quot;:&quot;)[0] in netan[&quot;input&quot;]]</span>
         <span class="c1">##aff(&quot;st &quot;+str(w), starts)</span>
         <span class="c1"># complete starts by all others cumomers</span>
-        <span class="n">starts</span><span class="o">+=</span><span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;cumo_sys&quot;</span><span class="p">][</span><span class="s2">&quot;A&quot;</span><span class="p">][</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">]</span>
-        <span class="n">cumo_paths</span><span class="o">=</span><span class="n">cumo_path</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;cumo_sys&quot;</span><span class="p">][</span><span class="s2">&quot;A&quot;</span><span class="p">][</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">oset</span><span class="p">())</span>
+    <span class="c1">#    starts+=[c for c in netan[&quot;cumo_sys&quot;][&quot;A&quot;][w-1] if not c in starts]</span>
+    <span class="c1">#    cumo_paths=cumo_path(starts, netan[&quot;cumo_sys&quot;][&quot;A&quot;][w-1], oset())</span>
         <span class="c1"># order</span>
-        <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vcumo&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">cumo</span> <span class="k">for</span> <span class="n">cumo</span> <span class="ow">in</span> <span class="n">valval</span><span class="p">(</span><span class="n">cumo_paths</span><span class="p">)])</span>
+    <span class="c1">#    netan[&quot;vcumo&quot;].append([cumo for cumo in valval(cumo_paths)])</span>
+    <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vcumo&quot;</span><span class="p">]</span><span class="o">=</span><span class="p">[[</span><span class="o">*</span><span class="n">a</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;cumo_sys&quot;</span><span class="p">][</span><span class="s2">&quot;A&quot;</span><span class="p">]]</span>
 
     <span class="c1"># ordered unknown flux lists</span>
     <span class="c1"># get all reactions which are not constrained, not free and not growth</span>
@@ -2446,6 +2449,8 @@
                     <span class="n">A</span><span class="p">[</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">cumo</span><span class="p">]</span><span class="o">=</span><span class="n">A</span><span class="p">[</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cumo</span><span class="p">,{</span><span class="n">cumo</span><span class="p">:[]})</span>
                     <span class="c1">#print(&quot;adding b:&quot;, cumo, b[w-1][cumo].keys());##</span>
                     <span class="n">A</span><span class="p">[</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">cumo</span><span class="p">][</span><span class="n">cumo</span><span class="p">]</span><span class="o">+=</span><span class="p">[</span><span class="o">*</span><span class="n">b</span><span class="p">[</span><span class="n">w</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">cumo</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+    <span class="c1">#import pdb; pdb.set_trace()</span>
+    <span class="c1">#netan[&quot;rcumo_input&quot;]=[dict((k, (v if v==v else 0.)) for k,v in d.items()) for d in netan[&quot;rcumo_input&quot;]]</span>
     <span class="c1">#aff(&quot;to_v&quot;, to_visit);##</span>
     <span class="c1"># make ordered list for reduced cumomer set</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrcumo&quot;</span><span class="p">]</span><span class="o">=</span><span class="p">[[</span><span class="o">*</span><span class="n">a</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">A</span><span class="p">]</span>
@@ -2598,7 +2603,7 @@
     <span class="k">return</span><span class="p">(</span><span class="s2">&quot;once&quot;</span> <span class="k">if</span> <span class="n">n</span><span class="o">==</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;twice&quot;</span> <span class="k">if</span> <span class="n">n</span><span class="o">==</span><span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> times&quot;</span><span class="o">%</span><span class="n">n</span><span class="p">)</span></div>
 <div class="viewcode-block" id="proc_label_input"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_input">[docs]</a><span class="k">def</span> <span class="nf">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Proceed LABEL_INPUT section in ftbl and add result to the list netan[&quot;iso_input&quot;] and netan[&quot;funlab&quot;] (case_i)</span>
-<span class="sd">    List item is a dict {}metab;{isotop_int_index:fraction}}</span>
+<span class="sd">    List item is a dict {metab;{isotop_int_index:fraction}}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ili</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">])</span> <span class="c1"># label_input list index</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
@@ -2607,6 +2612,7 @@
         <span class="n">resf</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;funlab&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">]</span>
     <span class="n">res</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">]</span>
     <span class="c1"># input isotopomers</span>
+    <span class="c1">#import pdb; pdb.set_trace()</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ftbl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LABEL_INPUT&quot;</span><span class="p">,[]):</span>
         <span class="n">metab</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;META_NAME&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">metab</span>
         <span class="k">if</span> <span class="n">metab</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">]:</span>

@@ -1222,7 +1222,7 @@ The other one will be guessed if it has canonical extension. If extension is omi
   'txt2ftbl --mtf ec.netw,glc6.linp,glc6.miso --eprl glc1,glc4'
 """)
     parser.add_argument("--inst", action="store_true", default=False, help=
-"""Prepare FTBL for instationary case. File 'netw' is supposed to have 
+"""Prepare FTBL for instationary case. File 'miso' is supposed to have 
 column 'Time' non empty. Isotopic kinetic data will be written to a TSV 
 file with 'ikin' extension. Its name will be the same as in FTBL file, 
 and FTBL field 'OPTIONS/file_labcin' will contain 'ikin' file name.

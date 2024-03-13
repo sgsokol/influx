@@ -155,7 +155,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
       nb_x=nb_f$xf
       nb_xi=nb_f$xif
       xi=xif
-      nm_x=nm_list$xf
+      nm_x=nm_list$cumo
       spa=spaf
       rcumo_in_cumo=match(nm_list$rcumo, nm_x)
    } else {
@@ -232,7 +232,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
             next
          }
          ixw=nbc_x[iw]+seq_len(nb_x[iw])
-         incuw=(1L+nb_xi[1L])+ixw
+         incuw=(1L+nb_xi)+ixw
 #cat("iw=", iw, "\there 1\n")
 #if (iw==1) {
 #   print(labargs)
@@ -306,7 +306,7 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
       }
    
       #rownames(incu)=c("one", nm$inp, nm$x)
-      x[, iexp]=tail(incu[[iexp]], -nb_xi[1L]-1L)
+      x[, iexp]=tail(incu[[iexp]], -nb_xi-1L)
       
       # calculate unreduced and unscaled measurements
       if (nrow(x) == ncol(measmat[[iexp]])) {
@@ -749,7 +749,7 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    nb_fwrv=spAbr$nb_fwrv
    nb_cl=spAbr$nb_cl
    w=spAbr$w
-   nb_xi=nb$xi[1L]
+   nb_xi=nb$xi
    
    # a_fx
    ind_a=spAbr$ind_a
@@ -1157,7 +1157,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
    if (nw < 1) {
       return(spemu)
    }
-   nb_xiemu=nb$xiemu[1L]
+   nb_xiemu=nb$xiemu
    #x2tb_f=spr[[1]]$x2tb_f
    nme2iemu=seq_along(nm_inemu)
    names(nme2iemu)=nm_inemu
@@ -1476,6 +1476,7 @@ sparse2spa=function(spa) {
       i=as.integer(iu0%%nb_c)
       j=as.integer(iu0%/%nb_c)
       l$a=Rmumps$new(i, j, rep(pi, length(iu0)), nb_c)
+#cat("sparse2spa: nb_c=", nb_c, "\n")
       if (!is.null(control_ftbl$mumps)) {
 #browser()
          lapply(grep("^icntl_", names(control_ftbl$mumps), v=TRUE), function(nm) {

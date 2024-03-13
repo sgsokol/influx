@@ -348,7 +348,9 @@ measvecti=ti=tifull=tifull2=vector("list", nb_exp)
 nb_ti=nb_tifu=nb_tifu2=integer(nb_exp)
 nsubdiv_dt=pmax(1L, as.integer(c(%(nsubdiv_dt)s)))
 nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
-nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":", fixed=TRUE)), ncol=2, byrow=T)[,1L]]
+nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":", fixed=TRUE)), ncol=2L, byrow=TRUE)[,1L]]
+if (fullsys)
+   nminvmf=nm_poolall[matrix(unlist(strsplit(nm_cumo, ":", fixed=TRUE)), ncol=2L, byrow=TRUE)[,1L]]
 for (iexp in seq_len(nb_exp)) {
    if (tmax[iexp] < 0) {
       stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), file=fcerr)
@@ -447,7 +449,7 @@ for (iexp in seq_len(nb_exp)) {
          optimize=FALSE
       }
    }
-   # recalculate nb_meas from measvecti
+   # recalculate nb_exp from measvecti
    nb_meas=sapply(measvecti, NROW)
    nb_meas_cumo=c(0., cumsum(nb_meas[-nb_exp]))
    iexp_meas=lapply(seq_len(nb_exp), function(iexp) seq_len(nb_meas[iexp])+nb_meas_cumo[iexp])
@@ -512,6 +514,33 @@ for (iexp in seq_len(nb_exp)) {
       nb_f$ipf2ircumo[[iexp]][[iw]]=i[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
       nb_f$ipf2ircumo2[[iexp]][[iw]]=i2[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
    }
+   if (fullsys) {
+      # prepare mapping of metab pools on cumomers for full system (emu is FALSE here)
+      nb_f$ipf2icumo[[iexp]]=nb_f$ipf2icumo2[[iexp]]=list()
+      for (iw in seq_len(nb_w)) {
+         ix=seq_len(nb_cumos[iw])
+         ipf2icumo=ipf2icumo2=match(nminvmf[nbc_cumos[iw]+ix], nm_poolf, nomatch=0L)
+         dims=c(1L, nb_cumos[iw], 1L, nb_tifu[iexp]-1L)
+         dims2=c(1L, nb_cumos[iw], 1L, nb_tifu2[iexp]-1L)
+         i=as.matrix(ipf2icumo)
+         i2=as.matrix(ipf2icumo2)
+         for (id in 2L:length(dims)) {
+            cstr=sprintf("cbind(%srep(seq_len(dims[id]), each=prod(dims[seq_len(id-1L)])))", paste("i[, ", seq_len(id-1L), "], ", sep="", collapse=""))
+            i=eval(parse(text=cstr))
+         }
+         for (id in 2L:length(dims2)) {
+            cstr=sprintf("cbind(%srep(seq_len(dims2[id]), each=prod(dims2[seq_len(id-1L)])))", paste("i2[, ", seq_len(id-1L), "], ", sep="", collapse=""))
+            i2=eval(parse(text=cstr))
+         }
+         colnames(i)=c("ipoolf", "ic", "iw", "iti")
+         colnames(i2)=c("ipoolf", "ic", "iw", "iti")
+         i=i[i[,1L]!=0L,,drop=FALSE]
+         i2=i2[i2[,1L]!=0L,,drop=FALSE]
+         # put the poolf column last
+         nb_f$ipf2icumo[[iexp]][[iw]]=i[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
+         nb_f$ipf2icumo2[[iexp]][[iw]]=i2[, c("ic", "iw", "ipoolf", "iti"), drop=FALSE]
+      }
+   }
 }
 xil=vector("list", nb_exp)
 xi2=vector("list", nb_exp)
@@ -524,22 +553,24 @@ for (iexp in seq(nb_exp)) {
       xil[[iexp]]=matrix(xi[[iexp]], nrow=length(xi[[iexp]]), ncol=nb_tifu[[iexp]])
    }  else {
       # use funlab
-      env=new.env() # funlab code won't see influx's variables
+      envfunlab=new.env() # funlab code won't see influx's variables
       if (nchar(funlabR[[iexp]])) {
          if (file.exists(funlabR[[iexp]])) {
-            es=try(source(funlabR[[iexp]], local=env), outFile=fcerr)
+            es=try(source(funlabR[[iexp]], local=envfunlab), outFile=fcerr)
          } else {
             stop_mes("funlab script R '", funlabR[[iexp]], "' from '", nm_exp[[iexp]],"' does not exist.", file=fcerr)
          }
       }
-      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp[[iexp]], fli, env, emu, nm_exp[[iexp]], fcerr)
+      xil[[iexp]]=funlab(tifull[[iexp]], nm_inp, fli, envfunlab, emu, nm_exp[[iexp]], fcerr)
       if (time_order == "2" || time_order == "1,2")
-         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp[[iexp]], fli, env, emu, nm_exp[[iexp]], fcerr)
+         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, envfunlab, emu, nm_exp[[iexp]], fcerr)
    }
 }
 xi=xil
 
 nb_f$ip2ircumo=match(nminvm, nm_poolall)
+if (fullsys)
+   nb_f$ip2icumo=match(nminvmf, nm_poolall)
 nb_f$tifu=nb_tifu
 nb_f$tifu2=nb_tifu2
 
@@ -661,7 +692,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf", "fclog", "fcerr")
     """)
     if case_i:
         f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
@@ -706,7 +737,8 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
       nodes=if (sensitive == "mc") np else 2
 
       # prepare cluster
-      cl=makeCluster(nodes, cl_type) #, outfile="cl.log")
+      cl=makeCluster(nodes, cl_type) #)
+      #cl=makeCluster(1L, cl_type, manual=TRUE, outfile="")
 #cat("make cluster=")
 #print(cl[[1]])
       labargs[["cl"]]=cl
@@ -740,16 +772,24 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
          if (case_i && (time_order == "2" || time_order == "1,2")) {
             labargs$labargs2$spa=labargs$spa
          }
+         if (fullsys) {
+            labargs$spaf=sparse2spa(labargs$spaf)
+            if (case_i && (time_order == "2" || time_order == "1,2")) {
+               labargs$labargs2$spaf=labargs$spaf
+            }
+         }
 #cat("evalQ idth=", idth, "\n")
 #print(labargs)
 #print(labargs$labargs2)
 #print(labargs$spa)
 #print(labargs$labargs2$spa)
+#print(list(cre_cl="", labargs=labargs, spa_a1=labargs$spa[[1L]]$a))
          NULL
       })
       clusterSetRNGStream(cl)
       # set worker id
       idw=parLapply(cl, seq_along(cl), function(i) assign("idw", i, envir=.GlobalEnv))
+
    } else {
       labargs$cl=NULL
    }
@@ -1004,7 +1044,8 @@ for (irun in seq_len(nseries)) {
 #browser()
    if (!length(rres)) {
       if (write_res) {
-         capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
+         #capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
+         rres <- lab_resid(param, cjac=FALSE, labargs)
       } else {
          rres <- lab_resid(param, cjac=FALSE, labargs)
       }
@@ -1541,27 +1582,71 @@ for (irun in seq_len(nseries)) {
    if (fullsys) {
    """)
     cu_keys=list(netan["cumo_input"][0].keys()) if netan["fullsys"] else []
-    import pdb; pdb.set_trace()
     f.write("""
       nm_xif=c(%s)
       # full label input is the same for all experiments
-      xif=rep(list(c(%s)), nb_exp)"""%(join(", ", cu_keys, '"', '"', width=120),
-         join(", ", [li[k] for li in netan["cumo_input"] for k in cu_keys], width=120),
+      xif=rep(list(c(%s)), nb_exp)"""%(join(", ", cu_keys, '"', '"'),
+         join(", ", [(li[k] if li[k]==li[k] else "NA") for li in netan["cumo_input"] for k in cu_keys]),
     ))
     f.write("""
       xif=lapply(xif, setNames, nm_xif)
+      if (case_i) {
+         # prepare xif from funlab
+         xilf=vector("list", nb_exp)
+         xi2f=vector("list", nb_exp)
+         for (iexp in seq(nb_exp)) {
+            fli=funlabli[[iexp]]
+            if (length(fli) == 0) {
+               # replicate first column in xi as many times as there are time points
+               if (time_order == "2" || time_order == "1,2")
+                  xi2f[[iexp]]=matrix(xif[[iexp]], nrow=length(xif[[iexp]]), ncol=nb_tifu2[[iexp]])
+               xilf[[iexp]]=matrix(xif[[iexp]], nrow=length(xif[[iexp]]), ncol=nb_tifu[[iexp]])
+            }  else {
+               # use funlab
+               xilf[[iexp]]=funlab(tifull[[iexp]], nm_xif, fli, envfunlab, emu=FALSE, nm_exp[[iexp]], fcerr)
+               if (time_order == "2" || time_order == "1,2")
+                  xi2f[[iexp]]=funlab(tifull2[[iexp]], nm_xif, fli, envfunlab, emu=FALSE, nm_exp[[iexp]], fcerr)
+            }
+         }
+         xif=xilf
+         if (time_order == "2" || time_order == "1,2") {
+            labargs$labargs2$xif=xi2f
+            labargs$labargs2$nm_list$inp=nm_xif
+            labargs$labargs2$emu=FALSE
+         }
+      }
       labargs$nm_list$xif=nm_xif
+      labargs$nm_list$inp=nm_xif
       labargs$emu=FALSE
       labargs$xif=xif
-      labargs$nb_f$xif=lengths(xif)
-      labargs$nm_list$xf=nm_list$cumo
+      labargs$nb_f$xif=length(xif[[1L]])
+      labargs$labargs2$nm_list$xif=nm_xif
+      labargs$labargs2nm_list$inp=nm_xif
+      labargs$labargs2emu=FALSE
+      labargs$labargs2xif=xif
+      labargs$labargs2nb_f$xif=length(xif[[1L]])
+      if (case_i && !is.null(labargs$cl)) {
+         clusterExport(labargs$cl, c("labargs"))
+         clusterEvalQ(labargs$cl, {
+            labargs$spa=sparse2spa(labargs$spa)
+            labargs$labargs2$spa=labargs$spa
+            labargs$spaf=sparse2spa(labargs$spaf)
+            labargs$labargs2$spaf=labargs$spaf
+#print(c(lab_new="", labargs=labargs, labargs2=labargs$labargs2, a1_1=labargs$spaf[[1]]$a, a1_2=labargs$labrags2spaf[[1]]$a))
+         })
+      }
       v=lab_sim(param, cjac=FALSE, labargs, fullsys)
       if (identical(v$err, 1L)) {
-         save(v$fA$triplet(), file="singular237_triplet.RData")
+         #save(v$fA$triplet(), file="singular237_triplet.RData")
          stop_mes("fullsys: weight=", v$iw, "; ", v$mes, file=fcerr)
       }
+#browser()
       labargs$emu=emu
-      
+      labargs$nm_list$inp=nm_inp
+      if (time_order == "2" || time_order == "1,2") {
+         labargs$labargs2$nm_list$inp=nm_inp
+         labargs$labargs2$emu=emu
+      }
       x=if (case_i) v$xf else v$x
    } else {
       v=lab_sim(param, cjac=FALSE, labargs)

@@ -2,13 +2,14 @@
 Change Log for influx_si
 ========================
 
-2024-??-?? version 7.0.3
+2024-03-13 version 7.0.3
 ------------------------
 New feature:
-
+ - ftbl2cumoAb shows numerical values of fluxes in cumomer/emu systems
 Bug fix:
  - fixed SyntaxWarning for Python-3.12
-
+ - fixed --fullsys option broken for few versions
+ - fixed determining 'influx_s' or 'influx_i' when called as influx_[si].main() from third party script (issue #8, submitted by Loic Le Gregam, TBI, France)
 
 
 2024-02-29 version 7.0.2

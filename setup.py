@@ -17,7 +17,7 @@ setup(
    author_email='sokol@insa-toulouse.fr',
    url="https://github.com/sgsokol/influx/",
    packages=['influx_si'],
-   package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', '../test_cases/test_report_[0-9]*.txt', '../test_cases/cases_influx_si-v*.tab']},
+   package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', f'../test_cases/test_report_{version}.txt', '../test_cases/cases_influx_si-v*.tab']},
    include_package_data=True,
    install_requires=['scipy', 'python-libsbml', 'pandas', 'kvh'],
    scripts=[

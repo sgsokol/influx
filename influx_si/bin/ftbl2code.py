@@ -65,7 +65,7 @@ def netan2Abcumo_spr(varname, Al, bl, vcumol, minput, f, fwrv2i, incu2i_b1):
 #  b - unsigned sparse vector of right hand side
 
 if (TIMEIT) {
-   cat("spAbr   : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+   cat("%(var)-8s: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 
 nb_fwrv=%(n)d
@@ -122,7 +122,7 @@ nb_w=%(nb_w)d
         f.write(
 """
 if (TIMEIT) {
-   cat("weight %(w)d: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+   cat("weight %(w)2d: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 w=%(w)d
 nb_c=%(nbc)d
@@ -528,21 +528,21 @@ nb_f=list()
 nb_exp=%(nb_exp)d
 nm_exp=c(%(nm_exp)s)
 nm_list$nm_exp=nm_exp
-# input cumomer vectors
+# input cumomer vectors, list of vectors for case_s and matrices (nb_inp x nb_time) for case_i
 xi=list(%(xi)s)
 if (any(lengths(xi) == 0)) {
    stop_mes("No reduced label entry is defined (may be because no measurement provided). Cannot continue.", file=fcerr)
 }
-nm_xi=list(%(nm_xi)s)
+nm_xi=c(%(nm_xi)s) # same for all parallel exps
 for (i in seq_along(xi)) {
-   names(xi[[i]])=nm_xi[[i]]
+   names(xi[[i]])=nm_xi
 }
 nm_list$xi=nm_xi
-nb_xi=lengths(nm_xi)
+nb_xi=length(nm_xi)
 nb_f$xi=nb_xi
 nb_cumoi=nb_xi
 nm_inp=nm_xi
-nm_incu=c("one", nm_xi[[1L]], nm_rcumo)
+nm_incu=c("one", nm_xi, nm_rcumo)
 nm_inlab=nm_incu
 spa=spAbr
 nm_x=nm_rcumo
@@ -557,18 +557,18 @@ if (emu) {
    nm_x=nm_emu
    nb_x=nb_emus
    xiemu=list(%(xiemu)s)
-   nm_xiemu=list(%(nm_xiemu)s)
+   nm_xiemu=c(%(nm_xiemu)s)
    nm_list$xiemu=nm_xiemu
    for (i in seq_along(xiemu)) {
-       names(xiemu[[i]])=nm_xiemu[[i]]
-    }
-   nb_xiemu=lengths(nm_xiemu)
+       names(xiemu[[i]])=nm_xiemu
+   }
+   nb_xiemu=length(nm_xiemu)
    nb_f$xiemu=nb_xiemu
    nb_f$xi=nb_xiemu
    nb_xi=nb_xiemu
    nm_inp=nm_xiemu
    xi=xiemu
-   nm_inemu=c("one", nm_xiemu[[1L]], nm_emu)
+   nm_inemu=c("one", nm_xiemu, nm_emu)
    nm_inlab=nm_inemu
    spa=spr2emu(spAbr, nm_incu, nm_inemu, nb_f)
 }
@@ -584,9 +584,9 @@ nb_f$x=nb_x
         "nb_exp": len(netan["iso_input"]),
         "nm_exp": join(", ", netan["exp_names"], '"', '"', width=120),
         "xi": join(",\n", list(join(", ", [li[k] if li[k]==li[k] else "NA"  for k in rc_keys_all[i]], width=120) for i,li in enumerate(netan["rcumo_input"])), "c(", ")"),
-        "nm_xi": join(",\n", list(join(", ", rc_keys, '"', '"', width=120) for rc_keys in rc_keys_all), "c(", ")"),
+        "nm_xi": join(", ", rc_keys_all[0], '"', '"', width=120),
         "xiemu": join(",\n", list(join(", ", [li[k] if li[k]==li[k] else "NA" for k in emu_keys_all[i]], width=120) for i,li in enumerate(netan["emu_input"])), "c(", ")"),
-        "nm_xiemu": join(",\n", list(join(", ", emu_keys, '"', '"', width=120) for emu_keys in emu_keys_all), "c(", ")"),
+        "nm_xiemu": join(", ", emu_keys_all[0] if emu else [], '"', '"', width=120),
         "nm_emu": join(", ", valval(netan.get('vemu', [])), '"', '"', width=120),
         })
     if fullsys:

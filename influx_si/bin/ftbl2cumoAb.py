@@ -238,6 +238,23 @@ for (ir,row) in enumerate(netan["Afl"]):
             for (fl,coef) in netan["bfl"][ir].items()), a="0"),
     })
 
+# prepare numerical values for forward/revers fluxes (from dep, free, constr but not growth (yet))
+fwrv=dict()
+nx2dfcg=netan["nx2dfcg"]
+#import pdb; pdb.set_trace()
+if d_avail:
+    for (fnx, fdfcg) in nx2dfcg.items():
+        nx=fnx[:1]
+        if nx == "x":
+            break # xch fluxes are proceeded simultaneously with their net counterparts
+        reac=fnx[2:]
+        vnet=dfc_val[fdfcg]
+        vxch=dfc_val[nx2dfcg["x."+reac]]
+        vxch=vxch/(1.-vxch)
+        fwd=vxch + (vnet if vnet > 0 else 0)
+        rev=vxch - (vnet if vnet < 0 else 0)
+        fwrv["fwd."+reac]=fwd
+        fwrv["rev."+reac]=rev
 if not invAfl is None:
     # show formulas for dependent fluxes using inverted Afl
     # free, constrained and constant value name to index translator
@@ -271,6 +288,9 @@ if not invAfl is None:
     
     i,j,v=[ np.array(i) for i in zip(*((i,fcv2i[f],v) for (i,row) in enumerate(netan["bfl"]) if row for (f,v) in row.items())) ]
     
+    ndn=len(netan["vflux"]["net"])
+    ndx=len(netan["vflux"]["xch"])
+    nd=ndn+ndx
     f2bfl=np.zeros((Afl.shape[0], nf+nc+ng+1))
     f2bfl[i,j]=v
     fcv2dep=invAfl*np.matrix(f2bfl)
@@ -279,9 +299,6 @@ Dependent fluxes as functions of free and constrained fluxes:
 dep.flux=f(free.flux, constr.flux)
 ----------------------------------
 """)
-    ndn=len(netan["vflux"]["net"])
-    ndx=len(netan["vflux"]["xch"])
-    nd=ndn+ndx
     assert fcv2dep.shape[0] == nd, "Bad dimensions dependent fluxes as function of free, constrained and constant values.\nWe should have %d rows, instead we got %d."%(nd, fcv2dep.shape[0])
     ira=np.arange(fcv2dep.shape[1])
     for (ir,row) in enumerate(fcv2dep.A):
@@ -294,8 +311,7 @@ dep.flux=f(free.flux, constr.flux)
             "formula": formula,
         })
 
-# cumomer or emu balance equations
-#pdb.set_trace()
+#import pdb; pdb.set_trace()
 measures={"label": {}, "mass": {}, "peak": {}}
 o_meas=list(measures.keys()); # ordered measure types
 # calculate measure matrices (mapping cumomers to observations)
@@ -312,7 +328,8 @@ for meas in o_meas:
             join(", ", iter(row["coefs"].items())) for (i,row) in
             enumerate(measures[meas][iexp]["mat"]) if row["coefs"] is not None))+"\n")
 
-Ab=C13_ftbl.rcumo_sys(netan, emu)
+# cumomer or emu balance equations
+Ab=C13_ftbl.rcumo_sys(netan, emu) # will be overwritten if fullsys
 vcumo=netan.get("vrcumo")
 if emu:
     f.write("\n# EMU fragment system\n")
@@ -334,23 +351,48 @@ for (w,A) in enumerate(Ab["A"]):
                 "c": r_cumo,
                 "f": join("+", A[r_cumo][r_cumo]),
             }))
+        # central numerical value
+        numstr=""
+        if d_avail:
+            numstr += "%(c)s*(%(f)s)" % {
+                "c": r_cumo,
+                "f": sum(fwrv[v] for v in A[r_cumo][r_cumo]),
+            }
         # input terms
-        term=join("+",("%(c)s*(%(f)s)" % ({
-              "c": c_cumo,
-              "f": join("+", A[r_cumo][c_cumo]),
-            }) for c_cumo in vcumo[w] if c_cumo in A[r_cumo] and c_cumo != r_cumo))
-            #}) for c_cumo in sorted(A[r_cumo].keys()) if c_cumo != r_cumo))
+        term=join(" + ",("%(c)s*(%(f)s)" % {
+            "c": c_cumo,
+            "f": join("+", A[r_cumo][c_cumo]),
+        } for c_cumo in A[r_cumo].keys() if c_cumo != r_cumo))
+        #}) for c_cumo in sorted(A[r_cumo].keys()) if c_cumo != r_cumo))
+        
         if term:
-            f.write("-("+term+")")
+            f.write(" - ("+term+")")
+            if d_avail:
+                numstr += " - (%(term)s"%{
+                    "term": join("+",("%(c)s*(%(f)s)" % ({
+                      "c": c_cumo,
+                      "f": sum(fwrv[v] for v in A[r_cumo][c_cumo]),
+                    }) for c_cumo in A[r_cumo].keys() if c_cumo != r_cumo))
+                }
         # rhs
         if r_cumo not in Ab["b"][w]:
-            f.write("=0.\n")
-            continue
-        f.write("="+join("+", ("%(f)s*(%(pc)s)" % ({
+            f.write(" = 0.\n")
+            if d_avail:
+                numstr += " = 0.\n"
+        else:
+            f.write(" = "+join("+", ("%(f)s*(%(pc)s)" % ({
                 "f": fl,
                 "pc": join("+", (join("*", Ab["b"][w][r_cumo][fl][i])
                     for i in Ab["b"][w][r_cumo][fl]))
             }) for fl in Ab["b"][w][r_cumo]))+"\n")
-
+            # numeric values
+            if d_avail :
+                numstr += " = "+join("+", ("%(f)s*(%(pc)s)" % ({
+                    "f": fwrv[fl],
+                    "pc": join("+", (join("*", Ab["b"][w][r_cumo][fl][i])
+                        for i in Ab["b"][w][r_cumo][fl]))
+                }) for fl in Ab["b"][w][r_cumo]))+"\n"
+        if d_avail:
+            f.write(numstr)
 #f.close(); # no need to close stdout
 #f.write(str(netan["emu_input"])+"\n")

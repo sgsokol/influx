@@ -50,13 +50,29 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this heading">¶</a></h1>
+<section id="version-7-0-3">
+<h2>2024-03-13 version 7.0.3<a class="headerlink" href="#version-7-0-3" title="Permalink to this heading">¶</a></h2>
+<dl class="simple">
+<dt>New feature:</dt><dd><ul class="simple">
+<li><p>ftbl2cumoAb shows numerical values of fluxes in cumomer/emu systems</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>fixed SyntaxWarning for Python-3.12</p></li>
+<li><p>fixed –fullsys option broken for few versions</p></li>
+<li><p>fixed determining ‘influx_s’ or ‘influx_i’ when called as influx_[si].main() from third party script (issue #8, submitted by Loic Le Gregam, TBI, France)</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-0-2">
-<h2>2024-02-20 version 7.0.2<a class="headerlink" href="#version-7-0-2" title="Permalink to this heading">¶</a></h2>
+<h2>2024-02-29 version 7.0.2<a class="headerlink" href="#version-7-0-2" title="Permalink to this heading">¶</a></h2>
 <dl class="simple">
 <dt>New feature:</dt><dd><ul class="simple">
 <li><p>influx_si can be called from python as ‘influx_s.main(argv)’</p></li>
 <li><p>an absence of labeling measurements is now signaled as error in influx_si (issue #6 submitted by Loic Le Gregam, TBI, France)</p></li>
 <li><p>ftbl2netan get an option ‘–eprl’ for parallel experiments</p></li>
+<li><p>documentation is excluded from package, see it on <a class="reference external" href="https://influx-si.readthedocs.io/">https://influx-si.readthedocs.io/</a></p></li>
 </ul>
 </dd>
 <dt>Bug fix:</dt><dd><ul class="simple">
@@ -860,7 +876,8 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
-<li><a class="reference internal" href="#version-7-0-2">2024-02-20 version 7.0.2</a></li>
+<li><a class="reference internal" href="#version-7-0-3">2024-03-13 version 7.0.3</a></li>
+<li><a class="reference internal" href="#version-7-0-2">2024-02-29 version 7.0.2</a></li>
 <li><a class="reference internal" href="#version-7-0-1">2023-10-04 version 7.0.1</a></li>
 <li><a class="reference internal" href="#version-7-0">2023-07-11 version 7.0</a></li>
 <li><a class="reference internal" href="#version-6-1">2022-10-11 version 6.1</a></li>

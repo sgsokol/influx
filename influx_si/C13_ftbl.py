@@ -422,6 +422,7 @@ def ftbl_parse(f, wout=wout, werr=werr):
                             dic[col_names[i]]=oldval
                 except IndexError:
                     pass
+            #import pdb; pdb.set_trace()
             if sec_name == "NETWORK" and pathway:
                 if pathway not in ftbl["pathway"]:
                     ftbl["pathway"][pathway]=[]
@@ -1297,20 +1298,21 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         werr(": ".join(inst)+"\n")
     #netan["cumo_input"]=[dict((k,(v if v==v else 0.)) for k,v in d.items()) for d in netan["cumo_input"]]
     # ordered cumomer lists
-    for w in range(1,netan["Cmax"]+1):
+    #for w in range(1,netan["Cmax"]+1):
         # weight 1 equations have all metabolites
         ##aff("A "+str(w), netan["cumo_sys"]["A"][w-1]);#
         ##aff("b "+str(w), netan["cumo_sys"]["b"][w-1]);#
         # order cumos along pathways
         # starts are input cumomers
-        starts=[cumo for cumo in netan["cumo_sys"]["A"][w-1] \
-            if cumo.split(":")[0] in netan["input"]]
+    #    starts=[cumo for cumo in netan["cumo_sys"]["A"][w-1] \
+    #        if cumo.split(":")[0] in netan["input"]]
         ##aff("st "+str(w), starts)
         # complete starts by all others cumomers
-        starts+=[c for c in netan["cumo_sys"]["A"][w-1] if not c in starts]
-        cumo_paths=cumo_path(starts, netan["cumo_sys"]["A"][w-1], oset())
+    #    starts+=[c for c in netan["cumo_sys"]["A"][w-1] if not c in starts]
+    #    cumo_paths=cumo_path(starts, netan["cumo_sys"]["A"][w-1], oset())
         # order
-        netan["vcumo"].append([cumo for cumo in valval(cumo_paths)])
+    #    netan["vcumo"].append([cumo for cumo in valval(cumo_paths)])
+    netan["vcumo"]=[[*a.keys()] for a in netan["cumo_sys"]["A"]]
 
     # ordered unknown flux lists
     # get all reactions which are not constrained, not free and not growth

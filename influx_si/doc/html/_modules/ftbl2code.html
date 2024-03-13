@@ -107,7 +107,7 @@
 <span class="sd">#  b - unsigned sparse vector of right hand side</span>
 
 <span class="sd">if (TIMEIT) {</span>
-<span class="sd">   cat(&quot;spAbr   : &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;\\n&quot;, sep=&quot;&quot;, file=fclog)</span>
+<span class="sd">   cat(&quot;%(var)-8s: &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;\\n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="sd">}</span>
 
 <span class="sd">nb_fwrv=%(n)d</span>
@@ -164,7 +164,7 @@
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">if (TIMEIT) {</span>
-<span class="sd">   cat(&quot;weight %(w)d: &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;\\n&quot;, sep=&quot;&quot;, file=fclog)</span>
+<span class="sd">   cat(&quot;weight %(w)2d: &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;\\n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="sd">}</span>
 <span class="sd">w=%(w)d</span>
 <span class="sd">nb_c=%(nbc)d</span>
@@ -570,21 +570,21 @@
 <span class="s2">nb_exp=</span><span class="si">%(nb_exp)d</span><span class="s2"></span>
 <span class="s2">nm_exp=c(</span><span class="si">%(nm_exp)s</span><span class="s2">)</span>
 <span class="s2">nm_list$nm_exp=nm_exp</span>
-<span class="s2"># input cumomer vectors</span>
+<span class="s2"># input cumomer vectors, list of vectors for case_s and matrices (nb_inp x nb_time) for case_i</span>
 <span class="s2">xi=list(</span><span class="si">%(xi)s</span><span class="s2">)</span>
 <span class="s2">if (any(lengths(xi) == 0)) {</span>
 <span class="s2">   stop_mes(&quot;No reduced label entry is defined (may be because no measurement provided). Cannot continue.&quot;, file=fcerr)</span>
 <span class="s2">}</span>
-<span class="s2">nm_xi=list(</span><span class="si">%(nm_xi)s</span><span class="s2">)</span>
+<span class="s2">nm_xi=c(</span><span class="si">%(nm_xi)s</span><span class="s2">) # same for all parallel exps</span>
 <span class="s2">for (i in seq_along(xi)) {</span>
-<span class="s2">   names(xi[[i]])=nm_xi[[i]]</span>
+<span class="s2">   names(xi[[i]])=nm_xi</span>
 <span class="s2">}</span>
 <span class="s2">nm_list$xi=nm_xi</span>
-<span class="s2">nb_xi=lengths(nm_xi)</span>
+<span class="s2">nb_xi=length(nm_xi)</span>
 <span class="s2">nb_f$xi=nb_xi</span>
 <span class="s2">nb_cumoi=nb_xi</span>
 <span class="s2">nm_inp=nm_xi</span>
-<span class="s2">nm_incu=c(&quot;one&quot;, nm_xi[[1L]], nm_rcumo)</span>
+<span class="s2">nm_incu=c(&quot;one&quot;, nm_xi, nm_rcumo)</span>
 <span class="s2">nm_inlab=nm_incu</span>
 <span class="s2">spa=spAbr</span>
 <span class="s2">nm_x=nm_rcumo</span>
@@ -599,18 +599,18 @@
 <span class="s2">   nm_x=nm_emu</span>
 <span class="s2">   nb_x=nb_emus</span>
 <span class="s2">   xiemu=list(</span><span class="si">%(xiemu)s</span><span class="s2">)</span>
-<span class="s2">   nm_xiemu=list(</span><span class="si">%(nm_xiemu)s</span><span class="s2">)</span>
+<span class="s2">   nm_xiemu=c(</span><span class="si">%(nm_xiemu)s</span><span class="s2">)</span>
 <span class="s2">   nm_list$xiemu=nm_xiemu</span>
 <span class="s2">   for (i in seq_along(xiemu)) {</span>
-<span class="s2">       names(xiemu[[i]])=nm_xiemu[[i]]</span>
-<span class="s2">    }</span>
-<span class="s2">   nb_xiemu=lengths(nm_xiemu)</span>
+<span class="s2">       names(xiemu[[i]])=nm_xiemu</span>
+<span class="s2">   }</span>
+<span class="s2">   nb_xiemu=length(nm_xiemu)</span>
 <span class="s2">   nb_f$xiemu=nb_xiemu</span>
 <span class="s2">   nb_f$xi=nb_xiemu</span>
 <span class="s2">   nb_xi=nb_xiemu</span>
 <span class="s2">   nm_inp=nm_xiemu</span>
 <span class="s2">   xi=xiemu</span>
-<span class="s2">   nm_inemu=c(&quot;one&quot;, nm_xiemu[[1L]], nm_emu)</span>
+<span class="s2">   nm_inemu=c(&quot;one&quot;, nm_xiemu, nm_emu)</span>
 <span class="s2">   nm_inlab=nm_inemu</span>
 <span class="s2">   spa=spr2emu(spAbr, nm_incu, nm_inemu, nb_f)</span>
 <span class="s2">}</span>
@@ -626,9 +626,9 @@
         <span class="s2">&quot;nb_exp&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">]),</span>
         <span class="s2">&quot;nm_exp&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;exp_names&quot;</span><span class="p">],</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
         <span class="s2">&quot;xi&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;NA&quot;</span>  <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">rc_keys_all</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">li</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_input&quot;</span><span class="p">])),</span> <span class="s2">&quot;c(&quot;</span><span class="p">,</span> <span class="s2">&quot;)&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;nm_xi&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">rc_keys</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span> <span class="k">for</span> <span class="n">rc_keys</span> <span class="ow">in</span> <span class="n">rc_keys_all</span><span class="p">),</span> <span class="s2">&quot;c(&quot;</span><span class="p">,</span> <span class="s2">&quot;)&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;nm_xi&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">rc_keys_all</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
         <span class="s2">&quot;xiemu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">==</span><span class="n">li</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;NA&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">emu_keys_all</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">li</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">])),</span> <span class="s2">&quot;c(&quot;</span><span class="p">,</span> <span class="s2">&quot;)&quot;</span><span class="p">),</span>
-        <span class="s2">&quot;nm_xiemu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">emu_keys</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span> <span class="k">for</span> <span class="n">emu_keys</span> <span class="ow">in</span> <span class="n">emu_keys_all</span><span class="p">),</span> <span class="s2">&quot;c(&quot;</span><span class="p">,</span> <span class="s2">&quot;)&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;nm_xiemu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">emu_keys_all</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">emu</span> <span class="k">else</span> <span class="p">[],</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
         <span class="s2">&quot;nm_emu&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">valval</span><span class="p">(</span><span class="n">netan</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;vemu&#39;</span><span class="p">,</span> <span class="p">[])),</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
         <span class="p">})</span>
     <span class="k">if</span> <span class="n">fullsys</span><span class="p">:</span>
