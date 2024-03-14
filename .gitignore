@@ -14,6 +14,7 @@ snipets/*
 .R*
 *Tmp
 *.save
+test_cases/*
 test_cases/cases/*
 test_cases/*.log*
 test_cases/*.err*
@@ -22,6 +23,7 @@ influx_si/doc/_build/*
 influx_si/doc/_static/*
 influx_si/doc/_static/*
 influx_si/test.old/*
+influx_si/test/ok/*
 influx_i-2012/*
 *.bck
 *~
@@ -42,3 +44,5 @@ tmp/*
 build/*
 dist/*
 howto_release.txt
+tmp*
+notes/*

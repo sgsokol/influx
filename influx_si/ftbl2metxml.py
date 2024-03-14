@@ -15,7 +15,7 @@ import txt2ftbl
 
 #import pdb
 
-me=os.path.basename(sys.argv[0])
+me=os.path.basename(__file__)
 def warn(mes):
     sys.stderr.write(me+": "+mes+"\n")
 def werr(mes):
@@ -47,7 +47,7 @@ def valid_id(s):
 def main(argv=sys.argv[1:]):
     sys.tracebacklimit=None
 
-    parser=argparse.ArgumentParser(description="convert FTBL to SBML. If a counterpart '_res.kvh' file is found, produce TSV files with flux values.")
+    parser=argparse.ArgumentParser(prog=me, description="convert FTBL to SBML. If a counterpart '_res.kvh' file is found, produce TSV files with flux values.")
     parser.add_argument('ftbl', nargs="*", help="file(s) to be converted to SBML. Extension '.ftbl' can be omitted.")
     parser.add_argument('--cstart', nargs=1, help="string delimiting start of compartment name, e.g. '--cstart=_'. If not given, all metabolites will be assigned to a default compartment")
     parser.add_argument('--cend', nargs=1, default="", help="string delimiting the end of compartment name, e.g. '--cstart=\"_[\" --cend=\"]\"', here a compartment name is expected to be in brackets preceded by an underscore. For example, with cited values, a metabolite name 'Glc_[c]' will be interpreted as metabolite 'Glc' in compartment 'c'.")

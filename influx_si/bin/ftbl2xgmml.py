@@ -97,7 +97,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     # take arguments
     #<--skip in interactive session
     # get arguments
-    me=os.path.basename(sys.argv[0])
+    me=os.path.basename(__file__)
     def usage():
         sys.stderr.write(__doc__)
     try:

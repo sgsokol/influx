@@ -120,7 +120,7 @@ import C13_ftbl
 import ftbl2code
 
 def main(argv=sys.argv[1:], wout=sys.stdout.write, werr=sys.stderr.write):
-    me="ftbl2opt"
+    me=os.path.basename(__file__)
     dirbin=os.path.join(os.path.dirname(influx_si.__file__), "bin")
     sys.path.append(dirbin)
 

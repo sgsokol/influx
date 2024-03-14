@@ -16,7 +16,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     def usage():
         print(__doc__)
 
-    me=os.path.basename(sys.argv[0])
+    me=os.path.basename(__file__)
     try:
         opts,args=getopt.getopt(sys.argv[1:], "hi", ["help", "emu", "clownr", "fullsys", "prefix=", "mtf=", "eprl="])
     except getopt.GetoptError as err:

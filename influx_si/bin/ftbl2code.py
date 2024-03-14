@@ -21,7 +21,7 @@ from operator import itemgetter
 from itertools import groupby
 from pathlib import Path
 
-me=os.path.abspath(os.path.realpath(sys.argv[0]))
+me=os.path.abspath(__file__)
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
 if (dirx.endswith("py3")):

@@ -21,7 +21,7 @@ import influx_si
 from C13_ftbl import ftbl_parse, ftbl_netan
 from txt2ftbl import tsv2df, try_ext
 
-me=os.path.basename(sys.argv[0] or "ftbl2labcin")
+me=os.path.basename(__file__)
 def werr(mes):
     raise Exception(f"{me}: "+str(mes))
 def warn(mes):
@@ -86,7 +86,7 @@ def ftbl_id(ftbl, d, netan, iprl=0):
     df_cin.to_csv(flabcin, sep="\t", index=False, encoding="UTF-8")
 
 def main(argv=sys.argv):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(prog=me, description=__doc__)
     parser.add_argument("ftbl",
         help="FTBL file name to process", nargs="+")
     # parse command line

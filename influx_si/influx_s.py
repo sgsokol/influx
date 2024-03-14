@@ -3,6 +3,7 @@
 """
 
 #import pdb
+#print(("n=", __name__))
 
 import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat
 import argparse
@@ -191,6 +192,7 @@ def launch_job(ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, pars
 def main(argv=sys.argv[1:]):
     """example: influx_s.main(["--prefix", "path/to/mtf"])
 Call influx_s.main(["-h"]) for a help message"""
+    #print(("argv=", argv))
     global me
     # my own name
     me=os.path.realpath(__file__)
@@ -239,7 +241,7 @@ Call influx_s.main(["-h"]) for a help message"""
                 if val <= 0. or val >= 1.:
                     raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
                 setattr(namespace, self.dest, val)
-    parser = ArgumentParser(description=__doc__)
+    parser = ArgumentParser(prog=me, description=__doc__)
     if True: # just to make a collapsible code block
         parser.add_argument(
         "--noopt", action="store_true",
@@ -665,5 +667,5 @@ Call influx_s.main(["-h"]) for a help message"""
             if flog:
                 with flog.open("a") as flp: flp.write(s)
     return(retcode)
-if __name__ == "__main__" or __name__ == "influx_si.cli":
+if __name__ == "__main__":
     sys.exit(main())

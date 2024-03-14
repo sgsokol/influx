@@ -37,7 +37,7 @@ import C13_ftbl
 from txt2ftbl import tsv2df, try_ext, plain_natural_key
 
 LOCAL_TIMEZONE=datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo;
-me=os.path.basename(sys.argv[0] or "ftbl2mtf")
+me=os.path.basename(__file__)
 
 def dtstamp():
     "formatted date-time stamp"
@@ -345,5 +345,5 @@ def main(argv=sys.argv[1:]):
             ftbl2suff(dftbl, fpftbl, case_i, netan, force, out.parent/pftbl, scre, (".linp", ".miso", ".opt"))
     return 0
 
-if __name__ == "__main__" or __name__ == "influx_si.cli":
+if __name__ == "__main__":
     main()

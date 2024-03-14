@@ -2,6 +2,15 @@
 Change Log for influx_si
 ========================
 
+2024-??-?? version 7.0.4
+------------------------
+New feature:
+ - ?
+
+Bug fix:
+ - fixed __name__ usage in influx_[si].py
+ - replaced argv[0] by __file__ in auto-identification
+
 2024-03-13 version 7.0.3
 ------------------------
 New feature:

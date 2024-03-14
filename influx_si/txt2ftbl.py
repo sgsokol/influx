@@ -1534,5 +1534,5 @@ is the argument value that will take precedence.
                 if __name__ == "__main__" or __name__ == "influx_si.txt2ftbl":
                     print(str(p))
     return 0
-if __name__ == "__main__" or __name__ == "influx_si.cli":
+if __name__ == "__main__":
     sys.exit(main())
