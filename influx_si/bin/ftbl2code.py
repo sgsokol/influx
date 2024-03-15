@@ -356,6 +356,7 @@ excl_outliers=FALSE
 TIMEIT=FALSE
 prof=FALSE
 time_order="1"
+wkvh=FALSE
 
 # get runtime arguments
 %(ropts)s

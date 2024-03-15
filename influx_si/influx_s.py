@@ -7,9 +7,9 @@
 
 import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat
 import argparse
-from threading import Thread # threaded parallel jobs
-from multiprocessing import cpu_count
-from queue import Queue # threaded parallel jobs
+#from threading import Thread # threaded parallel jobs
+from multiprocessing import cpu_count, Process, Queue
+#from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
 from pathlib import Path
 
@@ -23,20 +23,43 @@ class ArgumentParser(argparse.ArgumentParser):
         #self.print_help(sys.stderr)
         #self.exit(2, '%s: error: %s\n' % (self.prog, message))def now_s():
         raise Exception(me+": ArgumentParser: "+message)
+class ordAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        ord_args.append(("--"+self.dest, values))
+class pvalAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        # treat excl_outliers
+        if values is None or values == "":
+            # given without arg
+            setattr(namespace, self.dest, 0.01)
+        elif values == -1:
+            # default value => not given on command line
+            pass
+        else:
+            # some value is given in arg
+            try:
+                val=float(values)
+            except:
+                raise Exception("--excl_outliers expects a float number, instead got '%s'"%str(values))
+            if val <= 0. or val >= 1.:
+                raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
+            setattr(namespace, self.dest, val)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
-def qworker(q, qret):
+def qworker(q, qret, qres):
     while True:
         item=q.get()
         #print("item=", item)
         try:
-            retcode=launch_job(**item)
+            retcode=launch_job(qres, **item)
         except Exception as e:
             traceback.print_exc()
             sys.stderr.write("Error: launch_job: "+"%s\n"%str(e)+"\n")
             retcode=1
         qret.put(retcode)
-        q.task_done()
+        if q.empty():
+            return
+        #q.task_done()
 def move2tmp(dirres, fp):
     "Move file fp to <dirres>/tmp dir"
     if fp:
@@ -69,7 +92,7 @@ def move_ftbl(dirres, fp, case_i):
     for f in prl_ftbl:
         move_ftbl(dtmp, fp.parent / (f+("" if f[-5:].lower()==".ftbl" else ".ftbl")), case_i)
 
-def launch_job(ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, parser, nb_ftbl, case_i, dirres, qres):
+def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres):
     r"""Launch R code generation and then its execution
 """
     #pdb.set_trace()
@@ -189,18 +212,25 @@ def launch_job(ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, pars
         return(1)
     return(retcode)
 
+def identity(string):
+    return string
+
+# global variable
+me = os.path.basename(__file__)
+parser = ArgumentParser(prog=me, description=__doc__)
+ord_args = []
+
 def main(argv=sys.argv[1:]):
     """example: influx_s.main(["--prefix", "path/to/mtf"])
 Call influx_s.main(["-h"]) for a help message"""
     #print(("argv=", argv))
-    global me
+    global me, ord_args
+    ord_args=[]
     # my own name
-    me=os.path.realpath(__file__)
     # my install dir
     dirinst=os.path.dirname(os.path.realpath(influx_si.__file__))
     dirbin=os.path.join(dirinst, "bin")
 
-    me=os.path.basename(me)
     if me[:8]=="influx_i":
         case_i=True
     elif me[:8]=="influx_s":
@@ -218,30 +248,8 @@ Call influx_s.main(["-h"]) for a help message"""
     # non valid options for R
     notropt=set(("tblimit", "mtf", "prefix", "force"))
 
-    # create a parser for command line options
-    ord_args=[]
-    class ordAction(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
-            ord_args.append(("--"+self.dest, values))
-    class pvalAction(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
-            # treat excl_outliers
-            if values is None or values == "":
-                # given without arg
-                setattr(namespace, self.dest, 0.01)
-            elif values == -1:
-                # default value => not given on command line
-                pass
-            else:
-                # some value is given in arg
-                try:
-                    val=float(values)
-                except:
-                    raise Exception("--excl_outliers expects a float number, instead got '%s'"%str(values))
-                if val <= 0. or val >= 1.:
-                    raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
-                setattr(namespace, self.dest, val)
-    parser = ArgumentParser(prog=me, description=__doc__)
+    # define a parser for command line options
+    parser.register('type', None, identity) # to make parser serializable
     if True: # just to make a collapsible code block
         parser.add_argument(
         "--noopt", action="store_true",
@@ -344,7 +352,9 @@ Call influx_s.main(["-h"]) for a help message"""
         parser.add_argument(
         "-o", "--out",
                help="output directory. Default: basename of input file without suffix + '_res'. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.")
-
+        parser.add_argument(
+        "--wkvh", action="store_true",
+            help="write results to '_res.kvh' file")
         # install helper actions
         parser.add_argument(
         "--copy_doc", action="store_true",
@@ -445,6 +455,7 @@ Call influx_s.main(["-h"]) for a help message"""
     prl_ftbl=dict()
     mtf_opts=[]
     ferr=sys.stderr
+    #import pdb; pdb.set_trace()
     if ord_args:
         if case_i:
             mtf_opts += ["--inst"]
@@ -454,6 +465,7 @@ Call influx_s.main(["-h"]) for a help message"""
         if "--force" in ocount:
             mtf_opts += ["--force"]
             del(ocount["--force"])
+        #print(("oc=", ocount, "a=", args))
         if ocount["--prefix"] > 1:
             if len(ocount) > 1:
                 raise Exception("If several occurrences of '--prefix' options are present, no other MTF options can be used (got '%s')"%"', '".join(k for k in ocount if k != "--prefix"))
@@ -505,14 +517,17 @@ Call influx_s.main(["-h"]) for a help message"""
         np=avaco
     #print("np=", np)
     tblimit=dict_opts.get("tblimit")
-    q=Queue() # arguments for threads
-    qres=Queue() # results from threads (R file names)
+    q=Queue() # arguments for //-work
+    qres=Queue() # results from //-work (R file names)
     qret=Queue() # returned code from workers
 
+    parproc=[]
     for i in range(min(np, len(args))):
-        t=Thread(target=qworker, args=(q, qret))
+        #t=Thread(target=qworker, args=(q, qret))
+        t=Process(target=qworker, args=(q, qret, qres))
         t.daemon=True
         t.start()
+        parproc.append(t)
 
     nb_ftbl=len(args)
     ftpr=[] # proceeded ftbls
@@ -524,12 +539,15 @@ Call influx_s.main(["-h"]) for a help message"""
         f=ft[:-5]
         fshort="" if len(args) == 1 else Path(ft).stem+": "
 
-        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "parser": parser, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "qres": qres}
+        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres}
         q.put(item)
     if not ftpr:
         return(1)
     #pdb.set_trace()
-    q.join()
+    #q.join()
+    q.close() # no more data will be added to this queue
+    for t in parproc:
+        t.join() # wait the end of //-jobs
 
     # get names of generated R files
     rfiles=[]
@@ -551,7 +569,7 @@ Call influx_s.main(["-h"]) for a help message"""
         suppressPackageStartupMessages(library(Rcpp))
         dirx="%(dirx)s"
         dirres="%(dirres)s" # can be "default" or empty
-        source(file.path(dirx, "opt_cumo_tools.R"))
+        source(file.path(dirx, "opt_cumo_tools.R"), echo=FALSE)
         doit=function(fR) {
            f=substr(fR, 1, nchar(fR)-2)
            fshort=basename(f)
@@ -569,7 +587,7 @@ Call influx_s.main(["-h"]) for a help message"""
            if (dirres == "default") {
               close(flog)
            }
-           source(fR)
+           source(fR, echo=FALSE)
            now=Sys.time()
            if (dirres == "default") {
               flog=file(nm_flog, "a")
@@ -621,6 +639,7 @@ Call influx_s.main(["-h"]) for a help message"""
                 fpe=""
                 flog=None
             move2tmp(dirres, fp)
+            move2tmp(dirres, fp.with_suffix(".Rprof"))
             fp=fp.with_suffix(".ftbl")
             if str(fp) in set_ftbl:
                 move_ftbl(dirres, fp, case_i)
@@ -643,20 +662,22 @@ Call influx_s.main(["-h"]) for a help message"""
         # execute only one R code
         if not retcode and rfiles and not dict_opts["nocalc"]:
             f=rfiles[0][0][:-2]
-            rcmd="R --vanilla --slave"
+            rcmd="R --vanilla --slave -e"
+            rarg=f"source('{rfiles[0][0]}',echo=FALSE)"
             if flog:
-                with flog.open("a") as flp: flp.write("executing: "+rcmd+" < "+f+".R\n")
+                with flog.open("a") as flp: flp.write("executing: "+rcmd+' "'+rarg+'"\n')
             s="calcul  : "+now_s()+"\n"
             sys.stdout.write(s)
             if flog:
                 with flog.open("a") as flp: flp.write(s)
-            retcode=subp.run(rcmd.split(), stdin=open(f+".R", "r")).returncode
+            retcode=subp.run(rcmd.split()+[rarg]).returncode
         s="end     : "+now_s()+"\n"
         sys.stdout.write(s)
         if flog:
             with flog.open("a") as flp: flp.write(s)
         # move .R (and .ftbl if --prefix)
         move2tmp(dirres, fp)
+        move2tmp(dirres, fp.with_suffix(".Rprof"))
         if ftpr[0] in set_ftbl:
             move_ftbl(dirres, ftpr[0], case_i)
 

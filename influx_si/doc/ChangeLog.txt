@@ -5,11 +5,17 @@ Change Log for influx_si
 2024-??-?? version 7.0.4
 ------------------------
 New feature:
- - ?
+ - now, parallel processing in influx_[si].py is by process not thread
+ - reduced R execution time with 'echo=FALSE'
+ - introduced option '--wkvh' which means that '_res.kvh' is no more written by default
+ - empty sub-option in '--mtf' cancels this sub-option, e.g. '--mtf vmtf=""' will ignore '.vmtf' file if present
 
 Bug fix:
  - fixed __name__ usage in influx_[si].py
  - replaced argv[0] by __file__ in auto-identification
+ - txt2ftbl: fixed multiple writing of .def files when several outputs are in .vmtf
+ - fixed moving .Rprof files to tmp/ directory
+ - fixed chi2 error message when rcost is NA
 
 2024-03-13 version 7.0.3
 ------------------------

@@ -307,7 +307,7 @@ names(poolmdev)=nm_poolm
 # measmatpool*poolall=>poolm
 measmatpool=matrix(0., nrow=nb_poolm, ncol=length(poolall))
 dimnames(measmatpool)=list(nm_poolm, nm_poolall)
-i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=T)
+i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=TRUE)
 measmatpool[i]=1.
 
     """%{
@@ -721,7 +721,7 @@ if (case_i && (time_order == "2" || time_order == "1,2")) {
 }
 
 # formated output in kvh file
-if (write_res) {
+if (write_res && wkvh) {
    fkvh_saved=file.path(dirres, "tmp", sprintf("%s_res.kvh", baseshort))
 } else {
    fkvh_saved=NULL
@@ -800,7 +800,6 @@ for (irun in seq_len(nseries)) {
    }
    param[nm_pseries]=pstart[nm_pseries, irun]
 #browser()
-   # prepare kvh file name
    if (nseries > 1) {
       runsuf="." %s+% colnames(pstart)[irun]
    } else {
@@ -809,7 +808,8 @@ for (irun in seq_len(nseries)) {
    if (length(nseries) > 0) {
       cat("Starting point", runsuf, "\n", sep="", file=fclog)
    }
-   if (write_res) {
+   # prepare kvh file name
+   if (write_res && wkvh) {
       fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) %s+% runsuf %s+% ".kvh", "w");
    } else {
       fkvh=NULL
@@ -829,6 +829,9 @@ for (irun in seq_len(nseries)) {
    tol_ineq=if ("BFGS" %in% methods) 0. else 1.e-10
    nbad=sum(ineq <= -tol_ineq)
    if (nbad > 0) {
+      if (TIMEIT) {
+         cat(sprintf("put_ins : %s cpu=%g\n", format(Sys.time()), proc.time()[1]), "\n", sep="", file=fclog)
+      }
       cat("The following ", nbad, " inequalities are not respected at starting point", runsuf, ":\n", sep="", file=fclog)
       i=ineq[ineq<= -tol_ineq]
       cat(paste(names(i), i, sep="\t", collapse="\n"), "\n", sep="", file=fclog)
@@ -869,15 +872,15 @@ for (irun in seq_len(nseries)) {
       # prepare fluxes that are already in inequalities in alone mode
       ige=names(which(apply(mi, 1L, function(v) diff(range(v))==1 && sum(v)==1) & li>=0))
       ige=nm_dfn[unique(c(
-         sub("^n:.+<=(.+)$", "\\1", grep("^n:.+<=.+$", ige, v=T)),
-         sub("^[df]\\.n\\.(.+)>=.+$", "\\1", grep("^[df]\\.n\\..+>=.+$", ige, v=T)),
-         sub("^inout [df]\\.n\\.(.+)>=.+$", "\\1", grep("^inout [df]\\.n\\..+>=.+$", ige, v=T))
+         sub("^n:.+<=(.+)$", "\\1", grep("^n:.+<=.+$", ige, v=TRUE)),
+         sub("^[df]\\.n\\.(.+)>=.+$", "\\1", grep("^[df]\\.n\\..+>=.+$", ige, v=TRUE)),
+         sub("^inout [df]\\.n\\.(.+)>=.+$", "\\1", grep("^inout [df]\\.n\\..+>=.+$", ige, v=TRUE))
       ))]
       ile=which(apply(mi, 1L, function(v) diff(range(v))==1 && sum(v)==-1)&li>=0)
       ile=nm_dfn[unique(c(
-         sub("^n:.+<=(.+)$", "\\1", grep("^n:.+<=.+$", ile, v=T)),
-         sub("^[df]\\.n\\.(.+)>=.+$", "\\1", grep("^[df]\\.n\\..+>=.+$", ile, v=T)),
-         sub("^inout [df]\\.n\\.(.+)>=.+$", "\\1", grep("^inout [df]\\.n\\..+>=.+$", ile, v=T))
+         sub("^n:.+<=(.+)$", "\\1", grep("^n:.+<=.+$", ile, v=TRUE)),
+         sub("^[df]\\.n\\.(.+)>=.+$", "\\1", grep("^[df]\\.n\\..+>=.+$", ile, v=TRUE)),
+         sub("^inout [df]\\.n\\.(.+)>=.+$", "\\1", grep("^inout [df]\\.n\\..+>=.+$", ile, v=TRUE))
       ))]
       # add lower limits on [df].net >= zc for positive net fluxes
       # and upper limits on [df].net <= -zc for negative net fluxes
@@ -1011,13 +1014,13 @@ for (irun in seq_len(nseries)) {
 """)
 
     f.write("""
-   if (TIMEIT) {
+   if (TIMEIT && wkvh) {
       cat("kvh init: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
    }
 """)
     # main part: call optimization
     f.write("""
-   if (write_res) {
+   if (write_res && wkvh) {
       cat("influx\\n", file=fkvh)
       cat("\\tversion\\t", vernum, "\\n", file=fkvh, sep="")
       cat("\\tlabeling\\t", if (case_i) "instationary" else "stationary", "\\n", file=fkvh, sep="")
@@ -1027,7 +1030,7 @@ for (irun in seq_len(nseries)) {
    }
    """%ropts_s)
     f.write("""
-   if (write_res) {
+   if (write_res && wkvh) {
       obj2kvh(R.Version(), "R.Version", fkvh, indent=1)
       cat("\\tR command line\\n", file=fkvh)
       obj2kvh(opts, "opts", fkvh, indent=2)
@@ -1043,12 +1046,7 @@ for (irun in seq_len(nseries)) {
    }
 #browser()
    if (!length(rres)) {
-      if (write_res) {
-         #capture.output(rres <- lab_resid(param, cjac=FALSE, labargs), file=fclog)
-         rres <- lab_resid(param, cjac=FALSE, labargs)
-      } else {
-         rres <- lab_resid(param, cjac=FALSE, labargs)
-      }
+      rres <- lab_resid(param, cjac=FALSE, labargs)
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
          #close(fkvh)
@@ -1063,7 +1061,7 @@ for (irun in seq_len(nseries)) {
       }
    }
    rcost=if (length(rres$res) && !all(ina <- is.na(rres$res))) sum(crossprod(rres$res[!ina])) else NA
-   if (write_res) {
+   if (write_res && wkvh) {
       obj2kvh(rcost, "starting cost value", fkvh, indent=1)
       obj2kvh(Afl, "flux system (Afl)", fkvh, indent=1)
    }
@@ -1072,7 +1070,7 @@ for (irun in seq_len(nseries)) {
    if (nb_f$nb_fgr > 0) {
       fg[paste("g.n.", substring(nm_list$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm_list$poolf]
    }
-   if (write_res) {
+   if (write_res && wkvh) {
       btmp=as.numeric(p2bfl%stm%param[seq_len(nb_f$nb_ff)]+bp+g2bfl%stm%fg)
       names(btmp)=dimnames(Afl)[[1]]
       obj2kvh(btmp, "flux system (bfl)", fkvh, indent=1)
@@ -1104,7 +1102,7 @@ for (irun in seq_len(nseries)) {
             #close(fkvh)
             next
          }
-         qrj=qr(jx_f$dr_dff, LAPACK=T)
+         qrj=qr(jx_f$dr_dff, LAPACK=TRUE)
          d=diag(qrj$qr)
          qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
          if (is.na(qrj$rank)) {
@@ -1122,10 +1120,10 @@ for (irun in seq_len(nseries)) {
             # Too bad. The jacobian of free fluxes is not of full rank.
             dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx)
             fname="dbg_dr_dff_singular" %s+% runsuf %s+% ".csv"
-            cat(sprintf("Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:\\n%s\\nJacobian dr_dff is written in the result kvh file.\\n",
+            cat(sprintf("Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes.\\nUnsolvable fluxes may be:\\n%s\\nJacobian dr_dff is written in the result kvh file (if --wkvh is activated).\\n",
                paste(nm_uns, sep=", ", collapse=", ")),
                file=fcerr)
-            if (write_res) {
+            if (write_res && wkvh) {
                obj2kvh(jx_f$dr_dff, "Jacobian dr_dff", fkvh, indent=0)
             }
             #close(fkvh)
@@ -1155,7 +1153,7 @@ for (irun in seq_len(nseries)) {
          if (any(is.na(res$par))) {
 #browser()
             res$retres$jx_f=NULL # to avoid writing of huge data
-            if (write_res) {
+            if (write_res && wkvh) {
                obj2kvh(res, "failed first pass optimization process information", fkvh)
             }
             cat("Optimization failed", runsuf, ": ", res$mes, "\\n", file=fcerr, sep="")
@@ -1171,13 +1169,13 @@ for (irun in seq_len(nseries)) {
             }
             # inverse active "zc" inequalities
             nm_inv=names(which((ui%*%res$par-ci)[,1]<=tol_ineq))
-            i=grep("^zc ", nm_inv, v=T)
+            i=grep("^zc ", nm_inv, v=TRUE)
             if (length(i) > 0) {
                i=str2ind(i, nm_i)
                cat("The following inequalities are active after first pass
    of zero crossing strategy and will be inverted", runsuf, ":\\n", paste(nm_i[i], collapse="\\n"), "\\n", sep="", file=fclog)
-               ipos=grep(">=", nm_i[i], v=T)
-               ineg=grep("<=", nm_i[i], v=T)
+               ipos=grep(">=", nm_i[i], v=TRUE)
+               ineg=grep("<=", nm_i[i], v=TRUE)
                ui[i,]=-ui[i,,drop=FALSE]
                if (length(ipos)) {
                   ipzc=str2ind(ipos, nm_izc)
@@ -1230,7 +1228,7 @@ for (irun in seq_len(nseries)) {
                   }
                   if (any(is.na(reso$par))) {
                      reso$retres$jx_f=NULL # to avoid writing of huge data
-                     if (write_res)
+                     if (write_res && wkvh)
                         obj2kvh(reso, "failed second pass optimization process information", fkvh)
                      cat("***Warning: second zero crossing pass failed. Keep free parameters from previous pass", runsuf, "\\n", file=fclog, sep="")
                   }
@@ -1260,7 +1258,7 @@ for (irun in seq_len(nseries)) {
                   }
                   if (any(is.na(res$par))) {
                      res$retres$jx_f=NULL # to avoid writing of huge data
-                     if (write_res)
+                     if (write_res && wkvh)
                         obj2kvh(res, "failed last pass optimization process information", fkvh)
                      cat("***Warning: last zero crossing pass failed. Keep free parameters from previous passes", runsuf, "\\n", file=fclog, sep="")
                   }
@@ -1307,7 +1305,7 @@ for (irun in seq_len(nseries)) {
                names(param)=nm_par
                jx_f=labargs$jx_f
                labargs$measurements=measurements # store outliers
-               if (write_res)
+               if (write_res && wkvh)
                   obj2kvh(outtab, "excluded outliers", fkvh)
             }
          } else {
@@ -1345,10 +1343,13 @@ for (irun in seq_len(nseries)) {
          "convergence history"=res$hist,
          "exit message"=res$mes
       )
-      if (write_res)
+      if (write_res && wkvh)
          obj2kvh(optinfo, "optimization process information", fkvh)
       rres=res$retres
    } else {
+      if (TIMEIT) {
+         cat("residjac: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
+      }
       rres=lab_resid(param, TRUE, labargs)
    }
    if (TIMEIT) {
@@ -1357,7 +1358,7 @@ for (irun in seq_len(nseries)) {
    # active constraints
    if (!all(is.na(param))) {
       ine=as.numeric(abs(ui%*%param-ci))<tol_ineq
-      if (any(ine) && write_res) {
+      if (any(ine) && write_res && wkvh) {
          obj2kvh(nm_i[ine], "active inequality constraints", fkvh)
       }
    }
@@ -1373,8 +1374,8 @@ for (irun in seq_len(nseries)) {
       }
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-         if (write_res)
-            close(fkvh)
+         #if (write_res && wkvh)
+         #   close(fkvh)
          retcode[irun]=rres$err
          next
       }
@@ -1383,7 +1384,7 @@ for (irun in seq_len(nseries)) {
    pres[,irun]=param
    costres[irun]=rcost
    if (write_res) {
-      obj2kvh(rcost, "final cost", fkvh)
+      if (wkvh) obj2kvh(rcost, "final cost", fkvh)
 #browser()
       # get z p-values on residual vector
       zpval=rz.pval.bi(rres$res)
@@ -1409,9 +1410,10 @@ for (irun in seq_len(nseries)) {
          resid[["measured fluxes"]]=cbind(residual=jx_f$resflu, `p-value`=zpval[nb_reslab_tot+seq_along(jx_f$resflu)])
       if (length(jx_f$respool))
          resid[["measured pools"]]=cbind(residual=if (is.matrix(jx_f$respool)) jx_f$respool[,1] else jx_f$respool, `p-value`=zpval[nb_reslab_tot+length(jx_f$resflu)+seq_along(jx_f$respool)])
-      obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
+      if (wkvh)
+         obj2kvh(resid, "(simulated-measured)/sd_exp", fkvh)
 
-      # simulated measurements -> kvh
+      # simulated measurements -> out
       simul=list()
 #browser()
       if (case_i) {
@@ -1549,15 +1551,15 @@ for (irun in seq_len(nseries)) {
          write.table(df, sep="\t", quote=FALSE, row.names=FALSE, file=file.path(dirres, paste0(baseshort, runsuf, ".mmet.sim")))
       }
       rm(resid, zpval)
-      obj2kvh(simul, "simulated measurements", fkvh)
+      if (wkvh) obj2kvh(simul, "simulated measurements", fkvh)
    
-      # SD -> kvh
+      # SD -> out
       # get index of non null components
       iget=sapply(names(measurements$dev), function(nm) !is.null(measurements$dev[[nm]]) & nm %in% c("labeled", "flux", "pool"))
-      obj2kvh(measurements$dev[iget], "measurement SD", fkvh)
+      if (wkvh) obj2kvh(measurements$dev[iget], "measurement SD", fkvh)
 
       # gradient -> kvh
-      if (length(jx_f$res) && !all(ina <- is.na(jx_f$res))) {
+      if (length(jx_f$res) && !all(ina <- is.na(jx_f$res)) && wkvh) {
          if (any(ina)) {
             gr=2*as.numeric(crossprod(jx_f$res[!ina], jx_f$jacobian[!ina,,drop=FALSE]))
          } else {
@@ -1567,9 +1569,9 @@ for (irun in seq_len(nseries)) {
          obj2kvh(gr, "gradient vector", fkvh)
       }
       colnames(jx_f$udr_dp)=nm_par
-      obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
+      if (wkvh) obj2kvh(jx_f$udr_dp, "jacobian dr_dp (without 1/sd_exp)", fkvh)
       # generalized inverse of non reduced jacobian
-      if (length(jx_f$udr_dp) > 0L) {
+      if (length(jx_f$udr_dp) > 0L && wkvh) {
          svj=svd(jx_f$udr_dp)
          invj=svj$v%*%(t(svj$u)/svj$d)
          dimnames(invj)=rev(dimnames(jx_f$udr_dp))
@@ -1653,14 +1655,14 @@ for (irun in seq_len(nseries)) {
       x=if (case_i) v$xf else v$x
    }
 
+   mid=cumo2mass(x)
+   if (case_i) {
+      mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])
+   } else if (length(mid)) {
+      mid=mid[sort(rownames(mid)),,drop=FALSE]
+   }
    # write some info in result kvh
-   if (write_res) {
-      mid=cumo2mass(x)
-      if (case_i) {
-         mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])
-      } else if (length(mid)) {
-         mid=mid[sort(rownames(mid)),,drop=FALSE]
-      }
+   if (write_res && wkvh) {
       obj2kvh(mid, "MID vector", fkvh)
       
       # constrained fluxes to kvh
@@ -1705,13 +1707,13 @@ for (irun in seq_len(nseries)) {
       }
       cost_mc=free_mc[1,]
       nmc_real=nmc-sum(is.na(free_mc[4,]))
-      if (write_res) {
+      if (write_res && wkvh) {
          cat("monte-carlo\\n", file=fkvh)
          indent=1
          obj2kvh(cl_type, "cluster type", fkvh, indent)
          obj2kvh(avaco, "detected cores", fkvh, indent)
-         avaco=max(1, avaco, na.rm=T)
-         obj2kvh(min(avaco, np, na.rm=T), "used cores", fkvh, indent)
+         avaco=max(1, avaco, na.rm=TRUE)
+         obj2kvh(min(avaco, np, na.rm=TRUE), "used cores", fkvh, indent)
          cat("\\tfitting samples\\n", file=fkvh)
          indent=2
          obj2kvh(nmc, "requested number", fkvh, indent)
@@ -1720,7 +1722,7 @@ for (irun in seq_len(nseries)) {
          # convergence section in kvh
          indent=1
          mout=rbind(round(free_mc[1:2,,drop=FALSE], 2),
-            format(free_mc[3,,drop=FALSE], di=2, sci=T))
+            format(free_mc[3,,drop=FALSE], di=2, sci=TRUE))
          dimnames(mout)=list(c("cost", "it.numb", "normp"), seq_len(ncol(free_mc)))
          obj2kvh(mout, "convergence per sample", fkvh, indent)
       }
@@ -1743,7 +1745,7 @@ for (irun in seq_len(nseries)) {
       rownames(free_mc)=nm_par
       
       # cost section in kvh
-      if (write_res) {
+      if (write_res && wkvh) {
          cat("\\tcost\\n", file=fkvh)
          indent=2
          obj2kvh(mean(cost_mc), "mean", fkvh, indent)
@@ -1849,8 +1851,8 @@ for (irun in seq_len(nseries)) {
       }
       if (!is.null(rres$err) && rres$err) {
          cat("lab_resid", runsuf, ": ", rres$mes, "\\n", file=fcerr, sep="")
-         if (write_res)
-            close(fkvh)
+         #if (write_res && wkvh)
+         #   close(fkvh)
          retcode[irun]=rres$err
          next
       }
@@ -1878,7 +1880,7 @@ for (irun in seq_len(nseries)) {
       rtcov=(svj$u)%*%(t(svj$v)/svj$d)
       # standard deviations of free fluxes
       if (write_res) {
-         cat("linear stats\\n", file=fkvh)
+         if (wkvh) cat("linear stats\\n", file=fkvh)
 
          # sd free+dependent+growth net-xch01 fluxes
          nm_flfd=c(nm_ff, nm_fgr, nm_fl)
@@ -1895,9 +1897,11 @@ for (irun in seq_len(nseries)) {
          fl=c(head(param, nb_ff), fgr, flnx)
          stats_nx=cbind("value"=fl, "sd"=sdfl, "rsd"=sdfl/abs(fl))
          rownames(stats_nx)=nm_flfd
-         o=order(nm_flfd)
-         obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
-         obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
+         if (wkvh) {
+            o=order(nm_flfd)
+            obj2kvh(stats_nx[o,,drop=FALSE], "net-xch01 fluxes (sorted by name)", fkvh, indent=1)
+            obj2kvh(covfl[o, o], "covariance net-xch01 fluxes", fkvh, indent=1)
+         }
          
          # flux, pool --> .tvar
 #browser()
@@ -1932,12 +1936,14 @@ for (irun in seq_len(nseries)) {
          } else {
             sdf=rep(0., length(fwrv))
          }
-         mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
-         dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
-         o=order(nm_fwrv)
-         obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
-         if (nb_ff > 0 || nb_fgr > 0) {
-            obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
+         if (wkvh) {
+            mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))
+            dimnames(mtmp)[[2]]=c("value", "sd", "rsd")
+            o=order(nm_fwrv)
+            obj2kvh(mtmp[o,], "fwd-rev fluxes (sorted by name)", fkvh, indent=1)
+            if (nb_ff > 0 || nb_fgr > 0) {
+               obj2kvh(covf, "covariance fwd-rev fluxes", fkvh, indent=1)
+            }
          }
          # pool -> kvh
          sdpf=poolall
@@ -1953,10 +1959,12 @@ for (irun in seq_len(nseries)) {
             sdpf[nm_poolf]=sqrt(diag(covpf))
          }
          if (length(poolall) > 0) {
-            mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
-            rownames(mtmp)=nm_poolall
-            o=order(nm_poolall)
-            obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
+            if (wkvh) {
+               mtmp=cbind("value"=poolall, "sd"=sdpf, "rsd"=sdpf/poolall)
+               rownames(mtmp)=nm_poolall
+               o=order(nm_poolall)
+               obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
+            }
             if (nb_poolf > 0) {
                o=order(nm_poolf)
                obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
@@ -1985,30 +1993,34 @@ for (irun in seq_len(nseries)) {
    # chi2 test for goodness of fit
    # goodness of fit (chi2 test)
    if (length(jx_f$res)) {
-      nvres=sum(!is.na(jx_f$res))
-      if (nvres > nb_param) {
-         chi2test=list("chi2 value"=rcost, "data points"=nvres,
-            "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
-         chi2test$`chi2 reduced value`=chi2test$`chi2 value`/chi2test$`degrees of freedom`
-         chi2test$`p-value, i.e. P(X^2<=value)`=pchisq(chi2test$`chi2 value`, df=chi2test$`degrees of freedom`)
-         chi2test$conclusion=if (chi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
-         if (write_res) {
-            obj2kvh(chi2test, "goodness of fit (chi2 test)", fkvh, indent=1)
-            fstat=file(file.path(dirres, sprintf("%s%s.stat", baseshort,  runsuf)), "w")
-            df=c(rcost, rcost/(nvres-nb_param), nvres, nb_param, nvres-nb_param, chi2test$`p-value, i.e. P(X^2<=value)`, chi2test$conclusion)
-            names(df)=c("chi2_value", "chi2/df", "number_of_measurements", "number_of_parameters", "degrees_of_freedom", "p-value", "conclusion")
-            write.table(df, sep="\t", quote=FALSE, row.names=TRUE, file=fstat, col.names=FALSE)
-            close(fstat)
-         }
+      if (is.na(rcost)) {
+         cat(sprintf("***Warning: chi2: Reduced cost value is NA. Chi2 test cannot be done.\\n"), sep="", file=fclog)
       } else {
-         cat(sprintf("***Warning: chi2: Measurement number %d is lower or equal to parameter number %d. Chi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fclog)
+         nvres=sum(!is.na(jx_f$res))
+         if (nvres > nb_param) {
+            chi2test=list("chi2 value"=rcost, "data points"=nvres,
+               "fitted parameters"=nb_param, "degrees of freedom"=nvres-nb_param)
+            chi2test$`chi2 reduced value`=chi2test$`chi2 value`/chi2test$`degrees of freedom`
+            chi2test$`p-value, i.e. P(X^2<=value)`=pchisq(chi2test$`chi2 value`, df=chi2test$`degrees of freedom`)
+            chi2test$conclusion=if (chi2test$`p-value, i.e. P(X^2<=value)` > 0.95) "At level of 95% confidence, the model does not fit the data good enough with respect to the provided measurement SD" else "At level of 95% confidence, the model fits the data good enough with respect to the provided measurement SD"
+            if (write_res) {
+               if (wkvh) obj2kvh(chi2test, "goodness of fit (chi2 test)", fkvh, indent=1)
+               fstat=file(file.path(dirres, sprintf("%s%s.stat", baseshort,  runsuf)), "w")
+               df=c(rcost, rcost/(nvres-nb_param), nvres, nb_param, nvres-nb_param, chi2test$`p-value, i.e. P(X^2<=value)`, chi2test$conclusion)
+               names(df)=c("chi2_value", "chi2/df", "number_of_measurements", "number_of_parameters", "degrees_of_freedom", "p-value", "conclusion")
+               write.table(df, sep="\t", quote=FALSE, row.names=TRUE, file=fstat, col.names=FALSE)
+               close(fstat)
+            }
+         } else {
+            cat(sprintf("***Warning: chi2: Measurement number %d is lower or equal to parameter number %d. Chi2 test cannot be done.\\n", nvres, nb_param), sep="", file=fclog)
+         }
       }
    }
    if (prof) {
       Rprof(NULL)
    }
    if (write_res) {
-      close(fkvh)
+      if (wkvh) close(fkvh)
       # write edge.netflux property
       fedge=file(file.path(dirres, "tmp", sprintf("edge.netflux.%s%s.attrs", baseshort,  runsuf)), "w")
       cat("netflux (class=Double)\\n", sep="", file=fedge)

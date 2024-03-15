@@ -1133,8 +1133,9 @@ def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
         def __call__(self, parser, namespace, values, option_string=None):
             ord_args.append((self.dest, values))
             setattr(namespace, self.dest, values)
-    parser=argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--mtf", action=ordAction, help=
+    parser=argparse.ArgumentParser(prog=me, description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    if True:
+        parser.add_argument("--mtf", action=ordAction, help=
 """MTF is a coma separated list of files with following extensions/meanings:
  netw: a text file with stoichiometric reactions and label transitions (one per line)
     Comments starts with '#' but those starting with '###' introduce 
@@ -1193,7 +1194,7 @@ If for some reason, the same type of file is indicated several times
 (no matter with extension or prefix), the last occurrence supersedes
 all precedent ones.
 """)
-    parser.add_argument("--prefix", action=ordAction, help=
+        parser.add_argument("--prefix", action=ordAction, help=
 """If all input files have the same name pattern and are different only 
 in extensions then the pattern can be given as PREFIX, e.g.
   '--prefix somedir/ecoli'
@@ -1203,7 +1204,7 @@ corresponding extensions.
 NB. If some file is given in more than one option: '--prefix' and/or 
 '--mtf' then the last occurrence overrides precedent ones.
 """)
-    parser.add_argument("--eprl", action="append", help=
+        parser.add_argument("--eprl", action="append", help=
 """Parallel experiments can be given with this option. It must
 introduce a couple of linp/miso files and optional auxiliary ftbl name. These files
 correspond to a given parallel experiment. This option can be repeated as
@@ -1221,13 +1222,13 @@ To shorten the writings, it is possible to indicate only one of two .miso/.linp 
 The other one will be guessed if it has canonical extension. If extension is omitted then .miso and .linp files are searched with these extensions. In this case, several parallel experiments can be given with one --eprl option. So that above example can be shorten to:
   'txt2ftbl --mtf ec.netw,glc6.linp,glc6.miso --eprl glc1,glc4'
 """)
-    parser.add_argument("--inst", action="store_true", default=False, help=
+        parser.add_argument("--inst", action="store_true", default=False, help=
 """Prepare FTBL for instationary case. File 'miso' is supposed to have 
 column 'Time' non empty. Isotopic kinetic data will be written to a TSV 
 file with 'ikin' extension. Its name will be the same as in FTBL file, 
 and FTBL field 'OPTIONS/file_labcin' will contain 'ikin' file name.
 """)
-    parser.add_argument("--force", action="store_true", default=False, help=
+        parser.add_argument("--force", action="store_true", default=False, help=
 """Overwrite an existent result file not produced by this script.
 NB. If a result file exists and is actually produced by this script, 
 then it is silently overwritten even without this option. The script 
@@ -1236,7 +1237,7 @@ Created by 'txt2ftbl" at the first line of the file. By removing or
 editing this comment, user can protect a file from a silent 
 overwriting.
 """)
-    parser.add_argument("netw", default="", nargs="?", help="""
+        parser.add_argument("netw", default="", nargs="?", help="""
 If 'netw' file is not given in any option (neither --mtf nor --prefix), it 
 can be given as the only argument NETW, e.g.
   txt2ftbl ecoli.txt
@@ -1269,7 +1270,10 @@ is the argument value that will take precedence.
                     continue
                 if "=" in v:
                     ty,nm=v.split("=", 1)
-                    mtf[ty]=nm
+                    if nm:
+                        mtf[ty]=nm
+                    else:
+                        del mtf[ty]
                 else:
                     mtf[Path(v).suffix[1:]]=v
         elif o == "prefix":
@@ -1400,7 +1404,7 @@ is the argument value that will take precedence.
     if dftbl is not None:
         # add dftbl to all fields in vmtf
         vdf[vdf != ""]=[dftbl/v for v in vdf[vdf != ""].values.flatten() if v == v]
-        
+    def_written=set()
     for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
         il=vdf.loc[ligr, "iline"].to_numpy() # strings
         # sanity check
@@ -1411,14 +1415,13 @@ is the argument value that will take precedence.
         rmtf.update((k,v) for k,v in vdf.iloc[ligr[0], :].to_dict().items() if v)
 
         # what kind of output we have?
-        if ftbl != sys.stdout:
-            p=Path(ftbl)
-            if p.suffix == ".ftbl":
-                ftbl=p
-            elif ftbl == "-":
-                ftbl=sys.stdout
-            else:
-                ftbl=p.parent/(p.name+".ftbl")
+        p=Path(ftbl)
+        if p.suffix == ".ftbl":
+            ftbl=p
+        elif ftbl == "-":
+            ftbl=sys.stdout
+        else:
+            ftbl=p.parent/(p.name+".ftbl")
         # check if we can overwrite
         if not force and ftbl != sys.stdout:
             if ftbl.is_file() and ftbl.stat().st_size > 0:
@@ -1525,14 +1528,14 @@ is the argument value that will take precedence.
                 continue
             #pdb.set_trace()
             p=Path(mtf["netw"]).with_suffix("."+k+".def")
-            pk=p.with_suffix("")
-            #if pk.is_file() and pk.stat().st_size > 0:
-            #    continue
+            if p in def_written:
+                continue
             with p.open("w", encoding="UTF-8") as fc:
                 fc.write(scre%dtstamp())
                 df.to_csv(fc, sep="\t", index=False)
-                if __name__ == "__main__" or __name__ == "influx_si.txt2ftbl":
+                if __name__ == "__main__":
                     print(str(p))
+            def_written.add(p)
     return 0
 if __name__ == "__main__":
     sys.exit(main())
