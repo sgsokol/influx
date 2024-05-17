@@ -512,9 +512,15 @@ Returns the number of characters written (which is always equal to
 the length of the string).</p>
 </dd></dl>
 
+<<<<<<< HEAD
 </section>
 <section id="module-txt2ftbl">
 <span id="txt2ftbl"></span><h2>txt2ftbl<a class="headerlink" href="#module-txt2ftbl" title="Permalink to this heading">¶</a></h2>
+=======
+</div>
+<div class="section" id="module-txt2ftbl">
+<span id="txt2ftbl"></span><h2>txt2ftbl<a class="headerlink" href="#module-txt2ftbl" title="Permalink to this headline">¶</a></h2>
+>>>>>>> d882a853d4f40eb5b18e4c75468e58aa980b80e7
 <p>Transform a series of TXT and TSV files into FTBL file.</p>
 <p>Copyright 2021, INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
@@ -623,6 +629,7 @@ License: Gnu Public License (GPL) v2 <a class="reference external" href="http://
 The first found is returned as Path() otherwise an exception is raised.</p>
 </dd></dl>
 
+<<<<<<< HEAD
 <dl class="py function">
 <dt class="sig sig-object py" id="txt2ftbl.tsv2df">
 <span class="sig-prename descclassname"><span class="pre">txt2ftbl.</span></span><span class="sig-name descname"><span class="pre">tsv2df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\t'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_blank_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_iline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'iline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encodings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['UTF-8',</span> <span class="pre">'windows-1250',</span> <span class="pre">'windows-1252']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
@@ -632,6 +639,17 @@ The first found is returned as Path() otherwise an exception is raised.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="txt2ftbl.txt_parse">
 <span class="sig-prename descclassname"><span class="pre">txt2ftbl.</span></span><span class="sig-name descname"><span class="pre">txt_parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftxt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">re_metab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s*\\*\\s*)?(?:(?P&lt;metab&gt;[^()</span> <span class="pre">\\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">re_labpat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encodings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['utf-8',</span> <span class="pre">'windows-1250',</span> <span class="pre">'windows-1252']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
+=======
+<dl class="function">
+<dt id="txt2ftbl.tsv2df">
+<code class="descclassname">txt2ftbl.</code><code class="descname">tsv2df</code><span class="sig-paren">(</span><em>f, sep='\t', comment='#', skip_blank_lines=True, append_iline='iline', encodings=['UTF-8', 'windows-1250', 'windows-1252']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read file ‘f’ as TSV and return a DataFrame. Separator is ‘sep’, comment char is ‘comment’, blank lines are skept, header is in the first row, file line numbers are stored in a column ‘line_nb’ if there is no a column with this name</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="txt2ftbl.txt_parse">
+<code class="descclassname">txt2ftbl.</code><code class="descname">txt_parse</code><span class="sig-paren">(</span><em>ftxt, re_metab=re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s+)?(?:(?P&lt;metab&gt;[^() \\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*'), re_labpat=re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$'), encodings=['utf-8', 'windows-1250', 'windows-1252']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
+>>>>>>> d882a853d4f40eb5b18e4c75468e58aa980b80e7
 <dd><p>Parse txt file from fname which is in format:
 ### Glycolysis and OPP pathway
 GLYC (abcdef) -&gt;  G6P (abcdef)
