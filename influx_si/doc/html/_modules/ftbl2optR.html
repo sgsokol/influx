@@ -162,7 +162,7 @@
 <span class="kn">import</span> <span class="nn">ftbl2code</span>
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../progdoc.html#ftbl2optR.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">wout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">):</span>
-    <span class="n">me</span><span class="o">=</span><span class="s2">&quot;ftbl2opt&quot;</span>
+    <span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
     <span class="n">dirbin</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">influx_si</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;bin&quot;</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirbin</span><span class="p">)</span>
 
@@ -349,9 +349,11 @@
 <span class="s2"># measmatpool*poolall=&gt;poolm</span>
 <span class="s2">measmatpool=matrix(0., nrow=nb_poolm, ncol=length(poolall))</span>
 <span class="s2">dimnames(measmatpool)=list(nm_poolm, nm_poolall)</span>
-<span class="s2">i=matrix(1+c(</span><span class="si">%(imeasmatpool)s</span><span class="s2">), ncol=2, byrow=T)</span>
+<span class="s2">i=matrix(1+c(</span><span class="si">%(imeasmatpool)s</span><span class="s2">), ncol=2, byrow=TRUE)</span>
 <span class="s2">measmatpool[i]=1.</span>
 
+<span class="s2">labargs=new.env()</span>
+<span class="s2">labargs$labargs2=new.env()</span>
 <span class="s2">    &quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
     <span class="s2">&quot;nb_poolm&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;metab_measured&quot;</span><span class="p">]),</span>
     <span class="s2">&quot;nm_poolm&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;metab_measured&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="s1">&#39;&quot;pm:&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
@@ -391,8 +393,20 @@
 <span class="s2">nsubdiv_dt=pmax(1L, as.integer(c(</span><span class="si">%(nsubdiv_dt)s</span><span class="s2">)))</span>
 <span class="s2">nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()</span>
 <span class="s2">nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, &quot;:&quot;, fixed=TRUE)), ncol=2L, byrow=TRUE)[,1L]]</span>
-<span class="s2">if (fullsys)</span>
+<span class="s2">if (fullsys) {</span>
 <span class="s2">   nminvmf=nm_poolall[matrix(unlist(strsplit(nm_cumo, &quot;:&quot;, fixed=TRUE)), ncol=2L, byrow=TRUE)[,1L]]</span>
+<span class="s2">   # if simulations are in emu, prepare transition matrix from full cumos to simulated emus</span>
+<span class="s2">   if (emu) {</span>
+<span class="s2">      tmp=emu_in_cumo(nm_list$emu, nm_list$cumo)</span>
+<span class="s2">      labargs$memu_in_cumo=tmp$m</span>
+<span class="s2">      labargs$cemu_in_cumo=tmp$cnst</span>
+<span class="s2">      if (case_i) {</span>
+<span class="s2">         labargs$labargs2$memu_in_cumo=tmp$m</span>
+<span class="s2">         labargs$labargs2$cemu_in_cumo=tmp$cnst</span>
+<span class="s2">      }</span>
+<span class="s2">   }</span>
+<span class="s2">}</span>
+<span class="s2">#browser()</span>
 <span class="s2">for (iexp in seq_len(nb_exp)) {</span>
 <span class="s2">   if (tmax[iexp] &lt; 0) {</span>
 <span class="s2">      stop_mes(sprintf(&quot;The parameter tmax must not be negative (tmax=</span><span class="si">%%</span><span class="s2">g in &#39;</span><span class="si">%%</span><span class="s2">s.ftbl&#39;)&quot;, tmax[iexp], nm_exp[iexp]), file=fcerr)</span>
@@ -490,6 +504,8 @@
 <span class="s2">   The fitting is ignored as if &#39;--noopt&#39; option were asked.</span><span class="se">\\</span><span class="s2">n&quot;, nm_exp[[iexp]]), file=fclog)</span>
 <span class="s2">         optimize=FALSE</span>
 <span class="s2">      }</span>
+<span class="s2">      # create measvecti with NA</span>
+<span class="s2">      measvecti[[iexp]]=structure(matrix(NA, nrow=length(measvec[[iexp]]), ncol=length(ti[[iexp]])-1L), dimnames=list(nm_list$meas[[iexp]], ti[[iexp]][-1L]))</span>
 <span class="s2">   }</span>
 <span class="s2">   # recalculate nb_exp from measvecti</span>
 <span class="s2">   nb_meas=sapply(measvecti, NROW)</span>
@@ -507,9 +523,9 @@
 <span class="s2">   tifull[[iexp]]=ti[[iexp]]</span>
 <span class="s2">   </span>
 <span class="s2">   # divide each time interval by nsubdiv_dt</span>
-<span class="s2">   dt=diff(tifull[[iexp]])</span>
-<span class="s2">   dt=rep(dt/nsubdiv_dt[iexp], each=nsubdiv_dt[iexp])</span>
-<span class="s2">   tifull[[iexp]]=c(tifull[[iexp]][1L], cumsum(dt))</span>
+<span class="s2">   dtmp=diff(tifull[[iexp]])</span>
+<span class="s2">   dtmp=rep(dtmp/nsubdiv_dt[iexp], each=nsubdiv_dt[iexp])</span>
+<span class="s2">   tifull[[iexp]]=c(tifull[[iexp]][1L], cumsum(dtmp))</span>
 <span class="s2">   nb_tifu[iexp]=length(tifull[[iexp]])</span>
 <span class="s2">   </span>
 <span class="s2">   tifull2[[iexp]]=c(tifull[[iexp]][1L], tifull[[iexp]][1L]+cumsum(rep(diff(tifull[[iexp]])/2., each=2L)))</span>
@@ -598,7 +614,7 @@
 <span class="s2">      envfunlab=new.env() # funlab code won&#39;t see influx&#39;s variables</span>
 <span class="s2">      if (nchar(funlabR[[iexp]])) {</span>
 <span class="s2">         if (file.exists(funlabR[[iexp]])) {</span>
-<span class="s2">            es=try(source(funlabR[[iexp]], local=envfunlab), outFile=fcerr)</span>
+<span class="s2">            es=try(source(funlabR[[iexp]], local=envfunlab, echo=FALSE), outFile=fcerr)</span>
 <span class="s2">         } else {</span>
 <span class="s2">            stop_mes(&quot;funlab script R &#39;&quot;, funlabR[[iexp]], &quot;&#39; from &#39;&quot;, nm_exp[[iexp]],&quot;&#39; does not exist.&quot;, file=fcerr)</span>
 <span class="s2">         }</span>
@@ -638,7 +654,7 @@
 <span class="s2">names(param)=nm_par</span>
 <span class="s2"># prepare series of starting points</span>
 <span class="s2">if (nchar(fseries) &gt; 0) {</span>
-<span class="s2">   pstart=as.matrix(read.table(fseries, header=T, row.n=1, sep=&quot;</span><span class="se">\\</span><span class="s2">t&quot;))</span>
+<span class="s2">   pstart=as.matrix(read.table(file.path(dirw, fseries), header=TRUE, row.names=1L, sep=&quot;</span><span class="se">\\</span><span class="s2">t&quot;))</span>
 <span class="s2">   # skip parameters (rows) who&#39;s name is not in nm_par</span>
 <span class="s2">   i=rownames(pstart) </span><span class="si">%i</span><span class="s2">n% nm_par</span>
 <span class="s2">   if (!any(i)) {</span>
@@ -735,35 +751,33 @@
 <span class="s2">#browser()</span>
 <span class="s2"># prepare argument list for passing to label simulating functions</span>
 <span class="s2">nm_labargs=c(&quot;jx_f&quot;, &quot;nb_f&quot;, &quot;nm_list&quot;, &quot;nb_x&quot;, &quot;invAfl&quot;, &quot;p2bfl&quot;, &quot;g2bfl&quot;, &quot;bp&quot;, &quot;fc&quot;, &quot;xi&quot;, &quot;spa&quot;, &quot;spaf&quot;, &quot;emu&quot;, &quot;pool&quot;, &quot;measurements&quot;, &quot;ipooled&quot;, &quot;ir2isc&quot;,  &quot;nb_w&quot;, &quot;nb_rw&quot;, &quot;nbc_x&quot;, &quot;measmat&quot;, &quot;memaone&quot;, &quot;dufm_dp&quot;, &quot;dupm_dp&quot;, &quot;pwe&quot;, &quot;ipwe&quot;, &quot;ip2ipwe&quot;, &quot;pool_factor&quot;, &quot;ijpwef&quot;, &quot;ipf_in_ppw&quot;, &quot;meas2sum&quot;, &quot;dp_ones&quot;, &quot;clen&quot;, &quot;dirr&quot;, &quot;dirw&quot;, &quot;dirres&quot;, &quot;baseshort&quot;, &quot;case_i&quot;, &quot;nb_exp&quot;, &quot;noscale&quot;, &quot;dpw_dpf&quot;, &quot;fclog&quot;, &quot;fcerr&quot;)</span>
-<span class="s2">    &quot;&quot;&quot;</span><span class="p">)</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;nm_labargs=c(nm_labargs, &quot;ti&quot;, &quot;tifull&quot;, &quot;tifull2&quot;, &quot;x0&quot;, &quot;time_order&quot;)</span>
-<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nm_labargs=c(nm_labargs, &quot;ti&quot;, &quot;tifull&quot;, &quot;tifull2&quot;, &quot;x0&quot;, &quot;time_order&quot;)&#39;</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">if (TIMEIT) {</span>
 <span class="s2">   cat(&quot;labargs : &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">}</span>
-<span class="s2">labargs=new.env()</span>
 <span class="s2">tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))</span>
 <span class="s2">#for (nm in nm_labargs) {</span>
 <span class="s2">#   labargs[[nm]]=get(nm)</span>
 <span class="s2">#}</span>
-<span class="s2">labargs[[&quot;nm&quot;]]=labargs[[&quot;nm_list&quot;]]</span>
+<span class="s2">#labargs[[&quot;nm&quot;]]=labargs[[&quot;nm_list&quot;]]</span>
 
 <span class="s2"># prepare labargs2 if time_order includes 2</span>
 <span class="s2">if (case_i &amp;&amp; (time_order == &quot;2&quot; || time_order == &quot;1,2&quot;)) {</span>
-<span class="s2">   labargs2=as.environment(as.list(labargs))</span>
-<span class="s2">   labargs2$nb_f=as.environment(as.list(labargs$nb_f))</span>
-<span class="s2">   labargs2$tifull=tifull2</span>
-<span class="s2">   labargs2$xi=xi2</span>
-<span class="s2">   labargs2$jx_f=new.env()</span>
-<span class="s2">   labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2</span>
-<span class="s2">   labargs2$nb_f$tifu=nb_f$tifu2</span>
-<span class="s2">   labargs[[&quot;labargs2&quot;]]=labargs2</span>
+<span class="s2">   list2env(as.list(labargs), envir=labargs$labargs2)</span>
+<span class="s2">   labargs$labargs2$tifull=tifull2</span>
+<span class="s2">   labargs$labargs2$xi=xi2</span>
+<span class="s2">   labargs$labargs2$jx_f=new.env()</span>
+<span class="s2">   labargs$labargs2$nb_f=new.env()</span>
+<span class="s2">   list2env(as.list(labargs$nb_f), envir=labargs$labargs2$nb_f)</span>
+<span class="s2">   labargs$labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2</span>
+<span class="s2">   labargs$labargs2$nb_f$tifu=nb_f$tifu2</span>
 <span class="s2">}</span>
 
 <span class="s2"># formated output in kvh file</span>
-<span class="s2">if (write_res) {</span>
+<span class="s2">if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">   fkvh_saved=file.path(dirres, &quot;tmp&quot;, sprintf(&quot;</span><span class="si">%s</span><span class="s2">_res.kvh&quot;, baseshort))</span>
 <span class="s2">} else {</span>
 <span class="s2">   fkvh_saved=NULL</span>
@@ -842,7 +856,6 @@
 <span class="s2">   }</span>
 <span class="s2">   param[nm_pseries]=pstart[nm_pseries, irun]</span>
 <span class="s2">#browser()</span>
-<span class="s2">   # prepare kvh file name</span>
 <span class="s2">   if (nseries &gt; 1) {</span>
 <span class="s2">      runsuf=&quot;.&quot; </span><span class="si">%s</span><span class="s2">+</span><span class="si">% c</span><span class="s2">olnames(pstart)[irun]</span>
 <span class="s2">   } else {</span>
@@ -851,7 +864,8 @@
 <span class="s2">   if (length(nseries) &gt; 0) {</span>
 <span class="s2">      cat(&quot;Starting point&quot;, runsuf, &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">   }</span>
-<span class="s2">   if (write_res) {</span>
+<span class="s2">   # prepare kvh file name</span>
+<span class="s2">   if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">      fkvh=file(substring(fkvh_saved, 1, nchar(fkvh_saved)-4) </span><span class="si">%s</span><span class="s2">+</span><span class="si">% r</span><span class="s2">unsuf </span><span class="si">%s</span><span class="s2">+% &quot;.kvh&quot;, &quot;w&quot;);</span>
 <span class="s2">   } else {</span>
 <span class="s2">      fkvh=NULL</span>
@@ -871,6 +885,9 @@
 <span class="s2">   tol_ineq=if (&quot;BFGS&quot; </span><span class="si">%i</span><span class="s2">n% methods) 0. else 1.e-10</span>
 <span class="s2">   nbad=sum(ineq &lt;= -tol_ineq)</span>
 <span class="s2">   if (nbad &gt; 0) {</span>
+<span class="s2">      if (TIMEIT) {</span>
+<span class="s2">         cat(sprintf(&quot;put_ins : </span><span class="si">%s</span><span class="s2"> cpu=</span><span class="si">%g</span><span class="s2">\n&quot;, format(Sys.time()), proc.time()[1]), &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
+<span class="s2">      }</span>
 <span class="s2">      cat(&quot;The following &quot;, nbad, &quot; inequalities are not respected at starting point&quot;, runsuf, &quot;:\n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">      i=ineq[ineq&lt;= -tol_ineq]</span>
 <span class="s2">      cat(paste(names(i), i, sep=&quot;\t&quot;, collapse=&quot;\n&quot;), &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
@@ -903,7 +920,7 @@
 <span class="s2">   fallnx=param2fl(param, labargs)$fallnx</span>
 <span class="s2">   mi_zc=NULL</span>
 <span class="s2">   li_zc=NULL</span>
-<span class="s2">   if (zerocross &amp;&amp; length(grep(&quot;^[df]\\.n\\.&quot;, nm_fallnx))&gt;0) {</span>
+<span class="s2">   if (!noopt &amp;&amp; zerocross &amp;&amp; length(grep(&quot;^[df]\\.n\\.&quot;, nm_fallnx))&gt;0) {</span>
 <span class="s2">      if (TIMEIT) {</span>
 <span class="s2">         cat(&quot;zc ineq : &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">      }</span>
@@ -911,15 +928,15 @@
 <span class="s2">      # prepare fluxes that are already in inequalities in alone mode</span>
 <span class="s2">      ige=names(which(apply(mi, 1L, function(v) diff(range(v))==1 &amp;&amp; sum(v)==1) &amp; li&gt;=0))</span>
 <span class="s2">      ige=nm_dfn[unique(c(</span>
-<span class="s2">         sub(&quot;^n:.+&lt;=(.+)$&quot;, &quot;\\1&quot;, grep(&quot;^n:.+&lt;=.+$&quot;, ige, v=T)),</span>
-<span class="s2">         sub(&quot;^[df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^[df]\\.n\\..+&gt;=.+$&quot;, ige, v=T)),</span>
-<span class="s2">         sub(&quot;^inout [df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^inout [df]\\.n\\..+&gt;=.+$&quot;, ige, v=T))</span>
+<span class="s2">         sub(&quot;^n:.+&lt;=(.+)$&quot;, &quot;\\1&quot;, grep(&quot;^n:.+&lt;=.+$&quot;, ige, v=TRUE)),</span>
+<span class="s2">         sub(&quot;^[df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^[df]\\.n\\..+&gt;=.+$&quot;, ige, v=TRUE)),</span>
+<span class="s2">         sub(&quot;^inout [df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^inout [df]\\.n\\..+&gt;=.+$&quot;, ige, v=TRUE))</span>
 <span class="s2">      ))]</span>
 <span class="s2">      ile=which(apply(mi, 1L, function(v) diff(range(v))==1 &amp;&amp; sum(v)==-1)&amp;li&gt;=0)</span>
 <span class="s2">      ile=nm_dfn[unique(c(</span>
-<span class="s2">         sub(&quot;^n:.+&lt;=(.+)$&quot;, &quot;\\1&quot;, grep(&quot;^n:.+&lt;=.+$&quot;, ile, v=T)),</span>
-<span class="s2">         sub(&quot;^[df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^[df]\\.n\\..+&gt;=.+$&quot;, ile, v=T)),</span>
-<span class="s2">         sub(&quot;^inout [df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^inout [df]\\.n\\..+&gt;=.+$&quot;, ile, v=T))</span>
+<span class="s2">         sub(&quot;^n:.+&lt;=(.+)$&quot;, &quot;\\1&quot;, grep(&quot;^n:.+&lt;=.+$&quot;, ile, v=TRUE)),</span>
+<span class="s2">         sub(&quot;^[df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^[df]\\.n\\..+&gt;=.+$&quot;, ile, v=TRUE)),</span>
+<span class="s2">         sub(&quot;^inout [df]\\.n\\.(.+)&gt;=.+$&quot;, &quot;\\1&quot;, grep(&quot;^inout [df]\\.n\\..+&gt;=.+$&quot;, ile, v=TRUE))</span>
 <span class="s2">      ))]</span>
 <span class="s2">      # add lower limits on [df].net &gt;= zc for positive net fluxes</span>
 <span class="s2">      # and upper limits on [df].net &lt;= -zc for negative net fluxes</span>
@@ -1053,13 +1070,13 @@
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">   if (TIMEIT) {</span>
+<span class="s2">   if (TIMEIT &amp;&amp; wkvh) {</span>
 <span class="s2">      cat(&quot;kvh init: &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">   }</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="c1"># main part: call optimization</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">   if (write_res) {</span>
+<span class="s2">   if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">      cat(&quot;influx</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
 <span class="s2">      cat(&quot;</span><span class="se">\\</span><span class="s2">tversion</span><span class="se">\\</span><span class="s2">t&quot;, vernum, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh, sep=&quot;&quot;)</span>
 <span class="s2">      cat(&quot;</span><span class="se">\\</span><span class="s2">tlabeling</span><span class="se">\\</span><span class="s2">t&quot;, if (case_i) &quot;instationary&quot; else &quot;stationary&quot;, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh, sep=&quot;&quot;)</span>
@@ -1069,7 +1086,7 @@
 <span class="s2">   }</span>
 <span class="s2">   &quot;&quot;&quot;</span><span class="o">%</span><span class="n">ropts_s</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">   if (write_res) {</span>
+<span class="s2">   if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">      obj2kvh(R.Version(), &quot;R.Version&quot;, fkvh, indent=1)</span>
 <span class="s2">      cat(&quot;</span><span class="se">\\</span><span class="s2">tR command line</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
 <span class="s2">      obj2kvh(opts, &quot;opts&quot;, fkvh, indent=2)</span>
@@ -1085,12 +1102,7 @@
 <span class="s2">   }</span>
 <span class="s2">#browser()</span>
 <span class="s2">   if (!length(rres)) {</span>
-<span class="s2">      if (write_res) {</span>
-<span class="s2">         #capture.output(rres &lt;- lab_resid(param, cjac=FALSE, labargs), file=fclog)</span>
-<span class="s2">         rres &lt;- lab_resid(param, cjac=FALSE, labargs)</span>
-<span class="s2">      } else {</span>
-<span class="s2">         rres &lt;- lab_resid(param, cjac=FALSE, labargs)</span>
-<span class="s2">      }</span>
+<span class="s2">      rres &lt;- lab_resid(param, cjac=FALSE, labargs)</span>
 <span class="s2">      if (!is.null(rres$err) &amp;&amp; rres$err) {</span>
 <span class="s2">         cat(&quot;lab_resid&quot;, runsuf, &quot;: &quot;, rres$mes, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fcerr, sep=&quot;&quot;)</span>
 <span class="s2">         #close(fkvh)</span>
@@ -1105,7 +1117,7 @@
 <span class="s2">      }</span>
 <span class="s2">   }</span>
 <span class="s2">   rcost=if (length(rres$res) &amp;&amp; !all(ina &lt;- is.na(rres$res))) sum(crossprod(rres$res[!ina])) else NA</span>
-<span class="s2">   if (write_res) {</span>
+<span class="s2">   if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">      obj2kvh(rcost, &quot;starting cost value&quot;, fkvh, indent=1)</span>
 <span class="s2">      obj2kvh(Afl, &quot;flux system (Afl)&quot;, fkvh, indent=1)</span>
 <span class="s2">   }</span>
@@ -1114,7 +1126,7 @@
 <span class="s2">   if (nb_f$nb_fgr &gt; 0) {</span>
 <span class="s2">      fg[paste(&quot;g.n.&quot;, substring(nm_list$poolf, 4), &quot;_gr&quot;, sep=&quot;&quot;)]=nb_f$mu*param[nm_list$poolf]</span>
 <span class="s2">   }</span>
-<span class="s2">   if (write_res) {</span>
+<span class="s2">   if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">      btmp=as.numeric(p2bfl</span><span class="si">%s</span><span class="s2">tm%param[seq_len(nb_f$nb_ff)]+bp+g2bfl</span><span class="si">%s</span><span class="s2">tm</span><span class="si">%f</span><span class="s2">g)</span>
 <span class="s2">      names(btmp)=dimnames(Afl)[[1]]</span>
 <span class="s2">      obj2kvh(btmp, &quot;flux system (bfl)&quot;, fkvh, indent=1)</span>
@@ -1146,7 +1158,7 @@
 <span class="s2">            #close(fkvh)</span>
 <span class="s2">            next</span>
 <span class="s2">         }</span>
-<span class="s2">         qrj=qr(jx_f$dr_dff, LAPACK=T)</span>
+<span class="s2">         qrj=qr(jx_f$dr_dff, LAPACK=TRUE)</span>
 <span class="s2">         d=diag(qrj$qr)</span>
 <span class="s2">         qrj$rank=sum(abs(d)&gt;abs(d[1])*1.e-10)</span>
 <span class="s2">         if (is.na(qrj$rank)) {</span>
@@ -1164,10 +1176,10 @@
 <span class="s2">            # Too bad. The jacobian of free fluxes is not of full rank.</span>
 <span class="s2">            dimnames(jx_f$dr_dff)[[2]]=c(nm_ffn, nm_ffx)</span>
 <span class="s2">            fname=&quot;dbg_dr_dff_singular&quot; </span><span class="si">%s</span><span class="s2">+</span><span class="si">% r</span><span class="s2">unsuf </span><span class="si">%s</span><span class="s2">+% &quot;.csv&quot;</span>
-<span class="s2">            cat(sprintf(&quot;Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes.</span><span class="se">\\</span><span class="s2">nUnsolvable fluxes may be:</span><span class="se">\\</span><span class="s2">n</span><span class="si">%s</span><span class="se">\\</span><span class="s2">nJacobian dr_dff is written in the result kvh file.</span><span class="se">\\</span><span class="s2">n&quot;,</span>
+<span class="s2">            cat(sprintf(&quot;Provided measurements (labeling and fluxes) are not sufficient to resolve all free fluxes.</span><span class="se">\\</span><span class="s2">nUnsolvable fluxes may be:</span><span class="se">\\</span><span class="s2">n</span><span class="si">%s</span><span class="se">\\</span><span class="s2">nJacobian dr_dff is written in the result kvh file (if --wkvh is activated).</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">               paste(nm_uns, sep=&quot;, &quot;, collapse=&quot;, &quot;)),</span>
 <span class="s2">               file=fcerr)</span>
-<span class="s2">            if (write_res) {</span>
+<span class="s2">            if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">               obj2kvh(jx_f$dr_dff, &quot;Jacobian dr_dff&quot;, fkvh, indent=0)</span>
 <span class="s2">            }</span>
 <span class="s2">            #close(fkvh)</span>
@@ -1181,6 +1193,7 @@
 <span class="s2">      # pass control to the chosen optimization method</span>
 <span class="s2">      if (time_order==&quot;1,2&quot;)</span>
 <span class="s2">         labargs$time_order=&quot;1&quot; # start with order 1, later continue with 2</span>
+<span class="s2">#browser()</span>
 <span class="s2">      for (method in methods) {</span>
 <span class="s2">         if (write_res) {</span>
 <span class="s2">            capture.output(res &lt;- opt_wrapper(param, method, measurements, jx_f, labargs), file=fclog)</span>
@@ -1197,7 +1210,7 @@
 <span class="s2">         if (any(is.na(res$par))) {</span>
 <span class="s2">#browser()</span>
 <span class="s2">            res$retres$jx_f=NULL # to avoid writing of huge data</span>
-<span class="s2">            if (write_res) {</span>
+<span class="s2">            if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">               obj2kvh(res, &quot;failed first pass optimization process information&quot;, fkvh)</span>
 <span class="s2">            }</span>
 <span class="s2">            cat(&quot;Optimization failed&quot;, runsuf, &quot;: &quot;, res$mes, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fcerr, sep=&quot;&quot;)</span>
@@ -1213,13 +1226,13 @@
 <span class="s2">            }</span>
 <span class="s2">            # inverse active &quot;zc&quot; inequalities</span>
 <span class="s2">            nm_inv=names(which((ui</span><span class="si">%*%</span><span class="s2">res$par-ci)[,1]&lt;=tol_ineq))</span>
-<span class="s2">            i=grep(&quot;^zc &quot;, nm_inv, v=T)</span>
+<span class="s2">            i=grep(&quot;^zc &quot;, nm_inv, v=TRUE)</span>
 <span class="s2">            if (length(i) &gt; 0) {</span>
 <span class="s2">               i=str2ind(i, nm_i)</span>
 <span class="s2">               cat(&quot;The following inequalities are active after first pass</span>
 <span class="s2">   of zero crossing strategy and will be inverted&quot;, runsuf, &quot;:</span><span class="se">\\</span><span class="s2">n&quot;, paste(nm_i[i], collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
-<span class="s2">               ipos=grep(&quot;&gt;=&quot;, nm_i[i], v=T)</span>
-<span class="s2">               ineg=grep(&quot;&lt;=&quot;, nm_i[i], v=T)</span>
+<span class="s2">               ipos=grep(&quot;&gt;=&quot;, nm_i[i], v=TRUE)</span>
+<span class="s2">               ineg=grep(&quot;&lt;=&quot;, nm_i[i], v=TRUE)</span>
 <span class="s2">               ui[i,]=-ui[i,,drop=FALSE]</span>
 <span class="s2">               if (length(ipos)) {</span>
 <span class="s2">                  ipzc=str2ind(ipos, nm_izc)</span>
@@ -1272,7 +1285,7 @@
 <span class="s2">                  }</span>
 <span class="s2">                  if (any(is.na(reso$par))) {</span>
 <span class="s2">                     reso$retres$jx_f=NULL # to avoid writing of huge data</span>
-<span class="s2">                     if (write_res)</span>
+<span class="s2">                     if (write_res &amp;&amp; wkvh)</span>
 <span class="s2">                        obj2kvh(reso, &quot;failed second pass optimization process information&quot;, fkvh)</span>
 <span class="s2">                     cat(&quot;***Warning: second zero crossing pass failed. Keep free parameters from previous pass&quot;, runsuf, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog, sep=&quot;&quot;)</span>
 <span class="s2">                  }</span>
@@ -1302,7 +1315,7 @@
 <span class="s2">                  }</span>
 <span class="s2">                  if (any(is.na(res$par))) {</span>
 <span class="s2">                     res$retres$jx_f=NULL # to avoid writing of huge data</span>
-<span class="s2">                     if (write_res)</span>
+<span class="s2">                     if (write_res &amp;&amp; wkvh)</span>
 <span class="s2">                        obj2kvh(res, &quot;failed last pass optimization process information&quot;, fkvh)</span>
 <span class="s2">                     cat(&quot;***Warning: last zero crossing pass failed. Keep free parameters from previous passes&quot;, runsuf, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog, sep=&quot;&quot;)</span>
 <span class="s2">                  }</span>
@@ -1349,7 +1362,7 @@
 <span class="s2">               names(param)=nm_par</span>
 <span class="s2">               jx_f=labargs$jx_f</span>
 <span class="s2">               labargs$measurements=measurements # store outliers</span>
-<span class="s2">               if (write_res)</span>
+<span class="s2">               if (write_res &amp;&amp; wkvh)</span>
 <span class="s2">                  obj2kvh(outtab, &quot;excluded outliers&quot;, fkvh)</span>
 <span class="s2">            }</span>
 <span class="s2">         } else {</span>
@@ -1387,10 +1400,13 @@
 <span class="s2">         &quot;convergence history&quot;=res$hist,</span>
 <span class="s2">         &quot;exit message&quot;=res$mes</span>
 <span class="s2">      )</span>
-<span class="s2">      if (write_res)</span>
+<span class="s2">      if (write_res &amp;&amp; wkvh)</span>
 <span class="s2">         obj2kvh(optinfo, &quot;optimization process information&quot;, fkvh)</span>
 <span class="s2">      rres=res$retres</span>
 <span class="s2">   } else {</span>
+<span class="s2">      if (TIMEIT) {</span>
+<span class="s2">         cat(&quot;residjac: &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
+<span class="s2">      }</span>
 <span class="s2">      rres=lab_resid(param, TRUE, labargs)</span>
 <span class="s2">   }</span>
 <span class="s2">   if (TIMEIT) {</span>
@@ -1399,7 +1415,7 @@
 <span class="s2">   # active constraints</span>
 <span class="s2">   if (!all(is.na(param))) {</span>
 <span class="s2">      ine=as.numeric(abs(ui</span><span class="si">%*%</span><span class="s2">param-ci))&lt;tol_ineq</span>
-<span class="s2">      if (any(ine) &amp;&amp; write_res) {</span>
+<span class="s2">      if (any(ine) &amp;&amp; write_res &amp;&amp; wkvh) {</span>
 <span class="s2">         obj2kvh(nm_i[ine], &quot;active inequality constraints&quot;, fkvh)</span>
 <span class="s2">      }</span>
 <span class="s2">   }</span>
@@ -1415,8 +1431,8 @@
 <span class="s2">      }</span>
 <span class="s2">      if (!is.null(rres$err) &amp;&amp; rres$err) {</span>
 <span class="s2">         cat(&quot;lab_resid&quot;, runsuf, &quot;: &quot;, rres$mes, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fcerr, sep=&quot;&quot;)</span>
-<span class="s2">         if (write_res)</span>
-<span class="s2">            close(fkvh)</span>
+<span class="s2">         #if (write_res &amp;&amp; wkvh)</span>
+<span class="s2">         #   close(fkvh)</span>
 <span class="s2">         retcode[irun]=rres$err</span>
 <span class="s2">         next</span>
 <span class="s2">      }</span>
@@ -1425,7 +1441,7 @@
 <span class="s2">   pres[,irun]=param</span>
 <span class="s2">   costres[irun]=rcost</span>
 <span class="s2">   if (write_res) {</span>
-<span class="s2">      obj2kvh(rcost, &quot;final cost&quot;, fkvh)</span>
+<span class="s2">      if (wkvh) obj2kvh(rcost, &quot;final cost&quot;, fkvh)</span>
 <span class="s2">#browser()</span>
 <span class="s2">      # get z p-values on residual vector</span>
 <span class="s2">      zpval=rz.pval.bi(rres$res)</span>
@@ -1451,9 +1467,10 @@
 <span class="s2">         resid[[&quot;measured fluxes&quot;]]=cbind(residual=jx_f$resflu, `p-value`=zpval[nb_reslab_tot+seq_along(jx_f$resflu)])</span>
 <span class="s2">      if (length(jx_f$respool))</span>
 <span class="s2">         resid[[&quot;measured pools&quot;]]=cbind(residual=if (is.matrix(jx_f$respool)) jx_f$respool[,1] else jx_f$respool, `p-value`=zpval[nb_reslab_tot+length(jx_f$resflu)+seq_along(jx_f$respool)])</span>
-<span class="s2">      obj2kvh(resid, &quot;(simulated-measured)/sd_exp&quot;, fkvh)</span>
+<span class="s2">      if (wkvh)</span>
+<span class="s2">         obj2kvh(resid, &quot;(simulated-measured)/sd_exp&quot;, fkvh)</span>
 
-<span class="s2">      # simulated measurements -&gt; kvh</span>
+<span class="s2">      # simulated measurements -&gt; out</span>
 <span class="s2">      simul=list()</span>
 <span class="s2">#browser()</span>
 <span class="s2">      if (case_i) {</span>
@@ -1591,15 +1608,15 @@
 <span class="s2">         write.table(df, sep=&quot;</span><span class="se">\t</span><span class="s2">&quot;, quote=FALSE, row.names=FALSE, file=file.path(dirres, paste0(baseshort, runsuf, &quot;.mmet.sim&quot;)))</span>
 <span class="s2">      }</span>
 <span class="s2">      rm(resid, zpval)</span>
-<span class="s2">      obj2kvh(simul, &quot;simulated measurements&quot;, fkvh)</span>
+<span class="s2">      if (wkvh) obj2kvh(simul, &quot;simulated measurements&quot;, fkvh)</span>
 <span class="s2">   </span>
-<span class="s2">      # SD -&gt; kvh</span>
+<span class="s2">      # SD -&gt; out</span>
 <span class="s2">      # get index of non null components</span>
 <span class="s2">      iget=sapply(names(measurements$dev), function(nm) !is.null(measurements$dev[[nm]]) &amp; nm </span><span class="si">%i</span><span class="s2">n</span><span class="si">% c</span><span class="s2">(&quot;labeled&quot;, &quot;flux&quot;, &quot;pool&quot;))</span>
-<span class="s2">      obj2kvh(measurements$dev[iget], &quot;measurement SD&quot;, fkvh)</span>
+<span class="s2">      if (wkvh) obj2kvh(measurements$dev[iget], &quot;measurement SD&quot;, fkvh)</span>
 
 <span class="s2">      # gradient -&gt; kvh</span>
-<span class="s2">      if (length(jx_f$res) &amp;&amp; !all(ina &lt;- is.na(jx_f$res))) {</span>
+<span class="s2">      if (length(jx_f$res) &amp;&amp; !all(ina &lt;- is.na(jx_f$res)) &amp;&amp; wkvh) {</span>
 <span class="s2">         if (any(ina)) {</span>
 <span class="s2">            gr=2*as.numeric(crossprod(jx_f$res[!ina], jx_f$jacobian[!ina,,drop=FALSE]))</span>
 <span class="s2">         } else {</span>
@@ -1609,9 +1626,9 @@
 <span class="s2">         obj2kvh(gr, &quot;gradient vector&quot;, fkvh)</span>
 <span class="s2">      }</span>
 <span class="s2">      colnames(jx_f$udr_dp)=nm_par</span>
-<span class="s2">      obj2kvh(jx_f$udr_dp, &quot;jacobian dr_dp (without 1/sd_exp)&quot;, fkvh)</span>
+<span class="s2">      if (wkvh) obj2kvh(jx_f$udr_dp, &quot;jacobian dr_dp (without 1/sd_exp)&quot;, fkvh)</span>
 <span class="s2">      # generalized inverse of non reduced jacobian</span>
-<span class="s2">      if (length(jx_f$udr_dp) &gt; 0L) {</span>
+<span class="s2">      if (length(jx_f$udr_dp) &gt; 0L &amp;&amp; wkvh) {</span>
 <span class="s2">         svj=svd(jx_f$udr_dp)</span>
 <span class="s2">         invj=svj$v</span><span class="si">%*%</span><span class="s2">(t(svj$u)/svj$d)</span>
 <span class="s2">         dimnames(invj)=rev(dimnames(jx_f$udr_dp))</span>
@@ -1620,11 +1637,12 @@
 <span class="s2">   }</span>
 
 <span class="s2">   labargs$getx=TRUE</span>
-<span class="s2">   labargs$labargs2getx=TRUE</span>
+<span class="s2">   labargs$labargs2$getx=TRUE</span>
 <span class="s2">   if (fullsys) {</span>
 <span class="s2">   &quot;&quot;&quot;</span><span class="p">)</span>
     <span class="n">cu_keys</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;cumo_input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;fullsys&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="p">[]</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">#browser()</span>
 <span class="s2">      nm_xif=c(</span><span class="si">%s</span><span class="s2">)</span>
 <span class="s2">      # full label input is the same for all experiments</span>
 <span class="s2">      xif=rep(list(c(</span><span class="si">%s</span><span class="s2">)), nb_exp)&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">cu_keys</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">),</span>
@@ -1650,23 +1668,18 @@
 <span class="s2">                  xi2f[[iexp]]=funlab(tifull2[[iexp]], nm_xif, fli, envfunlab, emu=FALSE, nm_exp[[iexp]], fcerr)</span>
 <span class="s2">            }</span>
 <span class="s2">         }</span>
+<span class="s2">#browser()</span>
 <span class="s2">         xif=xilf</span>
-<span class="s2">         if (time_order == &quot;2&quot; || time_order == &quot;1,2&quot;) {</span>
+<span class="s2">         if (time_order == &quot;2&quot; || time_order == &quot;1,2&quot;)</span>
 <span class="s2">            labargs$labargs2$xif=xi2f</span>
-<span class="s2">            labargs$labargs2$nm_list$inp=nm_xif</span>
-<span class="s2">            labargs$labargs2$emu=FALSE</span>
-<span class="s2">         }</span>
 <span class="s2">      }</span>
 <span class="s2">      labargs$nm_list$xif=nm_xif</span>
 <span class="s2">      labargs$nm_list$inp=nm_xif</span>
-<span class="s2">      labargs$emu=FALSE</span>
 <span class="s2">      labargs$xif=xif</span>
 <span class="s2">      labargs$nb_f$xif=length(xif[[1L]])</span>
 <span class="s2">      labargs$labargs2$nm_list$xif=nm_xif</span>
-<span class="s2">      labargs$labargs2nm_list$inp=nm_xif</span>
-<span class="s2">      labargs$labargs2emu=FALSE</span>
-<span class="s2">      labargs$labargs2xif=xif</span>
-<span class="s2">      labargs$labargs2nb_f$xif=length(xif[[1L]])</span>
+<span class="s2">      labargs$labargs2$nm_list$inp=nm_xif</span>
+<span class="s2">      labargs$labargs2$nb_f$xif=length(xif[[1L]])</span>
 <span class="s2">      if (case_i &amp;&amp; !is.null(labargs$cl)) {</span>
 <span class="s2">         clusterExport(labargs$cl, c(&quot;labargs&quot;))</span>
 <span class="s2">         clusterEvalQ(labargs$cl, {</span>
@@ -1674,20 +1687,19 @@
 <span class="s2">            labargs$labargs2$spa=labargs$spa</span>
 <span class="s2">            labargs$spaf=sparse2spa(labargs$spaf)</span>
 <span class="s2">            labargs$labargs2$spaf=labargs$spaf</span>
-<span class="s2">#print(c(lab_new=&quot;&quot;, labargs=labargs, labargs2=labargs$labargs2, a1_1=labargs$spaf[[1]]$a, a1_2=labargs$labrags2spaf[[1]]$a))</span>
+<span class="s2">#print(c(lab_new=&quot;&quot;, labargs=labargs, labargs2=labargs$labargs2, a1_1=labargs$spaf[[1]]$a, a1_2=labargs$labargs2spaf[[1]]$a))</span>
 <span class="s2">         })</span>
 <span class="s2">      }</span>
+<span class="s2">#browser()</span>
 <span class="s2">      v=lab_sim(param, cjac=FALSE, labargs, fullsys)</span>
 <span class="s2">      if (identical(v$err, 1L)) {</span>
 <span class="s2">         #save(v$fA$triplet(), file=&quot;singular237_triplet.RData&quot;)</span>
 <span class="s2">         stop_mes(&quot;fullsys: weight=&quot;, v$iw, &quot;; &quot;, v$mes, file=fcerr)</span>
 <span class="s2">      }</span>
 <span class="s2">#browser()</span>
-<span class="s2">      labargs$emu=emu</span>
 <span class="s2">      labargs$nm_list$inp=nm_inp</span>
 <span class="s2">      if (time_order == &quot;2&quot; || time_order == &quot;1,2&quot;) {</span>
 <span class="s2">         labargs$labargs2$nm_list$inp=nm_inp</span>
-<span class="s2">         labargs$labargs2$emu=emu</span>
 <span class="s2">      }</span>
 <span class="s2">      x=if (case_i) v$xf else v$x</span>
 <span class="s2">   } else {</span>
@@ -1695,14 +1707,14 @@
 <span class="s2">      x=if (case_i) v$xf else v$x</span>
 <span class="s2">   }</span>
 
+<span class="s2">   mid=cumo2mass(x)</span>
+<span class="s2">   if (case_i) {</span>
+<span class="s2">      mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])</span>
+<span class="s2">   } else if (length(mid)) {</span>
+<span class="s2">      mid=mid[sort(rownames(mid)),,drop=FALSE]</span>
+<span class="s2">   }</span>
 <span class="s2">   # write some info in result kvh</span>
-<span class="s2">   if (write_res) {</span>
-<span class="s2">      mid=cumo2mass(x)</span>
-<span class="s2">      if (case_i) {</span>
-<span class="s2">         mid=lapply(mid, function(m) m[sort(rownames(m)),,drop=FALSE])</span>
-<span class="s2">      } else if (length(mid)) {</span>
-<span class="s2">         mid=mid[sort(rownames(mid)),,drop=FALSE]</span>
-<span class="s2">      }</span>
+<span class="s2">   if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">      obj2kvh(mid, &quot;MID vector&quot;, fkvh)</span>
 <span class="s2">      </span>
 <span class="s2">      # constrained fluxes to kvh</span>
@@ -1740,38 +1752,23 @@
 <span class="s2">      } else {</span>
 <span class="s2">         mc_res=lapply(seq_len(nmc), function(imc) cl_worker(funth=mc_sim, argth=list(imc)))</span>
 <span class="s2">      }</span>
-<span class="s2">      free_mc=sapply(mc_res, function(l) {if (class(l)==&quot;character&quot; || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })</span>
+<span class="s2">#browser()</span>
+<span class="s2">      free_mc=sapply(mc_res, function(l) {if (class(l)==&quot;character&quot; || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(cost=l$cost, it=l$it, normp=l$normp, l$par) }; ret })</span>
 <span class="s2">      if (length(free_mc)==0) {</span>
 <span class="s2">         cat(&quot;***Warning: parallel exectution of Monte-Carlo simulations has failed.&quot;, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">         free_mc=matrix(NA, nb_param+2, 0)</span>
 <span class="s2">      }</span>
 <span class="s2">      cost_mc=free_mc[1,]</span>
 <span class="s2">      nmc_real=nmc-sum(is.na(free_mc[4,]))</span>
-<span class="s2">      if (write_res) {</span>
-<span class="s2">         cat(&quot;monte-carlo</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
-<span class="s2">         indent=1</span>
-<span class="s2">         obj2kvh(cl_type, &quot;cluster type&quot;, fkvh, indent)</span>
-<span class="s2">         obj2kvh(avaco, &quot;detected cores&quot;, fkvh, indent)</span>
-<span class="s2">         avaco=max(1, avaco, na.rm=T)</span>
-<span class="s2">         obj2kvh(min(avaco, np, na.rm=T), &quot;used cores&quot;, fkvh, indent)</span>
-<span class="s2">         cat(&quot;</span><span class="se">\\</span><span class="s2">tfitting samples</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
-<span class="s2">         indent=2</span>
-<span class="s2">         obj2kvh(nmc, &quot;requested number&quot;, fkvh, indent)</span>
-<span class="s2">         obj2kvh(nmc_real, &quot;calculated number&quot;, fkvh, indent)</span>
-<span class="s2">         obj2kvh(nmc-nmc_real, &quot;failed to calculate&quot;, fkvh, indent)</span>
-<span class="s2">         # convergence section in kvh</span>
-<span class="s2">         indent=1</span>
-<span class="s2">         mout=rbind(round(free_mc[1:2,,drop=FALSE], 2),</span>
-<span class="s2">            format(free_mc[3,,drop=FALSE], di=2, sci=T))</span>
-<span class="s2">         dimnames(mout)=list(c(&quot;cost&quot;, &quot;it.numb&quot;, &quot;normp&quot;), seq_len(ncol(free_mc)))</span>
-<span class="s2">         obj2kvh(mout, &quot;convergence per sample&quot;, fkvh, indent)</span>
-<span class="s2">      }</span>
 <span class="s2">      # remove failed m-c iterations</span>
-<span class="s2">      free_mc=free_mc[-(1:3),,drop=FALSE]</span>
 <span class="s2">      ifa=which(is.na(free_mc[1,]))</span>
 <span class="s2">      if (length(ifa)) {</span>
 <span class="s2">         if (ncol(free_mc) &gt; length(ifa)) {</span>
 <span class="s2">            cat(&quot;***Warning: some Monte-Carlo iterations failed.&quot;, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
+<span class="s2">         } else {</span>
+<span class="s2">            cat(&quot;All Monter-Carlo samples failed.&quot;, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fcerr)</span>
+<span class="s2">            retcode[irun]=1</span>
+<span class="s2">            break</span>
 <span class="s2">         }</span>
 <span class="s2">         free_mc=free_mc[,-ifa,drop=FALSE]</span>
 <span class="s2">         cost_mc=cost_mc[-ifa]</span>
@@ -1782,10 +1779,48 @@
 <span class="s2">         break</span>
 <span class="s2">      }</span>
 <span class="s2">#browser()</span>
+<span class="s2">      fallnx_mc=apply(free_mc[-(1L:3L),,drop=FALSE], 2, function(p)param2fl(p, labargs)$fallnx)</span>
+<span class="s2">      if (length(fallnx_mc)) {</span>
+<span class="s2">         # mean</span>
+<span class="s2">         fallnx_mc_mean=rowMeans(fallnx_mc)</span>
+<span class="s2">         # median</span>
+<span class="s2">         fallnx_mc_median=apply(fallnx_mc, 1, median)</span>
+<span class="s2">         # confidence intervals</span>
+<span class="s2">         cinx_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))</span>
+<span class="s2">         cinx_mc=cbind(cinx_mc, &quot;CI 95</span><span class="si">% le</span><span class="s2">ngth&quot;=c(diff(t(cinx_mc))))</span>
+<span class="s2">         cinx_mc=cbind(cinx_mc, &quot;relative CI (%)&quot;=cinx_mc[,3]*100/abs(fallnx_mc_mean))</span>
+<span class="s2">      }</span>
+
+<span class="s2">      if (write_res &amp;&amp; wkvh) {</span>
+<span class="s2">         cat(&quot;monte-carlo</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
+<span class="s2">         indent=1</span>
+<span class="s2">         obj2kvh(cl_type, &quot;cluster type&quot;, fkvh, indent)</span>
+<span class="s2">         obj2kvh(avaco, &quot;detected cores&quot;, fkvh, indent)</span>
+<span class="s2">         avaco=max(1, avaco, na.rm=TRUE)</span>
+<span class="s2">         obj2kvh(min(avaco, np, na.rm=TRUE), &quot;used cores&quot;, fkvh, indent)</span>
+<span class="s2">         cat(&quot;</span><span class="se">\\</span><span class="s2">tfitting samples</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
+<span class="s2">         indent=2</span>
+<span class="s2">         obj2kvh(nmc, &quot;requested number&quot;, fkvh, indent)</span>
+<span class="s2">         obj2kvh(nmc_real, &quot;calculated number&quot;, fkvh, indent)</span>
+<span class="s2">         obj2kvh(nmc-nmc_real, &quot;failed to calculate&quot;, fkvh, indent)</span>
+<span class="s2">         # convergence section in kvh</span>
+<span class="s2">         indent=1</span>
+<span class="s2">         mout=rbind(round(free_mc[1:2,,drop=FALSE], 2),</span>
+<span class="s2">            format(free_mc[3,,drop=FALSE], di=2, sci=TRUE))</span>
+<span class="s2">         dimnames(mout)=list(c(&quot;cost&quot;, &quot;it.numb&quot;, &quot;normp&quot;), seq_len(ncol(free_mc)))</span>
+<span class="s2">         obj2kvh(mout, &quot;convergence per sample&quot;, fkvh, indent)</span>
+<span class="s2">      }</span>
+<span class="s2">      free_mc=free_mc[-(1L:3L),,drop=FALSE]</span>
 <span class="s2">      rownames(free_mc)=nm_par</span>
-<span class="s2">      </span>
+
+<span class="s2">      # param stats</span>
+<span class="s2">      # mean</span>
+<span class="s2">      parmean=rowMeans(free_mc)</span>
+<span class="s2">      # median</span>
+<span class="s2">      parmed=apply(free_mc, 1, median)</span>
+
 <span class="s2">      # cost section in kvh</span>
-<span class="s2">      if (write_res) {</span>
+<span class="s2">      if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">         cat(&quot;</span><span class="se">\\</span><span class="s2">tcost</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
 <span class="s2">         indent=2</span>
 <span class="s2">         obj2kvh(mean(cost_mc), &quot;mean&quot;, fkvh, indent)</span>
@@ -1798,11 +1833,6 @@
 <span class="s2">         cat(&quot;</span><span class="se">\\</span><span class="s2">tStatistics</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
 <span class="s2">         mout=c()</span>
 <span class="s2">         indent=2</span>
-<span class="s2">         # param stats</span>
-<span class="s2">         # mean</span>
-<span class="s2">         parmean=apply(free_mc, 1, mean)</span>
-<span class="s2">         # median</span>
-<span class="s2">         parmed=apply(free_mc, 1, median)</span>
 <span class="s2">#browser()</span>
 <span class="s2">         # covariance matrix</span>
 <span class="s2">         covmc=cov(t(free_mc))</span>
@@ -1818,29 +1848,18 @@
 <span class="s2">         obj2kvh(mout, &quot;free parameters&quot;, fkvh, indent)</span>
 
 <span class="s2">         # net-xch01 stats</span>
-<span class="s2">         fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fallnx)</span>
 <span class="s2">         fallnx=param2fl(param, labargs)$fallnx</span>
 <span class="s2">         if (length(fallnx_mc)) {</span>
 <span class="s2">            dimnames(fallnx_mc)[[1]]=nm_fallnx</span>
 <span class="s2">            # form a matrix output</span>
 <span class="s2">            fallout=matrix(0, nrow=nrow(fallnx_mc), ncol=0)</span>
-<span class="s2">            # mean</span>
-<span class="s2">#browser()</span>
-<span class="s2">            parmean=apply(fallnx_mc, 1, mean)</span>
-<span class="s2">            # median</span>
-<span class="s2">            parmed=apply(fallnx_mc, 1, median)</span>
 <span class="s2">            # covariance matrix</span>
 <span class="s2">            covmc=cov(t(fallnx_mc))</span>
 <span class="s2">            dimnames(covmc)=list(nm_fallnx, nm_fallnx)</span>
 <span class="s2">            # sd</span>
 <span class="s2">            sdmc=sqrt(diag(covmc))</span>
-<span class="s2">            # confidence intervals</span>
-<span class="s2">            cinx_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))</span>
-<span class="s2">            cinx_mc=cbind(cinx_mc, t(diff(t(cinx_mc))))</span>
-<span class="s2">            cinx_mc=cbind(cinx_mc, cinx_mc[,3]*100/abs(parmean))</span>
-<span class="s2">            colnames(cinx_mc)=c(&quot;CI 2.5%&quot;, &quot;CI 97.5%&quot;, &quot;CI 95</span><span class="si">% le</span><span class="s2">ngth&quot;, &quot;relative CI (%)&quot;)</span>
-<span class="s2">            fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,</span>
-<span class="s2">               &quot;rsd (%)&quot;=sdmc*100/abs(fallnx), cinx_mc)</span>
+<span class="s2">            fallout=cbind(fallout, mean=fallnx_mc_mean, median=fallnx_mc_median, sd=sdmc,</span>
+<span class="s2">               &quot;rsd (%)&quot;=sdmc*100/abs(fallnx_mc_mean), cinx_mc)</span>
 <span class="s2">            o=order(nm_fallnx)</span>
 <span class="s2">            obj2kvh(fallout[o,,drop=FALSE], &quot;all net-xch01 fluxes&quot;, fkvh, indent)</span>
 <span class="s2">            obj2kvh(covmc[o,o], &quot;covariance of all net-xch01 fluxes&quot;, fkvh, indent)</span>
@@ -1891,8 +1910,8 @@
 <span class="s2">      }</span>
 <span class="s2">      if (!is.null(rres$err) &amp;&amp; rres$err) {</span>
 <span class="s2">         cat(&quot;lab_resid&quot;, runsuf, &quot;: &quot;, rres$mes, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fcerr, sep=&quot;&quot;)</span>
-<span class="s2">         if (write_res)</span>
-<span class="s2">            close(fkvh)</span>
+<span class="s2">         #if (write_res &amp;&amp; wkvh)</span>
+<span class="s2">         #   close(fkvh)</span>
 <span class="s2">         retcode[irun]=rres$err</span>
 <span class="s2">         next</span>
 <span class="s2">      }</span>
@@ -1920,7 +1939,7 @@
 <span class="s2">      rtcov=(svj$u)</span><span class="si">%*%</span><span class="s2">(t(svj$v)/svj$d)</span>
 <span class="s2">      # standard deviations of free fluxes</span>
 <span class="s2">      if (write_res) {</span>
-<span class="s2">         cat(&quot;linear stats</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
+<span class="s2">         if (wkvh) cat(&quot;linear stats</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
 
 <span class="s2">         # sd free+dependent+growth net-xch01 fluxes</span>
 <span class="s2">         nm_flfd=c(nm_ff, nm_fgr, nm_fl)</span>
@@ -1937,9 +1956,11 @@
 <span class="s2">         fl=c(head(param, nb_ff), fgr, flnx)</span>
 <span class="s2">         stats_nx=cbind(&quot;value&quot;=fl, &quot;sd&quot;=sdfl, &quot;rsd&quot;=sdfl/abs(fl))</span>
 <span class="s2">         rownames(stats_nx)=nm_flfd</span>
-<span class="s2">         o=order(nm_flfd)</span>
-<span class="s2">         obj2kvh(stats_nx[o,,drop=FALSE], &quot;net-xch01 fluxes (sorted by name)&quot;, fkvh, indent=1)</span>
-<span class="s2">         obj2kvh(covfl[o, o], &quot;covariance net-xch01 fluxes&quot;, fkvh, indent=1)</span>
+<span class="s2">         if (wkvh) {</span>
+<span class="s2">            o=order(nm_flfd)</span>
+<span class="s2">            obj2kvh(stats_nx[o,,drop=FALSE], &quot;net-xch01 fluxes (sorted by name)&quot;, fkvh, indent=1)</span>
+<span class="s2">            obj2kvh(covfl[o, o], &quot;covariance net-xch01 fluxes&quot;, fkvh, indent=1)</span>
+<span class="s2">         }</span>
 <span class="s2">         </span>
 <span class="s2">         # flux, pool --&gt; .tvar</span>
 <span class="s2">#browser()</span>
@@ -1974,12 +1995,14 @@
 <span class="s2">         } else {</span>
 <span class="s2">            sdf=rep(0., length(fwrv))</span>
 <span class="s2">         }</span>
-<span class="s2">         mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))</span>
-<span class="s2">         dimnames(mtmp)[[2]]=c(&quot;value&quot;, &quot;sd&quot;, &quot;rsd&quot;)</span>
-<span class="s2">         o=order(nm_fwrv)</span>
-<span class="s2">         obj2kvh(mtmp[o,], &quot;fwd-rev fluxes (sorted by name)&quot;, fkvh, indent=1)</span>
-<span class="s2">         if (nb_ff &gt; 0 || nb_fgr &gt; 0) {</span>
-<span class="s2">            obj2kvh(covf, &quot;covariance fwd-rev fluxes&quot;, fkvh, indent=1)</span>
+<span class="s2">         if (wkvh) {</span>
+<span class="s2">            mtmp=cbind(fwrv, sdf, sdf/abs(fwrv))</span>
+<span class="s2">            dimnames(mtmp)[[2]]=c(&quot;value&quot;, &quot;sd&quot;, &quot;rsd&quot;)</span>
+<span class="s2">            o=order(nm_fwrv)</span>
+<span class="s2">            obj2kvh(mtmp[o,], &quot;fwd-rev fluxes (sorted by name)&quot;, fkvh, indent=1)</span>
+<span class="s2">            if (nb_ff &gt; 0 || nb_fgr &gt; 0) {</span>
+<span class="s2">               obj2kvh(covf, &quot;covariance fwd-rev fluxes&quot;, fkvh, indent=1)</span>
+<span class="s2">            }</span>
 <span class="s2">         }</span>
 <span class="s2">         # pool -&gt; kvh</span>
 <span class="s2">         sdpf=poolall</span>
@@ -1995,13 +2018,15 @@
 <span class="s2">            sdpf[nm_poolf]=sqrt(diag(covpf))</span>
 <span class="s2">         }</span>
 <span class="s2">         if (length(poolall) &gt; 0) {</span>
-<span class="s2">            mtmp=cbind(&quot;value&quot;=poolall, &quot;sd&quot;=sdpf, &quot;rsd&quot;=sdpf/poolall)</span>
-<span class="s2">            rownames(mtmp)=nm_poolall</span>
-<span class="s2">            o=order(nm_poolall)</span>
-<span class="s2">            obj2kvh(mtmp[o,,drop=FALSE], &quot;metabolite pools (sorted by name)&quot;, fkvh, indent=1)</span>
-<span class="s2">            if (nb_poolf &gt; 0) {</span>
-<span class="s2">               o=order(nm_poolf)</span>
-<span class="s2">               obj2kvh(covpf[o, o], &quot;covariance free pools&quot;, fkvh, indent=1)</span>
+<span class="s2">            if (wkvh) {</span>
+<span class="s2">               mtmp=cbind(&quot;value&quot;=poolall, &quot;sd&quot;=sdpf, &quot;rsd&quot;=sdpf/poolall)</span>
+<span class="s2">               rownames(mtmp)=nm_poolall</span>
+<span class="s2">               o=order(nm_poolall)</span>
+<span class="s2">               obj2kvh(mtmp[o,,drop=FALSE], &quot;metabolite pools (sorted by name)&quot;, fkvh, indent=1)</span>
+<span class="s2">               if (nb_poolf &gt; 0) {</span>
+<span class="s2">                  o=order(nm_poolf)</span>
+<span class="s2">                  obj2kvh(covpf[o, o], &quot;covariance free pools&quot;, fkvh, indent=1)</span>
+<span class="s2">               }</span>
 <span class="s2">            }</span>
 <span class="s2">            rnm=names(poolall)</span>
 <span class="s2">            mnm=matrix(unlist(strsplitlim(rnm, &quot;:&quot;, fixed=TRUE, lim=2L)), ncol=2L, byrow=TRUE)</span>
@@ -2027,30 +2052,34 @@
 <span class="s2">   # chi2 test for goodness of fit</span>
 <span class="s2">   # goodness of fit (chi2 test)</span>
 <span class="s2">   if (length(jx_f$res)) {</span>
-<span class="s2">      nvres=sum(!is.na(jx_f$res))</span>
-<span class="s2">      if (nvres &gt; nb_param) {</span>
-<span class="s2">         chi2test=list(&quot;chi2 value&quot;=rcost, &quot;data points&quot;=nvres,</span>
-<span class="s2">            &quot;fitted parameters&quot;=nb_param, &quot;degrees of freedom&quot;=nvres-nb_param)</span>
-<span class="s2">         chi2test$`chi2 reduced value`=chi2test$`chi2 value`/chi2test$`degrees of freedom`</span>
-<span class="s2">         chi2test$`p-value, i.e. P(X^2&lt;=value)`=pchisq(chi2test$`chi2 value`, df=chi2test$`degrees of freedom`)</span>
-<span class="s2">         chi2test$conclusion=if (chi2test$`p-value, i.e. P(X^2&lt;=value)` &gt; 0.95) &quot;At level of 95</span><span class="si">% c</span><span class="s2">onfidence, the model does not fit the data good enough with respect to the provided measurement SD&quot; else &quot;At level of 95</span><span class="si">% c</span><span class="s2">onfidence, the model fits the data good enough with respect to the provided measurement SD&quot;</span>
-<span class="s2">         if (write_res) {</span>
-<span class="s2">            obj2kvh(chi2test, &quot;goodness of fit (chi2 test)&quot;, fkvh, indent=1)</span>
-<span class="s2">            fstat=file(file.path(dirres, sprintf(&quot;</span><span class="si">%s%s</span><span class="s2">.stat&quot;, baseshort,  runsuf)), &quot;w&quot;)</span>
-<span class="s2">            df=c(rcost, rcost/(nvres-nb_param), nvres, nb_param, nvres-nb_param, chi2test$`p-value, i.e. P(X^2&lt;=value)`, chi2test$conclusion)</span>
-<span class="s2">            names(df)=c(&quot;chi2_value&quot;, &quot;chi2/df&quot;, &quot;number_of_measurements&quot;, &quot;number_of_parameters&quot;, &quot;degrees_of_freedom&quot;, &quot;p-value&quot;, &quot;conclusion&quot;)</span>
-<span class="s2">            write.table(df, sep=&quot;</span><span class="se">\t</span><span class="s2">&quot;, quote=FALSE, row.names=TRUE, file=fstat, col.names=FALSE)</span>
-<span class="s2">            close(fstat)</span>
-<span class="s2">         }</span>
+<span class="s2">      if (is.na(rcost)) {</span>
+<span class="s2">         cat(sprintf(&quot;***Warning: chi2: Reduced cost value is NA. Chi2 test cannot be done.</span><span class="se">\\</span><span class="s2">n&quot;), sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">      } else {</span>
-<span class="s2">         cat(sprintf(&quot;***Warning: chi2: Measurement number </span><span class="si">%d</span><span class="s2"> is lower or equal to parameter number </span><span class="si">%d</span><span class="s2">. Chi2 test cannot be done.</span><span class="se">\\</span><span class="s2">n&quot;, nvres, nb_param), sep=&quot;&quot;, file=fclog)</span>
+<span class="s2">         nvres=sum(!is.na(jx_f$res))</span>
+<span class="s2">         if (nvres &gt; nb_param) {</span>
+<span class="s2">            chi2test=list(&quot;chi2 value&quot;=rcost, &quot;data points&quot;=nvres,</span>
+<span class="s2">               &quot;fitted parameters&quot;=nb_param, &quot;degrees of freedom&quot;=nvres-nb_param)</span>
+<span class="s2">            chi2test$`chi2 reduced value`=chi2test$`chi2 value`/chi2test$`degrees of freedom`</span>
+<span class="s2">            chi2test$`p-value, i.e. P(X^2&lt;=value)`=pchisq(chi2test$`chi2 value`, df=chi2test$`degrees of freedom`)</span>
+<span class="s2">            chi2test$conclusion=if (chi2test$`p-value, i.e. P(X^2&lt;=value)` &gt; 0.95) &quot;At level of 95</span><span class="si">% c</span><span class="s2">onfidence, the model does not fit the data good enough with respect to the provided measurement SD&quot; else &quot;At level of 95</span><span class="si">% c</span><span class="s2">onfidence, the model fits the data good enough with respect to the provided measurement SD&quot;</span>
+<span class="s2">            if (write_res) {</span>
+<span class="s2">               if (wkvh) obj2kvh(chi2test, &quot;goodness of fit (chi2 test)&quot;, fkvh, indent=1)</span>
+<span class="s2">               fstat=file(file.path(dirres, sprintf(&quot;</span><span class="si">%s%s</span><span class="s2">.stat&quot;, baseshort,  runsuf)), &quot;w&quot;)</span>
+<span class="s2">               df=c(rcost, rcost/(nvres-nb_param), nvres, nb_param, nvres-nb_param, chi2test$`p-value, i.e. P(X^2&lt;=value)`, chi2test$conclusion)</span>
+<span class="s2">               names(df)=c(&quot;chi2_value&quot;, &quot;chi2/df&quot;, &quot;number_of_measurements&quot;, &quot;number_of_parameters&quot;, &quot;degrees_of_freedom&quot;, &quot;p-value&quot;, &quot;conclusion&quot;)</span>
+<span class="s2">               write.table(df, sep=&quot;</span><span class="se">\t</span><span class="s2">&quot;, quote=FALSE, row.names=TRUE, file=fstat, col.names=FALSE)</span>
+<span class="s2">               close(fstat)</span>
+<span class="s2">            }</span>
+<span class="s2">         } else {</span>
+<span class="s2">            cat(sprintf(&quot;***Warning: chi2: Measurement number </span><span class="si">%d</span><span class="s2"> is lower or equal to parameter number </span><span class="si">%d</span><span class="s2">. Chi2 test cannot be done.</span><span class="se">\\</span><span class="s2">n&quot;, nvres, nb_param), sep=&quot;&quot;, file=fclog)</span>
+<span class="s2">         }</span>
 <span class="s2">      }</span>
 <span class="s2">   }</span>
 <span class="s2">   if (prof) {</span>
 <span class="s2">      Rprof(NULL)</span>
 <span class="s2">   }</span>
 <span class="s2">   if (write_res) {</span>
-<span class="s2">      close(fkvh)</span>
+<span class="s2">      if (wkvh) close(fkvh)</span>
 <span class="s2">      # write edge.netflux property</span>
 <span class="s2">      fedge=file(file.path(dirres, &quot;tmp&quot;, sprintf(&quot;edge.netflux.</span><span class="si">%s%s</span><span class="s2">.attrs&quot;, baseshort,  runsuf)), &quot;w&quot;)</span>
 <span class="s2">      cat(&quot;netflux (class=Double)</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fedge)</span>
@@ -2115,10 +2144,9 @@
 <span class="s2">   close(fcerr)</span>
 <span class="s2">}</span>
 <span class="s2">retcode=max(retcode)</span>
-<span class="s2">if (format(parent.frame()) == format(.GlobalEnv)) {</span>
+<span class="s2">if (!interactive() &amp;&amp; format(parent.frame()) == format(.GlobalEnv))</span>
 <span class="s2">   q(&quot;no&quot;, status=retcode)</span>
-<span class="s2">}</span>
-<span class="s2">    &quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
          <span class="s2">&quot;postlist&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;posttreat_R&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
          <span class="p">})</span>
 

@@ -1550,29 +1550,43 @@ natsort=function(s, ...) {
    s[natorder(s, ...)]
 }
 vgrep=base::Vectorize(base::grep, "pattern")
-strsplitlim=function(..., lim=0L, strict=FALSE) {
+strsplitlim=function(..., lim=0L, strict=FALSE, mat=FALSE) {
    # strsplit() with limit number of items in output vector
-   # if lim <= 0, no limit is applied
+   # if lim <= 0, no limit is applied for strict==FALSE && mat==FALSE
+   # if lim is NA, the limit is set to the maximal found length
+   # strict=TRUE for lim > 0 means that the results will have exactly 'lim' columns
+   # if mat=TRUE and lim is applied, then the result is returned as matrix with lim columns
+   # Note that mat=TRUE implies strict=TRUE
    res=base::strsplit(...)
-   if (is.na(lim))
-      lim=max(sapply(res, length))
+   call=as.list(match.call(definition=args(base::strsplit), call=as.call(list("strsplit", ...))))
+   res[nchar(call$x) == 0L] = ""
+   if (length(res) == 0L)
+      return(if (strict || mat) {
+         if (!is.na(lim)) matrix("", 0L, lim) else matrix("", 0L, 0L)
+      } else {
+         res
+      })
+   if (is.na(lim) || (mat && lim == 0L))
+      lim=max(lengths(res))
    lim=as.integer(lim)
    if (lim > 0L) {
-      call=as.list(sys.call(sys.parent()))
-      call$lim=NULL
-      call$strict=NULL
-      call=as.call(call)
-      sep=as.list(match.call(definition=args(base::strsplit), call=call))[["split"]]
+      sep=call$split
       i=seq_len(lim-1L)
-      if (strict) {
+      if (strict || mat) {
          res=lapply(res, function(v) {n=length(v); if (lim < n) c(v[i], paste0(v[-i], collapse=sep)) else c(v, rep("", lim-n))})
       } else {
          res=lapply(res, function(v) if (lim < length(v)) v=c(v[i], paste0(v[-i], collapse=sep)) else v)
       }
+      if (mat)
+         res=matrix(unlist(res), ncol=lim, byrow=TRUE)
+   } else {
+      if (mat)
+         res=matrix(unlist(res), ncol=, byrow=TRUE)
    }
    res
 }
 clamp=function(x, low, high) {
+   stopifnot(low <= high)
    x[x < low]=low
    x[x > high]=high
    x
@@ -1588,11 +1602,62 @@ clamp=function(x, low, high) {
    nm_lhs=as.list(substitute(lhs))[-(1L)]
    stopifnot(all(sapply(nm_lhs, is.symbol)))
    nm_lhs=as.character(nm_lhs)
-   print(nm_lhs)
+   #print(nm_lhs)
    if (nchar(tail(nm_lhs, 1L)) == 0L)
       stopifnot(length(nm_lhs) <= length(rhs))
    else
       stopifnot(length(nm_lhs) == length(rhs))
    lapply(seq_along(nm_lhs), function(i) {nm=nm_lhs[[i]]; if (nchar(nm)) assign(nm, rhs[[i]], envir=envir)})
    invisible(NULL)
+}
+s2i=function(v, na.rm=TRUE) {v=setNames(suppressWarnings(as.integer(v)), names(v)); if (na.rm) na.omit(v) else v}
+s2d=function(v, na.rm=TRUE) {v=setNames(suppressWarnings(as.double(v)), names(v)); if (na.rm) na.omit(v) else v}
+#' vectorized form of endsWith
+endsWithv=function(x, suffix)
+   as.logical(rowSums(vapply(suffix, endsWith, logical(length(x)), x=x)))
+#' vectorized form of startsWith
+startsWithv=function(x, prefix)
+   as.logical(rowSums(vapply(prefix, startsWith, logical(length(x)), x=x)))
+
+#' vectorize cbind() on the second argument. nrow(res)=nrow(v1)*nrow(v2)
+cbindv2=function(v1, v2) cbind(rep(v1, length(v2)), rep(v2, each=length(v1)))
+#' lapply running on pairs (name, item) on named lists or vectors
+n_lapply=function(X, FUN, ...) {
+   nm=names(X)
+   lapply(setNames(seq_along(X), nm), function(i) do.call(FUN, list(nm[i], X[[i]], ...)))
+}
+#' lapply running on pairs (index, item) on lists or vectors
+i_lapply=function(X, FUN, ...)
+   lapply(setNames(seq_along(X), names(X)), function(i) do.call(FUN, list(i, X[[i]], ...)))
+#' write time info
+top_chrono=function(what, fileout=stdout(), fmt="%-9s: ", doit=mget("TIMEIT", envir=parent.frame(), ifnotfound=FALSE)$TIMEIT)
+   if (doit)
+      cat(sprintf(fmt, what), format(Sys.time()), " cpu=", proc.time()[1L], "\n", sep="", file=fileout)
+#' diagonal bind of matrices. The result is slam::simple_triplet_matrix
+dbind=function(...) {
+   lima=list(...)
+   if (length(lima) == 0L)
+      return(NULL)
+   nr=sapply(lima, NROW)
+   nc=sapply(lima, NCOL)
+   cnr=c(0L, cumsum(nr))
+   cnc=c(0L, cumsum(nc))
+   nmc=lapply(lima, colnames)
+   nmr=lapply(lima, function(m) if (is.null(dim(m))) names(m) else rownames(m))
+   if (any(lengths(nmr)))
+      nmr=i_lapply(nmr, function(i,v) if (length(v) == 0L) rep("", nr[i]) else v)
+   if (any(lengths(nmc)))
+      nmc=i_lapply(nmc, function(i,v) if (length(v) == 0L) rep("", nc[i]) else v)
+   nmr=Reduce(c, nmr)
+   nmc=Reduce(c, nmc)
+   res=slam::simple_triplet_zero_matrix(tail(cnr, 1L), tail(cnc, 1L))
+   for (ima in seq_along(lima)) {
+      if (nr[ima] == 0L || nc[ima] == 0L)
+         next
+      ir=cnr[ima]+seq(nr[ima])
+      ic=cnc[ima]+seq(nc[ima])
+      res[ir,ic]=lima[[ima]]
+   }
+   dimnames(res)=list(nmr, nmc)
+   res
 }

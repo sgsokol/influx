@@ -8,7 +8,7 @@
 import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat
 import argparse
 #from threading import Thread # threaded parallel jobs
-from multiprocessing import cpu_count, Process, Queue
+from multiprocessing import cpu_count, Process, SimpleQueue as Queue
 #from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
 from pathlib import Path
@@ -26,6 +26,11 @@ class ArgumentParser(argparse.ArgumentParser):
 class ordAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         ord_args.append(("--"+self.dest, values))
+class ordAction0(argparse.Action):
+    def __init__(self, nargs=0, **kw):
+        super().__init__(nargs=nargs, **kw)
+    def __call__(self, parser, namespace, values, option_string=None):
+        ord_args.append(("--"+self.dest,))
 class pvalAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         # treat excl_outliers
@@ -46,7 +51,7 @@ class pvalAction(argparse.Action):
             setattr(namespace, self.dest, val)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
-def qworker(q, qret, qres):
+def qworker(q, qret, qres, DEBUG=False):
     while True:
         item=q.get()
         #print("item=", item)
@@ -55,6 +60,12 @@ def qworker(q, qret, qres):
         except Exception as e:
             traceback.print_exc()
             sys.stderr.write("Error: launch_job: "+"%s\n"%str(e)+"\n")
+            if DEBUG:
+                sys.stderr.write(("".join(traceback.format_exc())) + "\n")
+                import pdb #; pdb.set_trace()
+                extype, value, tb = sys.exc_info()
+                traceback.print_exc()
+                pdb.post_mortem(tb)
             retcode=1
         qret.put(retcode)
         if q.empty():
@@ -92,7 +103,7 @@ def move_ftbl(dirres, fp, case_i):
     for f in prl_ftbl:
         move_ftbl(dtmp, fp.parent / (f+("" if f[-5:].lower()==".ftbl" else ".ftbl")), case_i)
 
-def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres):
+def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG):
     r"""Launch R code generation and then its execution
 """
     #pdb.set_trace()
@@ -101,7 +112,7 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
     d=Path(ft).parent
     if not d.is_dir():
         sys.stderr.write("Error: directory of FTBL file '%s' does not exist.\n"%d)
-        return(1)
+        return 1
     if dirres:
         if dirres == "default":
             dres=d/(str(f.name)+"_res")
@@ -114,13 +125,13 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
             flog=fres.with_suffix(".log").open("w", encoding="utf8")
         except Exception as e:
             sys.stderr.write("%s\n"%str(e))
-            return(1);
+            return 1 
         try:
             ferr=fres.with_suffix(".err").open("w", encoding="utf8")
         except Exception as e:
             sys.stderr.write("%s\n"%str(e))
             flog.close()
-            return(1);
+            return 1
     else:
         dres=""
         fres=None
@@ -205,11 +216,18 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
                     flog.write(s)
             return(retcode)
     except Exception as e:
-        #pdb.set_trace()
         sys.tracebacklimit=ldict_opts.get("tblimit", 0)
         ferr.write(("".join(traceback.format_exc())) + "\t(in "+ft.stem+")\n")
         qres.put((str(ft.with_suffix(".R")), False))
-        return(1)
+        if DEBUG:
+            if ferr != sys.stderr:
+                sys.stderr.write(("".join(traceback.format_exc())) + "\t(in "+ft.stem+")\n")
+            import pdb #; pdb.set_trace()
+            extype, value, tb = sys.exc_info()
+            traceback.print_exc()
+            pdb.post_mortem(tb)
+        #pdb.set_trace()
+        return 1
     return(retcode)
 
 def identity(string):
@@ -348,7 +366,7 @@ Call influx_s.main(["-h"]) for a help message"""
         parser.add_argument(
         "--eprl", action=ordAction, help="option passed to txt2ftbl. See help there.")
         parser.add_argument(
-        "--force", action=ordAction, help="option passed to txt2ftbl. See help there.")
+        "--force", action=ordAction0, help="option passed to txt2ftbl. See help there.")
         parser.add_argument(
         "-o", "--out",
                help="output directory. Default: basename of input file without suffix + '_res'. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.")
@@ -375,17 +393,32 @@ Call influx_s.main(["-h"]) for a help message"""
         "--tblimit", type=int, default=0,
             help="developer option: set trace back limit for python error messages")
         parser.add_argument(
+        "--DEBUG", action="store_true",
+            help="developer option: call pdb debugger at some critical exceptions")
+        parser.add_argument(
+        "--case_i", action="store_true",
+            help=argparse.SUPPRESS)
+        parser.add_argument(
         "ftbl",
             help="FTBL file name to process", nargs="*")
 
     if len(argv) == 0:
         parser.print_usage(sys.stderr)
-        return(1)
+        return 1
     # parse command line
     #pdb.set_trace()
     opts = parser.parse_args(argv)
-
     dict_opts=vars(opts)
+    DEBUG=dict_opts["DEBUG"]
+    if case_i:
+        dict_opts["case_i"]=True
+    if dict_opts["case_i"]:
+        case_i=True
+    if case_i and "time_order" not in dict_opts:
+        parser.add_argument(
+    "--time_order",
+           choices=[None, "1", "2", "1,2"],
+           help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to start solving the ODE with the first order scheme then continues with the order 2.")
     #pdb.set_trace()
 
     do_exit=False
@@ -477,7 +510,12 @@ Call influx_s.main(["-h"]) for a help message"""
                     #pdb.set_trace()
                     sys.tracebacklimit=dict_opts.get("tblimit", 0)
                     ferr.write(("".join(traceback.format_exc())) + "\n")
-                    return(1)
+                    if DEBUG:
+                        import pdb #; pdb.set_trace()
+                        extype, value, tb = sys.exc_info()
+                        traceback.print_exc()
+                        pdb.post_mortem(tb)
+                    return 1
                 args += tmp_ftbl
                 li_ftbl += tmp_ftbl
         else:
@@ -489,7 +527,12 @@ Call influx_s.main(["-h"]) for a help message"""
                     #pdb.set_trace()
                     sys.tracebacklimit=dict_opts.get("tblimit", 0)
                     ferr.write(("".join(traceback.format_exc())) + "\n")
-                    return(1)
+                    if DEBUG:
+                        import pdb #; pdb.set_trace()
+                        extype, value, tb = sys.exc_info()
+                        traceback.print_exc()
+                        pdb.post_mortem(tb)
+                    return 1
             args += li_ftbl
     set_ftbl=set(li_ftbl)
         
@@ -522,12 +565,13 @@ Call influx_s.main(["-h"]) for a help message"""
     qret=Queue() # returned code from workers
 
     parproc=[]
-    for i in range(min(np, len(args))):
-        #t=Thread(target=qworker, args=(q, qret))
-        t=Process(target=qworker, args=(q, qret, qres))
-        t.daemon=True
-        t.start()
-        parproc.append(t)
+    if not DEBUG:
+        for i in range(min(np, len(args))):
+            #t=Thread(target=qworker, args=(q, qret))
+            t=Process(target=qworker, args=(q, qret, qres))
+            t.daemon=True
+            t.start()
+            parproc.append(t)
 
     nb_ftbl=len(args)
     ftpr=[] # proceeded ftbls
@@ -539,15 +583,16 @@ Call influx_s.main(["-h"]) for a help message"""
         f=ft[:-5]
         fshort="" if len(args) == 1 else Path(ft).stem+": "
 
-        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres}
+        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG}
         q.put(item)
     if not ftpr:
-        return(1)
-    #pdb.set_trace()
-    #q.join()
-    q.close() # no more data will be added to this queue
-    for t in parproc:
-        t.join() # wait the end of //-jobs
+        return 1
+    #import pdb; pdb.set_trace()
+    if DEBUG:
+        qworker(q, qret, qres, DEBUG)
+    else:
+        for t in parproc:
+            t.join() # wait the end of //-jobs
 
     # get names of generated R files
     rfiles=[]
@@ -558,6 +603,10 @@ Call influx_s.main(["-h"]) for a help message"""
     while not qret.empty():
         rcodes.append(qret.get())
 
+    if not rcodes:
+        #import pdb; pdb.set_trace()
+        sys.stderr.write("No return code in qret\n")
+        return 1
     retcode=max(rcodes)
     if len(rfiles) > 1:
         # write file parallel.R and launch it
@@ -566,12 +615,10 @@ Call influx_s.main(["-h"]) for a help message"""
             fpar=open("parallel.R", "w")
             fpar.write("""
         suppressPackageStartupMessages(library(parallel))
-        suppressPackageStartupMessages(library(Rcpp))
         dirx="%(dirx)s"
         dirres="%(dirres)s" # can be "default" or empty
-        source(file.path(dirx, "opt_cumo_tools.R"), echo=FALSE)
         doit=function(fR) {
-           f=substr(fR, 1, nchar(fR)-2)
+           f=substr(fR, 1L, nchar(fR)-2L)
            fshort=basename(f)
            if (dirres == "default") {
               nm_flog=sprintf("%%s_res/%%s.log", f, fshort)
@@ -596,7 +643,7 @@ Call influx_s.main(["-h"]) for a help message"""
            }
            cat("end     : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
            if (dirres == "default") {
-              if (file.info(nm_ferr)$size > 0) {
+              if (file.info(nm_ferr)$size > 0L) {
                   cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
               }
               close(flog)
@@ -662,15 +709,15 @@ Call influx_s.main(["-h"]) for a help message"""
         # execute only one R code
         if not retcode and rfiles and not dict_opts["nocalc"]:
             f=rfiles[0][0][:-2]
-            rcmd="R --vanilla --slave -e"
-            rarg=f"source('{rfiles[0][0]}',echo=FALSE)"
+            rcmd="R --vanilla --slave"
+            #rarg=f"source('{rfiles[0][0]}',echo=FALSE)"
             if flog:
-                with flog.open("a") as flp: flp.write("executing: "+rcmd+' "'+rarg+'"\n')
+                with flog.open("a") as flp: flp.write("executing: "+rcmd+' < '+rfiles[0][0]+'"\n')
             s="calcul  : "+now_s()+"\n"
             sys.stdout.write(s)
             if flog:
                 with flog.open("a") as flp: flp.write(s)
-            retcode=subp.run(rcmd.split()+[rarg]).returncode
+            retcode=subp.run(rcmd.split(), stdin=open(rfiles[0][0])).returncode
         s="end     : "+now_s()+"\n"
         sys.stdout.write(s)
         if flog:

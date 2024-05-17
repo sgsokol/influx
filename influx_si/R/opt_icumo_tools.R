@@ -6,9 +6,8 @@ icumo_resid=function(param, cjac, labargs) {
    #cat("icumo_resid: param=", param, ", cjac=", cjac, "\n")
 #cjac=F # to remove in the final version
    # from labargs to local vars
-   for (item in ls(labargs)) {
+   for (item in ls(labargs))
       assign(item, get(item, env=labargs))
-   }
    
    nb_w=length(spa)
    sqm=measurements$dev$labeled
@@ -35,7 +34,7 @@ icumo_resid=function(param, cjac, labargs) {
    if (is.null(jx_f$jacobian)) {
       # init variables in jx_f
       jx_f$jacobian=matrix(0., nrow=nb_lab_tot+nb_f$nb_fmn+nb_f$nb_poolm, ncol=nb_ff+nb_sc_tot+nb_poolf)
-      dimnames(jx_f$jacobian)=list(nm$resid, nm$par)
+      dimnames(jx_f$jacobian)=list(nm_list$resid, nm_list$par)
       # constant part of jacobian
       jx_f$simlab=jx_f$ureslab=jx_f$reslab=vector("list", nb_exp)
       jx_f$udr_dp=jx_f$jacobian
@@ -49,10 +48,10 @@ icumo_resid=function(param, cjac, labargs) {
       } else {
          jx_f$simlab[[iexp]]=jx_f$usm[[iexp]]
       }
-      rownames(jx_f$simlab[[iexp]])=rownames(jx_f$usm[[iexp]])=nm$meas[[iexp]]
+      rownames(jx_f$simlab[[iexp]])=rownames(jx_f$usm[[iexp]])=nm_list$meas[[iexp]]
       # diff between simulated and measured
       #inna=which(!is.na(measvecti)) # for removing NA measurements
-      pool[nm$poolf]=param[nm$poolf]
+      pool[nm_list$poolf]=param[nm_list$poolf]
       if (!is.null(measvecti[[iexp]])) {
          jx_f$ureslab[[iexp]]=jx_f$simlab[[iexp]]-measvecti[[iexp]] # unreduced labeled part
          jx_f$reslab[[iexp]]=jx_f$ureslab[[iexp]]/sqm[[iexp]]
@@ -89,7 +88,7 @@ icumo_resid=function(param, cjac, labargs) {
       # for later use
       jx_f$dr_dff=jx_f$jacobian[,seq_len(nb_ff),drop=FALSE]
    }
-   jx_f$simfmn=lres$lf$fallnx[nm$fmn]
+   jx_f$simfmn=lres$lf$fallnx[nm_list$fmn]
    jx_f$uresflu=jx_f$simfmn-measurements$vec$flux
    jx_f$simpool=(measurements$mat$pool%*%pool)[,1]
    jx_f$urespool=jx_f$simpool - measurements$vec$pool
@@ -97,11 +96,11 @@ icumo_resid=function(param, cjac, labargs) {
    jx_f$respool=jx_f$urespool/sqp
    jx_f$res=c(unlist(jx_f$reslab), jx_f$resflu, jx_f$respool)
    if (length(jx_f$res)) {
-      names(jx_f$res)=nm$resid
+      names(jx_f$res)=nm_list$resid
    }
    jx_f$ures=c(unlist(jx_f$ureslab), jx_f$uresflu, jx_f$urespool)
    if (length(jx_f$ures)) {
-      names(jx_f$ures)=nm$resid
+      names(jx_f$ures)=nm_list$resid
    }
    return(list(res=jx_f$res, jacobian=if (cjac) jx_f$jacobian else NULL))
 }
@@ -177,12 +176,11 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    
    # branched from param2fl_usm_eul().
    # 2014-07-09 sokol
-   
+#if (fullsys)   
 #browser()
    # from labargs to local vars
-   for (item in ls(labargs)) {
+   for (item in ls(labargs))
       assign(item, get(item, env=labargs))
-   }
    if (is.null(labargs$getx))
       getx=FALSE
    if (fullsys) {
@@ -215,9 +213,8 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    # calculate all fluxes from free fluxes
    fgr=numeric(nb_f$nb_fgr)
    names(fgr)=nm_list$fgr
-   if (nb_f$nb_fgr) {
-      fgr[paste("g.n.", substring(nm$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm$poolf]
-   }
+   if (nb_f$nb_fgr)
+      fgr[paste("g.n.", substring(nm_list$poolf, 4), "_gr", sep="")]=nb_f$mu*param[nm_list$poolf]
    lf=param2fl(param, labargs)
    fwrv=lf$fwrv
    nb_fwrv=length(lf$fwrv)
@@ -229,7 +226,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    nb_sc=nb_f$nb_sc
    # fullfill pool with free pools
    if (nb_poolf > 0) {
-      pool[nm$poolf]=param[nm$poolf]
+      pool[nm_list$poolf]=param[nm_list$poolf]
    }
    # prepare pool vectors
    # vm has the same length as the full label vector
@@ -242,7 +239,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
 #browser()
 #for (iw in seq_len(nb_w))
 #print(c(iw=iw, f=fullsys, labargs=labargs, a=spa[[iw]]$a))
-   Alit=lapply(seq_len(nb_w), function(iw) {-fwrv2Abr(fwrv, spa[[iw]], NULL, nm_x[nbc_x[iw]+seq_len(nb_x[iw])], getb=FALSE,  emu=emu)$A$triplet()})
+   Alit=lapply(seq_len(nb_w), function(iw) {-fwrv2Abr(fwrv, spa[[iw]], NULL, nm_x[nbc_x[iw]+seq_len(nb_x[iw])], getb=FALSE,  emu=(emu && !fullsys))$A$triplet()})
 #print(c(calc2="", f=fullsys, labargs=labargs, a=labargs$spa[[1]]$a))
 #stop("aha")
    dtru=unique(unlist(lapply(seq_len(nb_exp), function(iexp) as.character(round(diff(tifull[[iexp]]), 6)))))
@@ -253,7 +250,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       ali_w=list()
       for (iw in seq_len(nb_w)) {
          nb_c=spa[[iw]]$nb_c
-         emuw=ifelse(emu, iw, 1L)
+         emuw=ifelse(emu && !fullsys, iw, 1L)
          vmw=vm[nbc_cumos[iw]+seq_len(nb_c)]
          vmw=rep(vmw, emuw)
          redim(vmw, c(nb_c, emuw))
@@ -273,7 +270,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       labargs$ali_w=ali_w
    }
    ntico_max=max(sapply(seq_len(nb_exp), function(iexp) nb_tifu[[iexp]]-1L))
-   nb_row_max=max(sapply(seq_len(nb_w), function(iw) {emuw=ifelse(emu, iw, 1L); spa[[iw]]$nb_c*emuw}))
+   nb_row_max=max(sapply(seq_len(nb_w), function(iw) {emuw=ifelse(emu && !fullsys, iw, 1L); spa[[iw]]$nb_c*emuw}))
    xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico_max)
    #sfpw=double(nb_row_max*ntico_max*nb_poolf)
    xpfw=double(nb_row_max*(nb_ff+nb_poolf)*ntico_max)
@@ -303,7 +300,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       # prepare ponderation with actual metab pools
       pwe[[iexp]][ipwe[[iexp]]]=pool[ip2ipwe[[iexp]]]
       spwe=tapply(pwe[[iexp]], pool_factor[[iexp]], sum)
-      spwe=1./as.numeric(spwe[nm$measmat[[iexp]]])
+      spwe=1./as.numeric(spwe[nm_list$measmat[[iexp]]])
       pwe[[iexp]]=pwe[[iexp]]*spwe
       xsim=matrix(x1, nrow=length(x1), ncol=ntico)
       bop(xsim, c(1, 1, nb_xi), "=", xi[[iexp]][,-1])
@@ -326,7 +323,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       dtr=as.character(round(dt, 6L))
       # just update already inversed matricies from previous iexp
       for (iw in seq_len(nb_w)) {
-         emuw=ifelse(emu, iw, 1L)
+         emuw=ifelse(emu && !fullsys, iw, 1L)
          nb_c=spa[[iw]]$nb_c
          if (nb_c == 0)
             next
@@ -359,14 +356,14 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
             })
          }
          ilua=pmatch(dtr, names(ali_w[[iw]]), dup=TRUE)
-         if (emu) {
+         if (emu && !fullsys) {
             # for the first time point, set m+0 to 1 in x1
             x1[(1L+nb_xi+nbc_x[iw])+seq_len(nb_c)]=1.
             xsim[inxw,1L]=x1[inxw]
             imwl=nbc_x[iw]+nb_row+seq_len(nb_c) # the last mass index in x
          }
          # source terms
-         st=fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu)
+         st=fwrv2sp(fwrv, spa[[iw]], xsim, emu=emu && !fullsys)
          if (any(is.na(st)))
             return(list(x=NULL, iw=iw, err=1L, mes="NA appeared in source term"))
          st=as.matrix(st)
@@ -402,7 +399,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
                izf=names(which(abs(lf$fwrv)<1.e-7))
                mes=paste("Cumomer matrix is singular. Weight=", iw, ". Try '--clownr N' or/and '--zc N' options with small N, say 1.e-3\nor constrain some of the fluxes listed below to be non zero\n",
                   "Zero rows in cumomer matrix A at weight ", iw, ":\n",
-                  paste(nm$x[ixw][izc+1], collapse="\n"), "\n",
+                  paste(nm_list$x[ixw][izc+1], collapse="\n"), "\n",
                   "Zero fluxes are:\n",
                   paste(izf, collapse="\n"), "\n",
                   sep="")
@@ -418,7 +415,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          #       dim(xw2)=c(nb_c, emuw, ntico)
          #xsim[inrow,]=st #xw2
          bop(xsim, c(1, 1L+nb_xi+nbc_x[iw], nb_row), "=", st)
-         if (emu) {
+         if (emu && !fullsys) {
             #xsim[1L+nb_xi+imwl,]=1.-arrApply(st, 2, "sum")
             bop(xsim, c(1, 1L+nb_xi+nbc_x[iw]+nb_row, nb_c), "=", 1.-arrApply(st, 2, "sum"))
          }
@@ -506,7 +503,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
 #browser()
             #xpf[imw,,]=xpfw
             bop(xpf, c(1, nbc_x[iw], nb_row), "=", xpfw)
-            if (emu) {
+            if (emu && !fullsys) {
                # treat the last weight
                #xpf[imwl,,]=-arrApply(xpfw, 2, "sum")
                bop(xpf, c(1, nbc_x[iw]+nb_row, nb_c), "=", -arrApply(xpfw, 2, "sum"))
@@ -522,7 +519,8 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          xsimf=xsim # full simulation (in time)
          xsim=xsim[,isel,drop=FALSE]
          # usm
-         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsimf else xsimf[rcumo_in_cumo,,drop=FALSE])+memaone[[iexp]]
+#browser()
+         mx=measmat[[iexp]] %stm% (if (nrow(xsim) == nb_mcol && !fullsys) xsimf else (if (emu) memu_in_cumo %stm% xsimf + cemu_in_cumo else xsimf[rcumo_in_cumo,,drop=FALSE])) + memaone[[iexp]]
          if (length(ipooled[[iexp]]) > 1L) {
             usmf=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx)) # full simulated measurements (in time)
          } else {
@@ -531,7 +529,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          usm=usmf[,isel,drop=FALSE]
       } else {
          # usm
-         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol) xsim[,isel,drop=FALSE] else xsim[rcumo_in_cumo,isel,drop=FALSE])+memaone[[iexp]]
+         mx=measmat[[iexp]]%stm%(if (nrow(xsim) == nb_mcol && !fullsys) xsim[,isel,drop=FALSE] else (if (emu) memu_in_cumo %stm% xsimf + cemu_in_cumo else xsim[rcumo_in_cumo,isel,drop=FALSE]))+memaone[[iexp]]
          if (length(ipooled[[iexp]]) > 1L) {
             usm=as.matrix(meas2sum[[iexp]]%stm%(pwe[[iexp]]*mx))
          } else {
@@ -550,7 +548,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          #dux_dp=measmat[[iexp]]%stm%xpf
          dux_dp=mm_xpf(measmat[[iexp]], xpf, isel)
          #redim(xpf, c(nbc_x[nb_w+1L], ntise, (nb_ff+nb_poolf)))
-         #dimnames(xpf)=list(nm_x, ti[[iexp]][-1], nm$par)
+         #dimnames(xpf)=list(nm_x, ti[[iexp]][-1], nm_list$par)
          nr=nrow(measmat[[iexp]])
          if (length(ipooled[[iexp]]) > 1L) {
             redim(dux_dp, c(dim(dux_dp)[1], ntise*(nb_ff+nb_poolf)))
@@ -568,11 +566,11 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
             dim(dpw_dpf)= c(nrow(measmat[[iexp]]), ntise*nb_poolf)
             dux_dp[,,nb_ff+seq_len(nb_poolf)]=dux_dp[,,nb_ff+seq_len(nb_poolf)]+c(meas2sum[[iexp]]%stm%dpw_dpf)
          }
-         dimnames(dux_dp)=list(nm$meas[[iexp]], ti[[iexp]][-1L], nm$par)
+         dimnames(dux_dp)=list(nm_list$meas[[iexp]], ti[[iexp]][-1L], nm_list$par)
          jx_f$dux_dp[[iexp]]=dux_dp
          #jx_f$xpf[[iexp]]=xpf
       }
-      dimnames(usm)=list(nm$meas[[iexp]], ti[[iexp]][-1L])
+      dimnames(usm)=list(nm_list$meas[[iexp]], ti[[iexp]][-1L])
       # store usefull information in global list jx_f
       jx_f$param=param
       jx_f$usm[[iexp]]=usm
@@ -583,10 +581,10 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       }
    }
    if (getx) {
-      names(jx_f$usm)=names(jx_f$usmf)=names(jx_f$xsim)=names(jx_f$xsimf)=nm$nm_exp
+      names(jx_f$usm)=names(jx_f$usmf)=names(jx_f$xsim)=names(jx_f$xsimf)=nm_list$nm_exp
       res=list(usm=jx_f$usm, usmf=jx_f$usmf, x=jx_f$xsim, xf=jx_f$xsimf, dux_dp=jx_f$dux_dp, lf=lf, df_dffp=jx_f$df_dffp)
    } else {
-      names(jx_f$usm)=nm$nm_exp
+      names(jx_f$usm)=nm_list$nm_exp
       res=list(usm=jx_f$usm, dux_dp=jx_f$dux_dp, lf=lf, df_dffp=jx_f$df_dffp)
    }
    return(res)
@@ -630,7 +628,7 @@ param2fl_usm_rich=function(param, cjac, labargs, fullsys=FALSE) {
          #}) # parLapply() creates new labargs which does not have valid spa[[iw]]$a
       } else {
          # do sequentially
-         res=lapply(seq(2), function(i) try(param2fl_usm_eul2(param, cjac, if (i == 1) labargs else labargs$labargs2, fullsys), silent=TRUE))
+         res=lapply(seq(2), function(i) param2fl_usm_eul2(param, cjac, if (i == 1) labargs else labargs$labargs2, fullsys))
       }
       for (i in seq_along(res)) {
          r=res[[i]]
@@ -749,7 +747,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
          met=sp[1L, j]
          iemu=as.integer(strsplit(sp[2L, j], "+", fixed=TRUE)[[1L]])
          iso=as.integer(names(lit[[met]]))
-         i=sapply(iso, function(ii) sum(as.integer(intToBits(bitwAnd(ii, iemu[1])))) == iemu[2])
+         i=sapply(iso, function(ii) sum(as.integer(intToBits(bitops::bitAnd(ii, iemu[1])))) == iemu[2])
          res=double(length(tp))
          if (any(i))
             res=Reduce("+", lit[[met]][i])
@@ -761,7 +759,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
          met=sp[1L, j]
          icu=as.integer(sp[2L, j])
          iso=as.integer(names(lit[[met]]))
-         i=sapply(iso, function(ii) bitwAnd(ii, icu) == icu)
+         i=sapply(iso, function(ii) bitops::bitAnd(ii, icu) == icu)
          res=double(length(tp))
          if (any(i))
             res=Reduce("+", lit[[met]][i])

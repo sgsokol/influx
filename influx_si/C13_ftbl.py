@@ -2026,7 +2026,7 @@ def peak_meas2matrix_vec_dev(netan, dmask={"S": 2, "D-": 6, "D+": 3, "T": 7, "DD
     various peak types. The middle bit corresponds to the targeted carbon,
     lower bit corresponds to the next neighbour (D+) and higher bit
     corresponds to previous carbon (D-).
-    matx_peak is defined as matx_lab in label_meas2matrix_vec_dev()
+    matx_peak is defined as matx_lab in peak_meas2matrix_vec_dev()
     Elements in matx_peak, vec and dev are ordered in the same way.
     scale name is defined as "metab;c_no;irow"
     The returned result is a dict (mat,vec,dev)
@@ -2304,7 +2304,7 @@ def rcumo_sys(netan, emu=False):
             for item in measures[meas]:
                 for row in item["mat"]:
                     metab=row["metab"]
-                    meas_cumos.update(metab+":"+i.split("+")[0] for i in [*row["emuco"].keys()] if i[-2:]!="+0")
+                    meas_cumos.update(metab+":"+i.split("+")[0] for i in [*row["emuco"].keys()]) # if i[-2:]!="+0")
     else:
         for meas in measures:
             for item in measures[meas]:
@@ -2692,13 +2692,13 @@ In case of output, you can add a fictious metabolite in your network immediatly 
         # if bcumos is not empty use it
         # else use group name as carbon number (starting from # character)
         if row.get("CUM_CONSTRAINTS",""):
-            bcumos=row["CUM_CONSTRAINTS"].split("+")
+            bcumos=[v.replace("#", "") for v in row["CUM_CONSTRAINTS"].split("+")]
         else:
             try:
                 # just put "1" in group-th place
                 i=int(group)
-                bcumos="#"+"x"*netan["Clen"][metabl[0]]
-                bcumos[i]="1"
+                bcumos="x"*netan["Clen"][metabl[0]]
+                bcumos[i-1]="1"
                 bcumos=[bcumos]
             except:
                 raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row "+row["irow"])
@@ -2720,7 +2720,7 @@ In case of output, you can add a fictious metabolite in your network immediatly 
                 "val":val,
                 "dev":sdev,
                 "bcumos":row["CUM_CONSTRAINTS"].split("+"),
-                "id":":".join(["l", metabs, row["CUM_CONSTRAINTS"], str(row["irow"])]),
+                "id":":".join(["l", metabs, row["CUM_CONSTRAINTS"].replace("#", ""), str(row["irow"])]),
                 "pooled":metabl,
         })
         # test the icumomer lengths

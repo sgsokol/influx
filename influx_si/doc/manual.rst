@@ -1248,7 +1248,9 @@ This tool is implicitly used by ``influx_si`` to convert MTF to FTBL format. Use
 			      in 'vmtf' file are ignored. All file paths in 'vmtf' file are 
 			      considered relative to the location of 'vmtf' file itself.
 			   Only first 3 files are necessary to obtain a workable FTBL file, others 
-			   are optional.
+			   are optional. If any sub-option is empty, it is canceled from previous
+			   '--prefix' argument. E.g. '--prefix e_coli --mtf vmtf=""' will exclude
+			   file 'e_coli.vmtf' form proceeding even if it is present.
 			   Example: 'txt2ftbl --mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux'
 			   NB: no space is allowed around comas. If a file path has a spaces in 
 			   its name, it must be enclosed into quotes or double quotes.

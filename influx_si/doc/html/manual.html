@@ -1284,7 +1284,9 @@ optional arguments:
                       in &#39;vmtf&#39; file are ignored. All file paths in &#39;vmtf&#39; file are
                       considered relative to the location of &#39;vmtf&#39; file itself.
                    Only first 3 files are necessary to obtain a workable FTBL file, others
-                   are optional.
+                   are optional. If any sub-option is empty, it is canceled from previous
+                   &#39;--prefix&#39; argument. E.g. &#39;--prefix e_coli --mtf vmtf=&quot;&quot;&#39; will exclude
+                   file &#39;e_coli.vmtf&#39; form proceeding even if it is present.
                    Example: &#39;txt2ftbl --mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux&#39;
                    NB: no space is allowed around comas. If a file path has a spaces in
                    its name, it must be enclosed into quotes or double quotes.

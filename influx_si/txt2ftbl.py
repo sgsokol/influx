@@ -1020,7 +1020,8 @@ def compile(mtf, cmd, case_i=False, clen=None):
             dfdef["cnstr"].loc[len(dfdef["cnstr"])]=["", "", "NET", ine[2], revineq(ine[1]), ine[0]]
         if not "linp" in mtf:
             # add default full label input
-            for m in sorted(m_inp, key=plain_natural_key):
+            #import pdb; pdb.set_trace()
+            for m in sorted(m_inp & lab_met, key=plain_natural_key):
                 if m in dclen:
                     ismr="1"*dclen[m]
                     dsec["linp"] += ["\t%s\t#%s\t1.0"%(m, ismr)]
@@ -1044,11 +1045,12 @@ def compile(mtf, cmd, case_i=False, clen=None):
         #pdb.set_trace()
         for eq in df[(df["Kind"] == "NET") & (df["Operator"] == "==")]["Formula"]:
             sfl |= set(formula2dict(eq).keys())
+    #import pdb; pdb.set_trace()
     if "miso" in mtf and mtf["miso"]:
         pth=try_ext(mtf["miso"], ["miso", "tsv", "txt"])
         if case_i:
             meas, df_kin=parse_miso(pth, dclen, case_i)
-            #pdb.set_trace()
+            #import pdb; pdb.set_trace()
         else:
             meas=parse_miso(pth, dclen)
         dsec["meas_peak"] += meas["peak"]
@@ -1128,6 +1130,7 @@ def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
     :param res_ftbl: if not None, a list of produced FTBL files. In case of parallel experiments, only main FTBL are returned in this list
     :param prl_ftbl: if not None, a dict() showing which parallel FTBLs correspond to each main FTBL. Applicable only in case of parallel experiments
     :return code: integer 0 - OK; non 0 - error"""
+    #print(["argv=", argv])
     ord_args=[]
     class ordAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
@@ -1182,7 +1185,9 @@ def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
    in 'vmtf' file are ignored. All file paths in 'vmtf' file are 
    considered relative to the location of 'vmtf' file itself.
 Only first 3 files are necessary to obtain a workable FTBL file, others 
-are optional.
+are optional. If any sub-option is empty, it is canceled from previous
+'--prefix' argument. E.g. '--prefix e_coli --mtf vmtf=""' will exclude
+file 'e_coli.vmtf' form proceeding even if it is present.
 Example: 'txt2ftbl --mtf ecoli.netw,glu08C1_02U.linp,cond1.miso,cond1.mflux'
 NB: no space is allowed around comas. If a file path has a spaces in 
 its name, it must be enclosed into quotes or double quotes.
@@ -1384,6 +1389,7 @@ is the argument value that will take precedence.
 
     cmd=f"{me} "+' '.join(v.replace(' ', r'\ ') for v in argv)
     scre=f"// Created by '{cmd}'"+"\n// Date: %s\n// influx_si version: " + influx_si.__version__ + "\n// If edited by hand, remove these comments.\n"
+    scred=scre.replace("// ", "# ")
     
     if "vmtf" in mtf:
         vdf=tsv2df(mtf["vmtf"])
@@ -1436,7 +1442,7 @@ is the argument value that will take precedence.
         else:
             wd=Path(ftbl).resolve().parent
         if case_i:
-            #pdb.set_trace()
+            #import pdb; pdb.set_trace()
             dsec,dclen,dfdef,df_kin=compile(rmtf, cmd, case_i)
             p=Path(ftbl).resolve()
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -1531,7 +1537,7 @@ is the argument value that will take precedence.
             if p in def_written:
                 continue
             with p.open("w", encoding="UTF-8") as fc:
-                fc.write(scre%dtstamp())
+                fc.write(scred%dtstamp())
                 df.to_csv(fc, sep="\t", index=False)
                 if __name__ == "__main__":
                     print(str(p))

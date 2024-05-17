@@ -310,6 +310,8 @@ dimnames(measmatpool)=list(nm_poolm, nm_poolall)
 i=matrix(1+c(%(imeasmatpool)s), ncol=2, byrow=TRUE)
 measmatpool[i]=1.
 
+labargs=new.env()
+labargs$labargs2=new.env()
     """%{
     "nb_poolm": len(netan["metab_measured"]),
     "nm_poolm": join(", ", list(netan["metab_measured"].keys()), '"pm:', '"'),
@@ -349,8 +351,20 @@ nb_ti=nb_tifu=nb_tifu2=integer(nb_exp)
 nsubdiv_dt=pmax(1L, as.integer(c(%(nsubdiv_dt)s)))
 nb_f$ipf2ircumo=nb_f$ipf2ircumo2=list()
 nminvm=nm_poolall[matrix(unlist(strsplit(nm_rcumo, ":", fixed=TRUE)), ncol=2L, byrow=TRUE)[,1L]]
-if (fullsys)
+if (fullsys) {
    nminvmf=nm_poolall[matrix(unlist(strsplit(nm_cumo, ":", fixed=TRUE)), ncol=2L, byrow=TRUE)[,1L]]
+   # if simulations are in emu, prepare transition matrix from full cumos to simulated emus
+   if (emu) {
+      tmp=emu_in_cumo(nm_list$emu, nm_list$cumo)
+      labargs$memu_in_cumo=tmp$m
+      labargs$cemu_in_cumo=tmp$cnst
+      if (case_i) {
+         labargs$labargs2$memu_in_cumo=tmp$m
+         labargs$labargs2$cemu_in_cumo=tmp$cnst
+      }
+   }
+}
+#browser()
 for (iexp in seq_len(nb_exp)) {
    if (tmax[iexp] < 0) {
       stop_mes(sprintf("The parameter tmax must not be negative (tmax=%%g in '%%s.ftbl')", tmax[iexp], nm_exp[iexp]), file=fcerr)
@@ -448,6 +462,8 @@ for (iexp in seq_len(nb_exp)) {
    The fitting is ignored as if '--noopt' option were asked.\\n", nm_exp[[iexp]]), file=fclog)
          optimize=FALSE
       }
+      # create measvecti with NA
+      measvecti[[iexp]]=structure(matrix(NA, nrow=length(measvec[[iexp]]), ncol=length(ti[[iexp]])-1L), dimnames=list(nm_list$meas[[iexp]], ti[[iexp]][-1L]))
    }
    # recalculate nb_exp from measvecti
    nb_meas=sapply(measvecti, NROW)
@@ -465,9 +481,9 @@ for (iexp in seq_len(nb_exp)) {
    tifull[[iexp]]=ti[[iexp]]
    
    # divide each time interval by nsubdiv_dt
-   dt=diff(tifull[[iexp]])
-   dt=rep(dt/nsubdiv_dt[iexp], each=nsubdiv_dt[iexp])
-   tifull[[iexp]]=c(tifull[[iexp]][1L], cumsum(dt))
+   dtmp=diff(tifull[[iexp]])
+   dtmp=rep(dtmp/nsubdiv_dt[iexp], each=nsubdiv_dt[iexp])
+   tifull[[iexp]]=c(tifull[[iexp]][1L], cumsum(dtmp))
    nb_tifu[iexp]=length(tifull[[iexp]])
    
    tifull2[[iexp]]=c(tifull[[iexp]][1L], tifull[[iexp]][1L]+cumsum(rep(diff(tifull[[iexp]])/2., each=2L)))
@@ -556,7 +572,7 @@ for (iexp in seq(nb_exp)) {
       envfunlab=new.env() # funlab code won't see influx's variables
       if (nchar(funlabR[[iexp]])) {
          if (file.exists(funlabR[[iexp]])) {
-            es=try(source(funlabR[[iexp]], local=envfunlab), outFile=fcerr)
+            es=try(source(funlabR[[iexp]], local=envfunlab, echo=FALSE), outFile=fcerr)
          } else {
             stop_mes("funlab script R '", funlabR[[iexp]], "' from '", nm_exp[[iexp]],"' does not exist.", file=fcerr)
          }
@@ -596,7 +612,7 @@ if (TIMEIT) {
 names(param)=nm_par
 # prepare series of starting points
 if (nchar(fseries) > 0) {
-   pstart=as.matrix(read.table(fseries, header=T, row.n=1, sep="\\t"))
+   pstart=as.matrix(read.table(file.path(dirw, fseries), header=TRUE, row.names=1L, sep="\\t"))
    # skip parameters (rows) who's name is not in nm_par
    i=rownames(pstart) %in% nm_par
    if (!any(i)) {
@@ -693,31 +709,29 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 #browser()
 # prepare argument list for passing to label simulating functions
 nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf", "fclog", "fcerr")
-    """)
+""")
     if case_i:
-        f.write("""nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")
-        """)
+        f.write('nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")')
     f.write("""
 if (TIMEIT) {
    cat("labargs : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
-labargs=new.env()
 tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
 #for (nm in nm_labargs) {
 #   labargs[[nm]]=get(nm)
 #}
-labargs[["nm"]]=labargs[["nm_list"]]
+#labargs[["nm"]]=labargs[["nm_list"]]
 
 # prepare labargs2 if time_order includes 2
 if (case_i && (time_order == "2" || time_order == "1,2")) {
-   labargs2=as.environment(as.list(labargs))
-   labargs2$nb_f=as.environment(as.list(labargs$nb_f))
-   labargs2$tifull=tifull2
-   labargs2$xi=xi2
-   labargs2$jx_f=new.env()
-   labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
-   labargs2$nb_f$tifu=nb_f$tifu2
-   labargs[["labargs2"]]=labargs2
+   list2env(as.list(labargs), envir=labargs$labargs2)
+   labargs$labargs2$tifull=tifull2
+   labargs$labargs2$xi=xi2
+   labargs$labargs2$jx_f=new.env()
+   labargs$labargs2$nb_f=new.env()
+   list2env(as.list(labargs$nb_f), envir=labargs$labargs2$nb_f)
+   labargs$labargs2$nb_f$ipf2ircumo=nb_f$ipf2ircumo2
+   labargs$labargs2$nb_f$tifu=nb_f$tifu2
 }
 
 # formated output in kvh file
@@ -864,7 +878,7 @@ for (irun in seq_len(nseries)) {
    fallnx=param2fl(param, labargs)$fallnx
    mi_zc=NULL
    li_zc=NULL
-   if (zerocross && length(grep("^[df]\\.n\\.", nm_fallnx))>0) {
+   if (!noopt && zerocross && length(grep("^[df]\\.n\\.", nm_fallnx))>0) {
       if (TIMEIT) {
          cat("zc ineq : ", format(Sys.time()), " cpu=", proc.time()[1], "\n", sep="", file=fclog)
       }
@@ -1137,6 +1151,7 @@ for (irun in seq_len(nseries)) {
       # pass control to the chosen optimization method
       if (time_order=="1,2")
          labargs$time_order="1" # start with order 1, later continue with 2
+#browser()
       for (method in methods) {
          if (write_res) {
             capture.output(res <- opt_wrapper(param, method, measurements, jx_f, labargs), file=fclog)
@@ -1580,11 +1595,12 @@ for (irun in seq_len(nseries)) {
    }
 
    labargs$getx=TRUE
-   labargs$labargs2getx=TRUE
+   labargs$labargs2$getx=TRUE
    if (fullsys) {
    """)
     cu_keys=list(netan["cumo_input"][0].keys()) if netan["fullsys"] else []
     f.write("""
+#browser()
       nm_xif=c(%s)
       # full label input is the same for all experiments
       xif=rep(list(c(%s)), nb_exp)"""%(join(", ", cu_keys, '"', '"'),
@@ -1610,23 +1626,18 @@ for (irun in seq_len(nseries)) {
                   xi2f[[iexp]]=funlab(tifull2[[iexp]], nm_xif, fli, envfunlab, emu=FALSE, nm_exp[[iexp]], fcerr)
             }
          }
+#browser()
          xif=xilf
-         if (time_order == "2" || time_order == "1,2") {
+         if (time_order == "2" || time_order == "1,2")
             labargs$labargs2$xif=xi2f
-            labargs$labargs2$nm_list$inp=nm_xif
-            labargs$labargs2$emu=FALSE
-         }
       }
       labargs$nm_list$xif=nm_xif
       labargs$nm_list$inp=nm_xif
-      labargs$emu=FALSE
       labargs$xif=xif
       labargs$nb_f$xif=length(xif[[1L]])
       labargs$labargs2$nm_list$xif=nm_xif
-      labargs$labargs2nm_list$inp=nm_xif
-      labargs$labargs2emu=FALSE
-      labargs$labargs2xif=xif
-      labargs$labargs2nb_f$xif=length(xif[[1L]])
+      labargs$labargs2$nm_list$inp=nm_xif
+      labargs$labargs2$nb_f$xif=length(xif[[1L]])
       if (case_i && !is.null(labargs$cl)) {
          clusterExport(labargs$cl, c("labargs"))
          clusterEvalQ(labargs$cl, {
@@ -1634,20 +1645,19 @@ for (irun in seq_len(nseries)) {
             labargs$labargs2$spa=labargs$spa
             labargs$spaf=sparse2spa(labargs$spaf)
             labargs$labargs2$spaf=labargs$spaf
-#print(c(lab_new="", labargs=labargs, labargs2=labargs$labargs2, a1_1=labargs$spaf[[1]]$a, a1_2=labargs$labrags2spaf[[1]]$a))
+#print(c(lab_new="", labargs=labargs, labargs2=labargs$labargs2, a1_1=labargs$spaf[[1]]$a, a1_2=labargs$labargs2spaf[[1]]$a))
          })
       }
+#browser()
       v=lab_sim(param, cjac=FALSE, labargs, fullsys)
       if (identical(v$err, 1L)) {
          #save(v$fA$triplet(), file="singular237_triplet.RData")
          stop_mes("fullsys: weight=", v$iw, "; ", v$mes, file=fcerr)
       }
 #browser()
-      labargs$emu=emu
       labargs$nm_list$inp=nm_inp
       if (time_order == "2" || time_order == "1,2") {
          labargs$labargs2$nm_list$inp=nm_inp
-         labargs$labargs2$emu=emu
       }
       x=if (case_i) v$xf else v$x
    } else {
@@ -1700,13 +1710,45 @@ for (irun in seq_len(nseries)) {
       } else {
          mc_res=lapply(seq_len(nmc), function(imc) cl_worker(funth=mc_sim, argth=list(imc)))
       }
-      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(l$cost, l$it, l$normp, l$par) }; ret })
+#browser()
+      free_mc=sapply(mc_res, function(l) {if (class(l)=="character" || is.null(l) || is.na(l$cost) || l$err) { ret=rep(NA, nb_param+3) } else { ret=c(cost=l$cost, it=l$it, normp=l$normp, l$par) }; ret })
       if (length(free_mc)==0) {
          cat("***Warning: parallel exectution of Monte-Carlo simulations has failed.", "\\n", sep="", file=fclog)
          free_mc=matrix(NA, nb_param+2, 0)
       }
       cost_mc=free_mc[1,]
       nmc_real=nmc-sum(is.na(free_mc[4,]))
+      # remove failed m-c iterations
+      ifa=which(is.na(free_mc[1,]))
+      if (length(ifa)) {
+         if (ncol(free_mc) > length(ifa)) {
+            cat("***Warning: some Monte-Carlo iterations failed.", "\\n", sep="", file=fclog)
+         } else {
+            cat("All Monter-Carlo samples failed.", "\\n", sep="", file=fcerr)
+            retcode[irun]=1
+            break
+         }
+         free_mc=free_mc[,-ifa,drop=FALSE]
+         cost_mc=cost_mc[-ifa]
+      }
+      if (nmc_real <= 1) {
+         cat("No sufficient Monter-Carlo samples were successfully calculated to do any statistics.", "\\n", sep="", file=fcerr)
+         retcode[irun]=1
+         break
+      }
+#browser()
+      fallnx_mc=apply(free_mc[-(1L:3L),,drop=FALSE], 2, function(p)param2fl(p, labargs)$fallnx)
+      if (length(fallnx_mc)) {
+         # mean
+         fallnx_mc_mean=rowMeans(fallnx_mc)
+         # median
+         fallnx_mc_median=apply(fallnx_mc, 1, median)
+         # confidence intervals
+         cinx_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
+         cinx_mc=cbind(cinx_mc, "CI 95% length"=c(diff(t(cinx_mc))))
+         cinx_mc=cbind(cinx_mc, "relative CI (%)"=cinx_mc[,3]*100/abs(fallnx_mc_mean))
+      }
+
       if (write_res && wkvh) {
          cat("monte-carlo\\n", file=fkvh)
          indent=1
@@ -1726,24 +1768,15 @@ for (irun in seq_len(nseries)) {
          dimnames(mout)=list(c("cost", "it.numb", "normp"), seq_len(ncol(free_mc)))
          obj2kvh(mout, "convergence per sample", fkvh, indent)
       }
-      # remove failed m-c iterations
-      free_mc=free_mc[-(1:3),,drop=FALSE]
-      ifa=which(is.na(free_mc[1,]))
-      if (length(ifa)) {
-         if (ncol(free_mc) > length(ifa)) {
-            cat("***Warning: some Monte-Carlo iterations failed.", "\\n", sep="", file=fclog)
-         }
-         free_mc=free_mc[,-ifa,drop=FALSE]
-         cost_mc=cost_mc[-ifa]
-      }
-      if (nmc_real <= 1) {
-         cat("No sufficient Monter-Carlo samples were successfully calculated to do any statistics.", "\\n", sep="", file=fcerr)
-         retcode[irun]=1
-         break
-      }
-#browser()
+      free_mc=free_mc[-(1L:3L),,drop=FALSE]
       rownames(free_mc)=nm_par
-      
+
+      # param stats
+      # mean
+      parmean=rowMeans(free_mc)
+      # median
+      parmed=apply(free_mc, 1, median)
+
       # cost section in kvh
       if (write_res && wkvh) {
          cat("\\tcost\\n", file=fkvh)
@@ -1758,11 +1791,6 @@ for (irun in seq_len(nseries)) {
          cat("\\tStatistics\\n", file=fkvh)
          mout=c()
          indent=2
-         # param stats
-         # mean
-         parmean=apply(free_mc, 1, mean)
-         # median
-         parmed=apply(free_mc, 1, median)
 #browser()
          # covariance matrix
          covmc=cov(t(free_mc))
@@ -1778,29 +1806,18 @@ for (irun in seq_len(nseries)) {
          obj2kvh(mout, "free parameters", fkvh, indent)
 
          # net-xch01 stats
-         fallnx_mc=apply(free_mc, 2, function(p)param2fl(p, labargs)$fallnx)
          fallnx=param2fl(param, labargs)$fallnx
          if (length(fallnx_mc)) {
             dimnames(fallnx_mc)[[1]]=nm_fallnx
             # form a matrix output
             fallout=matrix(0, nrow=nrow(fallnx_mc), ncol=0)
-            # mean
-#browser()
-            parmean=apply(fallnx_mc, 1, mean)
-            # median
-            parmed=apply(fallnx_mc, 1, median)
             # covariance matrix
             covmc=cov(t(fallnx_mc))
             dimnames(covmc)=list(nm_fallnx, nm_fallnx)
             # sd
             sdmc=sqrt(diag(covmc))
-            # confidence intervals
-            cinx_mc=t(apply(fallnx_mc, 1, quantile, probs=c(0.025, 0.975)))
-            cinx_mc=cbind(cinx_mc, t(diff(t(cinx_mc))))
-            cinx_mc=cbind(cinx_mc, cinx_mc[,3]*100/abs(parmean))
-            colnames(cinx_mc)=c("CI 2.5%", "CI 97.5%", "CI 95% length", "relative CI (%)")
-            fallout=cbind(fallout, mean=parmean, median=parmed, sd=sdmc,
-               "rsd (%)"=sdmc*100/abs(fallnx), cinx_mc)
+            fallout=cbind(fallout, mean=fallnx_mc_mean, median=fallnx_mc_median, sd=sdmc,
+               "rsd (%)"=sdmc*100/abs(fallnx_mc_mean), cinx_mc)
             o=order(nm_fallnx)
             obj2kvh(fallout[o,,drop=FALSE], "all net-xch01 fluxes", fkvh, indent)
             obj2kvh(covmc[o,o], "covariance of all net-xch01 fluxes", fkvh, indent)
@@ -1964,10 +1981,10 @@ for (irun in seq_len(nseries)) {
                rownames(mtmp)=nm_poolall
                o=order(nm_poolall)
                obj2kvh(mtmp[o,,drop=FALSE], "metabolite pools (sorted by name)", fkvh, indent=1)
-            }
-            if (nb_poolf > 0) {
-               o=order(nm_poolf)
-               obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+               if (nb_poolf > 0) {
+                  o=order(nm_poolf)
+                  obj2kvh(covpf[o, o], "covariance free pools", fkvh, indent=1)
+               }
             }
             rnm=names(poolall)
             mnm=matrix(unlist(strsplitlim(rnm, ":", fixed=TRUE, lim=2L)), ncol=2L, byrow=TRUE)
@@ -2085,10 +2102,9 @@ if (write_res) {
    close(fcerr)
 }
 retcode=max(retcode)
-if (format(parent.frame()) == format(.GlobalEnv)) {
+if (!interactive() && format(parent.frame()) == format(.GlobalEnv))
    q("no", status=retcode)
-}
-    """%{
+"""%{
          "postlist": escape(netan["opt"].get("posttreat_R", ""), '\\"'),
          })
 

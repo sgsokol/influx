@@ -316,11 +316,7 @@ options(digits.secs=2)
 
 case_i=%(case_i)s
 
-if (length(find("bitwAnd"))==0L) {
-   suppressPackageStartupMessages(library(bitops))
-   bitwAnd=bitAnd
-}
-source(file.path(dirr, "libs.R"))
+source(file.path(dirr, "libs.R"), echo=FALSE)
 
 # define matprod for simple_triplet_matrix
 `%%stm%%` = slam::matprod_simple_triplet_matrix
@@ -512,9 +508,8 @@ if (TIMEIT) {
 }
 
 # R profiling
-if (prof) {
-   Rprof(sprintf("%s.Rprof", baseshort))
-}
+if (prof)
+   Rprof(file.path(dirw, sprintf("%s.Rprof", baseshort)))
 
 nm_list=list()
 nb_f=list()
@@ -524,16 +519,15 @@ nb_f=list()
     res.update(d)
     rc_keys_all=[list(d.keys()) for d in netan["rcumo_input"]]
     emu_keys_all=[list(d.keys()) for d in netan["emu_input"]] if emu else []
-    #pdb.set_trace()
+    #import pdb; pdb.set_trace()
     f.write("""
 nb_exp=%(nb_exp)d
 nm_exp=c(%(nm_exp)s)
 nm_list$nm_exp=nm_exp
 # input cumomer vectors, list of vectors for case_s and matrices (nb_inp x nb_time) for case_i
 xi=list(%(xi)s)
-if (any(lengths(xi) == 0)) {
+if (any(lengths(xi) == 0))
    stop_mes("No reduced label entry is defined (may be because no measurement provided). Cannot continue.", file=fcerr)
-}
 nm_xi=c(%(nm_xi)s) # same for all parallel exps
 for (i in seq_along(xi)) {
    names(xi[[i]])=nm_xi
@@ -1593,7 +1587,9 @@ ifmn=match(nm_fmn, nm_fallnx)
 def netan2R_rcumo(netan, org, f, emu=False):
     # prepare reduced python systems
     #rAb=C13_ftbl.rcumo_sys(netan, emu)
-    rAb=netan["rcumo_sys"] if ("rcumo_sys" in netan) else C13_ftbl.rcumo_sys(netan, emu)
+    #raise Exception("iso2emu")
+    #import pdb; pdb.set_trace()
+    rAb=netan["rcumo_sys"] if ("rcumo_sys" in netan and len(netan["rcumo_sys"]["A"])) else C13_ftbl.rcumo_sys(netan, emu)
     # full matrix is Ab=netan["cumo_sys"]
 
     # prune ordered cumomer list in reverse order
@@ -1716,6 +1712,7 @@ def netan2R_ineq(netan, org, f):
 if (TIMEIT) {
    cat("ineq    : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
+#browser()
 # prepare mi matrix and li vector
 # such that mi*fallnx>=li corresponds
 # to the inequalities given in ftbl file

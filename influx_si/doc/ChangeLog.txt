@@ -2,13 +2,16 @@
 Change Log for influx_si
 ========================
 
-2024-??-?? version 7.0.4
+2024-05-17 version 7.0.4
 ------------------------
 New feature:
  - now, parallel processing in influx_[si].py is by process not thread
- - reduced R execution time with 'echo=FALSE'
+ - reduced R execution time with 'source(..., echo=FALSE)'
  - introduced option '--wkvh' which means that '_res.kvh' is no more written by default
  - empty sub-option in '--mtf' cancels this sub-option, e.g. '--mtf vmtf=""' will ignore '.vmtf' file if present
+ - added '--DEBUG' option to influx_si which can open pbm postmortem debbugger session
+ - plot_ilab: for incomplete measured MID, we plot simulated MID values of full metabolite fragment if available.
+ - txt2ftbl: .def files are now commented with '#' symbol, not '//' as before.
 
 Bug fix:
  - fixed __name__ usage in influx_[si].py
@@ -16,6 +19,10 @@ Bug fix:
  - txt2ftbl: fixed multiple writing of .def files when several outputs are in .vmtf
  - fixed moving .Rprof files to tmp/ directory
  - fixed chi2 error message when rcost is NA
+ - txt2ftbl: fixed generation of .linp.def, non labeled inputs are excluded
+ - more fixes for --fullsys for instationary mode
+ - influx_si: fixed '--force' option
+ - ftbl2labcin: preserved header of .ikin with comments
 
 2024-03-13 version 7.0.3
 ------------------------

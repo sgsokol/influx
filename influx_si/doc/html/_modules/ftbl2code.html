@@ -63,7 +63,7 @@
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 
-<span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
 <span class="n">dirx</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">me</span><span class="p">)</span>
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirx</span><span class="p">)</span>
 <span class="k">if</span> <span class="p">(</span><span class="n">dirx</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;py3&quot;</span><span class="p">)):</span>
@@ -358,11 +358,7 @@
 
 <span class="s2">case_i=</span><span class="si">%(case_i)s</span><span class="s2"></span>
 
-<span class="s2">if (length(find(&quot;bitwAnd&quot;))==0L) {</span>
-<span class="s2">   suppressPackageStartupMessages(library(bitops))</span>
-<span class="s2">   bitwAnd=bitAnd</span>
-<span class="s2">}</span>
-<span class="s2">source(file.path(dirr, &quot;libs.R&quot;))</span>
+<span class="s2">source(file.path(dirr, &quot;libs.R&quot;), echo=FALSE)</span>
 
 <span class="s2"># define matprod for simple_triplet_matrix</span>
 <span class="s2">`</span><span class="si">%%</span><span class="s2">stm</span><span class="si">%%</span><span class="s2">` = slam::matprod_simple_triplet_matrix</span>
@@ -398,6 +394,7 @@
 <span class="s2">TIMEIT=FALSE</span>
 <span class="s2">prof=FALSE</span>
 <span class="s2">time_order=&quot;1&quot;</span>
+<span class="s2">wkvh=FALSE</span>
 
 <span class="s2"># get runtime arguments</span>
 <span class="si">%(ropts)s</span><span class="s2"></span>
@@ -553,9 +550,8 @@
 <span class="s2">}</span>
 
 <span class="s2"># R profiling</span>
-<span class="s2">if (prof) {</span>
-<span class="s2">   Rprof(sprintf(&quot;</span><span class="si">%s</span><span class="s2">.Rprof&quot;, baseshort))</span>
-<span class="s2">}</span>
+<span class="s2">if (prof)</span>
+<span class="s2">   Rprof(file.path(dirw, sprintf(&quot;</span><span class="si">%s</span><span class="s2">.Rprof&quot;, baseshort)))</span>
 
 <span class="s2">nm_list=list()</span>
 <span class="s2">nb_f=list()</span>
@@ -565,16 +561,15 @@
     <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
     <span class="n">rc_keys_all</span><span class="o">=</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_input&quot;</span><span class="p">]]</span>
     <span class="n">emu_keys_all</span><span class="o">=</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">]]</span> <span class="k">if</span> <span class="n">emu</span> <span class="k">else</span> <span class="p">[]</span>
-    <span class="c1">#pdb.set_trace()</span>
+    <span class="c1">#import pdb; pdb.set_trace()</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">nb_exp=</span><span class="si">%(nb_exp)d</span><span class="s2"></span>
 <span class="s2">nm_exp=c(</span><span class="si">%(nm_exp)s</span><span class="s2">)</span>
 <span class="s2">nm_list$nm_exp=nm_exp</span>
 <span class="s2"># input cumomer vectors, list of vectors for case_s and matrices (nb_inp x nb_time) for case_i</span>
 <span class="s2">xi=list(</span><span class="si">%(xi)s</span><span class="s2">)</span>
-<span class="s2">if (any(lengths(xi) == 0)) {</span>
+<span class="s2">if (any(lengths(xi) == 0))</span>
 <span class="s2">   stop_mes(&quot;No reduced label entry is defined (may be because no measurement provided). Cannot continue.&quot;, file=fcerr)</span>
-<span class="s2">}</span>
 <span class="s2">nm_xi=c(</span><span class="si">%(nm_xi)s</span><span class="s2">) # same for all parallel exps</span>
 <span class="s2">for (i in seq_along(xi)) {</span>
 <span class="s2">   names(xi[[i]])=nm_xi</span>
@@ -1634,7 +1629,9 @@
 <div class="viewcode-block" id="netan2R_rcumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># prepare reduced python systems</span>
     <span class="c1">#rAb=C13_ftbl.rcumo_sys(netan, emu)</span>
-    <span class="n">rAb</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_sys&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;rcumo_sys&quot;</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">)</span> <span class="k">else</span> <span class="n">C13_ftbl</span><span class="o">.</span><span class="n">rcumo_sys</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">emu</span><span class="p">)</span>
+    <span class="c1">#raise Exception(&quot;iso2emu&quot;)</span>
+    <span class="c1">#import pdb; pdb.set_trace()</span>
+    <span class="n">rAb</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_sys&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;rcumo_sys&quot;</span> <span class="ow">in</span> <span class="n">netan</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_sys&quot;</span><span class="p">][</span><span class="s2">&quot;A&quot;</span><span class="p">]))</span> <span class="k">else</span> <span class="n">C13_ftbl</span><span class="o">.</span><span class="n">rcumo_sys</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">emu</span><span class="p">)</span>
     <span class="c1"># full matrix is Ab=netan[&quot;cumo_sys&quot;]</span>
 
     <span class="c1"># prune ordered cumomer list in reverse order</span>
@@ -1757,6 +1754,7 @@
 <span class="s2">if (TIMEIT) {</span>
 <span class="s2">   cat(&quot;ineq    : &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">}</span>
+<span class="s2">#browser()</span>
 <span class="s2"># prepare mi matrix and li vector</span>
 <span class="s2"># such that mi*fallnx&gt;=li corresponds</span>
 <span class="s2"># to the inequalities given in ftbl file</span>

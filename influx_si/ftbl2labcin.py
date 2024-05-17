@@ -29,7 +29,7 @@ def warn(mes):
 
 def ftbl_id(ftbl, d, netan, iprl=0):
     "make row id in labcin equal to those in ftbl"
-    #pdb.set_trace()
+    #import pdb; pdb.set_trace()
     # read labcin
     flabcin = [it["OPT_VALUE"] for it in d.get("OPTIONS", []) if it["OPT_NAME"] == "file_labcin"]
     if not flabcin:
@@ -39,11 +39,14 @@ def ftbl_id(ftbl, d, netan, iprl=0):
     flabcin=ftbl.parent/flabcin[0]
     # read flabcin
     try:
-        # default comment='#'
         df_cin = tsv2df(flabcin, append_iline=None)
+        comment='#'
     except:
-        # comment='//'
         df_cin = tsv2df(flabcin, comment="//", append_iline=None)
+        comment='//'
+    with flabcin.open(mode="rb") as fc:
+        header="".join([l.decode("utf8") for l in fc.readlines() if l.startswith(comment.encode())])
+    #print(["header=", header])
     # build dict miso rows => ftbl rows
     m2f=dict((co[-1].strip(), str(i+1))
         for i,row in enumerate(ftbl.read_text().split("\n"))
@@ -83,7 +86,9 @@ def ftbl_id(ftbl, d, netan, iprl=0):
             li[-1] = m2f[li[-1]]
             nid[iid] = ":".join(li)
     df_cin = df_cin.assign(row_col=nid)
-    df_cin.to_csv(flabcin, sep="\t", index=False, encoding="UTF-8")
+    with flabcin.open("w") as fc:
+        fc.write(header)
+        df_cin.to_csv(fc, sep="\t", index=False, encoding="UTF-8")
 
 def main(argv=sys.argv):
     parser = argparse.ArgumentParser(prog=me, description=__doc__)

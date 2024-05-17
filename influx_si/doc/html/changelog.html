@@ -50,6 +50,33 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Permalink to this heading">¶</a></h1>
+<section id="version-7-0-4">
+<h2>2024-05-17 version 7.0.4<a class="headerlink" href="#version-7-0-4" title="Permalink to this heading">¶</a></h2>
+<dl class="simple">
+<dt>New feature:</dt><dd><ul class="simple">
+<li><p>now, parallel processing in influx_[si].py is by process not thread</p></li>
+<li><p>reduced R execution time with ‘source(…, echo=FALSE)’</p></li>
+<li><p>introduced option ‘–wkvh’ which means that ‘_res.kvh’ is no more written by default</p></li>
+<li><p>empty sub-option in ‘–mtf’ cancels this sub-option, e.g. ‘–mtf vmtf=””’ will ignore ‘.vmtf’ file if present</p></li>
+<li><p>added ‘–DEBUG’ option to influx_si which can open pbm postmortem debbugger session</p></li>
+<li><p>plot_ilab: for incomplete measured MID, we plot simulated MID values of full metabolite fragment if available.</p></li>
+<li><p>txt2ftbl: .def files are now commented with ‘#’ symbol, not ‘//’ as before.</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>fixed __name__ usage in influx_[si].py</p></li>
+<li><p>replaced argv[0] by __file__ in auto-identification</p></li>
+<li><p>txt2ftbl: fixed multiple writing of .def files when several outputs are in .vmtf</p></li>
+<li><p>fixed moving .Rprof files to tmp/ directory</p></li>
+<li><p>fixed chi2 error message when rcost is NA</p></li>
+<li><p>txt2ftbl: fixed generation of .linp.def, non labeled inputs are excluded</p></li>
+<li><p>more fixes for –fullsys for instationary mode</p></li>
+<li><p>influx_si: fixed ‘–force’ option</p></li>
+<li><p>ftbl2labcin: preserved header of .ikin with comments</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-0-3">
 <h2>2024-03-13 version 7.0.3<a class="headerlink" href="#version-7-0-3" title="Permalink to this heading">¶</a></h2>
 <dl class="simple">
@@ -876,6 +903,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-7-0-4">2024-05-17 version 7.0.4</a></li>
 <li><a class="reference internal" href="#version-7-0-3">2024-03-13 version 7.0.3</a></li>
 <li><a class="reference internal" href="#version-7-0-2">2024-02-29 version 7.0.2</a></li>
 <li><a class="reference internal" href="#version-7-0-1">2023-10-04 version 7.0.1</a></li>
