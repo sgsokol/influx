@@ -114,13 +114,15 @@ if (write_res) {
          # detect metabs with incomplete mid, e.g. only M+0
          fraglen=strsplitlim(nmf[,3L], ",", fixed=TRUE, mat=TRUE)
          mets=strsplitlim(nmf[,2L], "+", fixed=TRUE, mat=TRUE)
-         incompl=Filter(I, tapply(as.data.frame(nmf), list(nmf[,2L], nmf[,3L]), function(df) {
+         incompl=tapply(as.data.frame(nmf), list(nmf[,2L], nmf[,3L]), function(df) {
             if (nrow(df) == 0L) return(FALSE)
             i=as.integer(rownames(df))
             len=sum(nchar(fraglen[i[1L],]) > 0L)
             len=if (len > 0L) len else clen[mets[i[1L],1L]]
             return(len > nrow(df))
-         })[,1L])
+         })
+         colnames(incompl)=NULL
+         incompl=Filter(I, incompl[,1L])
          incompl=unlist(strsplit(names(incompl), "+", fixed=TRUE))
          nmf=unique(apply(nmf[,2L:3L], 1L, paste0, sep="", collapse=":"))
          nmm=setdiff(Filter(nchar, mets), incompl)
