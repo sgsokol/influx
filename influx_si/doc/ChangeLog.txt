@@ -2,6 +2,15 @@
 Change Log for influx_si
 ========================
 
+2024-05-?? version 7.0.4.90
+------------------------
+New feature:
+ - ...
+ 
+Bug fix:
+ - plot_ilab: fixed incomplete name list when only one metabolite is in list
+ - ftbl2xgmml: accepts also '--inst', not only '-i'
+
 2024-05-17 version 7.0.4
 ------------------------
 New feature:

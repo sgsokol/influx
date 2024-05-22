@@ -101,7 +101,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     def usage():
         sys.stderr.write(__doc__)
     try:
-        opts,args=getopt.getopt(sys.argv[1:], "hfi", ["help", "force", "prefix=", "mtf="])
+        opts,args=getopt.getopt(sys.argv[1:], "hfi", ["help", "force", "prefix=", "mtf=", "inst"])
     except getopt.GetoptError as err:
         sys.stderr.write(str(err)+"\n")
         usage()
@@ -117,7 +117,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
             sys.exit()
         if o in ("-f", "--force"):
             force=True
-        if o in ("-i",):
+        if o in ("-i", "--inst"):
             case_i=True
             mtf_opts += ["--inst"]
         if o in ("--mtf", "--prefix"):

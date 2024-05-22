@@ -37,6 +37,7 @@ doc/*.dvi
 doc/*.out
 doc/*.tex
 doc/spellTmp
+doc/_build/*
 icons/*
 __pycache__/*
 mult_bxxc.txt
