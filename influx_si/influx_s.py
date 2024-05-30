@@ -103,7 +103,7 @@ def move_ftbl(dirres, fp, case_i):
     for f in prl_ftbl:
         move_ftbl(dtmp, fp.parent / (f+("" if f[-5:].lower()==".ftbl" else ".ftbl")), case_i)
 
-def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG):
+def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG, parser):
     r"""Launch R code generation and then its execution
 """
     #pdb.set_trace()
@@ -583,7 +583,7 @@ Call influx_s.main(["-h"]) for a help message"""
         f=ft[:-5]
         fshort="" if len(args) == 1 else Path(ft).stem+": "
 
-        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG}
+        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser}
         q.put(item)
     if not ftpr:
         return 1

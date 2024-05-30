@@ -675,53 +675,45 @@ param2fl_usm_rich=function(param, cjac, labargs, fullsys=FALSE) {
    return(res1)
 }
 # transform a funlab list 'li' into matrix #nm_inp x #tp having input labeling in time points 'tp'
-# li entries: "metab name" -> "int iso mask" -> R-code depending on scalar 't'
+# li entries: "metab name" -> "int iso mask" -> R-code depending on vector 'tp'
 # nm_inp cumo: "Glc:63"
 # nm_inp emu: "Glc:63+0"
  
 funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double.eps)) {
-   # lit is nested a list: met => str(isoint) => vector of legth #tp
-   lit=lapply(structure(seq_along(li), names=names(li)),
-   function(i) {
-      m=li[[i]]
-      met=names(li)[[i]]
-      lapply(structure(names(m), names=names(m)),
-      function(n) {
-         vapply(tp,
-         function(t) {
-            env$t=t
+   # lit is a nested list: met => str(isoint) => vector of legth #tp
+   lit=n_lapply(li,
+   function(met, m) {
+      n_lapply(m,
+      function(nm_iso, rcode) {
+         env$t=tp
 #browser()
-            v=try(eval(m[[n]], env), silent=TRUE) # time dependent isotopomers, i.e. functions applied on t
-            if (inherits(v, "try-error")) {
-               stop_mes("Error in R code '", format(m[[n]][[1L]]), "' for input label '", met, "#", n, "' from '", fname, "':\n", v, file=fcerr)
-            }
-            if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
-               ibad=which(ibad)[1]
-               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a non numeric value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
-            }
-            v[v < 0. && v >= -tol]=0.
-            v[v > 1. && v <= 1+tol]=1.
-            if (any(ibad <- v < 0.)) {
-               ibad=which(ibad)[1]
-               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a negative value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
-            }
-            if (any(ibad <- v > 1.)) {
-               ibad=which(ibad)[1]
-               stop_mes("Input label '", met, "#", n, "' from '", fname, "' produced a value > 1 at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
-            }
-            v
-         }, double(1L)
-         )
-      }
-      )
-   }
-   )
+         v=try(eval(rcode, env), silent=TRUE) # time dependent isotopomers, i.e. functions applied on t
+         if (inherits(v, "try-error")) {
+            stop_mes("Error in R code '", format(rcode[[1L]]), "' for input label '", met, "#", nm_iso, "' from '", fname, "':\n", v, file=fcerr)
+         }
+         if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
+            ibad=which(ibad)[1L]
+            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a non numeric value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
+         }
+         v[v < 0. & v >= -tol]=0.
+         v[v > 1. & v <= 1.+tol]=1.
+         if (any(ibad <- v < 0.)) {
+            ibad=which(ibad)[1L]
+            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a negative value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
+         }
+         if (any(ibad <- v > 1.)) {
+            ibad=which(ibad)[1L]
+            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a value > 1 at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
+         }
+         v
+      })
+   })
    # complete to 1 if necessary
    for (met in names(lit)) {
       m=lit[[met]]
       # sanity check, sum > 1
       su=Reduce("+", m)
-      if (any(ibad <- su > 1+tol)) {
+      if (any(ibad <- su > 1.+tol)) {
          ibad=which(ibad)[1L]
          stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], "; sum-1=", su[ibad]-1., ".", file=fcerr)
       }

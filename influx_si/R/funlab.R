@@ -84,12 +84,23 @@ ppulseslinpath=function(tp, nu, Tint, Hint=rep_len(c(1., 0.), length(Tint)), ini
 }
 
 # linear interpolation at time points tp with linear piece-wise function defined by x='knots' and y='v'
-linterp=function(tp, knots, v) {
+linterp=function(tp, knots, v, tol=1.e-10) {
     #browser()
     rtp=range(tp)
+    tp_min=rtp[1L]
+    tp_max=rtp[2L]
     rk=range(knots)
+    knot_min=rk[1L]
+    knot_max=rk[2L]
     nb_kn=length(knots)
-    stopifnot(rtp[1L] >= rk[1L] && rtp[2L] <= rk[2L]) # all tp must be inside knots
+    if (tp_min < knot_min-tol || tp_max >= knot_max+tol) {
+        mes=ifelse(length(tp) == 1L,
+            sprintf("Time point %f is outside of knot interval [%f, %f]", tp, knot_min, knot_max),
+            sprintf("Time point interval [%f, %f] is not completely inside of knot interval [%f, %f]", tp_min, tp_max, knot_min, knot_max))
+        stop(mes, call.=FALSE)
+    }
+    if (any(diff(knots) < 0.))
+        stop("Provided knots are not monotonically increasing: {", paste0(knots, "; "), "} ", call.=FALSE)
     # find index of the closest left knot for all tp
     # knots are supposed being ordered monotonously and increasingly
     il=apply(outer(tp, knots, ">="), 1L, function(v) {w=which(v); if (length(w)) rev(w)[1L] else NA})
