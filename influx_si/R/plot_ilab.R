@@ -114,17 +114,17 @@ if (write_res) {
          # detect metabs with incomplete mid, e.g. only M+0
          fraglen=strsplitlim(nmf[,3L], ",", fixed=TRUE, mat=TRUE)
          mets=strsplitlim(nmf[,2L], "+", fixed=TRUE, mat=TRUE)
-         incompl=tapply(as.data.frame(nmf), list(nmf[,2L], nmf[,3L]), function(df) {
-            if (nrow(df) == 0L) return(FALSE)
-            i=as.integer(rownames(df))
+         incompls=split(seq_len(NROW(nmf)), list(nmf[,2L], nmf[,3L]))
+         incompl=sapply(incompls, function(i) {
+            if (length(i) == 0L) return(FALSE)
             len=sum(nchar(fraglen[i[1L],]) > 0L)
             len=if (len > 0L) len else clen[mets[i[1L],1L]]
-            return(len > nrow(df))
+            return(len > length(i))
          })
-         colnames(incompl)=NULL
-         incompl=Filter(I, incompl[,1L])
+         names(incompl)=mets[sapply(incompls, "[", 1L)]
+         incompl=Filter(I, incompl)
          incompl=unlist(strsplit(names(incompl), "+", fixed=TRUE))
-         nmf=unique(apply(nmf[,2L:3L], 1L, paste0, sep="", collapse=":"))
+         nmf=unique(apply(nmf[,2L:3L, drop=FALSE], 1L, paste0, sep="", collapse=":"))
          nmm=setdiff(Filter(nchar, mets), incompl)
          for (metf in nmf) {
             i=grep(sprintf("m:%s:", metf), nm_selm, fixed=TRUE, value=TRUE)
@@ -147,25 +147,17 @@ if (write_res) {
       if (exists("mid") && length(mid)) {
          nm_simm=rownames(mid[[iexp]])
          nmmid=if (length(nm_simm) > 0L) unique(strsplitlim(nm_simm, "+", fixed=TRUE, mat=TRUE)[,1L]) else character(0L)
-         if (emu)
-            nmmid=strsplitlim(nmmid, ":", fixed=TRUE, mat=TRUE)[,1L]
+         nmmid=strsplitlim(nmmid, ":", fixed=TRUE, mat=TRUE)[,1L]
          nmp=natsort(setdiff(nmmid, nmm))
          if (length(nmp) && length(nm_simm)) {
             plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
             text(0.5, 0.05, lab="MS simulations", cex=2)
          }
          for (met in nmp) {
-            if (emu) {
-               i=grep(sprintf("^%s:", met), nm_simm, value=TRUE)
-               if (length(i) == 0L)
-                  next
-               plot_mti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
-            } else {
-               i=grep(sprintf("^%s:", met), nm_simm, v=TRUE)
-               if (length(i) == 0L)
-                  next
-               plot_mti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
-            }
+            i=grep(sprintf("^%s:", met), nm_simm, value=TRUE)
+            if (length(i) == 0L)
+               next
+            plot_mti(tifull[[iexp]][-1L], mid[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
          }
          # get unique label (!=MS) fragment names
          nm_sell=natsort(grep("^[^m]:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE))

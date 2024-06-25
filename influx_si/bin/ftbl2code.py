@@ -836,7 +836,7 @@ if (nb_fl) {
 }
 dimnames(Afl)=list(c(%(nm_rows)s), nm_fl)
 #browser()
-# prepare param (\Theta) vector
+# prepare param (Theta) vector
 # order: free flux net, free flux xch, scale label, scale mass, scale peak
 param=numeric(0)
 nm_par=c()

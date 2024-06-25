@@ -372,7 +372,7 @@ def ftbl_parse(f, wout=wout, werr=werr):
             if len(l) < skiptab or l[:skiptab] != "\t"*skiptab:
                 raise Exception("Expected at least %d tabulation(s) at the row beginning. Got '%s' (%s: %d)"%(skiptab, l[:min(skiptab, len(l))], ftbl["name"], irow))
             col_names=l[skiptab:].split("\t")
-            if len([ item for item in col_names if re.match("^\s*$", item) ]):
+            if len([ item for item in col_names if re.match(r"^\s*$", item) ]):
                 raise Exception("FTBL: row %d has empty column names:\n%s"%(irow,l))
             reading="data"
             #print "col_names=", col_names;##
@@ -1576,7 +1576,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
     proc_kinopt(ftbl, netan)
     if "opt" in netan and "prl_exp" in netan["opt"] and netan["opt"]["prl_exp"]:
         # parse ftbl files
-        fli=re.split("\s*;\s*", netan["opt"]["prl_exp"])
+        fli=re.split(r"\s*;\s*", netan["opt"]["prl_exp"])
         dirw=os.path.dirname(ftbl["abs_path"])
         for fn in fli:
             fn=fn.strip()
