@@ -180,7 +180,7 @@ if itest:
     itest=[]
     for item in ili:
         item=item.strip()
-        match=re.match("(-?\d*):(-?\d*)", item)
+        match=re.match(r"(-?\d*):(-?\d*)", item)
         if match:
             try:
                 beg=int(match.group(1))

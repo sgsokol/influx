@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,9 +12,7 @@
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
-    <script src="../_static/sphinx_highlight.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -414,7 +412,7 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">skiptab</span> <span class="ow">or</span> <span class="n">l</span><span class="p">[:</span><span class="n">skiptab</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">*</span><span class="n">skiptab</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Expected at least </span><span class="si">%d</span><span class="s2"> tabulation(s) at the row beginning. Got &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">skiptab</span><span class="p">,</span> <span class="n">l</span><span class="p">[:</span><span class="nb">min</span><span class="p">(</span><span class="n">skiptab</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">))],</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">irow</span><span class="p">))</span>
             <span class="n">col_names</span><span class="o">=</span><span class="n">l</span><span class="p">[</span><span class="n">skiptab</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">([</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">col_names</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^\s*$&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="p">]):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">([</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">col_names</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\s*$&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="p">]):</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;FTBL: row </span><span class="si">%d</span><span class="s2"> has empty column names:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">irow</span><span class="p">,</span><span class="n">l</span><span class="p">))</span>
             <span class="n">reading</span><span class="o">=</span><span class="s2">&quot;data&quot;</span>
             <span class="c1">#print &quot;col_names=&quot;, col_names;##</span>
@@ -1618,7 +1616,7 @@
     <span class="n">proc_kinopt</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">&quot;opt&quot;</span> <span class="ow">in</span> <span class="n">netan</span> <span class="ow">and</span> <span class="s2">&quot;prl_exp&quot;</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;prl_exp&quot;</span><span class="p">]:</span>
         <span class="c1"># parse ftbl files</span>
-        <span class="n">fli</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;\s*;\s*&quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;prl_exp&quot;</span><span class="p">])</span>
+        <span class="n">fli</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\s*;\s*&quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;prl_exp&quot;</span><span class="p">])</span>
         <span class="n">dirw</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;abs_path&quot;</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fli</span><span class="p">:</span>
             <span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -3008,7 +3006,7 @@
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -3028,8 +3026,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

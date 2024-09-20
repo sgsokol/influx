@@ -8,7 +8,7 @@ icumo_resid=function(param, cjac, labargs) {
    # from labargs to local vars
    for (item in ls(labargs))
       assign(item, get(item, env=labargs))
-   
+
    nb_w=length(spa)
    sqm=measurements$dev$labeled
    sqf=measurements$dev$flux
@@ -20,7 +20,7 @@ icumo_resid=function(param, cjac, labargs) {
    nb_sc_tot=nb_f$nb_sc_tot
    nb_ff=nb_f$nb_ff
    nb_poolf=nb_f$nb_poolf
-   
+
    # find simulated cumomers
    lres=lab_sim(param, cjac, labargs)
    if (!is.null(lres$err) && lres$err) {
@@ -124,7 +124,7 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
    # 2012-03-07 sokol
    # 2014-04-11 sokol: added emu option
    # 2016-09-26 sokol: adapted for arbitrary long reactions; removed sp
-   
+
    # construct the sources s
    # for this weight
 #options(warn=2)
@@ -133,7 +133,7 @@ fwrv2sp=function(fwrv, spAbr, incu, emu=FALSE) {
    emuw=ifelse(emu, w, 1L)
    incu=as.matrix(incu)
    nco=ncol(incu)
-   
+
    if (nb_c == 0) {
       return(simple_triplet_zero_matrix(nb_c, 1))
    }
@@ -169,14 +169,14 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    # unscaled simulated measurements (usm) for label propagation.
    # tifull may be more fine grained than ti. All ti must be in tifull
    # only ti moments are reported in usm and jacobian
-   
+
    # implicite euler scheme is used on all time points in a given weight.
    # => no possibility to add a time point during a run.
    # jacobian is directly derived form discrete scheme and not from ODE solving
-   
+
    # branched from param2fl_usm_eul().
    # 2014-07-09 sokol
-#if (fullsys)   
+#if (fullsys)
 #browser()
    # from labargs to local vars
    for (item in ls(labargs))
@@ -209,7 +209,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    nb_ti=nb_f$ti
    nb_tifu=nb_f$tifu
    # cumulated sum
-   
+
    # calculate all fluxes from free fluxes
    fgr=numeric(nb_f$nb_fgr)
    names(fgr)=nm_list$fgr
@@ -282,7 +282,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       if (!all(ti[[iexp]] %in% tifull[[iexp]])) {
          return(list(err=1, mes="Not all time moments in ti are present in tifull vector"))
       }
-      
+
       # prepare vectors at t1=0 with zero labeling
       # incu, xi is supposed to be in [0; 1]
       stopifnot(!is.null(dim(xi[[iexp]])))
@@ -295,7 +295,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       idt=seq_len(ntico)
       itifu=seq_len(nb_tifu[[iexp]])
       invdt=1./dt
-      
+
       nb_mcol=ncol(measmat[[iexp]])
       # prepare ponderation with actual metab pools
       pwe[[iexp]][ipwe[[iexp]]]=pool[ip2ipwe[[iexp]]]
@@ -304,15 +304,15 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
       pwe[[iexp]]=pwe[[iexp]]*spwe
       xsim=matrix(x1, nrow=length(x1), ncol=ntico)
       bop(xsim, c(1, 1, nb_xi), "=", xi[[iexp]][,-1])
-      
+
       dimnames(xsim)=list(names(x1), tifull[[iexp]][-1L])
 #if (interactive() && fullsys)
 #browser()
       if (cjac) {
          #cat("param2fl_usm_eul2: recalculate jacobian\n")
-         #xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
-         #redim(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
-         resize(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
+         xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
+         redim(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
+         #resize(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
          if (length(ijpwef[[iexp]])) {
             dpwe=-pwe[[iexp]]*spwe
             dpwe[-ipwe[[iexp]]]=0.
@@ -425,8 +425,9 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
             # rhs for all time points on this weight
             # parts before b_x%*%...
             #Rprof(file="fx2jr.Rprof", append=TRUE)
-            #xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
-            resize(xpfw, c(nb_c*emuw, nb_ff+nb_poolf, ntico))
+            xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
+            redim(xpfw, c(nb_row, nb_ff+nb_poolf, ntico))
+            #resize(xpfw, c(nb_c*emuw, nb_ff+nb_poolf, ntico))
             bop(xpfw, 1, "=", 0.)
             #xpf1=double(nb_c*emuw*(nb_ff+nb_poolf))
             #resize(xpf1, c(nb_c, emuw*(nb_ff+nb_poolf)))
@@ -536,7 +537,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
             usm=mx
          }
       }
-      
+
       if (cjac) {
          #jx_f$xpf=xpf # for debugging only
          #xpf=aperm(xpf[,,isel,drop=FALSE], c(1L, 3L, 2L))
@@ -678,8 +679,8 @@ param2fl_usm_rich=function(param, cjac, labargs, fullsys=FALSE) {
 # li entries: "metab name" -> "int iso mask" -> R-code depending on vector 'tp'
 # nm_inp cumo: "Glc:63"
 # nm_inp emu: "Glc:63+0"
- 
-funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double.eps)) {
+
+funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=1.e-7) { #sqrt(.Machine$double.eps)) {
    # lit is a nested list: met => str(isoint) => vector of legth #tp
    lit=n_lapply(li,
    function(met, m) {
@@ -687,7 +688,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
       function(nm_iso, rcode) {
          env$t=tp
 #browser()
-         v=try(eval(rcode, env), silent=TRUE) # time dependent isotopomers, i.e. functions applied on t
+         v=if (is.numeric(rcode[[1L]])) rep(rcode[[1L]], length(tp)) else try(eval(rcode, env), silent=TRUE) # time dependent isotopomers, i.e. functions applied on t
          if (inherits(v, "try-error")) {
             stop_mes("Error in R code '", format(rcode[[1L]]), "' for input label '", met, "#", nm_iso, "' from '", fname, "':\n", v, file=fcerr)
          }
@@ -695,6 +696,10 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
             ibad=which(ibad)[1L]
             stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a non numeric value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
          }
+         if (length(v) == 0L)
+			stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' has no data from R expression '", format(rcode[[1L]]), "'.", file=fcerr)
+         if (length(v) != length(tp))
+			stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' has not the same length (", length(v), ") as time vector (", length(tp), ")", file=fcerr)
          v[v < 0. & v >= -tol]=0.
          v[v > 1. & v <= 1.+tol]=1.
          if (any(ibad <- v < 0.)) {
@@ -715,23 +720,24 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
       su=Reduce("+", m)
       if (any(ibad <- su > 1.+tol)) {
          ibad=which(ibad)[1L]
+#browser()
          stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], "; sum-1=", su[ibad]-1., ".", file=fcerr)
       }
       if (!"0" %in% names(m)) {
          # "the rest is unlabeled"
          lit[[met]][["0"]]=1.-su
-      } else if (length(m) == 2**clen[met]-1) {
+      } else if (length(m) == 2L**clen[met]-1L) {
          # "guess the lacking one"
          nm_all=as.character(seq(2**clen[met])-1)
          lack=nm_all[which(!nm_all %in% names(m))]
          lit[[met]][[lack]]=1.-su
-      } else if (any(ibad <- su < 1-tol)) {
+      } else if (any(ibad <- su < 1.-tol)) {
          # sanity check, sum < 1
          ibad=which(ibad)[1L]
-         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value less than 1 at t=", tp[ibad], "; 1-sum=", su[ibad], ".", file=fcerr)
+         stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value less than 1 at t=", tp[ibad], "; 1-sum=", 1.-su[ibad], ".", file=fcerr)
       }
    }
-   sp=matrix(unlist(strsplit(nm_inp, ":", fixed=TRUE)), nrow=2)
+   sp=matrix(unlist(strsplit(nm_inp, ":", fixed=TRUE)), nrow=2L)
    cres=matrix(0., nrow=length(nm_inp), ncol=length(tp))
    if (emu) {
       for (j in seq(ncol(sp))) {
@@ -739,7 +745,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=sqrt(.Machine$double
          met=sp[1L, j]
          iemu=as.integer(strsplit(sp[2L, j], "+", fixed=TRUE)[[1L]])
          iso=as.integer(names(lit[[met]]))
-         i=sapply(iso, function(ii) sum(as.integer(intToBits(bitops::bitAnd(ii, iemu[1])))) == iemu[2])
+         i=sapply(iso, function(ii) sum(as.integer(intToBits(bitops::bitAnd(ii, iemu[1])))) == iemu[2L])
          res=double(length(tp))
          if (any(i))
             res=Reduce("+", lit[[met]][i])

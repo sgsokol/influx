@@ -9,9 +9,11 @@ New feature:
  
 Bug fix:
  - plot_ilab: fixed incomplete name list when only one metabolite is in list
+ - plot_ilab: workaround for tapply() not working properly on R-4.3
  - ftbl2xgmml: accepts also '--inst', not only '-i'
  - windows: fixed parser not passed to subprocess
  - linterp(): error message about time point being outside of knot range is made more explicit (reported by Younes Dellero, INRAE, France)
+ - fixed error message about dynamic labeling summing up to a value less than 1
 
 2024-05-17 version 7.0.4
 ------------------------

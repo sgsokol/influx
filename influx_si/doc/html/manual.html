@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
     <title>User’s manual &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -13,9 +13,7 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <link rel="index" title="Index" href="genindex.html" />
@@ -49,9 +47,9 @@
           <div class="body" role="main">
             
   <section id="user-s-manual">
-<h1>User’s manual<a class="headerlink" href="#user-s-manual" title="Permalink to this heading">¶</a></h1>
+<h1>User’s manual<a class="headerlink" href="#user-s-manual" title="Permalink to this headline">¶</a></h1>
 <section id="mtf-format">
-<span id="mtf"></span><h2>MTF format<a class="headerlink" href="#mtf-format" title="Permalink to this heading">¶</a></h2>
+<span id="mtf"></span><h2>MTF format<a class="headerlink" href="#mtf-format" title="Permalink to this headline">¶</a></h2>
 <p>Let start by describing file formats used by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>.
 MTF (Multiple TSV files) format was introduced in v6.0 of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> and was developed in collaboration and on demand from <a class="reference external" href="https://www.toulouse-biotechnology-institute.fr/en/plateformes-plateaux/metatoul/">MetaToul-FluxoMet platform</a> and <a class="reference external" href="https://www.toulouse-biotechnology-institute.fr/en/poles/equipe-metasys/">MetaSys team</a> of Toulouse Biotechnology Institute. Since v7.0, MTF is also used for output files.</p>
 <p>Originally, MTF introduction came in replacement to FTBL format and served several purposes:</p>
@@ -89,7 +87,7 @@ format for calculation and continues to be used behind the scene in accompanying
 <p>Only the first 3 are mandatory as input files, the rest of MTF set is optional.</p>
 <p>Now, we pass in more detailed review each of the file content.</p>
 <section id="netw">
-<h3>.netw<a class="headerlink" href="#netw" title="Permalink to this heading">¶</a></h3>
+<h3>.netw<a class="headerlink" href="#netw" title="Permalink to this headline">¶</a></h3>
 <p>This is a central file to the rest of the work – network file .netw
 It represents a list of biochemical reactions with label transitions. Here is an example of such reaction:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>edd: Gnt6P <span class="o">(</span>ABCDEF<span class="o">)</span> -&gt; Pyr <span class="o">(</span>ABC<span class="o">)</span> + GA3P <span class="o">(</span>DEF<span class="o">)</span>
@@ -121,7 +119,7 @@ It represents a list of biochemical reactions with label transitions. Here is an
 </dl>
 </section>
 <section id="linp">
-<h3>.linp<a class="headerlink" href="#linp" title="Permalink to this heading">¶</a></h3>
+<h3>.linp<a class="headerlink" href="#linp" title="Permalink to this headline">¶</a></h3>
 <p>Label input can be indicated in .linp file. Starting from this file type, the rest of the files are in TSV (tab separated values) format. I.e. they are plain text files where data are organized in tables, one table row per file line and where columns are separated with the tabulation character. The first non commented row contains column names. The comments start with <code class="docutils literal notranslate"><span class="pre">#</span></code> sign, they are simply ignored till the end of the row where they occur. The left- and right-trailing white spaces are stripped.</p>
 <dl>
 <dt>The .linp file can contain the following column names:</dt><dd><dl>
@@ -159,7 +157,7 @@ It represents a list of biochemical reactions with label transitions. Here is an
 </dl>
 </section>
 <section id="miso">
-<h3>.miso<a class="headerlink" href="#miso" title="Permalink to this heading">¶</a></h3>
+<h3>.miso<a class="headerlink" href="#miso" title="Permalink to this headline">¶</a></h3>
 <p>The .miso contains and describes labeled measurements.
 This file contains the following column names:</p>
 <blockquote>
@@ -216,7 +214,7 @@ This file contains the following column names:</p>
 <p>Here, column <code class="docutils literal notranslate"><span class="pre">Time</span></code> is left empty intentionally, thus signaling a stationary labeling.</p>
 </section>
 <section id="mflux">
-<h3>.mflux<a class="headerlink" href="#mflux" title="Permalink to this heading">¶</a></h3>
+<h3>.mflux<a class="headerlink" href="#mflux" title="Permalink to this headline">¶</a></h3>
 <p>Starting from this file format, we consider that column names are either similar to already described or are self-explanatory, and we will just give multi-line examples with few possible comments. So, for net flux stationary measurements, we could have:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Id      Comment Flux    Value   SD
                 upt     <span class="m">1</span>.02    <span class="m">0</span>.05
@@ -224,7 +222,7 @@ This file contains the following column names:</p>
 </div>
 </section>
 <section id="mmet">
-<h3>.mmet<a class="headerlink" href="#mmet" title="Permalink to this heading">¶</a></h3>
+<h3>.mmet<a class="headerlink" href="#mmet" title="Permalink to this headline">¶</a></h3>
 <p>For stationary specie concentration, we could have:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Id   Comment Specie  Value                   SD
              Fru6P   <span class="m">0</span>.4263681348074568      <span class="m">0</span>.01
@@ -233,7 +231,7 @@ This file contains the following column names:</p>
 </div>
 </section>
 <section id="cnstr">
-<h3>.cnstr<a class="headerlink" href="#cnstr" title="Permalink to this heading">¶</a></h3>
+<h3>.cnstr<a class="headerlink" href="#cnstr" title="Permalink to this headline">¶</a></h3>
 <p>Constraints on fluxes and specie concentrations can look like:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Id      Comment Kind    Formula                 Operator        Value
                 NET     Glucupt_1+Glucupt_U     <span class="o">==</span>              <span class="m">1</span>
@@ -243,7 +241,7 @@ This file contains the following column names:</p>
 <p>Column <code class="docutils literal notranslate"><span class="pre">Kind</span></code> indicates if a constraint is on net fluxes: <code class="docutils literal notranslate"><span class="pre">NET</span></code>; on exchange fluxes: <code class="docutils literal notranslate"><span class="pre">XCH</span></code> or on specie concentrations: <code class="docutils literal notranslate"><span class="pre">MET</span></code>. The <code class="docutils literal notranslate"><span class="pre">Formula</span></code> content must be a linear function of involved entities. If numeric factors are involved in the formula, they must preceed the variable name, e.g. <code class="docutils literal notranslate"><span class="pre">0.632*BM</span></code> and not <code class="docutils literal notranslate"><span class="pre">BM*0.632</span></code>. Column <code class="docutils literal notranslate"><span class="pre">Value</span></code> can have either a float number or a simple Python arithmetic expression which evaluates to a float number, e.g. <code class="docutils literal notranslate"><span class="pre">math.sqrt(2)/2</span></code> or <code class="docutils literal notranslate"><span class="pre">np.sqrt(2)/2</span></code> (here <code class="docutils literal notranslate"><span class="pre">np</span></code> stands for <code class="docutils literal notranslate"><span class="pre">numpy</span></code>).</p>
 </section>
 <section id="tvar">
-<h3>.tvar<a class="headerlink" href="#tvar" title="Permalink to this heading">¶</a></h3>
+<h3>.tvar<a class="headerlink" href="#tvar" title="Permalink to this headline">¶</a></h3>
 <p>Types of variables can resemble to</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Id      Comment Name    Kind    Type    Value
                 upt     NET     F       <span class="m">1</span>.02369
@@ -255,7 +253,6 @@ This file contains the following column names:</p>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">Type</span></code> can be either</p>
 <blockquote>
-<<<<<<< HEAD
 <div><dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">F</span></code></dt><dd><p>for “free”, requires a float number in <code class="docutils literal notranslate"><span class="pre">Value</span></code></p>
 </dd>
@@ -263,20 +260,10 @@ This file contains the following column names:</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">C</span></code></dt><dd><p>for “constrained”, requires a float number in <code class="docutils literal notranslate"><span class="pre">Value</span></code>.</p>
 </dd>
-=======
-<div><dl class="docutils">
-<dt><code class="docutils literal notranslate"><span class="pre">F</span></code></dt>
-<dd>for “free”, requires a float number in <code class="docutils literal notranslate"><span class="pre">Value</span></code></dd>
-<dt><code class="docutils literal notranslate"><span class="pre">D</span></code></dt>
-<dd>for “dependent” or</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">C</span></code></dt>
-<dd>for “constrained”, requires a float number in <code class="docutils literal notranslate"><span class="pre">Value</span></code>.</dd>
->>>>>>> d882a853d4f40eb5b18e4c75468e58aa980b80e7
 </dl>
 </div></blockquote>
 <p>The <code class="docutils literal notranslate"><span class="pre">Kind</span></code> can be either</p>
 <blockquote>
-<<<<<<< HEAD
 <div><dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">NET</span></code></dt><dd><p>for net fluxes</p>
 </dd>
@@ -288,21 +275,7 @@ This file contains the following column names:</p>
 </div></blockquote>
 </section>
 <section id="opt">
-<h3>.opt<a class="headerlink" href="#opt" title="Permalink to this heading">¶</a></h3>
-=======
-<div><dl class="docutils">
-<dt><code class="docutils literal notranslate"><span class="pre">NET</span></code></dt>
-<dd>for net fluxes</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">XCH</span></code></dt>
-<dd>for exchange fluxes</dd>
-<dt><code class="docutils literal notranslate"><span class="pre">METAB</span></code></dt>
-<dd>for specie concentration</dd>
-</dl>
-</div></blockquote>
-</div>
-<div class="section" id="opt">
 <h3>.opt<a class="headerlink" href="#opt" title="Permalink to this headline">¶</a></h3>
->>>>>>> d882a853d4f40eb5b18e4c75468e58aa980b80e7
 <p>Options passed to <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> can be similar to:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Id      Comment Name                    Value
                 dt                      <span class="m">1</span>
@@ -322,7 +295,7 @@ This file contains the following column names:</p>
 <p>The meaning of each possible option is described in different sections of this manual.</p>
 </section>
 <section id="vmtf">
-<h3>.vmtf<a class="headerlink" href="#vmtf" title="Permalink to this heading">¶</a></h3>
+<h3>.vmtf<a class="headerlink" href="#vmtf" title="Permalink to this headline">¶</a></h3>
 <p>Variable part of MTF approach can be used to combine constant and variable
 parts of experiments to launch a calculation of flux maps in a batch.
 E.g. in a set of experiments on the same organism in different biological conditions, <code class="docutils literal notranslate"><span class="pre">.miso</span></code>, <code class="docutils literal notranslate"><span class="pre">.mflux</span></code> can vary from one experiment to another while <code class="docutils literal notranslate"><span class="pre">.netw</span></code> and other files can remain the same in the whole experiment set.
@@ -352,7 +325,7 @@ a file name is given without extension, it is deduced from column name. Example 
 </section>
 </section>
 <section id="output-format">
-<h2>Output format<a class="headerlink" href="#output-format" title="Permalink to this heading">¶</a></h2>
+<h2>Output format<a class="headerlink" href="#output-format" title="Permalink to this headline">¶</a></h2>
 <p>Since v7.0, MTF is also used as output format for most result files. However, compared to input files, some additional columns were added. We will describe them in appropriate subsections.</p>
 <p>The whole set of output files go to <code class="docutils literal notranslate"><span class="pre">mynetwork_res</span></code> directory if this name is not overwritten with <code class="docutils literal notranslate"><span class="pre">--out</span></code> option. Here <code class="docutils literal notranslate"><span class="pre">mynetwork</span></code> is just a name example to be adapted to your situation. Let review output files.
 By default, the result subdirectory is located in the same directory as input MTF files.</p>
@@ -362,7 +335,7 @@ By default, the result subdirectory is located in the same directory as input MT
 So take care to copy your results elsewhere if you want to protect them from overwriting.</p>
 </div>
 <section id="mynetwork-log">
-<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.log</span></code><a class="headerlink" href="#mynetwork-log" title="Permalink to this heading">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.log</span></code><a class="headerlink" href="#mynetwork-log" title="Permalink to this headline">¶</a></h3>
 <p>contains the run-time log messages, in particular,
 it contains a report on convergence history during the fitting process.
 It can be helpful for identifying potential problems. Some warnings can be written in this file, so user should scrutinize this file for lines starting with <code class="docutils literal notranslate"><span class="pre">***Warning:</span></code> to be informed about potential issues.</p>
@@ -375,7 +348,7 @@ For a more complete list, see SD column in &#39;.tvar.sim&#39; result file.
 </div>
 </section>
 <section id="mynetwork-err">
-<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code><a class="headerlink" href="#mynetwork-err" title="Permalink to this heading">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.err</span></code><a class="headerlink" href="#mynetwork-err" title="Permalink to this headline">¶</a></h3>
 <p>This file contains critical error messages preventing from normal program execution. Normally, it should be empty (0 byte size). If it is not, there is something definitely wrong either in the input files or with the program itself that should be fixed before going on.</p>
 <p>Problems can appear in all stages of a software run:</p>
 <ul>
@@ -422,7 +395,7 @@ It’s up to the user to check that an addition of such inequalities does not co
 <p>A user should examine carefully any warning/error message and start to fix the problems by the first one in the list (if there are many) and not by the easiest or the most obvious to resolve. After fixing the first problem, rerun <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to see if other problems are still here. Sometimes, an issue can induce several others. So, fixing the first issue could eliminate some others. Repeat this process, till all the troubles are eliminated.</p>
 </section>
 <section id="mynetwork-miso-sim-mynetwork-mflux-sim-mynetwork-mmet-sim">
-<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.miso.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mflux.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mmet.sim</span></code><a class="headerlink" href="#mynetwork-miso-sim-mynetwork-mflux-sim-mynetwork-mmet-sim" title="Permalink to this heading">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.miso.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mflux.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork.mmet.sim</span></code><a class="headerlink" href="#mynetwork-miso-sim-mynetwork-mflux-sim-mynetwork-mmet-sim" title="Permalink to this headline">¶</a></h3>
 <p>These files contain simulated values and are formatted as input files for isotopic, flux and concentration measurements. Additional columns are:</p>
 <blockquote>
 <div><dl class="simple">
@@ -435,7 +408,7 @@ It’s up to the user to check that an addition of such inequalities does not co
 <p>If multiple starting points were used (e.g. with <code class="docutils literal notranslate"><span class="pre">--fseries</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--iseries</span></code> options) then result corresponding to each starting point will be numbered with prefix <code class="docutils literal notranslate"><span class="pre">.V</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.V10.miso.sim</span></code> for tenth staring point.</p>
 </section>
 <section id="mynetwork-tvar-sim">
-<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.tvar.sim</span></code><a class="headerlink" href="#mynetwork-tvar-sim" title="Permalink to this heading">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.tvar.sim</span></code><a class="headerlink" href="#mynetwork-tvar-sim" title="Permalink to this headline">¶</a></h3>
 <p>Estimated fluxes and specie concentrations (if any) are all gathered in this file, in column <code class="docutils literal notranslate"><span class="pre">Value</span></code>. Additional columns are:</p>
 <blockquote>
 <div><dl class="simple">
@@ -450,7 +423,7 @@ It’s up to the user to check that an addition of such inequalities does not co
 <p>In case of multiple starting points, this file is numbered.</p>
 </section>
 <section id="mynetwork-stat">
-<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.stat</span></code><a class="headerlink" href="#mynetwork-stat" title="Permalink to this heading">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">mynetwork.stat</span></code><a class="headerlink" href="#mynetwork-stat" title="Permalink to this headline">¶</a></h3>
 <p>This file contains results of chi2 statistical test. Its content can look like:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>chi2_value              61.5141593189625
 chi2/df                 1.86406543390795
@@ -464,11 +437,11 @@ conclusion              At level of 95% confidence, the model does not fit the d
 <p>The field names are self explanatory. In case of multiple starting points, this file is numbered.</p>
 </section>
 <section id="custom-files">
-<h3>Custom files<a class="headerlink" href="#custom-files" title="Permalink to this heading">¶</a></h3>
+<h3>Custom files<a class="headerlink" href="#custom-files" title="Permalink to this headline">¶</a></h3>
 <p>These files (e.g. <code class="docutils literal notranslate"><span class="pre">mynetwork.pdf</span></code>) can be produced by user supplied scripts that are executed at the end of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> simulations. For example, we provide a script <code class="docutils literal notranslate"><span class="pre">plot_ilab.R</span></code> which can be used to plot label kinetics simulated by <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> or <code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> for <code class="docutils literal notranslate"><span class="pre">influx_s</span></code>. One or many of such custom scripts can be given in .opt file, field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> (cf. e_coli_i.opt for example)</p>
 </section>
 <section id="old-result-files">
-<h3>Old result files<a class="headerlink" href="#old-result-files" title="Permalink to this heading">¶</a></h3>
+<h3>Old result files<a class="headerlink" href="#old-result-files" title="Permalink to this headline">¶</a></h3>
 <p>For users willing to continue usage of old result files, namely <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code>, we kept them in <code class="docutils literal notranslate"><span class="pre">tmp</span></code> subdirectory.</p>
 <p>Thus typically, a <code class="docutils literal notranslate"><span class="pre">tmp</span></code> subdir contains:</p>
 <blockquote>
@@ -484,7 +457,7 @@ conclusion              At level of 95% confidence, the model does not fit the d
 </section>
 </section>
 <section id="basic-influx-si-usage">
-<h2>Basic influx_si usage<a class="headerlink" href="#basic-influx-si-usage" title="Permalink to this heading">¶</a></h2>
+<h2>Basic influx_si usage<a class="headerlink" href="#basic-influx-si-usage" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> can be run as</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ influx_s.py --prefix mynetwork
 </pre></div>
@@ -525,7 +498,7 @@ We suppose here that a valid MTF file set was created. Moreover, we supposed <co
 <p>The option names can be shortened till a non-ambiguous interpretation is possible, e.g., in the previous example, the option could be shortened as <code class="docutils literal notranslate"><span class="pre">--me</span> <span class="pre">BFGS</span></code> or <code class="docutils literal notranslate"><span class="pre">--me=BFGS</span></code> because there is no other option name starting by <code class="docutils literal notranslate"><span class="pre">me</span></code>. But an option <code class="docutils literal notranslate"><span class="pre">--no</span></code> could not be distinguished between <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> and <code class="docutils literal notranslate"><span class="pre">--noscale</span></code>. So at least <code class="docutils literal notranslate"><span class="pre">--nos</span></code> (for <code class="docutils literal notranslate"><span class="pre">--noscale</span></code>) or <code class="docutils literal notranslate"><span class="pre">--noo</span></code> (for <code class="docutils literal notranslate"><span class="pre">--noopt</span></code>) should be provided. There is only one option that does not admit a usage of an equal sign to provide an argument, it is <code class="docutils literal notranslate"><span class="pre">--excl_outliers</span></code>. Use only a space character to provide an argument to this option when required.</p>
 <p>Here after, the available options with their full names are enumerated and detailed.</p>
 <section id="influx-si-command-line-options">
-<h3><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> command line options<a class="headerlink" href="#influx-si-command-line-options" title="Permalink to this heading">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> command line options<a class="headerlink" href="#influx-si-command-line-options" title="Permalink to this headline">¶</a></h3>
 <blockquote>
 <div><dl class="option-list">
 <dt><kbd><span class="option">--version</span></kbd></dt>
@@ -731,7 +704,7 @@ commandArgs     --meth BFGS --sens mc=100 --np 1
 </section>
 </section>
 <section id="parallel-experiments">
-<h2>Parallel experiments<a class="headerlink" href="#parallel-experiments" title="Permalink to this heading">¶</a></h2>
+<h2>Parallel experiments<a class="headerlink" href="#parallel-experiments" title="Permalink to this headline">¶</a></h2>
 <p id="prlexp">Staring from v4.0, <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> offers possibility to treat labeling  data from parallel experiments. Parallel experiments for stationary labeling were described in the literature (e.g. cf. “Parallel labeling experiments and metabolic flux analysis: Past, present and future methodologies.”, Crown SB, Antoniewicz MR., <em>Metab Eng.</em> 2013 Mar;16:21-32. doi: 10.1016/j.ymben.2012.11.010). But for instationary labeling, at the best of our knowledge, <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is the first software offering parallel experiments treatment.</p>
 <p>The main interest of parallel experiments is increased precision of flux estimations. This comes at a price of additional work for experiments and data gathering, but the result is often worth the effort. As usual, before doing a real “wet” experiment, it can be useful to run a few  “dry” simulations to see if planned experiments will deliver desired precision.</p>
 <p>To deal with parallel experiments, a user have to prepare a series of additional .miso/.linp couples, one per additional experiment. While the “main” .miso/.linp couple can be given in <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> or <code class="docutils literal notranslate"><span class="pre">--mtf</span></code> options.</p>
@@ -762,17 +735,17 @@ can differ. That’s why a <code class="docutils literal notranslate"><span clas
 <p>It should be made a clear distinction between parallel experiments described in this section and independent experiments calculated in parallel. The main difference is that parallel experiments of this section share all the same flux map (only labeling pattern and data can differ) while independent experiments can have each its own flux map, be they calculated in parallel or sequentially.</p>
 </section>
 <section id="options-in-opt-file">
-<h2>Options in .opt file<a class="headerlink" href="#options-in-opt-file" title="Permalink to this heading">¶</a></h2>
+<h2>Options in .opt file<a class="headerlink" href="#options-in-opt-file" title="Permalink to this headline">¶</a></h2>
 <p>In this section, we describe different options that can appear in .opt file</p>
 <section id="optimization-options">
-<span id="optopt"></span><h3>Optimization options<a class="headerlink" href="#optimization-options" title="Permalink to this heading">¶</a></h3>
+<span id="optopt"></span><h3>Optimization options<a class="headerlink" href="#optimization-options" title="Permalink to this headline">¶</a></h3>
 <p>These options can help to tune the convergence process of the NLSIC (or any other chosen algorithm). These options are prefixed with <code class="docutils literal notranslate"><span class="pre">optctrl</span></code> which is followed by a particular optimization method name and ended by an option name. For example, <code class="docutils literal notranslate"><span class="pre">optctrl:nlsic:errx</span></code> corresponds to the stopping criterion. A corresponding <code class="docutils literal notranslate"><span class="pre">.opt</span></code> portion could look like</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Name                    Value
 optctrl:nlsic:errx      1.e-3
 </pre></div>
 </div>
 <section id="nlsic-parameters">
-<h4>NLSIC parameters<a class="headerlink" href="#nlsic-parameters" title="Permalink to this heading">¶</a></h4>
+<h4>NLSIC parameters<a class="headerlink" href="#nlsic-parameters" title="Permalink to this headline">¶</a></h4>
 <p>All possible options and their default values for NLSIC algorithm follow:</p>
 <blockquote>
 <div><dl class="simple">
@@ -804,7 +777,7 @@ optctrl:nlsic:errx      1.e-3
 </div></blockquote>
 </section>
 <section id="pso-parameters">
-<h4>PSO parameters<a class="headerlink" href="#pso-parameters" title="Permalink to this heading">¶</a></h4>
+<h4>PSO parameters<a class="headerlink" href="#pso-parameters" title="Permalink to this headline">¶</a></h4>
 <p>Particle Swarm Optimization (PSO) is a stochastic optimization method. It can help to avoid local minimums but its convergence is very slow. That’s why its usage can be particularly useful if combined with a deterministic algorithm like NLSIC. We have implemented PSO method based on the code from CRAN package <a class="reference external" href="https://cran.r-project.org/package=pso">pso v1.0.3</a>  published in 2012 by Claus Bendtsen (papyrus.bendtsen at gmail.com). The original algorithm was written for box constrained problems. While <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> requires a usage of general linear constraints. So we modified the algorithms accordingly. Its parameters with their default values used in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> are following:</p>
 <blockquote>
 <div><dl class="simple">
@@ -846,12 +819,12 @@ optctrl:nlsic:errx      1.e-3
 </div></blockquote>
 </section>
 <section id="other-optimization-methods">
-<h4>Other optimization methods<a class="headerlink" href="#other-optimization-methods" title="Permalink to this heading">¶</a></h4>
+<h4>Other optimization methods<a class="headerlink" href="#other-optimization-methods" title="Permalink to this headline">¶</a></h4>
 <p>Names and default values for BFGS and Nelder-Mead algorithms can be found in the R help on <code class="docutils literal notranslate"><span class="pre">optim()</span></code> function.</p>
 </section>
 </section>
 <section id="growth-flux-option">
-<span id="growthflux"></span><h3>Growth flux option<a class="headerlink" href="#growth-flux-option" title="Permalink to this heading">¶</a></h3>
+<span id="growthflux"></span><h3>Growth flux option<a class="headerlink" href="#growth-flux-option" title="Permalink to this headline">¶</a></h3>
 <p>If present, this option makes <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> take into account growth fluxes <span class="math notranslate nohighlight">\(-\mu{}M\)</span> in the flux balance, where <span class="math notranslate nohighlight">\(\mu\)</span> is a growth rate and <span class="math notranslate nohighlight">\(M\)</span> is a concentration of an internal specie M by a unit of biomass. Only species for which this concentration is provided in a .tvar file, contribute to flux balance with a flux <span class="math notranslate nohighlight">\(-\mu{}M\)</span>.
 This flux can be varying or constant during optimization process depending on whether the specie M is part of free parameters to fit or not. Usually, taking into account of this kind of flux does not influence very much on the estimated flux values. So, this option is provided to allow a user to be sure that it is true in his own case.</p>
 <p>The option is activated by a field <code class="docutils literal notranslate"><span class="pre">include_growth_flux</span></code>:</p>
@@ -898,7 +871,7 @@ Rub5P+Rib5P+Xul5P       1.66034545348219*1.e-3/10.7     1.e-2
 <p>An example of an MTF files having specie sections and involving growth fluxes can be found in <code class="docutils literal notranslate"><span class="pre">test/mtf/e_coli_growth.*</span></code>.</p>
 </section>
 <section id="post-treatment-option">
-<h3>Post treatment option<a class="headerlink" href="#post-treatment-option" title="Permalink to this heading">¶</a></h3>
+<h3>Post treatment option<a class="headerlink" href="#post-treatment-option" title="Permalink to this headline">¶</a></h3>
 <p>User can specify a name of one or several R scripts that will be automatically executed after non aborted <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run. This option can be useful, for example, for plain saving of calculation environment in a file for later exploring in an interactive R session or for plotting results in a pdf file and so on. A very basic example of such a script is provided in the file <code class="docutils literal notranslate"><span class="pre">R/save_all.R</span></code> and its use can be found in the options of <code class="docutils literal notranslate"><span class="pre">test/e_coli.opt</span></code> file.</p>
 <p>To activate this option, the script names must be provided in the <code class="docutils literal notranslate"><span class="pre">.opt</span></code> file, in the field <code class="docutils literal notranslate"><span class="pre">posttreat_R</span></code> and separated by <code class="docutils literal notranslate"><span class="pre">';</span> <span class="pre">'</span></code>, e.g.:</p>
 <blockquote>
@@ -968,7 +941,7 @@ To be able to launch custom calculations on these variables, the user has to do 
 <p>An inspiration for your own custom treatments and/or plotting can be found in files <code class="docutils literal notranslate"><span class="pre">plot_ilab.R</span></code> and <code class="docutils literal notranslate"><span class="pre">plot_smeas.R</span></code> that plot instationary and stationary data respectively in pdf files.</p>
 </section>
 <section id="exclusive-influx-i-options">
-<h3>Exclusive <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> options<a class="headerlink" href="#exclusive-influx-i-options" title="Permalink to this heading">¶</a></h3>
+<h3>Exclusive <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> options<a class="headerlink" href="#exclusive-influx-i-options" title="Permalink to this headline">¶</a></h3>
 <p>There is only one exclusive option that can be given on a command line:</p>
 <blockquote>
 <div><dl class="option-list">
@@ -1045,7 +1018,7 @@ Gluc_1  100000          {T1=2; T2=2; ppulses(t, c(T1,T2))}
 </section>
 </section>
 <section id="old-result-file-fields">
-<h2>Old Result File Fields<a class="headerlink" href="#old-result-file-fields" title="Permalink to this heading">¶</a></h2>
+<h2>Old Result File Fields<a class="headerlink" href="#old-result-file-fields" title="Permalink to this headline">¶</a></h2>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Starting from v7.0 results are written in MTF format described above. So this section is kept only for legacy reason and is not more necessary for reading.</p>
@@ -1086,17 +1059,17 @@ Growth fluxes which depend on constant specie concentrations can be found in con
 <p>The field <code class="docutils literal notranslate"><span class="pre">jacobian</span> <span class="pre">dr_dp</span> <span class="pre">(without</span> <span class="pre">1/sd_exp)</span></code> report a Jacobian matrix which is defined as a matrix of partial derivatives <span class="math notranslate nohighlight">\(\partial{r}/\partial{p}\)</span> where <em>r</em> is residual vector (Simulated–Measured) and <em>p</em> is a free parameter vector including free fluxes, scaling factors (if any) and free specie pools (if any). Note that in this definition, the residual vector is not yet scaled by standard deviation of measurements. Sometimes, Jacobian is called <em>sensitivity matrix</em>, in which case a special care should be brought to the sens of derivation. Often, by sensitivity matrix, we intend a matrix expressing how estimated fluxes are sensitive to variations in the measurement data. Such definition corresponds to generalized inverse of Jacobian and it is reported in the field <code class="docutils literal notranslate"><span class="pre">generalized</span> <span class="pre">inverse</span> <span class="pre">of</span> <span class="pre">jacobian</span> <span class="pre">dr_dp</span> <span class="pre">(without</span> <span class="pre">1/sd_exp)</span></code></p>
 </section>
 <section id="network-values-for-cytoscape">
-<h2>Network values for Cytoscape<a class="headerlink" href="#network-values-for-cytoscape" title="Permalink to this heading">¶</a></h2>
+<h2>Network values for Cytoscape<a class="headerlink" href="#network-values-for-cytoscape" title="Permalink to this headline">¶</a></h2>
 <p>Several network values formatted for cytoscape are written by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to their respective files. It can facilitate their visualizing and presentation in graphical mode. All these values can be mapped on various graphical attributes like edge width, node size or color scale of them. These files are written at the end of calculations, so if an error has interrupted this process, no such file will be produced. Take care to don’t use an outdated copy of these files.</p>
 <p>A file named <code class="docutils literal notranslate"><span class="pre">edge.netflux.mynetwork.attrs</span></code> can help to map net flux values on edges of a studied network. A file <code class="docutils literal notranslate"><span class="pre">edge.xchflux.mynetwork.attrs</span></code> do the same with exchange fluxes. And finally, <code class="docutils literal notranslate"><span class="pre">node.log2pool.mynetwork.attrs</span></code> provides logarithm (base 2) of pool concentrations. They can be mapped on some graphical attribute of network nodes.</p>
 <p>See <a class="reference internal" href="#additional-tools">Additional tools</a> section, <a class="reference internal" href="#ftbl2xgmml-cytoscape-view">ftbl2xgmml: cytoscape view</a> paragraph to know how to produce files importable in Cytoscape from a given MTF set. User’s manual of Cytoscape has necessary information about using visual mapper for teaching how some values like net flux values can be mapped on graphical elements like edge width and so on.</p>
 </section>
 <section id="problematic-cases">
-<h2>Problematic cases<a class="headerlink" href="#problematic-cases" title="Permalink to this heading">¶</a></h2>
+<h2>Problematic cases<a class="headerlink" href="#problematic-cases" title="Permalink to this headline">¶</a></h2>
 <p>Obviously, everyone would like be able just run a flux estimation software and simply get results, but unfortunately it does not work in this way every time.
 In this section, we review some problematic cases which can be encountered in practice.</p>
 <section id="structurally-non-identifiable-fluxes">
-<h3>Structurally non-identifiable fluxes<a class="headerlink" href="#structurally-non-identifiable-fluxes" title="Permalink to this heading">¶</a></h3>
+<h3>Structurally non-identifiable fluxes<a class="headerlink" href="#structurally-non-identifiable-fluxes" title="Permalink to this headline">¶</a></h3>
 <p>It can happen that collected data are not sufficient to resolve some fluxes in your network. Due to the non-linear nature of the issue, this situation can appear for some set of free flux values and disappear for others, or be persistent for any free flux values. An error is reported to signal such situation, e.g.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>lsi: Rank deficient matrix in least squares
 1 unsolvable variable(s):
@@ -1135,13 +1108,13 @@ Least L2-norm solution is provided.
 </ol>
 </section>
 <section id="badly-defined-fluxes">
-<h3>Badly defined fluxes<a class="headerlink" href="#badly-defined-fluxes" title="Permalink to this heading">¶</a></h3>
+<h3>Badly defined fluxes<a class="headerlink" href="#badly-defined-fluxes" title="Permalink to this headline">¶</a></h3>
 <p>Also known as <em>statistically undefined fluxes</em>, these fluxes have big or even huge SD values. The difference between these fluxes and structurally undefined fluxes is that the badly defined fluxes can become well defined if the noise is reduced or hypothetically eliminated. While the latter will still be undetermined even in the absence of the noise. Despite this difference, all options presented in the previous section are applicable here (all but <code class="docutils literal notranslate"><span class="pre">--ln</span></code> which would be without effect here).</p>
 <p>An additional measure can be taken which consist in experimental noise reduction. Generally, it can be done by using better protocols, better instruments or simply by increasing the measurement repetition number.</p>
 <p>Once again, a use of <code class="docutils literal notranslate"><span class="pre">--noopt</span></code> with new hoped SD values in the <code class="docutils literal notranslate"><span class="pre">.miso</span></code> file can help to see if these new measurements with better noise characteristics will resolve or not the problem.</p>
 </section>
 <section id="slow-convergence">
-<h3>Slow convergence<a class="headerlink" href="#slow-convergence" title="Permalink to this heading">¶</a></h3>
+<h3>Slow convergence<a class="headerlink" href="#slow-convergence" title="Permalink to this headline">¶</a></h3>
 <p>Slow optimization convergence can manifest by following warnings:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nlsic: Maximal non linear iteration number is achieved
 </pre></div>
@@ -1179,7 +1152,7 @@ If <code class="docutils literal notranslate"><span class="pre">--zc</span></cod
 </ol>
 </section>
 <section id="convergence-aborted">
-<h3>Convergence aborted<a class="headerlink" href="#convergence-aborted" title="Permalink to this heading">¶</a></h3>
+<h3>Convergence aborted<a class="headerlink" href="#convergence-aborted" title="Permalink to this headline">¶</a></h3>
 <p>This situation is signaled by an error message:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nlsic: LSI returned not descending direction
 </pre></div>
@@ -1193,11 +1166,11 @@ If it happens for relatively small increments, then the results of convergence a
 </section>
 </section>
 <section id="additional-tools">
-<h2>Additional tools<a class="headerlink" href="#additional-tools" title="Permalink to this heading">¶</a></h2>
+<h2>Additional tools<a class="headerlink" href="#additional-tools" title="Permalink to this headline">¶</a></h2>
 <p>Tools described in this section are not strictly necessary for running <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.</p>
 <p>Most of the utilities produce an output written on standard output or in a file whose name is derived from the input file name. This latter situation is signaled with a phrase “The output redirection is optional” and in the usage examples the output redirection is taken in square brackets <code class="docutils literal notranslate"><span class="pre">[&gt;</span> <span class="pre">output.txt]</span></code> which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.</p>
 <section id="ftbl2mtf-conversion-of-ftbl-to-mtf-format">
-<h3>ftbl2mtf: conversion of FTBL to MTF format<a class="headerlink" href="#ftbl2mtf-conversion-of-ftbl-to-mtf-format" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2mtf: conversion of FTBL to MTF format<a class="headerlink" href="#ftbl2mtf-conversion-of-ftbl-to-mtf-format" title="Permalink to this headline">¶</a></h3>
 <p>For old <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> users having their projects in FTBL format, this utility can be an invaluable helper for making the transition to the new MTF format. Here is the help message, which can be seen with <code class="docutils literal notranslate"><span class="pre">ftbl2mtf</span> <span class="pre">-h</span></code></p>
 <blockquote>
 <div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: ftbl2mtf [-h] [-i] [-f] [-o OUT] ftbl
@@ -1240,7 +1213,7 @@ optional arguments:
 </div></blockquote>
 </section>
 <section id="txt2ftbl-conversion-of-mtf-format-to-ftbl-format">
-<h3>txt2ftbl: conversion of MTF format to FTBL format<a class="headerlink" href="#txt2ftbl-conversion-of-mtf-format-to-ftbl-format" title="Permalink to this heading">¶</a></h3>
+<h3>txt2ftbl: conversion of MTF format to FTBL format<a class="headerlink" href="#txt2ftbl-conversion-of-mtf-format-to-ftbl-format" title="Permalink to this headline">¶</a></h3>
 <p>This tool is implicitly used by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> to convert MTF to FTBL format. Users desiring to play with format conversion or to produce FTBL file to be used with <a class="reference internal" href="#additional-tools">Additional tools</a> can use it explicitly. Here is its help message:</p>
 <blockquote>
 <div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: txt2ftbl [-h] [--mtf MTF] [--prefix PREFIX] [--eprl EPRL] [--inst] [--force] [netw]
@@ -1362,7 +1335,7 @@ optional arguments:
 </div></blockquote>
 </section>
 <section id="ftbl2xgmml-cytoscape-view">
-<h3>ftbl2xgmml: Cytoscape view<a class="headerlink" href="#ftbl2xgmml-cytoscape-view" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2xgmml: Cytoscape view<a class="headerlink" href="#ftbl2xgmml-cytoscape-view" title="Permalink to this headline">¶</a></h3>
 <p>Once a valid MTF set (or FTBL file) is generated, a user can visualize a graph representing his metabolic network in <a class="reference external" href="https://www.cytoscape.org">Cytoscape</a> program. To produce necessary graph files, user can run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ftbl2xgmml.py --prefix mynetwork <span class="o">[</span>&gt; mynetwotk.xgmml<span class="o">]</span>
 </pre></div>
@@ -1405,7 +1378,7 @@ For those who use <a class="reference external" href="http://apps.cytoscape.org/
 </ul>
 </section>
 <section id="ftbl2netan-mtf-ftbl-parsing">
-<h3>ftbl2netan: MTF/FTBL parsing<a class="headerlink" href="#ftbl2netan-mtf-ftbl-parsing" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2netan: MTF/FTBL parsing<a class="headerlink" href="#ftbl2netan-mtf-ftbl-parsing" title="Permalink to this headline">¶</a></h3>
 <p>To see how MTF/FTBL files are parsed and what the parsing module “understands” in the network, a following command can be run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ftbl2netan.py --prefix mynetwork <span class="o">[</span>&gt; mynetwork.netan<span class="o">]</span>
 </pre></div>
@@ -1418,7 +1391,7 @@ For those who use <a class="reference external" href="http://apps.cytoscape.org/
 <p>A user can examine <code class="docutils literal notranslate"><span class="pre">mynetwork.netan</span></code> in <a class="reference external" href="https://vkvh.readthedocs.io">vkvh</a> software or in a plain text editor (not like Word) or in spreadsheet software. It has an hierarchical structure, the fields are separated by tabulations and the field values are Python objects converted to strings.</p>
 </section>
 <section id="ftbl2cumoab-human-readable-equations">
-<h3>ftbl2cumoAb: human-readable equations<a class="headerlink" href="#ftbl2cumoab-human-readable-equations" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2cumoAb: human-readable equations<a class="headerlink" href="#ftbl2cumoab-human-readable-equations" title="Permalink to this headline">¶</a></h3>
 <p>Sometimes, it can be helpful to examine visually the equations used by <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. These equations can be produced in human-readable form by running:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ftbl2cumoAb.py -r --prefix mynetwork <span class="o">[</span>&gt; mynetwork.sys<span class="o">]</span>
 </pre></div>
@@ -1438,7 +1411,7 @@ For those who use <a class="reference external" href="http://apps.cytoscape.org/
 <p>For a given cumomer weight, the equations are sorted alphabetically.</p>
 </section>
 <section id="expa2ftbl-non-carbon-carrying-fluxes">
-<h3>expa2ftbl: non-carbon carrying fluxes<a class="headerlink" href="#expa2ftbl-non-carbon-carrying-fluxes" title="Permalink to this heading">¶</a></h3>
+<h3>expa2ftbl: non-carbon carrying fluxes<a class="headerlink" href="#expa2ftbl-non-carbon-carrying-fluxes" title="Permalink to this headline">¶</a></h3>
 <p>Deprecated since v6.0. Such kind of fluxes can be directly incorporated in .netw file.</p>
 <p>Some reactions of carbon metabolism require cofactor usage like ATP/ADP and some others. A mass balance on cofactors can produce additional useful constraints on the stoichiometric system. Since the version 2.8, such mass balance equation on non carbon carrying species can be put in <code class="docutils literal notranslate"><span class="pre">EQUATION</span></code> section of FTBL file. A utility <code class="docutils literal notranslate"><span class="pre">expa2ftbl.R</span></code> can be helpful for this purpose if a user has already a full set of reactions in <a class="reference external" href="http://gcrg.ucsd.edu/Downloads/ExtremePathwayAnalysis">expa</a> format.
 To extract additional equation from an expa file, <code class="docutils literal notranslate"><span class="pre">expa2ftbl.R</span></code> can be used as:</p>
@@ -1449,7 +1422,7 @@ To extract additional equation from an expa file, <code class="docutils literal 
 <p>Note that <code class="docutils literal notranslate"><span class="pre">expa2ftbl.R</span></code> uses a Unix command <code class="docutils literal notranslate"><span class="pre">grep</span></code> and another utility described here above <code class="docutils literal notranslate"><span class="pre">ftbl2netan.py</span></code>.</p>
 </section>
 <section id="res2ftbl-meas-simulated-data">
-<h3>res2ftbl_meas: simulated data<a class="headerlink" href="#res2ftbl-meas-simulated-data" title="Permalink to this heading">¶</a></h3>
+<h3>res2ftbl_meas: simulated data<a class="headerlink" href="#res2ftbl-meas-simulated-data" title="Permalink to this headline">¶</a></h3>
 <div class="admonition note" id="ex-sim1">
 <p class="admonition-title">Note</p>
 <p>Deprecated since v7.0. User can use <code class="docutils literal notranslate"><span class="pre">.miso.sim</span></code>, <code class="docutils literal notranslate"><span class="pre">.mflux.sim</span></code> and <code class="docutils literal notranslate"><span class="pre">.mmet.sim</span></code> as measurement files in a new calculation. E.g.</p>
@@ -1474,7 +1447,7 @@ Some clue can be obtained by making “dry runs” of <code class="docutils lite
 Getting an ftbl file with real values instead of NAs in measurement sections gives an opportunity to explore optimization behavior near a simulated point like convergence speed and/or convergence stability to cite few of them.</p>
 </section>
 <section id="ffres2ftbl-import-free-fluxes">
-<h3>ffres2ftbl: import free fluxes<a class="headerlink" href="#ffres2ftbl-import-free-fluxes" title="Permalink to this heading">¶</a></h3>
+<h3>ffres2ftbl: import free fluxes<a class="headerlink" href="#ffres2ftbl-import-free-fluxes" title="Permalink to this headline">¶</a></h3>
 <div class="admonition note" id="ex-sim2">
 <p class="admonition-title">Note</p>
 <p>Deprecated since v7.0. User can use <code class="docutils literal notranslate"><span class="pre">.tvar.sim</span></code> as starting values in a new calculation. E.g.</p>
@@ -1492,7 +1465,7 @@ tvar=mynetwork_res/mynetwork.tvar.sim \
 <p>If an optional argument <code class="docutils literal notranslate"><span class="pre">base.ftbl</span></code> is omitted, then the free flux values are injected into an FTBL file corresponding to the _res.kvh file (here <code class="docutils literal notranslate"><span class="pre">mynetwork.ftbl</span></code>). This script can be used on a Unix (e.g., Linux, MacOS) or on a cygwin (Unix tools on Windows) platform. It makes use of another utility written in python <code class="docutils literal notranslate"><span class="pre">ff2ftbl.py</span></code></p>
 </section>
 <section id="ftbl2kvh-check-mtf-ftbl-parsing">
-<h3>ftbl2kvh: check MTF/FTBL parsing<a class="headerlink" href="#ftbl2kvh-check-mtf-ftbl-parsing" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2kvh: check MTF/FTBL parsing<a class="headerlink" href="#ftbl2kvh-check-mtf-ftbl-parsing" title="Permalink to this headline">¶</a></h3>
 <p>This utility simply parses MTF/FTBL files and write what was “understood” to a kvh file. No network analysis occurs here unlike in <code class="docutils literal notranslate"><span class="pre">ftbl2netan</span></code> utility. Usage:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ftbl2kvh.py --prefix mynetwork <span class="o">[</span>&gt; mynetwork.kvh<span class="o">]</span>
 </pre></div>
@@ -1505,11 +1478,11 @@ tvar=mynetwork_res/mynetwork.tvar.sim \
 The resulting <code class="docutils literal notranslate"><span class="pre">mynetwork.kvh</span></code> is tab-separated plain text file. So it can be explored in <a class="reference external" href="https://vkvh.readthedocs.io">vkvh</a> software, plain text editor or spreadsheet software.</p>
 </section>
 <section id="ftbl2metxml-prepare-metexplore-visualization">
-<h3>ftbl2metxml: prepare <a class="reference external" href="https://metexplore.toulouse.inra.fr/">MetExplore</a> visualization<a class="headerlink" href="#ftbl2metxml-prepare-metexplore-visualization" title="Permalink to this heading">¶</a></h3>
+<h3>ftbl2metxml: prepare <a class="reference external" href="https://metexplore.toulouse.inra.fr/">MetExplore</a> visualization<a class="headerlink" href="#ftbl2metxml-prepare-metexplore-visualization" title="Permalink to this headline">¶</a></h3>
 <p>Convert a MTF sets (or FTBL files) to an xml files suitable for visualization on <a class="reference external" href="https://metexplore.toulouse.inra.fr/">MetExplore</a> site. If a result kvh file <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> is present, it will be parsed to extract flux values corresponding to the last <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run and put them in <code class="docutils literal notranslate"><span class="pre">mynetwok_net.txt</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork_fwd.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">mynetwork_rev.txt</span></code>. As their names indicate, they will contain net, forward and revers flux values respectively.</p>
 </section>
 <section id="isodesign-optimizing-input-label">
-<h3>IsoDesign: optimizing input label<a class="headerlink" href="#isodesign-optimizing-input-label" title="Permalink to this heading">¶</a></h3>
+<h3>IsoDesign: optimizing input label<a class="headerlink" href="#isodesign-optimizing-input-label" title="Permalink to this headline">¶</a></h3>
 <p>One of the means to increase a flux resolution can be an optimization of input label composition. A utility <code class="docutils literal notranslate"><span class="pre">IsoDesing</span></code> solving this problem was developed by Pierre Millard. It is not part of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> distribution and can be downloaded at <a class="reference external" href="http://metatoul.insa-toulouse.fr/metasys/software/isodes/">http://metatoul.insa-toulouse.fr/metasys/software/isodes/</a>. In a nutshell, it works by scanning all possible input label compositions with a defined step, running <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).</p>
 </section>
 </section>
@@ -1522,9 +1495,8 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <div>
-    <h3><a href="index.html">Table of Contents</a></h3>
-    <ul>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
 <li><a class="reference internal" href="#">User’s manual</a><ul>
 <li><a class="reference internal" href="#mtf-format">MTF format</a><ul>
 <li><a class="reference internal" href="#netw">.netw</a></li>
@@ -1592,17 +1564,12 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
 </li>
 </ul>
 
-  </div>
-  <div>
-    <h4>Previous topic</h4>
-    <p class="topless"><a href="quick.html"
-                          title="previous chapter">Quick Start</a></p>
-  </div>
-  <div>
-    <h4>Next topic</h4>
-    <p class="topless"><a href="ftblevo.html"
-                          title="next chapter">FTBL format evolution</a></p>
-  </div>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="quick.html"
+                        title="previous chapter">Quick Start</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ftblevo.html"
+                        title="next chapter">FTBL format evolution</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -1619,7 +1586,7 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1644,8 +1611,8 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

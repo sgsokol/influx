@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
     <title>Programmer’s documentation for influx_si &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -13,9 +13,7 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <link rel="index" title="Index" href="genindex.html" />
@@ -49,10 +47,10 @@
           <div class="body" role="main">
             
   <section id="programmer-s-documentation-for-influx-si">
-<span id="progdoc"></span><h1>Programmer’s documentation for influx_si<a class="headerlink" href="#programmer-s-documentation-for-influx-si" title="Permalink to this heading">¶</a></h1>
+<span id="progdoc"></span><h1>Programmer’s documentation for influx_si<a class="headerlink" href="#programmer-s-documentation-for-influx-si" title="Permalink to this headline">¶</a></h1>
 <p>In this chapter, Application Programming Interface (API) docs are collected. It can be helpful for programmers desiring to extend some features of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> or to fix some bugs. This chapter can be safely skipped by users aiming at simple usage of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> for biological research.</p>
 <section id="module-C13_ftbl">
-<span id="c13-ftbl"></span><h2>C13_ftbl<a class="headerlink" href="#module-C13_ftbl" title="Permalink to this heading">¶</a></h2>
+<span id="c13-ftbl"></span><h2>C13_ftbl<a class="headerlink" href="#module-C13_ftbl" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Parse .ftbl</p></li>
 <li><p>Analyse ftbl</p></li>
@@ -512,15 +510,9 @@ Returns the number of characters written (which is always equal to
 the length of the string).</p>
 </dd></dl>
 
-<<<<<<< HEAD
 </section>
 <section id="module-txt2ftbl">
-<span id="txt2ftbl"></span><h2>txt2ftbl<a class="headerlink" href="#module-txt2ftbl" title="Permalink to this heading">¶</a></h2>
-=======
-</div>
-<div class="section" id="module-txt2ftbl">
 <span id="txt2ftbl"></span><h2>txt2ftbl<a class="headerlink" href="#module-txt2ftbl" title="Permalink to this headline">¶</a></h2>
->>>>>>> d882a853d4f40eb5b18e4c75468e58aa980b80e7
 <p>Transform a series of TXT and TSV files into FTBL file.</p>
 <p>Copyright 2021, INRAE, INSA, CNRS
 Author: Serguei Sokol (sokol at insa-toulouse dot fr)
@@ -629,7 +621,6 @@ License: Gnu Public License (GPL) v2 <a class="reference external" href="http://
 The first found is returned as Path() otherwise an exception is raised.</p>
 </dd></dl>
 
-<<<<<<< HEAD
 <dl class="py function">
 <dt class="sig sig-object py" id="txt2ftbl.tsv2df">
 <span class="sig-prename descclassname"><span class="pre">txt2ftbl.</span></span><span class="sig-name descname"><span class="pre">tsv2df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\t'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_blank_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_iline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'iline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encodings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['UTF-8',</span> <span class="pre">'windows-1250',</span> <span class="pre">'windows-1252']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
@@ -639,17 +630,6 @@ The first found is returned as Path() otherwise an exception is raised.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="txt2ftbl.txt_parse">
 <span class="sig-prename descclassname"><span class="pre">txt2ftbl.</span></span><span class="sig-name descname"><span class="pre">txt_parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ftxt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">re_metab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s*\\*\\s*)?(?:(?P&lt;metab&gt;[^()</span> <span class="pre">\\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">re_labpat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encodings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['utf-8',</span> <span class="pre">'windows-1250',</span> <span class="pre">'windows-1252']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
-=======
-<dl class="function">
-<dt id="txt2ftbl.tsv2df">
-<code class="descclassname">txt2ftbl.</code><code class="descname">tsv2df</code><span class="sig-paren">(</span><em>f, sep='\t', comment='#', skip_blank_lines=True, append_iline='iline', encodings=['UTF-8', 'windows-1250', 'windows-1252']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#tsv2df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.tsv2df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read file ‘f’ as TSV and return a DataFrame. Separator is ‘sep’, comment char is ‘comment’, blank lines are skept, header is in the first row, file line numbers are stored in a column ‘line_nb’ if there is no a column with this name</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="txt2ftbl.txt_parse">
-<code class="descclassname">txt2ftbl.</code><code class="descname">txt_parse</code><span class="sig-paren">(</span><em>ftxt, re_metab=re.compile('(?:(?P&lt;coef&gt;[\\d\\.]*)\\s+)?(?:(?P&lt;metab&gt;[^() \\t\\r]+)\\s*)(?:\\(\\s*(?P&lt;carb&gt;[^()]*)\\s*\\))?\\s*'), re_labpat=re.compile('^[./*\\d\\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\\s*$'), encodings=['utf-8', 'windows-1250', 'windows-1252']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/txt2ftbl.html#txt_parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#txt2ftbl.txt_parse" title="Permalink to this definition">¶</a></dt>
->>>>>>> d882a853d4f40eb5b18e4c75468e58aa980b80e7
 <dd><p>Parse txt file from fname which is in format:
 ### Glycolysis and OPP pathway
 GLYC (abcdef) -&gt;  G6P (abcdef)
@@ -699,7 +679,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)</p>
 
 </section>
 <section id="module-ftbl2mtf">
-<span id="ftbl2mtf"></span><h2>ftbl2mtf<a class="headerlink" href="#module-ftbl2mtf" title="Permalink to this heading">¶</a></h2>
+<span id="ftbl2mtf"></span><h2>ftbl2mtf<a class="headerlink" href="#module-ftbl2mtf" title="Permalink to this headline">¶</a></h2>
 <p>Parse ftbl file from first parameter or from stdin (if input file is ‘-‘)
 and write a series of mtf (multiple TSV files).
 The file stem (‘network’ in ‘network.ftbl’) is used as file name basis
@@ -756,7 +736,7 @@ Author: Serguei Sokol (sokol [at] insa-toulouse [dot] fr)</p>
 
 </section>
 <section id="module-ftbl2code">
-<span id="ftbl2code"></span><h2>ftbl2code<a class="headerlink" href="#module-ftbl2code" title="Permalink to this heading">¶</a></h2>
+<span id="ftbl2code"></span><h2>ftbl2code<a class="headerlink" href="#module-ftbl2code" title="Permalink to this headline">¶</a></h2>
 <p>Module for translation of .ftbl file to R code</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="ftbl2code.netan2Abcumo_spr">
@@ -812,7 +792,7 @@ cumomer system resolution by chi2 minimization.
 :param emu (logical): write equations in EMU framework or cumomer (default)
 :param ropts: list of items “param=value” to be written as is in R file.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>a dictionnary with some python variables:
 * “measures”: measures,
 * “o_mcumos”: o_mcumos,
@@ -824,13 +804,13 @@ cumomer system resolution by chi2 minimization.
 
 </section>
 <section id="module-ftbl2netan">
-<span id="ftbl2netan"></span><h2>ftbl2netan<a class="headerlink" href="#module-ftbl2netan" title="Permalink to this heading">¶</a></h2>
+<span id="ftbl2netan"></span><h2>ftbl2netan<a class="headerlink" href="#module-ftbl2netan" title="Permalink to this headline">¶</a></h2>
 <p>Parse ftbl file from stdin or from first parameter or from ‘–prefix PREFIX’/’–mtf MTF’
 and write netan in kvh format on stdout
 usage: ftbl2netan.py network[.ftbl] [-h] [-i] [–emu] [–clownr] [–fullsys]  [&gt; network.netan]</p>
 </section>
 <section id="module-ftbl2optR">
-<span id="ftbl2optr"></span><h2>ftbl2optR<a class="headerlink" href="#module-ftbl2optR" title="Permalink to this heading">¶</a></h2>
+<span id="ftbl2optr"></span><h2>ftbl2optR<a class="headerlink" href="#module-ftbl2optR" title="Permalink to this headline">¶</a></h2>
 <p>Transform an ftbl to R code which will solve an optimization of flux analysis
 problem <span class="math notranslate nohighlight">\(\arg \min_{\Theta} S\)</span>, where <span class="math notranslate nohighlight">\(S=||\mathrm{Predicted}-\mathrm{Observed}||^{2}_{\Sigma}\)</span>
 and <span class="math notranslate nohighlight">\(\Theta\)</span> is a vector of parameters to fit: free fluxes (net+xch), scaling parameters and metabolite concentrations
@@ -946,7 +926,7 @@ collection</p></li>
 
 </section>
 <section id="module-ftbl2xgmml">
-<span id="ftbl2xgmml"></span><h2>ftbl2xgmml<a class="headerlink" href="#module-ftbl2xgmml" title="Permalink to this heading">¶</a></h2>
+<span id="ftbl2xgmml"></span><h2>ftbl2xgmml<a class="headerlink" href="#module-ftbl2xgmml" title="Permalink to this headline">¶</a></h2>
 <p>read a .ftbl file from a parameter (or from –prefix/–mtf options) and translate to .xgmml file.
 The generated xgmml file can be then imported into Cytoscape
 (www.cytoscape.org).
@@ -959,10 +939,10 @@ Compatibility: cytoscape v2.8.3 and v3.0</p>
 <p>OPTIONS
 -h, –help print this message and exit</p>
 <dl class="field-list simple">
-<dt class="field-odd">param<span class="colon">:</span></dt>
+<dt class="field-odd">param</dt>
 <dd class="field-odd"><p>mynetwork the base of an ftbl file (mynetwork.ftbl)</p>
 </dd>
-<dt class="field-even">returns<span class="colon">:</span></dt>
+<dt class="field-even">returns</dt>
 <dd class="field-even"><p>mynetwork.xgmml – file of the network definition suitable for cytoscape</p>
 </dd>
 </dl>
@@ -987,7 +967,7 @@ the length of the string).</p>
 
 </section>
 <section id="module-tools_ssg">
-<span id="tools-ssg"></span><h2>tools_ssg<a class="headerlink" href="#module-tools_ssg" title="Permalink to this heading">¶</a></h2>
+<span id="tools-ssg"></span><h2>tools_ssg<a class="headerlink" href="#module-tools_ssg" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="tools_ssg.aff">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">aff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ident=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f=&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#aff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.aff" title="Permalink to this definition">¶</a></dt>
@@ -1013,7 +993,7 @@ the length of the string).</p>
 <dt class="sig sig-object py" id="tools_ssg.cumsum">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">cumsum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#cumsum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.cumsum" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>an iterable of the length len(l)+1 with cumulated sum of items in l. First element in cumsum is equal to initial value of tot. Result depends on the meaning of “+” operator for l items and of tot type.</p>
 </dd>
 </dl>
@@ -1037,7 +1017,7 @@ the length of the string).</p>
 <dt class="sig sig-object py" id="tools_ssg.icumo2iiso">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">icumo2iiso</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">icumo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#icumo2iiso"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.icumo2iiso" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>iterator on isotopomers composing a given icumo. size is carbon number</p>
 </dd>
 </dl>
@@ -1047,7 +1027,7 @@ the length of the string).</p>
 <dt class="sig sig-object py" id="tools_ssg.isstr">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">isstr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#isstr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.isstr" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>True if the argument is a string</p>
 </dd>
 </dl>
@@ -1083,7 +1063,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">list2count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">incr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#list2count"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.list2count" title="Permalink to this definition">¶</a></dt>
 <dd><p>count values in a (short) list l incrementing the counter by optional incr.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>a dictionary {item:count}</p>
 </dd>
 </dl>
@@ -1104,7 +1084,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.rstrbit">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">rstrbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#rstrbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.rstrbit" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>the integer as reversed string binary representation. The lowest bit is on the left side</p>
 </dd>
 </dl>
@@ -1126,7 +1106,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.ssign">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">ssign</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'+'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'-'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#ssign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.ssign" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>a string of i sign: sp (i&gt;=0) or sm (i&lt;0).</p>
 </dd>
 </dl>
@@ -1136,7 +1116,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.strbit">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">strbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#strbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.strbit" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>the lowest part of integer as string binary representation</p>
 </dd>
 </dl>
@@ -1152,7 +1132,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.strbit32">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">strbit32</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#strbit32"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.strbit32" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>a string of 0-1s (in chunk of 4) in an 32 bit integer</p>
 </dd>
 </dl>
@@ -1162,7 +1142,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.sumbit">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">sumbit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#sumbit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.sumbit" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>sum of bits in an integer</p>
 </dd>
 </dl>
@@ -1173,7 +1153,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">trd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#trd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.trd" title="Permalink to this definition">¶</a></dt>
 <dd><p>translate items in an iterable l by a dictionary d, prefixing translated items by optional p and suffixing them by optional s. If an item is not found in the dictionnary alternative string a is used. If a==None, the item is left unchanged. No prefix or suffix are applied in both case.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>iterator</p>
 </dd>
 </dl>
@@ -1188,7 +1168,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.valval">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">valval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keepNone</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#valval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.valval" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>an iterator over values of values, i.e. collapsing values of fisrt two nested lists in one list, for example.</p>
 </dd>
 </dl>
@@ -1198,7 +1178,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <dt class="sig sig-object py" id="tools_ssg.wxlay2py">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">wxlay2py</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kvt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[None]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#wxlay2py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.wxlay2py" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>a string with python code generating wxWindow widget layout described in kvh tlist sturcture</p>
 </dd>
 </dl>
@@ -1214,163 +1194,27 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <div>
-    <h3><a href="index.html">Table of Contents</a></h3>
-    <ul>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
 <li><a class="reference internal" href="#">Programmer’s documentation for influx_si</a><ul>
-<li><a class="reference internal" href="#module-C13_ftbl">C13_ftbl</a><ul>
-<li><a class="reference internal" href="#C13_ftbl.aglom"><code class="docutils literal notranslate"><span class="pre">aglom()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.aglom_loop1"><code class="docutils literal notranslate"><span class="pre">aglom_loop1()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.allprods"><code class="docutils literal notranslate"><span class="pre">allprods()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.bcumo_decomp"><code class="docutils literal notranslate"><span class="pre">bcumo_decomp()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.conv_mid"><code class="docutils literal notranslate"><span class="pre">conv_mid()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.cumo_infl"><code class="docutils literal notranslate"><span class="pre">cumo_infl()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.cumo_iw"><code class="docutils literal notranslate"><span class="pre">cumo_iw()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.cumo_path"><code class="docutils literal notranslate"><span class="pre">cumo_path()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.dom_cmp"><code class="docutils literal notranslate"><span class="pre">dom_cmp()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.enum_path"><code class="docutils literal notranslate"><span class="pre">enum_path()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.formula2dict"><code class="docutils literal notranslate"><span class="pre">formula2dict()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.frag_prod"><code class="docutils literal notranslate"><span class="pre">frag_prod()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.ftbl_netan"><code class="docutils literal notranslate"><span class="pre">ftbl_netan()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.ftbl_parse"><code class="docutils literal notranslate"><span class="pre">ftbl_parse()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.infl"><code class="docutils literal notranslate"><span class="pre">infl()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.iso2cumo"><code class="docutils literal notranslate"><span class="pre">iso2cumo()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.iso2emu"><code class="docutils literal notranslate"><span class="pre">iso2emu()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.label_meas2matrix_vec_dev"><code class="docutils literal notranslate"><span class="pre">label_meas2matrix_vec_dev()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.labprods"><code class="docutils literal notranslate"><span class="pre">labprods()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.lowtri"><code class="docutils literal notranslate"><span class="pre">lowtri()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.mass_meas2matrix_vec_dev"><code class="docutils literal notranslate"><span class="pre">mass_meas2matrix_vec_dev()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.mat2graph"><code class="docutils literal notranslate"><span class="pre">mat2graph()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.mat2pbm"><code class="docutils literal notranslate"><span class="pre">mat2pbm()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.mecoparse"><code class="docutils literal notranslate"><span class="pre">mecoparse()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.mkfunlabli"><code class="docutils literal notranslate"><span class="pre">mkfunlabli()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.ms_frag_gath"><code class="docutils literal notranslate"><span class="pre">ms_frag_gath()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.ntimes"><code class="docutils literal notranslate"><span class="pre">ntimes()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.oset"><code class="docutils literal notranslate"><span class="pre">oset</span></code></a><ul>
-<li><a class="reference internal" href="#C13_ftbl.oset.add"><code class="docutils literal notranslate"><span class="pre">oset.add()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.oset.copy"><code class="docutils literal notranslate"><span class="pre">oset.copy()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.oset.difference"><code class="docutils literal notranslate"><span class="pre">oset.difference()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.oset.difference_update"><code class="docutils literal notranslate"><span class="pre">oset.difference_update()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.oset.intersection"><code class="docutils literal notranslate"><span class="pre">oset.intersection()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.oset.update"><code class="docutils literal notranslate"><span class="pre">oset.update()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#C13_ftbl.peak_meas2matrix_vec_dev"><code class="docutils literal notranslate"><span class="pre">peak_meas2matrix_vec_dev()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.proc_kinopt"><code class="docutils literal notranslate"><span class="pre">proc_kinopt()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.proc_label_input"><code class="docutils literal notranslate"><span class="pre">proc_label_input()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.proc_label_meas"><code class="docutils literal notranslate"><span class="pre">proc_label_meas()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.proc_mass_meas"><code class="docutils literal notranslate"><span class="pre">proc_mass_meas()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.proc_peak_meas"><code class="docutils literal notranslate"><span class="pre">proc_peak_meas()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.prod"><code class="docutils literal notranslate"><span class="pre">prod()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.rcumo_sys"><code class="docutils literal notranslate"><span class="pre">rcumo_sys()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.src_ind"><code class="docutils literal notranslate"><span class="pre">src_ind()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.t_iso2cumo"><code class="docutils literal notranslate"><span class="pre">t_iso2cumo()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.t_iso2m"><code class="docutils literal notranslate"><span class="pre">t_iso2m()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.t_iso2pos"><code class="docutils literal notranslate"><span class="pre">t_iso2pos()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.topo_order"><code class="docutils literal notranslate"><span class="pre">topo_order()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.transpose"><code class="docutils literal notranslate"><span class="pre">transpose()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.werr"><code class="docutils literal notranslate"><span class="pre">werr()</span></code></a></li>
-<li><a class="reference internal" href="#C13_ftbl.wout"><code class="docutils literal notranslate"><span class="pre">wout()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-txt2ftbl">txt2ftbl</a><ul>
-<li><a class="reference internal" href="#txt2ftbl.compile"><code class="docutils literal notranslate"><span class="pre">compile()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.dfconcat"><code class="docutils literal notranslate"><span class="pre">dfconcat()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.dsec2out"><code class="docutils literal notranslate"><span class="pre">dsec2out()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.dtstamp"><code class="docutils literal notranslate"><span class="pre">dtstamp()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.itvl2li"><code class="docutils literal notranslate"><span class="pre">itvl2li()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.natural_sort_key"><code class="docutils literal notranslate"><span class="pre">natural_sort_key()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_cnstr"><code class="docutils literal notranslate"><span class="pre">parse_cnstr()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_linp"><code class="docutils literal notranslate"><span class="pre">parse_linp()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_mflux"><code class="docutils literal notranslate"><span class="pre">parse_mflux()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_miso"><code class="docutils literal notranslate"><span class="pre">parse_miso()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_mmet"><code class="docutils literal notranslate"><span class="pre">parse_mmet()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_opt"><code class="docutils literal notranslate"><span class="pre">parse_opt()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.parse_tvar"><code class="docutils literal notranslate"><span class="pre">parse_tvar()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.plain_natural_key"><code class="docutils literal notranslate"><span class="pre">plain_natural_key()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.revineq"><code class="docutils literal notranslate"><span class="pre">revineq()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.try_ext"><code class="docutils literal notranslate"><span class="pre">try_ext()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.tsv2df"><code class="docutils literal notranslate"><span class="pre">tsv2df()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.txt_parse"><code class="docutils literal notranslate"><span class="pre">txt_parse()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.usage"><code class="docutils literal notranslate"><span class="pre">usage()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.warn"><code class="docutils literal notranslate"><span class="pre">warn()</span></code></a></li>
-<li><a class="reference internal" href="#txt2ftbl.werr"><code class="docutils literal notranslate"><span class="pre">werr()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-ftbl2mtf">ftbl2mtf</a><ul>
-<li><a class="reference internal" href="#ftbl2mtf.dtstamp"><code class="docutils literal notranslate"><span class="pre">dtstamp()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2mtf.ftbl2suff"><code class="docutils literal notranslate"><span class="pre">ftbl2suff()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2mtf.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2mtf.usage"><code class="docutils literal notranslate"><span class="pre">usage()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2mtf.warn"><code class="docutils literal notranslate"><span class="pre">warn()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2mtf.werr"><code class="docutils literal notranslate"><span class="pre">werr()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-ftbl2code">ftbl2code</a><ul>
-<li><a class="reference internal" href="#ftbl2code.netan2Abcumo_spr"><code class="docutils literal notranslate"><span class="pre">netan2Abcumo_spr()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2code.netan2R_cumo"><code class="docutils literal notranslate"><span class="pre">netan2R_cumo()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2code.netan2R_fl"><code class="docutils literal notranslate"><span class="pre">netan2R_fl()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2code.netan2R_ineq"><code class="docutils literal notranslate"><span class="pre">netan2R_ineq()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2code.netan2R_meas"><code class="docutils literal notranslate"><span class="pre">netan2R_meas()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2code.netan2R_rcumo"><code class="docutils literal notranslate"><span class="pre">netan2R_rcumo()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2code.netan2Rinit"><code class="docutils literal notranslate"><span class="pre">netan2Rinit()</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#module-C13_ftbl">C13_ftbl</a></li>
+<li><a class="reference internal" href="#module-txt2ftbl">txt2ftbl</a></li>
+<li><a class="reference internal" href="#module-ftbl2mtf">ftbl2mtf</a></li>
+<li><a class="reference internal" href="#module-ftbl2code">ftbl2code</a></li>
 <li><a class="reference internal" href="#module-ftbl2netan">ftbl2netan</a></li>
-<li><a class="reference internal" href="#module-ftbl2optR">ftbl2optR</a><ul>
-<li><a class="reference internal" href="#ftbl2optR.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-ftbl2xgmml">ftbl2xgmml</a><ul>
-<li><a class="reference internal" href="#ftbl2xgmml.werr"><code class="docutils literal notranslate"><span class="pre">werr()</span></code></a></li>
-<li><a class="reference internal" href="#ftbl2xgmml.wout"><code class="docutils literal notranslate"><span class="pre">wout()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-tools_ssg">tools_ssg</a><ul>
-<li><a class="reference internal" href="#tools_ssg.aff"><code class="docutils literal notranslate"><span class="pre">aff()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.arr2pbm"><code class="docutils literal notranslate"><span class="pre">arr2pbm()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.asort"><code class="docutils literal notranslate"><span class="pre">asort()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.cumsum"><code class="docutils literal notranslate"><span class="pre">cumsum()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.expandbit"><code class="docutils literal notranslate"><span class="pre">expandbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.icumo2iiso"><code class="docutils literal notranslate"><span class="pre">icumo2iiso()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.isstr"><code class="docutils literal notranslate"><span class="pre">isstr()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.iterbit"><code class="docutils literal notranslate"><span class="pre">iterbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.iternumbit"><code class="docutils literal notranslate"><span class="pre">iternumbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.join"><code class="docutils literal notranslate"><span class="pre">join()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.joint"><code class="docutils literal notranslate"><span class="pre">joint()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.list2count"><code class="docutils literal notranslate"><span class="pre">list2count()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.read_table"><code class="docutils literal notranslate"><span class="pre">read_table()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.reverse"><code class="docutils literal notranslate"><span class="pre">reverse()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.rstrbit"><code class="docutils literal notranslate"><span class="pre">rstrbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.setbit32"><code class="docutils literal notranslate"><span class="pre">setbit32()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.setcharbit"><code class="docutils literal notranslate"><span class="pre">setcharbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.ssign"><code class="docutils literal notranslate"><span class="pre">ssign()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.strbit"><code class="docutils literal notranslate"><span class="pre">strbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.strbit2int"><code class="docutils literal notranslate"><span class="pre">strbit2int()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.strbit32"><code class="docutils literal notranslate"><span class="pre">strbit32()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.sumbit"><code class="docutils literal notranslate"><span class="pre">sumbit()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.trd"><code class="docutils literal notranslate"><span class="pre">trd()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.ulong"><code class="docutils literal notranslate"><span class="pre">ulong()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.valval"><code class="docutils literal notranslate"><span class="pre">valval()</span></code></a></li>
-<li><a class="reference internal" href="#tools_ssg.wxlay2py"><code class="docutils literal notranslate"><span class="pre">wxlay2py()</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#module-ftbl2optR">ftbl2optR</a></li>
+<li><a class="reference internal" href="#module-ftbl2xgmml">ftbl2xgmml</a></li>
+<li><a class="reference internal" href="#module-tools_ssg">tools_ssg</a></li>
 </ul>
 </li>
 </ul>
 
-  </div>
-  <div>
-    <h4>Previous topic</h4>
-    <p class="topless"><a href="ftblevo.html"
-                          title="previous chapter">FTBL format evolution</a></p>
-  </div>
-  <div>
-    <h4>Next topic</h4>
-    <p class="topless"><a href="howto.html"
-                          title="next chapter">How to …</a></p>
-  </div>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ftblevo.html"
+                        title="previous chapter">FTBL format evolution</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="howto.html"
+                        title="next chapter">How to …</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -1387,7 +1231,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1412,8 +1256,8 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
     <title>Introduction &#8212; influx_si 7.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -13,9 +13,7 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -48,16 +46,16 @@
           <div class="body" role="main">
             
   <section id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h1>
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> are programs written in <a class="reference external" href="https://www.python.org/">Python</a>, <a class="reference external" href="https://www.r-project.org/">R</a> and C++ and designed for estimation of flux and chemical specie concentrations based on labeling data using stable isotopes (essentially ¹³C but combination of multiple isotopes like ²H, ¹³C, ¹⁵N, … is also possible). <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> works with stationary data while the <code class="docutils literal notranslate"><span class="pre">influx_i</span></code> is able to simulate instationary labeling (hence the <code class="docutils literal notranslate"><span class="pre">_s</span></code> and <code class="docutils literal notranslate"><span class="pre">_i</span></code> in the names). Both work in metabolically stationary context. The whole project is referred as <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. Note also that the term <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is used in contexts where a proposition holds for both <code class="docutils literal notranslate"><span class="pre">influx_s</span></code> and <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>.</p>
 <section id="influx-si">
-<h2><code class="docutils literal notranslate"><span class="pre">influx_si</span></code><a class="headerlink" href="#influx-si" title="Permalink to this heading">¶</a></h2>
+<h2><code class="docutils literal notranslate"><span class="pre">influx_si</span></code><a class="headerlink" href="#influx-si" title="Permalink to this headline">¶</a></h2>
 <p>Flux and metabolite concentration values are obtained
 as a result of a fitting between simulated labeling data and the data measured by MS or NMR techniques. In this documentation, the terms <cite>fitting</cite> and <cite>optimization</cite>
 are used as synonyms.</p>
 </section>
 <section id="influx-s">
-<h2><code class="docutils literal notranslate"><span class="pre">influx_s</span></code><a class="headerlink" href="#influx-s" title="Permalink to this heading">¶</a></h2>
+<h2><code class="docutils literal notranslate"><span class="pre">influx_s</span></code><a class="headerlink" href="#influx-s" title="Permalink to this headline">¶</a></h2>
 <p>For the theory behind flux calculations in stationary labeling context, see the following papers:</p>
 <p>Wiechert, W., Möllney, M., Isermann, N., Wurzel, M., and de Graaf, A. A. (1999).
 Bidirectional reaction steps in metabolic networks: III. Explicit solution and analysis
@@ -101,7 +99,7 @@ for fitting purposes. This algorithm provides:</p>
 </div></blockquote>
 </section>
 <section id="influx-i">
-<h2><code class="docutils literal notranslate"><span class="pre">influx_i</span></code><a class="headerlink" href="#influx-i" title="Permalink to this heading">¶</a></h2>
+<h2><code class="docutils literal notranslate"><span class="pre">influx_i</span></code><a class="headerlink" href="#influx-i" title="Permalink to this headline">¶</a></h2>
 <p>Instationary labeling is the domain of <code class="docutils literal notranslate"><span class="pre">influx_i</span></code>.
 The theory of instationary labeling was developed, for example in</p>
 <p>Katharina Nöh, Wolfgang Wiechert (2006)
@@ -122,12 +120,12 @@ Some of advantages of <code class="docutils literal notranslate"><span class="pr
 </div></blockquote>
 </section>
 <section id="documentation-organization">
-<h2>Documentation organization<a class="headerlink" href="#documentation-organization" title="Permalink to this heading">¶</a></h2>
+<h2>Documentation organization<a class="headerlink" href="#documentation-organization" title="Permalink to this headline">¶</a></h2>
 <p>Changes brought to every new version and bug fixes are resumed at the beginning of the next chapter <a class="reference internal" href="changelog.html"><span class="doc">Change Log</span></a>.</p>
 <p>The rest of the documentation is organized as follows. <a class="reference internal" href="install.html"><span class="doc">Installation</span></a> chapter provides brief instructions for software installation. <a class="reference internal" href="quick.html"><span class="doc">Quick start</span></a> chapter gives an opportunity to a user to quickly start and evaluate the software and to see if it corresponds to what he is looking for. A more detailed but still short <a class="reference internal" href="manual.html"><span class="doc">User’s manual</span></a> precedes a <a class="reference internal" href="progdoc.html"><span class="doc">Programmer’s documentation</span></a>. The latter chapter can be safely skipped by a user not interested in developing new features or fixing some problems in <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>. A small collection of <a class="reference internal" href="howto.html"><span class="doc">How to…</span></a> and <a class="reference internal" href="trouble.html"><span class="doc">Troubleshooting</span></a> notice conclude the documentation.</p>
 </section>
 <section id="licensing">
-<h2>Licensing<a class="headerlink" href="#licensing" title="Permalink to this heading">¶</a></h2>
+<h2>Licensing<a class="headerlink" href="#licensing" title="Permalink to this headline">¶</a></h2>
 <p>The original version of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> software was developed in the MetaSys team in the LISBP (TBI since 2018), Toulouse, FRANCE.</p>
 <p>The software is licensed under the GNU Public License, Version
 2.0 or higher at your convenience (the “License”); you may not use this software and documentation except in compliance with the License.</p>
@@ -151,9 +149,8 @@ Some of advantages of <code class="docutils literal notranslate"><span class="pr
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <div>
-    <h3><a href="index.html">Table of Contents</a></h3>
-    <ul>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
 <li><a class="reference internal" href="#">Introduction</a><ul>
 <li><a class="reference internal" href="#influx-si"><code class="docutils literal notranslate"><span class="pre">influx_si</span></code></a></li>
 <li><a class="reference internal" href="#influx-s"><code class="docutils literal notranslate"><span class="pre">influx_s</span></code></a></li>
@@ -164,17 +161,12 @@ Some of advantages of <code class="docutils literal notranslate"><span class="pr
 </li>
 </ul>
 
-  </div>
-  <div>
-    <h4>Previous topic</h4>
-    <p class="topless"><a href="index.html"
-                          title="previous chapter">Welcome to influx_si’s documentation!</a></p>
-  </div>
-  <div>
-    <h4>Next topic</h4>
-    <p class="topless"><a href="changelog.html"
-                          title="next chapter">Change Log for influx_si</a></p>
-  </div>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to influx_si’s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="changelog.html"
+                        title="next chapter">Change Log for influx_si</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -191,7 +183,7 @@ Some of advantages of <code class="docutils literal notranslate"><span class="pr
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -216,8 +208,8 @@ Some of advantages of <code class="docutils literal notranslate"><span class="pr
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

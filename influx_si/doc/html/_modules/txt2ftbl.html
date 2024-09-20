@@ -1,7 +1,7 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,9 +12,7 @@
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
-    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
-    <script src="../_static/sphinx_highlight.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -1279,7 +1277,7 @@
 <span class="sd">&quot;&quot;&quot;Overwrite an existent result file not produced by this script.</span>
 <span class="sd">NB. If a result file exists and is actually produced by this script, </span>
 <span class="sd">then it is silently overwritten even without this option. The script </span>
-<span class="sd">detects if it was the creator of a file by searching for a string &quot;# </span>
+<span class="sd">detects if it was the creator of a file by searching for a string &quot;// </span>
 <span class="sd">Created by &#39;txt2ftbl&quot; at the first line of the file. By removing or </span>
 <span class="sd">editing this comment, user can protect a file from a silent </span>
 <span class="sd">overwriting.</span>
@@ -1604,7 +1602,7 @@
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1624,8 +1622,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2020, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.2.3.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>
