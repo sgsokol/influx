@@ -2,10 +2,11 @@
 Change Log for influx_si
 ========================
 
-2024-05-?? version 7.0.4.90
+2024-05-?? version 7.0.5
 ------------------------
 New feature:
  - funlab(): accelerated calculation of labeling input varying in time
+ - parallel.R now launches jobs in "load balanced" way
  
 Bug fix:
  - plot_ilab: fixed incomplete name list when only one metabolite is in list

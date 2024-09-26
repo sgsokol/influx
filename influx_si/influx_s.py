@@ -656,7 +656,7 @@ Call influx_s.main(["-h"]) for a help message"""
         cl=makeCluster(nodes, type)
         clusterExport(cl, "dirres")
         flist=c(%(flist)s)
-        retcode=max(abs(unlist(parLapply(cl, flist, doit))))
+        retcode=max(abs(parSapplyLB(cl, flist, doit)))
         stopCluster(cl)
         q("no", status=retcode)
         """%{
