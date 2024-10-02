@@ -1,18 +1,16 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C13_ftbl &#8212; influx_si 7.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
+    <script src="../_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -164,7 +162,9 @@
 
 <span class="c1">#import pdb</span>
 
-<div class="viewcode-block" id="oset"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset">[docs]</a><span class="k">class</span> <span class="nc">oset</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="oset">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset">[docs]</a>
+<span class="k">class</span> <span class="nc">oset</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
         <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -172,24 +172,42 @@
                 <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;expected at most 1 arguments, got </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
-<div class="viewcode-block" id="oset.copy"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="oset.copy">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">()</span>
         <span class="n">tmp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span></div>
-<div class="viewcode-block" id="oset.add"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+
+<div class="viewcode-block" id="oset.add">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.add">[docs]</a>
+    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="bp">self</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span></div>
-<div class="viewcode-block" id="oset.difference_update"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.difference_update">[docs]</a>    <span class="k">def</span> <span class="nf">difference_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+
+<div class="viewcode-block" id="oset.difference_update">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.difference_update">[docs]</a>
+    <span class="k">def</span> <span class="nf">difference_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
                 <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
-<div class="viewcode-block" id="oset.difference"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.difference">[docs]</a>    <span class="k">def</span> <span class="nf">difference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+
+<div class="viewcode-block" id="oset.difference">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.difference">[docs]</a>
+    <span class="k">def</span> <span class="nf">difference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">return</span><span class="p">(</span><span class="bp">self</span> <span class="o">-</span> <span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
-<div class="viewcode-block" id="oset.update"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+
+<div class="viewcode-block" id="oset.update">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.update">[docs]</a>
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">x</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
                 <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span></div>
-<div class="viewcode-block" id="oset.intersection"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.intersection">[docs]</a>    <span class="k">def</span> <span class="nf">intersection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+
+<div class="viewcode-block" id="oset.intersection">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.oset.intersection">[docs]</a>
+    <span class="k">def</span> <span class="nf">intersection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span> <span class="o">&amp;</span> <span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
     <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">oset</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tmp</span><span class="p">)</span>
@@ -200,6 +218,7 @@
         <span class="n">tmp</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">tmp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">tmp</span></div>
+
 
 <span class="n">BOMS</span> <span class="o">=</span> <span class="p">(</span>
     <span class="p">(</span><span class="n">BOM_UTF8</span><span class="p">,</span> <span class="s2">&quot;UTF-8&quot;</span><span class="p">),</span>
@@ -260,8 +279,10 @@
 <span class="p">)</span>
 <span class="k">if</span> <span class="s2">&quot;ffguess&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">():</span>
     <span class="n">ffguess</span><span class="o">=</span><span class="kc">False</span>
-<div class="viewcode-block" id="ftbl_parse"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.ftbl_parse">[docs]</a><span class="k">def</span> <span class="nf">ftbl_parse</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">wout</span><span class="o">=</span><span class="n">wout</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">werr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ftbl_parse(f) -&gt; dict</span>
+<div class="viewcode-block" id="ftbl_parse">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.ftbl_parse">[docs]</a>
+<span class="k">def</span> <span class="nf">ftbl_parse</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">wout</span><span class="o">=</span><span class="n">wout</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">werr</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ftbl_parse(f) -&gt; dict</span>
 <span class="sd">    read and parse .ftbl file. The only input parameter f is a stream pointer</span>
 <span class="sd">    with read permission or a file name.</span>
 <span class="sd">    This function parses the input and returns a dictionnary</span>
@@ -519,8 +540,11 @@
     <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;long_trans&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">long_trans</span>
     <span class="k">return</span> <span class="n">ftbl</span></div>
 
-<div class="viewcode-block" id="ftbl_netan"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.ftbl_netan">[docs]</a><span class="k">def</span> <span class="nf">ftbl_netan</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">emu_framework</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fullsys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wout</span><span class="o">=</span><span class="n">wout</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">werr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ftbl_netan">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.ftbl_netan">[docs]</a>
+<span class="k">def</span> <span class="nf">ftbl_netan</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">emu_framework</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fullsys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">wout</span><span class="o">=</span><span class="n">wout</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">werr</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    analyse ftbl dictionary to find</span>
 <span class="sd">     </span>
 <span class="sd">     - network inputs (input)</span>
@@ -1633,8 +1657,11 @@
             <span class="n">proc_mass_meas</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span>
             <span class="n">proc_kinopt</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">netan</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="enum_path"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.enum_path">[docs]</a><span class="k">def</span> <span class="nf">enum_path</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">netw</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="n">visited</span><span class="o">=</span><span class="n">oset</span><span class="p">()):</span>
-    <span class="sd">&quot;&quot;&quot;Enumerate metabilites along to reaction pathways.</span>
+
+<div class="viewcode-block" id="enum_path">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.enum_path">[docs]</a>
+<span class="k">def</span> <span class="nf">enum_path</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">netw</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="n">visited</span><span class="o">=</span><span class="n">oset</span><span class="p">()):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumerate metabilites along to reaction pathways.</span>
 <span class="sd">    Algo: start from an input, follow chemical pathways till an output or</span>
 <span class="sd">    already visited metabolite. Returns a list of metabolite pathways.</span>
 <span class="sd">    Each pathways is an ordered list.&quot;&quot;&quot;</span>
@@ -1656,8 +1683,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">start</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="cumo_path"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.cumo_path">[docs]</a><span class="k">def</span> <span class="nf">cumo_path</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">visited</span><span class="o">=</span><span class="n">oset</span><span class="p">()):</span>
-    <span class="sd">&quot;&quot;&quot;Enumerate cumomers along reaction pathways.</span>
+
+<div class="viewcode-block" id="cumo_path">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.cumo_path">[docs]</a>
+<span class="k">def</span> <span class="nf">cumo_path</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">visited</span><span class="o">=</span><span class="n">oset</span><span class="p">()):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumerate cumomers along reaction pathways.</span>
 <span class="sd">    Algo: start from an input, follow chemical pathways till no more</span>
 <span class="sd">    neighbours or till only visited metabolite rest in network.</span>
 <span class="sd">    Return a list of cumomer pathways.</span>
@@ -1692,9 +1722,12 @@
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">start</span><span class="p">])</span>
 <span class="c1">##    aff(&#39;r&#39;, res)</span>
     <span class="k">return</span> <span class="n">res</span></div>
+
     
-<div class="viewcode-block" id="src_ind"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.src_ind">[docs]</a><span class="k">def</span> <span class="nf">src_ind</span><span class="p">(</span><span class="n">substrate</span><span class="p">,</span> <span class="n">product</span><span class="p">,</span> <span class="n">iprod</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="src_ind">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.src_ind">[docs]</a>
+<span class="k">def</span> <span class="nf">src_ind</span><span class="p">(</span><span class="n">substrate</span><span class="p">,</span> <span class="n">product</span><span class="p">,</span> <span class="n">iprod</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    For a given substrate and product carbon strings (e.g. &quot;abc&quot;, &quot;ab&quot;)</span>
 <span class="sd">    calculate substrate index corresponding to product index.</span>
 <span class="sd">    Return None if no source found.</span>
@@ -1715,8 +1748,11 @@
         <span class="n">movbit</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
     <span class="k">return</span> <span class="n">isubstr</span> <span class="k">if</span> <span class="p">(</span><span class="n">isubstr</span> <span class="ow">or</span>
         <span class="p">(</span><span class="n">iprod</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">oset</span><span class="p">(</span><span class="n">product</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">oset</span><span class="p">(</span><span class="n">substrate</span><span class="p">))))</span> <span class="k">else</span> <span class="kc">None</span></div>
-<div class="viewcode-block" id="labprods"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.labprods">[docs]</a><span class="k">def</span> <span class="nf">labprods</span><span class="p">(</span><span class="n">prods</span><span class="p">,</span> <span class="n">metab</span><span class="p">,</span> <span class="n">isostr</span><span class="p">,</span> <span class="n">strs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;labprods(prods, metab, isostr, strs)</span>
+
+<div class="viewcode-block" id="labprods">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.labprods">[docs]</a>
+<span class="k">def</span> <span class="nf">labprods</span><span class="p">(</span><span class="n">prods</span><span class="p">,</span> <span class="n">metab</span><span class="p">,</span> <span class="n">isostr</span><span class="p">,</span> <span class="n">strs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;labprods(prods, metab, isostr, strs)</span>
 <span class="sd">    Return a set of tuples (vmetab,visostr) which receive at least</span>
 <span class="sd">    one labeled carbon from (metab, isostr)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1739,8 +1775,11 @@
             <span class="c1">#print &quot;append=&quot;, vm, rs;##</span>
     <span class="c1">#print &quot;res=&quot;, res;##</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="allprods"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.allprods">[docs]</a><span class="k">def</span> <span class="nf">allprods</span><span class="p">(</span><span class="n">srcs</span><span class="p">,</span> <span class="n">prods</span><span class="p">,</span> <span class="n">isos</span><span class="p">,</span> <span class="n">metab</span><span class="p">,</span> <span class="n">isostr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;allprods(srcs, prods, isos, metab, isostr)</span>
+
+<div class="viewcode-block" id="allprods">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.allprods">[docs]</a>
+<span class="k">def</span> <span class="nf">allprods</span><span class="p">(</span><span class="n">srcs</span><span class="p">,</span> <span class="n">prods</span><span class="p">,</span> <span class="n">isos</span><span class="p">,</span> <span class="n">metab</span><span class="p">,</span> <span class="n">isostr</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;allprods(srcs, prods, isos, metab, isostr)</span>
 <span class="sd">    Return a set of tuples (cmetab, cisostr, vmetab, visostr)</span>
 <span class="sd">    where cmetab and cisostr describe a contex metabolite</span>
 <span class="sd">    which combined with metab+isostr produced vmetab+visostr.</span>
@@ -1793,8 +1832,11 @@
                     <span class="n">res</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">cm</span><span class="p">,</span><span class="n">coiso</span><span class="p">,</span> <span class="n">pm</span><span class="p">,</span> <span class="n">ip</span><span class="p">))</span>
     <span class="c1">#print &quot;res=&quot;, res</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="prod"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.prod">[docs]</a><span class="k">def</span> <span class="nf">prod</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">iso</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">cmetab</span><span class="p">,</span> <span class="n">ciso</span><span class="p">,</span> <span class="n">cs</span><span class="p">,</span> <span class="n">prods</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;prod(metab, iso, s, cmetab, ciso, cs, prods)-&gt;oset()</span>
+
+<div class="viewcode-block" id="prod">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.prod">[docs]</a>
+<span class="k">def</span> <span class="nf">prod</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">iso</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">cmetab</span><span class="p">,</span> <span class="n">ciso</span><span class="p">,</span> <span class="n">cs</span><span class="p">,</span> <span class="n">prods</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;prod(metab, iso, s, cmetab, ciso, cs, prods)-&gt;oset()</span>
 <span class="sd">    get isotops from labeled substrates&quot;&quot;&quot;</span>
     <span class="c1">#print &quot;prod: m=&quot;, metab, &quot;s=&quot;, s, &quot;i=&quot;, iso, &quot;cm=&quot;, cmetab, &quot;cs=&quot;, cs, &quot;ci=&quot;, ciso</span>
     <span class="n">res</span><span class="o">=</span><span class="n">oset</span><span class="p">()</span>
@@ -1812,8 +1854,11 @@
         <span class="n">res</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">pm</span><span class="p">,</span> <span class="n">ip</span><span class="p">))</span>
     <span class="c1">#print &quot;res=&quot;, res</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="frag_prod"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.frag_prod">[docs]</a><span class="k">def</span> <span class="nf">frag_prod</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">frag</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">cmetab</span><span class="p">,</span> <span class="n">cfrag</span><span class="p">,</span> <span class="n">cs</span><span class="p">,</span> <span class="n">prods</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;frag_prod(metab, frag, s, cmetab, cfrag, cs, prods)</span>
+
+<div class="viewcode-block" id="frag_prod">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.frag_prod">[docs]</a>
+<span class="k">def</span> <span class="nf">frag_prod</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">frag</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">cmetab</span><span class="p">,</span> <span class="n">cfrag</span><span class="p">,</span> <span class="n">cs</span><span class="p">,</span> <span class="n">prods</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;frag_prod(metab, frag, s, cmetab, cfrag, cs, prods)</span>
 <span class="sd">    Get fragments from labeled substrates&quot;&quot;&quot;</span>
     <span class="c1">#print &quot;frag_prod: m=&quot;, metab, &quot;s=&quot;, s, &quot;f=&quot;, frag, &quot;cm=&quot;, cmetab, &quot;cs=&quot;, cs, &quot;cf=&quot;, cfrag</span>
     <span class="n">res</span><span class="o">=</span><span class="n">oset</span><span class="p">()</span>
@@ -1829,8 +1874,11 @@
         <span class="n">res</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">pm</span><span class="p">,</span> <span class="n">fp</span><span class="p">))</span>
     <span class="c1">#print &quot;res=&quot;, res</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="cumo_iw"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.cumo_iw">[docs]</a><span class="k">def</span> <span class="nf">cumo_iw</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">nlen</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;iterator for a given cumomer weight w in the carbon length nlen&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="cumo_iw">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.cumo_iw">[docs]</a>
+<span class="k">def</span> <span class="nf">cumo_iw</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">nlen</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;iterator for a given cumomer weight w in the carbon length nlen&quot;&quot;&quot;</span>
     <span class="c1">#print (&quot;cumo_iw: w=%d,nlen=%d\n&quot; % (w,nlen));##</span>
     <span class="k">if</span> <span class="n">w</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">w</span> <span class="o">&gt;</span> <span class="n">nlen</span><span class="p">:</span>
        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;CumoWeightOutOfRange&quot;</span><span class="p">)</span>
@@ -1848,8 +1896,11 @@
                 <span class="k">yield</span> <span class="n">movbit</span><span class="o">+</span><span class="n">subi</span>
             <span class="n">movbit</span><span class="o">&lt;&lt;=</span><span class="mi">1</span></div>
 
-<div class="viewcode-block" id="iso2cumo"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.iso2cumo">[docs]</a><span class="k">def</span> <span class="nf">iso2cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">strin</span><span class="p">,</span> <span class="n">in_cumo</span><span class="p">,</span> <span class="n">icumo</span><span class="p">,</span> <span class="n">in_metab</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;calculate cumomer fraction from isotopomer ones&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="iso2cumo">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.iso2cumo">[docs]</a>
+<span class="k">def</span> <span class="nf">iso2cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">strin</span><span class="p">,</span> <span class="n">in_cumo</span><span class="p">,</span> <span class="n">icumo</span><span class="p">,</span> <span class="n">in_metab</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;calculate cumomer fraction from isotopomer ones&quot;&quot;&quot;</span>
     <span class="c1">#return sum(iso_dic.get(iiso,0.)</span>
     <span class="c1">#    for iiso in icumo2iiso(icumo, Clen))</span>
     <span class="n">w</span><span class="o">=</span><span class="n">sumbit</span><span class="p">(</span><span class="n">icumo</span><span class="p">)</span>
@@ -1861,8 +1912,11 @@
         <span class="n">d</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">][</span><span class="n">in_metab</span><span class="p">]</span>
         <span class="n">netan</span><span class="p">[</span><span class="n">strin</span><span class="p">][</span><span class="n">ili</span><span class="p">][</span><span class="n">in_cumo</span><span class="p">]</span><span class="o">=</span><span class="nb">sum</span><span class="p">(</span><span class="n">val</span> <span class="k">for</span> <span class="p">(</span><span class="n">iso</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">sumbit</span><span class="p">(</span><span class="n">iso</span><span class="o">&amp;</span><span class="n">icumo</span><span class="p">)</span> <span class="o">==</span> <span class="n">w</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="iso2emu"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.iso2emu">[docs]</a><span class="k">def</span> <span class="nf">iso2emu</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">inmetab</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">mpi</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;calculate emu fraction from isotopomer dict iso_input.</span>
+
+<div class="viewcode-block" id="iso2emu">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.iso2emu">[docs]</a>
+<span class="k">def</span> <span class="nf">iso2emu</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">inmetab</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">mpi</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;calculate emu fraction from isotopomer dict iso_input.</span>
 <span class="sd">    The fraction corresponds to a fragment defined by a mask and the mass component mpi.</span>
 <span class="sd">    Return a real number in [0; 1] interval.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1875,8 +1929,11 @@
         <span class="n">d</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">][</span><span class="n">inmetab</span><span class="p">]</span>
         <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">][</span><span class="n">e</span><span class="p">]</span><span class="o">=</span><span class="nb">sum</span><span class="p">([</span><span class="n">val</span> <span class="k">for</span> <span class="p">(</span><span class="n">frag</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">sumbit</span><span class="p">(</span><span class="n">frag</span><span class="o">&amp;</span><span class="n">mask</span><span class="p">)</span> <span class="o">==</span> <span class="n">mpi</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="formula2dict"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.formula2dict">[docs]</a><span class="k">def</span> <span class="nf">formula2dict</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pterm</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([+-])&#39;</span><span class="p">),</span> <span class="n">pflux</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?P&lt;coef&gt;\d+\.?\d*|^)?\s*\*?\s*(?P&lt;var&gt;[a-zA-Z_[\]()][\w\. -\[\]]*)\W*&#39;</span><span class="p">)):</span>
-    <span class="sd">&quot;&quot;&quot;parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a </span>
+
+<div class="viewcode-block" id="formula2dict">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.formula2dict">[docs]</a>
+<span class="k">def</span> <span class="nf">formula2dict</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">pterm</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([+-])&#39;</span><span class="p">),</span> <span class="n">pflux</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?P&lt;coef&gt;\d+\.?\d*|^)?\s*\*?\s*(?P&lt;var&gt;[a-zA-Z_[\]()][\w\. -\[\]]*)\W*&#39;</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;parse a linear combination sum([+|-][a_i][*]f_i) where a_i is a </span>
 <span class="sd">    positive number and f_i is a string starting by non-digit and not white</span>
 <span class="sd">    character (# is allowed). Output is a dict f_i:[+-]a_i&quot;&quot;&quot;</span>
     <span class="n">res</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
@@ -1902,8 +1959,11 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Term &#39;&quot;</span><span class="o">+</span><span class="n">term</span><span class="o">+</span><span class="s2">&quot;&#39; in formula &#39;&quot;</span><span class="o">+</span><span class="n">f</span><span class="o">+</span><span class="s2">&quot;&#39; cannot be parsed.&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="mecoparse"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.mecoparse">[docs]</a><span class="k">def</span> <span class="nf">mecoparse</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="n">pmeco</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s*((?P&lt;coef&gt;\d+\.?\d*|^)\s*\*\s*)?(?P&lt;metab&gt;[^*+ ]*)\s*$&#39;</span><span class="p">)):</span>
-    <span class="sd">&quot;&quot;&quot;Parse a string term from a list (or a sing string) of chemical equation entries.</span>
+
+<div class="viewcode-block" id="mecoparse">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.mecoparse">[docs]</a>
+<span class="k">def</span> <span class="nf">mecoparse</span><span class="p">(</span><span class="n">terms</span><span class="p">,</span> <span class="n">pmeco</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s*((?P&lt;coef&gt;\d+\.?\d*|^)\s*\*\s*)?(?P&lt;metab&gt;[^*+ ]*)\s*$&#39;</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse a string term from a list (or a sing string) of chemical equation entries.</span>
 <span class="sd">    The general form of each term is &#39;coef*metab&#39;.</span>
 <span class="sd">    coef (if present) must be separated from metab by &#39;*&#39; and be convertible to float.</span>
 <span class="sd">    metab can start with a number (e.g. &#39;6PG&#39;) so the presence of &#39;*&#39; is mandatory to</span>
@@ -1928,8 +1988,11 @@
         <span class="n">res</span><span class="o">=</span><span class="n">res</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="label_meas2matrix_vec_dev"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.label_meas2matrix_vec_dev">[docs]</a><span class="k">def</span> <span class="nf">label_meas2matrix_vec_dev</span><span class="p">(</span><span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;use netan[&quot;label_meas&quot;] list to construct a corresponding list of</span>
+
+<div class="viewcode-block" id="label_meas2matrix_vec_dev">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.label_meas2matrix_vec_dev">[docs]</a>
+<span class="k">def</span> <span class="nf">label_meas2matrix_vec_dev</span><span class="p">(</span><span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;use netan[&quot;label_meas&quot;] list to construct a corresponding list of</span>
 <span class="sd">    measure matrix matx_lab</span>
 <span class="sd">    such that scale_diag*metab_pool_diag*matx_lab*(cumos_vector,1) corresponds to label_measurements_vector.</span>
 <span class="sd">    matx_lab is defined as</span>
@@ -1985,8 +2048,11 @@
         <span class="n">mli</span><span class="p">[</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ids&quot;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span> <span class="s2">&quot;mat&quot;</span><span class="p">:</span> <span class="n">mat</span><span class="p">,</span> <span class="s2">&quot;vec&quot;</span><span class="p">:</span> <span class="n">vec</span><span class="p">,</span> <span class="s2">&quot;dev&quot;</span><span class="p">:</span> <span class="n">dev</span><span class="p">,</span> <span class="s2">&quot;pooled&quot;</span><span class="p">:</span> <span class="n">pooled</span><span class="p">}</span>
     <span class="k">return</span> <span class="n">mli</span></div>
 
-<div class="viewcode-block" id="mass_meas2matrix_vec_dev"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.mass_meas2matrix_vec_dev">[docs]</a><span class="k">def</span> <span class="nf">mass_meas2matrix_vec_dev</span><span class="p">(</span><span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;use netan[&quot;mass_meas&quot;] list to construct a corresponding list of</span>
+
+<div class="viewcode-block" id="mass_meas2matrix_vec_dev">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.mass_meas2matrix_vec_dev">[docs]</a>
+<span class="k">def</span> <span class="nf">mass_meas2matrix_vec_dev</span><span class="p">(</span><span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;use netan[&quot;mass_meas&quot;] list to construct a corresponding list of</span>
 <span class="sd">    measure matrix matx_mass</span>
 <span class="sd">    such that scale_diag*matx_mass*cumos_vector corresponds to mass_measures_vector.</span>
 <span class="sd">    matx_mass is defined as matx_lab in label_meas2matrix_vec_dev()</span>
@@ -2057,8 +2123,11 @@
         <span class="n">mli</span><span class="p">[</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ids&quot;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span> <span class="s2">&quot;mat&quot;</span><span class="p">:</span> <span class="n">mat</span><span class="p">,</span> <span class="s2">&quot;vec&quot;</span><span class="p">:</span> <span class="n">vec</span><span class="p">,</span> <span class="s2">&quot;dev&quot;</span><span class="p">:</span> <span class="n">dev</span><span class="p">,</span> <span class="s2">&quot;pooled&quot;</span><span class="p">:</span> <span class="n">pooled</span><span class="p">}</span>
     <span class="k">return</span> <span class="n">mli</span></div>
 
-<div class="viewcode-block" id="peak_meas2matrix_vec_dev"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.peak_meas2matrix_vec_dev">[docs]</a><span class="k">def</span> <span class="nf">peak_meas2matrix_vec_dev</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">dmask</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;D-&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;D+&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;DD&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">}):</span>
-    <span class="sd">&quot;&quot;&quot;use netan[&quot;peak_meas&quot;] list to construct a corresponding list of</span>
+
+<div class="viewcode-block" id="peak_meas2matrix_vec_dev">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.peak_meas2matrix_vec_dev">[docs]</a>
+<span class="k">def</span> <span class="nf">peak_meas2matrix_vec_dev</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">dmask</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;D-&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">&quot;D+&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;DD&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">}):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;use netan[&quot;peak_meas&quot;] list to construct a corresponding list of</span>
 <span class="sd">    measure matrix matx_peak</span>
 <span class="sd">    such that scale_diag*matx_peak*cumos_vector corresponds to</span>
 <span class="sd">    peak_measures_vector.</span>
@@ -2150,8 +2219,11 @@
         <span class="n">mli</span><span class="p">[</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;ids&quot;</span><span class="p">:</span> <span class="n">ids</span><span class="p">,</span> <span class="s2">&quot;mat&quot;</span><span class="p">:</span> <span class="n">mat</span><span class="p">,</span> <span class="s2">&quot;vec&quot;</span><span class="p">:</span> <span class="n">vec</span><span class="p">,</span> <span class="s2">&quot;dev&quot;</span><span class="p">:</span> <span class="n">dev</span><span class="p">,</span> <span class="s2">&quot;pooled&quot;</span><span class="p">:</span> <span class="n">pooled</span><span class="p">}</span>
     <span class="k">return</span> <span class="n">mli</span></div>
 
-<div class="viewcode-block" id="bcumo_decomp"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.bcumo_decomp">[docs]</a><span class="k">def</span> <span class="nf">bcumo_decomp</span><span class="p">(</span><span class="n">bcumo</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;bcumo is a string of the form #[01x]+. It has to be decomposed</span>
+
+<div class="viewcode-block" id="bcumo_decomp">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.bcumo_decomp">[docs]</a>
+<span class="k">def</span> <span class="nf">bcumo_decomp</span><span class="p">(</span><span class="n">bcumo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;bcumo is a string of the form #[01x]+. It has to be decomposed</span>
 <span class="sd">    in the linear combination of cumomers #[1x]+. The coefficients</span>
 <span class="sd">    of this linear combination are 1 or -1. So it can be represented as</span>
 <span class="sd">    sum(cumos_positive)-sum(cumos_negative). The result of this function</span>
@@ -2181,8 +2253,11 @@
         <span class="n">res</span><span class="p">[</span><span class="n">sign</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">icumo</span><span class="p">)</span>
     <span class="c1">#print bcumo+&quot;=&quot; + &quot;+&quot;.join(setcharbit(&quot;x&quot;*len(bcumo),&quot;1&quot;,i) for i in res[&quot;+&quot;])+(&quot;-&quot; if res[&quot;-&quot;] else &quot;&quot;) +&quot;-&quot;.join(setcharbit(&quot;x&quot;*len(bcumo),&quot;1&quot;,i) for i in res[&quot;-&quot;]);##</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="mat2graph"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.mat2graph">[docs]</a><span class="k">def</span> <span class="nf">mat2graph</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;write digraph file on file pointer fp representing</span>
+
+<div class="viewcode-block" id="mat2graph">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.mat2graph">[docs]</a>
+<span class="k">def</span> <span class="nf">mat2graph</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;write digraph file on file pointer fp representing</span>
 <span class="sd">    links in matrix A given as bi-level dictionnary. A key of</span>
 <span class="sd">    first level (row index) is influenced by keys of second level</span>
 <span class="sd">    (column indicies).&quot;&quot;&quot;</span>
@@ -2195,13 +2270,19 @@
             <span class="n">labj</span><span class="o">=</span><span class="n">j</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;   </span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">labj</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> -&gt; </span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">labi</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
-<div class="viewcode-block" id="dom_cmp"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.dom_cmp">[docs]</a><span class="k">def</span> <span class="nf">dom_cmp</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compares influances of i-th and j-th lements of A.</span>
+
+<div class="viewcode-block" id="dom_cmp">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.dom_cmp">[docs]</a>
+<span class="k">def</span> <span class="nf">dom_cmp</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compares influances of i-th and j-th lements of A.</span>
 <span class="sd">    Returns 0 if i and j are mutually influenced, 1 if i in A[j]</span>
 <span class="sd">    (i influences j) , -1 otherwise&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span><span class="mi">0</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">A</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">and</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">A</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span></div>
-<div class="viewcode-block" id="mat2pbm"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.mat2pbm">[docs]</a><span class="k">def</span> <span class="nf">mat2pbm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Write an image map of non-zero entries of matrix A to file pointer fp.</span>
+
+<div class="viewcode-block" id="mat2pbm">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.mat2pbm">[docs]</a>
+<span class="k">def</span> <span class="nf">mat2pbm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write an image map of non-zero entries of matrix A to file pointer fp.</span>
 <span class="sd">    Matrix A is a dictionnary, v is a list ordering keys of A.&quot;&quot;&quot;</span>
     <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;P1</span><span class="se">\n</span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">A</span><span class="p">)))</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
@@ -2214,8 +2295,11 @@
                 <span class="n">p</span><span class="o">=</span><span class="mi">0</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">p</span><span class="o">=</span><span class="mi">0</span></div>
-<div class="viewcode-block" id="aglom_loop1"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.aglom_loop1">[docs]</a><span class="k">def</span> <span class="nf">aglom_loop1</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Agglomerate nodes of A if they mutually influence each other</span>
+
+<div class="viewcode-block" id="aglom_loop1">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.aglom_loop1">[docs]</a>
+<span class="k">def</span> <span class="nf">aglom_loop1</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agglomerate nodes of A if they mutually influence each other</span>
 <span class="sd">    i.e. they are in a loop of length 1.</span>
 <span class="sd">    Return a new dictionary of influence where entries are those of A aglomerated and glued &quot;by&quot; tab symbol&quot;&quot;&quot;</span>
     <span class="c1"># i-&gt;loop_name(=min of all nodes in this loop)</span>
@@ -2224,8 +2308,11 @@
     <span class="k">while</span> <span class="n">aglom</span><span class="p">(</span><span class="n">na</span><span class="p">,</span><span class="n">transpose</span><span class="p">(</span><span class="n">na</span><span class="p">),</span><span class="n">loop</span><span class="p">):</span>
         <span class="k">pass</span>
     <span class="k">return</span><span class="p">({</span><span class="s2">&quot;na&quot;</span><span class="p">:</span> <span class="n">na</span><span class="p">,</span> <span class="s2">&quot;loop&quot;</span><span class="p">:</span><span class="n">loop</span><span class="p">})</span></div>
-<div class="viewcode-block" id="aglom"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.aglom">[docs]</a><span class="k">def</span> <span class="nf">aglom</span><span class="p">(</span><span class="n">na</span><span class="p">,</span><span class="n">ta</span><span class="p">,</span><span class="n">loop</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;new matrix A (na), transpose A (ta) are used to</span>
+
+<div class="viewcode-block" id="aglom">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.aglom">[docs]</a>
+<span class="k">def</span> <span class="nf">aglom</span><span class="p">(</span><span class="n">na</span><span class="p">,</span><span class="n">ta</span><span class="p">,</span><span class="n">loop</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;new matrix A (na), transpose A (ta) are used to</span>
 <span class="sd">    aglomerate neigbour mutually influencing nodes in a supernode.</span>
 <span class="sd">    Aglomerated noeds are put in the loop dictionnary.</span>
 <span class="sd">    Return False if no nodes were aglomerated.</span>
@@ -2269,8 +2356,11 @@
                     <span class="k">del</span><span class="p">(</span><span class="n">loop</span><span class="p">[</span><span class="n">hi</span><span class="p">])</span>
                 <span class="c1">#print &quot;loop:&quot;+str(loop)</span>
                 <span class="k">return</span><span class="p">(</span><span class="n">found</span><span class="p">)</span></div>
-<div class="viewcode-block" id="lowtri"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.lowtri">[docs]</a><span class="k">def</span> <span class="nf">lowtri</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Try low triangular ordering of matrix A entries&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="lowtri">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.lowtri">[docs]</a>
+<span class="k">def</span> <span class="nf">lowtri</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try low triangular ordering of matrix A entries&quot;&quot;&quot;</span>
     <span class="n">unsrt</span><span class="o">=</span><span class="p">[</span><span class="o">*</span><span class="n">A</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
     <span class="n">srt</span><span class="o">=</span><span class="nb">list</span><span class="p">()</span>
     <span class="c1"># first get inputs (no influences on them)</span>
@@ -2287,8 +2377,11 @@
                 <span class="k">except</span><span class="p">:</span>
                     <span class="k">pass</span>
     <span class="k">return</span> <span class="n">srt</span></div>
-<div class="viewcode-block" id="topo_order"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.topo_order">[docs]</a><span class="k">def</span> <span class="nf">topo_order</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">tA</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Try to sort keys of A in topological order. tA is just a transpose of A&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="topo_order">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.topo_order">[docs]</a>
+<span class="k">def</span> <span class="nf">topo_order</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">tA</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Try to sort keys of A in topological order. tA is just a transpose of A&quot;&quot;&quot;</span>
     <span class="n">unsrt</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
     <span class="n">srtin</span><span class="o">=</span><span class="nb">list</span><span class="p">()</span>
     <span class="n">srtout</span><span class="o">=</span><span class="nb">list</span><span class="p">()</span>
@@ -2308,16 +2401,22 @@
             <span class="c1">#print &quot;not a dag&quot;</span>
             <span class="k">break</span>
     <span class="k">return</span><span class="p">(</span><span class="n">srtin</span><span class="o">+</span><span class="n">srtout</span><span class="p">)</span></div>
-<div class="viewcode-block" id="transpose"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.transpose">[docs]</a><span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transpose a matrix defined as a dict.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="transpose">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.transpose">[docs]</a>
+<span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="n">A</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transpose a matrix defined as a dict.&quot;&quot;&quot;</span>
     <span class="n">tA</span><span class="o">=</span><span class="nb">dict</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">A</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
             <span class="n">tA</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">=</span><span class="n">tA</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
             <span class="n">tA</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
     <span class="k">return</span><span class="p">(</span><span class="n">tA</span><span class="p">)</span></div>
-<div class="viewcode-block" id="rcumo_sys"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.rcumo_sys">[docs]</a><span class="k">def</span> <span class="nf">rcumo_sys</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate reduced cumomers or EMU systems A*x=b</span>
+
+<div class="viewcode-block" id="rcumo_sys">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.rcumo_sys">[docs]</a>
+<span class="k">def</span> <span class="nf">rcumo_sys</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate reduced cumomers or EMU systems A*x=b</span>
 <span class="sd">    we start with observed cumomers (emus) of max weight</span>
 <span class="sd">    and we include only needed involved cumomers (emus)</span>
 <span class="sd">    A list of cumomer (emu) lists (by weight) is stored</span>
@@ -2466,8 +2565,11 @@
         <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu2i0&quot;</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">((</span><span class="n">emu</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">emu</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">valval</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vemu&quot;</span><span class="p">])))</span>
     <span class="k">return</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;rcumo_sys&quot;</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="cumo_infl"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.cumo_infl">[docs]</a><span class="k">def</span> <span class="nf">cumo_infl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">cumo</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;cumo_infl(netan, cumo)-&gt;list(tuple(in_cumo, fl, imetab, iin_metab))</span>
+
+<div class="viewcode-block" id="cumo_infl">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.cumo_infl">[docs]</a>
+<span class="k">def</span> <span class="nf">cumo_infl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">cumo</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;cumo_infl(netan, cumo)-&gt;list(tuple(in_cumo, fl, imetab, iin_metab))</span>
 <span class="sd">    return the list of tuples (in_cumo, fl, imetab, iin_metab):</span>
 <span class="sd">    input cumomer, flux (fwd.fl or rev.fl), index of metab and index of in_metab</span>
 <span class="sd">    generating cumo. cumo is in format &quot;metab:icumo&quot;.</span>
@@ -2512,8 +2614,11 @@
                     <span class="n">in_cumo</span><span class="o">=</span><span class="n">in_metab</span><span class="o">+</span><span class="s2">&quot;:&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">in_icumo</span><span class="p">)</span>
                     <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">in_cumo</span><span class="p">,</span> <span class="s2">&quot;rev.&quot;</span><span class="o">+</span><span class="n">reac</span><span class="p">,</span> <span class="n">imetab</span><span class="p">,</span> <span class="n">iin_metab</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="infl"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.infl">[docs]</a><span class="k">def</span> <span class="nf">infl</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;infl(metab, netan)-&gt;oset(fluxes)</span>
+
+<div class="viewcode-block" id="infl">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.infl">[docs]</a>
+<span class="k">def</span> <span class="nf">infl</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;infl(metab, netan)-&gt;oset(fluxes)</span>
 <span class="sd">    List incoming fluxes for this metabolite (fwd.reac, rev.reac, ...)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># run through input forward fluxes of this metab</span>
@@ -2524,8 +2629,11 @@
 <span class="c1">#        oset(netan[&quot;sto_m_r&quot;][metab][&quot;left&quot;]).difference(netan[&quot;notrev&quot;]))</span>
     <span class="k">return</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="t_iso2m"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.t_iso2m">[docs]</a><span class="k">def</span> <span class="nf">t_iso2m</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;t_iso2m(n) return transition matrix from isotopomers fractions to MID vector</span>
+
+<div class="viewcode-block" id="t_iso2m">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.t_iso2m">[docs]</a>
+<span class="k">def</span> <span class="nf">t_iso2m</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;t_iso2m(n) return transition matrix from isotopomers fractions to MID vector</span>
 <span class="sd">    n - carbon number</span>
 <span class="sd">    return numpy array of size (n+1,2**n)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2535,8 +2643,11 @@
         <span class="p">[[</span><span class="mf">1.</span> <span class="k">if</span> <span class="n">sumbit</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span><span class="o">==</span><span class="n">im</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ni</span><span class="p">)]</span> <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
     <span class="p">)</span></div>
 
-<div class="viewcode-block" id="t_iso2cumo"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.t_iso2cumo">[docs]</a><span class="k">def</span> <span class="nf">t_iso2cumo</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;t_iso2cumo(n) return transition matrix from isotopomers fractions to cumomer vector</span>
+
+<div class="viewcode-block" id="t_iso2cumo">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.t_iso2cumo">[docs]</a>
+<span class="k">def</span> <span class="nf">t_iso2cumo</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;t_iso2cumo(n) return transition matrix from isotopomers fractions to cumomer vector</span>
 <span class="sd">    n - carbon number</span>
 <span class="sd">    return numpy array of size (2**n,2**n)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2550,8 +2661,11 @@
     <span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">nc1</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="n">nc1</span><span class="p">],</span><span class="n">m</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">nc1</span><span class="p">,</span><span class="n">nc1</span><span class="p">:],</span><span class="n">m</span><span class="p">[</span><span class="n">nc1</span><span class="p">:,</span><span class="n">nc1</span><span class="p">:]</span><span class="o">=</span><span class="n">m_1</span><span class="p">,</span><span class="n">m_1</span><span class="p">,</span><span class="n">m_1</span>
     <span class="k">return</span> <span class="n">m</span></div>
 
-<div class="viewcode-block" id="t_iso2pos"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.t_iso2pos">[docs]</a><span class="k">def</span> <span class="nf">t_iso2pos</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;t_iso2pos(n) return transition matrix from isotopomers fractions to positional</span>
+
+<div class="viewcode-block" id="t_iso2pos">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.t_iso2pos">[docs]</a>
+<span class="k">def</span> <span class="nf">t_iso2pos</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;t_iso2pos(n) return transition matrix from isotopomers fractions to positional</span>
 <span class="sd">    labelling vector (cumomers of weight 1)</span>
 <span class="sd">    n - carbon number</span>
 <span class="sd">    return numpy array of size (n,2**n)</span>
@@ -2559,8 +2673,11 @@
     <span class="n">m</span><span class="o">=</span><span class="n">t_iso2cumo</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">m</span><span class="p">[[</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)],:]</span></div>
 
-<div class="viewcode-block" id="conv_mid"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.conv_mid">[docs]</a><span class="k">def</span> <span class="nf">conv_mid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;conv_mid(x,y)-&gt;z</span>
+
+<div class="viewcode-block" id="conv_mid">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.conv_mid">[docs]</a>
+<span class="k">def</span> <span class="nf">conv_mid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;conv_mid(x,y)-&gt;z</span>
 <span class="sd">    convolute two mid vectors (numpy arrays)</span>
 <span class="sd">    and return the result as numpy array.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2571,8 +2688,11 @@
         <span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">nx</span><span class="p">]</span><span class="o">+=</span><span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
     <span class="k">return</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ms_frag_gath"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.ms_frag_gath">[docs]</a><span class="k">def</span> <span class="nf">ms_frag_gath</span><span class="p">(</span><span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;gather metabolite fragments necessary to obtain a given set of data</span>
+
+<div class="viewcode-block" id="ms_frag_gath">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.ms_frag_gath">[docs]</a>
+<span class="k">def</span> <span class="nf">ms_frag_gath</span><span class="p">(</span><span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;gather metabolite fragments necessary to obtain a given set of data</span>
 <span class="sd">    observed in MS measurements.</span>
 <span class="sd">    The fragment mask is encoded in the same way as cumomers, Met:7 &lt;=&gt; Met#(0)111</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2596,11 +2716,17 @@
             <span class="n">to_visit</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">incumo</span> <span class="k">for</span> <span class="p">(</span><span class="n">incumo</span><span class="p">,</span><span class="n">fl</span><span class="p">,</span><span class="n">imetab</span><span class="p">,</span><span class="n">iinmetab</span><span class="p">)</span> <span class="ow">in</span> <span class="n">cumo_infl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">frag</span><span class="p">))</span>
             <span class="k">break</span>
     <span class="k">return</span><span class="p">(</span><span class="n">frags</span><span class="p">)</span></div>
-<div class="viewcode-block" id="ntimes"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.ntimes">[docs]</a><span class="k">def</span> <span class="nf">ntimes</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return charcater string &#39;once&#39; for n=1, &#39;twice&#39; for n=2 and &#39;n times&#39; for other n&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ntimes">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.ntimes">[docs]</a>
+<span class="k">def</span> <span class="nf">ntimes</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return charcater string &#39;once&#39; for n=1, &#39;twice&#39; for n=2 and &#39;n times&#39; for other n&quot;&quot;&quot;</span>
     <span class="k">return</span><span class="p">(</span><span class="s2">&quot;once&quot;</span> <span class="k">if</span> <span class="n">n</span><span class="o">==</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;twice&quot;</span> <span class="k">if</span> <span class="n">n</span><span class="o">==</span><span class="mi">2</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> times&quot;</span><span class="o">%</span><span class="n">n</span><span class="p">)</span></div>
-<div class="viewcode-block" id="proc_label_input"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_input">[docs]</a><span class="k">def</span> <span class="nf">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed LABEL_INPUT section in ftbl and add result to the list netan[&quot;iso_input&quot;] and netan[&quot;funlab&quot;] (case_i)</span>
+
+<div class="viewcode-block" id="proc_label_input">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_input">[docs]</a>
+<span class="k">def</span> <span class="nf">proc_label_input</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Proceed LABEL_INPUT section in ftbl and add result to the list netan[&quot;iso_input&quot;] and netan[&quot;funlab&quot;] (case_i)</span>
 <span class="sd">    List item is a dict {metab;{isotop_int_index:fraction}}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ili</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;iso_input&quot;</span><span class="p">])</span> <span class="c1"># label_input list index</span>
@@ -2679,8 +2805,11 @@
     <span class="k">if</span> <span class="n">iml</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;LABEL_INPUT section lacks certain metabolite(s) that are network input(s): &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%s</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">iml</span><span class="p">),</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]))</span></div>
 
-<div class="viewcode-block" id="proc_label_meas"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_meas">[docs]</a><span class="k">def</span> <span class="nf">proc_label_meas</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed LABEL_MEASUREMENT section of ftbl file, add the result to a list of dicts</span>
+
+<div class="viewcode-block" id="proc_label_meas">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_label_meas">[docs]</a>
+<span class="k">def</span> <span class="nf">proc_label_meas</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Proceed LABEL_MEASUREMENT section of ftbl file, add the result to a list of dicts</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># label measurements</span>
     <span class="c1"># [ili]][metab][group]-&gt;list of {val:x, dev:y, bcumos:list of #bcumo}</span>
@@ -2719,7 +2848,7 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown metabolite name &#39;</span><span class="si">%s</span><span class="s2">&#39; in LABEL_MEASUREMENTS (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
             <span class="k">if</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Measured metabolites have to be internal to network (found in input or output metabolites of &#39;</span><span class="si">%s</span><span class="s2">&#39;).</span>
-<span class="s2">In case of output, you can add a fictious metabolite in your network immediatly after &#39;&quot;&quot;&quot;</span><span class="o">%</span><span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;&#39; (seen in LABEL_MEASUREMENTS).&quot;</span><span class="p">)</span>
+<span class="s2">In case of output, you can add a fictitious metabolite in your network immediatly after &#39;&quot;&quot;&quot;</span><span class="o">%</span><span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;&#39; (seen in LABEL_MEASUREMENTS).&quot;</span><span class="p">)</span>
             <span class="n">mlen</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">]</span>
             <span class="n">clen</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">clen</span><span class="o">!=</span><span class="n">clen0</span> <span class="p">:</span>
@@ -2767,8 +2896,11 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ic</span><span class="p">)</span><span class="o">==</span><span class="n">mlen</span><span class="o">+</span><span class="mi">1</span> <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> 
                 <span class="n">res</span><span class="p">[</span><span class="n">metabs</span><span class="p">][</span><span class="n">group</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;bcumos&quot;</span><span class="p">]):</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wrong cumomer length for </span><span class="si">%s</span><span class="s2"> in </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;CUM_CONSTRAINTS&quot;</span><span class="p">],</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span></div>
-<div class="viewcode-block" id="proc_peak_meas"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_peak_meas">[docs]</a><span class="k">def</span> <span class="nf">proc_peak_meas</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts</span>
+
+<div class="viewcode-block" id="proc_peak_meas">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_peak_meas">[docs]</a>
+<span class="k">def</span> <span class="nf">proc_peak_meas</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># peak measurements</span>
     <span class="c1"># [ili]][metab][c_no][peak_type in (S,D-,D+,(DD|T))]={val:x, dev:y}</span>
@@ -2805,7 +2937,7 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown metabolite name &#39;</span><span class="si">%s</span><span class="s2">&#39; in PEAK_MEASUREMENTS (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
             <span class="k">if</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Measured metabolites have to be internal to network (seen in input or output metabolites (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2">) ).</span>
-<span class="s2">In case of output, you can add a fictious metabolite in your network immediatly after &#39;&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">])</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;&#39; (seen in PEAK_MEASUREMENTS).&quot;</span><span class="p">)</span>
+<span class="s2">In case of output, you can add a fictitious metabolite in your network immediatly after &#39;&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">])</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;&#39; (seen in PEAK_MEASUREMENTS).&quot;</span><span class="p">)</span>
             <span class="n">clen</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">clen</span><span class="o">!=</span><span class="n">clen0</span> <span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Carbon length of &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%d</span><span class="s2">) is different from the length of &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%d</span><span class="s2">) (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">clen</span><span class="p">,</span> <span class="n">metab0</span><span class="p">,</span> <span class="n">clen0</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
@@ -2849,8 +2981,11 @@
                <span class="s2">&quot;c_no&quot;</span><span class="p">:</span> <span class="n">c_no</span><span class="p">,</span>
                <span class="s2">&quot;pooled&quot;</span><span class="p">:</span><span class="n">metabl</span><span class="p">,</span>
             <span class="p">}</span></div>
-<div class="viewcode-block" id="proc_mass_meas"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_mass_meas">[docs]</a><span class="k">def</span> <span class="nf">proc_mass_meas</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts</span>
+
+<div class="viewcode-block" id="proc_mass_meas">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_mass_meas">[docs]</a>
+<span class="k">def</span> <span class="nf">proc_mass_meas</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Proceed PEAK_MEASUREMENT section of ftbl file, add the result to a list of dicts</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ili</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;mass_meas&quot;</span><span class="p">])</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;mass_meas&quot;</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
@@ -2893,7 +3028,7 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown metabolite name &#39;</span><span class="si">%s</span><span class="s2">&#39; in MASS_SPECTROMETRY (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
             <span class="k">if</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">metab</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;Measured metabolites have to be internal to network.</span>
-<span class="s2">In case of output, you can add a fictious metabolite following to &#39;&quot;&quot;&quot;</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;&#39; (seen in MASS_MEASUREMENTS).&quot;</span><span class="p">)</span>
+<span class="s2">In case of output, you can add a fictitious metabolite following to &#39;&quot;&quot;&quot;</span><span class="o">+</span><span class="n">metab</span><span class="o">+</span><span class="s2">&quot;&#39; (seen in MASS_MEASUREMENTS).&quot;</span><span class="p">)</span>
             <span class="n">clen</span><span class="o">=</span><span class="n">netan</span><span class="p">[</span><span class="s2">&quot;Clen&quot;</span><span class="p">][</span><span class="n">metab</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">clen</span><span class="o">!=</span><span class="n">clen0</span> <span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Carbon length of &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%d</span><span class="s2">) is different from the length of &#39;</span><span class="si">%s</span><span class="s2">&#39; (</span><span class="si">%d</span><span class="s2">) (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">metab</span><span class="p">,</span> <span class="n">clen</span><span class="p">,</span> <span class="n">metab0</span><span class="p">,</span> <span class="n">clen0</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
@@ -2951,8 +3086,11 @@
                 <span class="s2">&quot;pooled&quot;</span><span class="p">:</span><span class="n">metabl</span><span class="p">,</span>
         <span class="p">}</span></div>
 
-<div class="viewcode-block" id="proc_kinopt"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_kinopt">[docs]</a><span class="k">def</span> <span class="nf">proc_kinopt</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt, funlab</span>
+
+<div class="viewcode-block" id="proc_kinopt">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.proc_kinopt">[docs]</a>
+<span class="k">def</span> <span class="nf">proc_kinopt</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Proceed label kinetics options from OPTIONS section: file_labcin, dt, tmax, nsubdiv_dt, funlab</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># default values (used when absent in ftbl)</span>
     <span class="n">de</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;file_labcin&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dt&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;tmax&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span> <span class="s2">&quot;nsubdiv_dt&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;funlabR&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">}</span>
@@ -2984,10 +3122,14 @@
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;funlab&quot;</span><span class="p">]</span><span class="o">+=</span><span class="p">[{}]</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;opt&quot;</span><span class="p">][</span><span class="s2">&quot;funlab&quot;</span><span class="p">][</span><span class="n">ili</span><span class="p">]</span><span class="o">=</span><span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">[</span><span class="mi">7</span><span class="p">:],</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="p">[:</span><span class="mi">7</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;funlab:&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="mkfunlabli"><a class="viewcode-back" href="../progdoc.html#C13_ftbl.mkfunlabli">[docs]</a><span class="k">def</span> <span class="nf">mkfunlabli</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+
+<div class="viewcode-block" id="mkfunlabli">
+<a class="viewcode-back" href="../progdoc.html#C13_ftbl.mkfunlabli">[docs]</a>
+<span class="k">def</span> <span class="nf">mkfunlabli</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
     <span class="s2">&quot;transform &#39;d&#39; dict to a string representing a body of an R function calculating labeling dependent on time &#39;t&#39;&quot;</span>
     <span class="c1"># d is like {&#39;Gluc_1:{32: &#39;{T=0; if (t &gt;= T) 1 else NA}&#39;}}</span>
     <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%(li)s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">{</span><span class="s2">&quot;li&quot;</span><span class="p">:</span> <span class="s2">&quot;list(&quot;</span><span class="o">+</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;`</span><span class="si">%(m)s</span><span class="s2">`=list(</span><span class="si">%(i2f)s</span><span class="s2">)&quot;</span><span class="o">%</span><span class="p">{</span><span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="s2">&quot;i2f&quot;</span><span class="p">:</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="n">iso</span><span class="si">}</span><span class="s2">`=&#39;</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">iso</span><span class="p">,</span><span class="n">f</span> <span class="ow">in</span> <span class="n">idi</span><span class="o">.</span><span class="n">items</span><span class="p">())}</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span><span class="n">idi</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">+</span><span class="s2">&quot;)&quot;</span><span class="p">}</span></div>
+
     
 </pre></div>
 
@@ -3006,7 +3148,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -3026,8 +3168,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

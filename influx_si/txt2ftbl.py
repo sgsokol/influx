@@ -19,6 +19,7 @@ import argparse
 import datetime as dt
 from scipy import linalg
 from numpy import diag
+from multiprocessing import Pool
 vsadd=np.core.defchararray.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict
@@ -575,7 +576,7 @@ def parse_miso(fmiso, clen, case_i=False):
             else:
                 norma=False
             # add this group to results
-            #	META_NAME	CUM_GROUP	VALUE	DEVIATION	CUM_CONSTRAINTS
+            #   META_NAME   CUM_GROUP   VALUE   DEVIATION   CUM_CONSTRAINTS
             if case_i:
                 res["lab"] += [f"\t{met}\t1\t{val[0]}\t{sdv[0]}\t"+"+".join("#"+v for v in labs[0])+"   // %s: %d"%(fname, ist)]
                 res["lab"] += [f"\t\t{i+1 if norma else 1}\t{val[i0]}\t{sdv[i0]}\t"+"+".join("#"+v for v in labs[i0])+"   // %s: %s"%(fname, df.loc[ligr[i0], "iline"]) for i,i0 in zip(range(1, len(spli)), ii0[1:])]
@@ -1124,11 +1125,149 @@ def compile(mtf, cmd, case_i=False, clen=None):
     for k,df in dfdef.items():
         dfdef[k]=df.sort_values(defsort[k])
     return (dsec, dclen, dfdef) if not case_i else (dsec, dclen, dfdef, df_kin)
-def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
+#@background
+def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
+    def_written=set()
+    res_ftbl=list()
+    prl_ftbl=dict()
+    il=vdf.loc[ligr, "iline"].to_numpy() # strings
+    # sanity check
+    if len(ligr) > 1:
+        werr("'ftbl' column has repeated values in '%s': %s"%(mtf["vmtf"], ", ".join(il)))
+    # prepare running mtf, full mtf for one row
+    rmtf=mtf.copy()
+    rmtf.update((k,v) for k,v in vdf.iloc[ligr[0], :].to_dict().items() if v)
+
+    # what kind of output we have?
+    p=Path(ftbl)
+    if p.suffix == ".ftbl":
+        ftbl=p
+    elif ftbl == "-":
+        ftbl=sys.stdout
+    else:
+        ftbl=p.parent/(p.name+".ftbl")
+    # check if we can overwrite
+    if not force and ftbl != sys.stdout:
+        if ftbl.is_file() and ftbl.stat().st_size > 0:
+            with ftbl.open(mode="rb") as fc:
+                 if scre[:23] != fc.read(23).decode():
+                     werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+    ftbl.parent.mkdir(parents=True, exist_ok=True)
+    # compile ftbl dict 'dsec'
+    # make prl relative to main ftbl
+    if ftbl == sys.stdout:
+        wd=Path().resolve()
+    else:
+        wd=Path(ftbl).resolve().parent
+    if case_i:
+        #import pdb; pdb.set_trace()
+        dsec,dclen,dfdef,df_kin=compile(rmtf, cmd, case_i)
+        p=Path(ftbl).resolve()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        if p.is_file() and not force:
+            with p.open(mode="rb") as fc:
+                if scre[:23] != fc.read(23).decode():
+                     werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+        if len(df_kin) > 0:
+            fkin=p.with_suffix(".ikin")
+            with fkin.open("w", encoding="UTF-8") as fc:
+                fc.write(scre%dtstamp()+"row_col")
+                #pdb.set_trace()
+                #df_kin.reindex(index=sorted(df_kin.index, key=natural_sort_key))
+                df_kin.loc[sorted(df_kin.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
+            #print(str(fkin))
+            for i,v in enumerate(dsec["opt"]):
+                if v.startswith("\tfile_labcin\t"):
+                    dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
+            dsec["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
+        # prl
+        prl_li=[]
+        for d in prl:
+            dsec_prl,dclen,tmp,df_kin_prl=compile(d, cmd, case_i, clen=dclen)
+            # output ftbl
+            p=Path(d["ftbl"]).resolve()
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if p.is_file() and not force:
+                with p.open(encoding="UTF-8") as fc:
+                    if scre[:23] != fc.read(23):
+                        werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+            if len(df_kin_prl) > 0:
+                fkin=p.with_suffix(".ikin")
+                with fkin.open("w", encoding="UTF-8") as fc:
+                    fc.write(scre%dtstamp()+"row_col")
+                    df_kin_prl.loc[sorted(df_kin_prl.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
+                for i,v in enumerate(dsec_prl["opt"]):
+                    if v.startswith("\tfile_labcin\t"):
+                        dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
+                out=p.open("w", encoding="UTF-8")
+                out.write(scre%dtstamp())
+                dsec_prl["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
+            dsec2out(dsec_prl, out)
+            prl_li.append(str(p.relative_to(wd)))
+            out.close()
+        if prl_li:
+            for i,v in enumerate(dsec["opt"]):
+                if v.startswith("\tprl_exp\t"):
+                    dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
+            dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
+    else:
+        dsec,dclen,dfdef=compile(rmtf, cmd)
+        # prl
+        prl_li=[]
+        for d in prl:
+            dsec_prl,dclen,tmp=compile(d, cmd, clen=dclen)
+            # output ftbl
+            p=Path(d["ftbl"]).resolve()
+            p.parent.mkdir(parents=True, exist_ok=True)
+            if p.is_file() and not force:
+                with p.open(encoding="UTF-8") as fc:
+                    if scre[:23] != fc.read(23):
+                         werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
+            out=p.open("w", encoding="UTF-8")
+            out.write(scre%dtstamp())
+            dsec2out(dsec_prl, out)
+            prl_li.append(str(p.relative_to(wd).with_suffix("")))
+            out.close()
+        if prl_li:
+            for i,v in enumerate(dsec["opt"]):
+                if v.startswith("\tprl_exp\t"):
+                    dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
+            dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
+    # output ftbl
+    out=ftbl.open("w", encoding="UTF-8") if type(ftbl) == type(Path()) else ftbl
+    #print(("out=", out))
+    out.write(scre%dtstamp())
+    dsec2out(dsec, out)
+    out.close()
+    if case_i and type(ftbl) == type(Path()):
+        from ftbl2labcin import main as renum
+        renum([str(ftbl)])
+    if res_ftbl is not None:
+        res_ftbl.append(out.name)
+    if prl_ftbl is not None and prl_li:
+        prl_ftbl[out.name]=prl_li
+    # output default mtf
+    for k,df in dfdef.items():
+        if len(df) == 0:
+            continue
+        #pdb.set_trace()
+        p=Path(mtf["netw"]).with_suffix("."+k+".def")
+        if p in def_written:
+            continue
+        with p.open("w", encoding="UTF-8") as fc:
+            fc.write(scred%dtstamp())
+            df.to_csv(fc, sep="\t", index=False)
+            if __name__ == "__main__":
+                print(str(p))
+        def_written.add(p)
+    return (res_ftbl, prl_ftbl)
+
+def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None, np=None):
     """translate MTF file(s) to FTBL format
     :param argv: list of CLI options and their arguments
     :param res_ftbl: if not None, a list of produced FTBL files. In case of parallel experiments, only main FTBL are returned in this list
     :param prl_ftbl: if not None, a dict() showing which parallel FTBLs correspond to each main FTBL. Applicable only in case of parallel experiments
+    :param np: if not None, a number of parallel processes to proceed multiple FTBL files.
     :return code: integer 0 - OK; non 0 - error"""
     #print(["argv=", argv])
     ord_args=[]
@@ -1347,7 +1486,6 @@ is the argument value that will take precedence.
     else:
         fli=opts.eprl
     #pdb.set_trace()
-    
     for t in fli: # prepare prl list
         for v in t.split(","):
             d={}
@@ -1410,138 +1548,19 @@ is the argument value that will take precedence.
     if dftbl is not None:
         # add dftbl to all fields in vmtf
         vdf[vdf != ""]=[dftbl/v for v in vdf[vdf != ""].values.flatten() if v == v]
-    def_written=set()
-    for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
-        il=vdf.loc[ligr, "iline"].to_numpy() # strings
-        # sanity check
-        if len(ligr) > 1:
-            werr("'ftbl' column has repeated values in '%s': %s"%(mtf["vmtf"], ", ".join(il)))
-        # prepare running mtf, full mtf for one row
-        rmtf=mtf.copy()
-        rmtf.update((k,v) for k,v in vdf.iloc[ligr[0], :].to_dict().items() if v)
-
-        # what kind of output we have?
-        p=Path(ftbl)
-        if p.suffix == ".ftbl":
-            ftbl=p
-        elif ftbl == "-":
-            ftbl=sys.stdout
-        else:
-            ftbl=p.parent/(p.name+".ftbl")
-        # check if we can overwrite
-        if not force and ftbl != sys.stdout:
-            if ftbl.is_file() and ftbl.stat().st_size > 0:
-                with ftbl.open(mode="rb") as fc:
-                     if scre[:23] != fc.read(23).decode():
-                         werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-        ftbl.parent.mkdir(parents=True, exist_ok=True)
-        # compile ftbl dict 'dsec'
-        # make prl relative to main ftbl
-        if ftbl == sys.stdout:
-            wd=Path().resolve()
-        else:
-            wd=Path(ftbl).resolve().parent
-        if case_i:
-            #import pdb; pdb.set_trace()
-            dsec,dclen,dfdef,df_kin=compile(rmtf, cmd, case_i)
-            p=Path(ftbl).resolve()
-            p.parent.mkdir(parents=True, exist_ok=True)
-            if p.is_file() and not force:
-                with p.open(mode="rb") as fc:
-                    if scre[:23] != fc.read(23).decode():
-                         werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-            if len(df_kin) > 0:
-                fkin=p.with_suffix(".ikin")
-                with fkin.open("w", encoding="UTF-8") as fc:
-                    fc.write(scre%dtstamp()+"row_col")
-                    #pdb.set_trace()
-                    #df_kin.reindex(index=sorted(df_kin.index, key=natural_sort_key))
-                    df_kin.loc[sorted(df_kin.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
-                #print(str(fkin))
-                for i,v in enumerate(dsec["opt"]):
-                    if v.startswith("\tfile_labcin\t"):
-                        dsec["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-                dsec["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
-            # prl
-            prl_li=[]
-            for d in prl:
-                dsec_prl,dclen,tmp,df_kin_prl=compile(d, cmd, case_i, clen=dclen)
-                # output ftbl
-                p=Path(d["ftbl"]).resolve()
-                p.parent.mkdir(parents=True, exist_ok=True)
-                if p.is_file() and not force:
-                    with p.open(encoding="UTF-8") as fc:
-                        if scre[:23] != fc.read(23):
-                            werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-                if len(df_kin_prl) > 0:
-                    fkin=p.with_suffix(".ikin")
-                    with fkin.open("w", encoding="UTF-8") as fc:
-                        fc.write(scre%dtstamp()+"row_col")
-                        df_kin_prl.loc[sorted(df_kin_prl.index, key=natural_sort_key), :].to_csv(fc, sep="\t")
-                    for i,v in enumerate(dsec_prl["opt"]):
-                        if v.startswith("\tfile_labcin\t"):
-                            dsec_prl["opt"][i]=v.replace("\tfile_labcin\t", "\t//file_labcin\t")
-                    out=p.open("w", encoding="UTF-8")
-                    out.write(scre%dtstamp())
-                    dsec_prl["opt"].append("\tfile_labcin\t"+str(fkin.relative_to(p.parent)))
-                dsec2out(dsec_prl, out)
-                prl_li.append(str(p.relative_to(wd)))
-                out.close()
-            if prl_li:
-                for i,v in enumerate(dsec["opt"]):
-                    if v.startswith("\tprl_exp\t"):
-                        dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
-                dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
-        else:
-            dsec,dclen,dfdef=compile(rmtf, cmd)
-            # prl
-            prl_li=[]
-            for d in prl:
-                dsec_prl,dclen,tmp=compile(d, cmd, clen=dclen)
-                # output ftbl
-                p=Path(d["ftbl"]).resolve()
-                p.parent.mkdir(parents=True, exist_ok=True)
-                if p.is_file() and not force:
-                    with p.open(encoding="UTF-8") as fc:
-                        if scre[:23] != fc.read(23):
-                             werr(f"cannot overwrite '{fc.name}' as not created by this script. Use '--force' to go through.")
-                out=p.open("w", encoding="UTF-8")
-                out.write(scre%dtstamp())
-                dsec2out(dsec_prl, out)
-                prl_li.append(str(p.relative_to(wd).with_suffix("")))
-                out.close()
-            if prl_li:
-                for i,v in enumerate(dsec["opt"]):
-                    if v.startswith("\tprl_exp\t"):
-                        dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
-                dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
-        # output ftbl
-        out=ftbl.open("w", encoding="UTF-8") if type(ftbl) == type(Path()) else ftbl
-        #print(("out=", out))
-        out.write(scre%dtstamp())
-        dsec2out(dsec, out)
-        out.close()
-        if case_i and type(ftbl) == type(Path()):
-            from ftbl2labcin import main as renum
-            renum([str(ftbl)])
-        if res_ftbl is not None:
-            res_ftbl.append(out.name)
-        if prl_ftbl is not None and prl_li:
-            prl_ftbl[out.name]=prl_li
-        # output default mtf
-        for k,df in dfdef.items():
-            if len(df) == 0:
-                continue
-            #pdb.set_trace()
-            p=Path(mtf["netw"]).with_suffix("."+k+".def")
-            if p in def_written:
-                continue
-            with p.open("w", encoding="UTF-8") as fc:
-                fc.write(scred%dtstamp())
-                df.to_csv(fc, sep="\t", index=False)
-                if __name__ == "__main__":
-                    print(str(p))
-            def_written.add(p)
+    if (np == 1):
+        z=list()
+        for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
+            z.append(work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred))
+        z=zip(*z)
+    else:
+        with Pool(np) as p:
+            z=zip(*p.starmap(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()]))
+    rf, pf=z
+    if not res_ftbl is None:
+        res_ftbl += sum(rf, [])
+    if not prl_ftbl is None:
+        prl_ftbl.update((k,v) for d in pf for k,v in d.items())
     return 0
 if __name__ == "__main__":
     sys.exit(main())

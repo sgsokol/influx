@@ -1378,9 +1378,8 @@ mc_sim=function(imc) {
    #set.seed(seeds[imc])
    #cat(sort(ls(pos=1)), sep="\n", file=sprintf("tmp_%d.log", imc))
    labargs=get("labargs", envir=.GlobalEnv)
-   for (item in c("nb_f", "measurements", "case_i", "dirres", "baseshort", "nb_exp")) {
+   for (item in c("nb_f", "measurements", "case_i", "dirres", "baseshort", "nb_exp"))
       assign(item, labargs[[item]])
-   }
    # random measurement generation
 #cat("simlab=\n")
 #print(head(as.double(refsim$simlab)))

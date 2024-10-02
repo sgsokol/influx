@@ -2,23 +2,28 @@
 Change Log for influx_si
 ========================
 
-2024-05-?? version 7.0.5
+2024-10-01 version 7.1.0
 ------------------------
-New feature:
+New features:
  - funlab(): accelerated calculation of labeling input varying in time
- - parallel.R now launches jobs in "load balanced" way
+ - parallel.R now launches no more than `np` simultaneous jobs
+ - if many .R files are executed in parallel way, Monte-Carlo simulations are done sequentially
+ - CTRL-C interrupts the main program but also all R subprocesses
+ - unexpected but possible R warnings are now logged at the end of .log file or witten to stderr for parallel calculations
  
 Bug fix:
  - plot_ilab: fixed incomplete name list when only one metabolite is in list
  - plot_ilab: workaround for tapply() not working properly on R-4.3
  - ftbl2xgmml: accepts also '--inst', not only '-i'
- - windows: fixed parser not passed to subprocess
+ - windows: fixed parser not passed to subprocess (seen in case of Rochelle Kouakou, INSA/TBI, France)
  - linterp(): error message about time point being outside of knot range is made more explicit (reported by Younes Dellero, INRAE, France)
  - fixed error message about dynamic labeling summing up to a value less than 1
+ - the first line in .log file now reports actual arguments of influx_si even if it is called as python module (seen in case of Rochelle Kouakou, INSA/TBI, France)
+ - a fatal error with R process in now logged to .err file
 
 2024-05-17 version 7.0.4
 ------------------------
-New feature:
+New features:
  - now, parallel processing in influx_[si].py is by process not thread
  - reduced R execution time with 'source(..., echo=FALSE)'
  - introduced option '--wkvh' which means that '_res.kvh' is no more written by default
@@ -50,7 +55,7 @@ Bug fix:
 
 2024-02-29 version 7.0.2
 ------------------------
-New feature:
+New features:
  - influx_si can be called from python as 'influx_s.main(argv)'
  - an absence of labeling measurements is now signaled as error in influx_si (issue #6 submitted by Loic Le Gregam, TBI, France)
  - ftbl2netan get an option '--eprl' for parallel experiments
@@ -77,7 +82,7 @@ Bug fix:
 2023-07-11 version 7.0
 ----------------------
 
-New feature:
+New features:
  - new output format is introduced. All result files go in ``<mynetwork>_res`` directory
  - ff2ftbl and res2ftbl_meas are now deprecated. Use \*.sim files from new output format.
  - in influx_i, unscaled simulated mass measurements (in .miso.sim) are clamped to [0; 1] and full MID sets are normalized to sum up to 1 (requested by Noémi Butin and Pierre Millard, TBI, France)
@@ -99,7 +104,7 @@ Bug fix:
 2022-10-11 version 6.1
 ----------------------
 
-New feature:
+New features:
  - species not carrying labeled atoms cannot appear in FTBL/METABOLITE_POOLS
  - ftbl2cumoAb and other ftbl2... utilities can use '--prefix'/'--mtf' options
  - ftbl2cumoAb eliminates linearly dependent rows from Afl
@@ -115,7 +120,7 @@ Bug fix:
 2022-06-23 version 6.0.4
 ------------------------
 
-New feature:
+New features:
  - `Time` values <= 0 in .miso are silently filtered out in instationary mode
  - ftbl2mtf and txt2ftbl now write their results in UTF-8 encoding
  

@@ -2679,7 +2679,7 @@ def proc_label_meas(ftbl, netan):
                 raise Exception("Unknown metabolite name '%s' in LABEL_MEASUREMENTS (%s: %s)"%(metab, ftbl["name"], row["irow"]))
             if metab in netan["output"] or metab in netan["input"]:
                 raise Exception("""Measured metabolites have to be internal to network (found in input or output metabolites of '%s').
-In case of output, you can add a fictious metabolite in your network immediatly after '"""%ftbl["name"]+metab+"' (seen in LABEL_MEASUREMENTS).")
+In case of output, you can add a fictitious metabolite in your network immediatly after '"""%ftbl["name"]+metab+"' (seen in LABEL_MEASUREMENTS).")
             mlen=netan["Clen"][metab]
             clen=netan["Clen"][metab]
             if clen!=clen0 :
@@ -2765,7 +2765,7 @@ def proc_peak_meas(ftbl, netan):
                 raise Exception("Unknown metabolite name '%s' in PEAK_MEASUREMENTS (%s: %s)"%(metab, ftbl["name"], row["irow"]))
             if metab in netan["output"] or metab in netan["input"]:
                 raise Exception("""Measured metabolites have to be internal to network (seen in input or output metabolites (%s: %d) ).
-In case of output, you can add a fictious metabolite in your network immediatly after '"""%(ftbl["name"], row["irow"])+metab+"' (seen in PEAK_MEASUREMENTS).")
+In case of output, you can add a fictitious metabolite in your network immediatly after '"""%(ftbl["name"], row["irow"])+metab+"' (seen in PEAK_MEASUREMENTS).")
             clen=netan["Clen"][metab]
             if clen!=clen0 :
                 raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))
@@ -2853,7 +2853,7 @@ def proc_mass_meas(ftbl, netan):
                 raise Exception("Unknown metabolite name '%s' in MASS_SPECTROMETRY (%s: %s)."%(metab, ftbl["name"], row["irow"]))
             if metab in netan["output"] or metab in netan["input"]:
                 raise Exception("""Measured metabolites have to be internal to network.
-In case of output, you can add a fictious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
+In case of output, you can add a fictitious metabolite following to '"""+metab+"' (seen in MASS_MEASUREMENTS).")
             clen=netan["Clen"][metab]
             if clen!=clen0 :
                 raise Exception("Carbon length of '%s' (%d) is different from the length of '%s' (%d) (%s: %s)"%(metab, clen, metab0, clen0, ftbl["name"], row["irow"]))

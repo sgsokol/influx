@@ -1,18 +1,16 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>tools_ssg &#8212; influx_si 7.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
+    <script src="../_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -47,8 +45,10 @@
 <span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">fill</span>
 <span class="n">letters</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span>
 
-<div class="viewcode-block" id="aff"><a class="viewcode-back" href="../progdoc.html#tools_ssg.aff">[docs]</a><span class="k">def</span> <span class="nf">aff</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">ident</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="aff">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.aff">[docs]</a>
+<span class="k">def</span> <span class="nf">aff</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">ident</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    print formatted object:</span>
 <span class="sd">     name=obj</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -74,12 +74,18 @@
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="o">*</span><span class="n">ident</span><span class="o">+</span><span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">))</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">=</span><span class="n">saveout</span></div>
 
-<div class="viewcode-block" id="asort"><a class="viewcode-back" href="../progdoc.html#tools_ssg.asort">[docs]</a><span class="k">def</span> <span class="nf">asort</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;sorts a dictionnary by value preserving key=value association the result is a list of tuples (key,value)&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="asort">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.asort">[docs]</a>
+<span class="k">def</span> <span class="nf">asort</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;sorts a dictionnary by value preserving key=value association the result is a list of tuples (key,value)&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span> <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="iterbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.iterbit">[docs]</a><span class="k">def</span> <span class="nf">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;iterator on bits in integer starting from 0-position. The iterator stops at highest non-zero bit&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="iterbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.iterbit">[docs]</a>
+<span class="k">def</span> <span class="nf">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;iterator on bits in integer starting from 0-position. The iterator stops at highest non-zero bit&quot;&quot;&quot;</span>
     <span class="n">i</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">moveb</span><span class="o">=</span><span class="mi">1</span>
     <span class="n">b_no</span><span class="o">=</span><span class="mi">0</span>
@@ -88,8 +94,11 @@
         <span class="n">moveb</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
         <span class="n">b_no</span><span class="o">+=</span><span class="mi">1</span></div>
 
-<div class="viewcode-block" id="iternumbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.iternumbit">[docs]</a><span class="k">def</span> <span class="nf">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;iterator on bits and its number in integer starting from 0-position. The iterator yields tuples (n,bit). If optional size is zero then it stops at highest non-zero bit. If not, it will stop at bit number size-1.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="iternumbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.iternumbit">[docs]</a>
+<span class="k">def</span> <span class="nf">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;iterator on bits and its number in integer starting from 0-position. The iterator yields tuples (n,bit). If optional size is zero then it stops at highest non-zero bit. If not, it will stop at bit number size-1.&quot;&quot;&quot;</span>
     <span class="n">i</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">moveb</span><span class="o">=</span><span class="mi">1</span>
     <span class="n">b_no</span><span class="o">=</span><span class="mi">0</span>
@@ -98,12 +107,18 @@
         <span class="n">moveb</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
         <span class="n">b_no</span><span class="o">+=</span><span class="mi">1</span></div>
 
-<div class="viewcode-block" id="sumbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.sumbit">[docs]</a><span class="k">def</span> <span class="nf">sumbit</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: sum of bits in an integer&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="sumbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.sumbit">[docs]</a>
+<span class="k">def</span> <span class="nf">sumbit</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: sum of bits in an integer&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="strbit32"><a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit32">[docs]</a><span class="k">def</span> <span class="nf">strbit32</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: a string of 0-1s (in chunk of 4) in an 32 bit integer&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="strbit32">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit32">[docs]</a>
+<span class="k">def</span> <span class="nf">strbit32</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: a string of 0-1s (in chunk of 4) in an 32 bit integer&quot;&quot;&quot;</span>
     <span class="n">i</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
     <span class="n">moveb</span><span class="o">=</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">31</span>
     <span class="n">res</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
@@ -112,21 +127,33 @@
         <span class="n">res</span><span class="o">+=</span><span class="s1">&#39; &#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">4</span> <span class="ow">and</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">31</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
         <span class="n">moveb</span><span class="o">&gt;&gt;=</span><span class="mi">1</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="strbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit">[docs]</a><span class="k">def</span> <span class="nf">strbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: the lowest part of integer as string binary representation&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="strbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit">[docs]</a>
+<span class="k">def</span> <span class="nf">strbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: the lowest part of integer as string binary representation&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="s1">&#39;0&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="p">)</span> <span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
-<div class="viewcode-block" id="rstrbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.rstrbit">[docs]</a><span class="k">def</span> <span class="nf">rstrbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: the integer as reversed string binary representation. The lowest bit is on the left side&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="rstrbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.rstrbit">[docs]</a>
+<span class="k">def</span> <span class="nf">rstrbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: the integer as reversed string binary representation. The lowest bit is on the left side&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s1">&#39;1&#39;</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="s1">&#39;0&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">iterbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">size</span><span class="p">)</span> <span class="p">)</span></div>
 
-<div class="viewcode-block" id="setbit32"><a class="viewcode-back" href="../progdoc.html#tools_ssg.setbit32">[docs]</a><span class="k">def</span> <span class="nf">setbit32</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">nb</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;set a bit number nb (0 based) in an integer i&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="setbit32">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.setbit32">[docs]</a>
+<span class="k">def</span> <span class="nf">setbit32</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">nb</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;set a bit number nb (0 based) in an integer i&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">nb</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">nb</span> <span class="o">&gt;</span> <span class="mi">31</span><span class="p">):</span>
        <span class="k">return</span> <span class="n">i</span><span class="p">;</span> <span class="c1"># do nothing to i</span>
     <span class="n">i</span><span class="o">|=</span><span class="p">(</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">nb</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="valval"><a class="viewcode-back" href="../progdoc.html#tools_ssg.valval">[docs]</a><span class="k">def</span> <span class="nf">valval</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">keepNone</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: an iterator over values of values, i.e. collapsing values of fisrt two nested lists in one list, for example.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="valval">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.valval">[docs]</a>
+<span class="k">def</span> <span class="nf">valval</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">keepNone</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: an iterator over values of values, i.e. collapsing values of fisrt two nested lists in one list, for example.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
         <span class="k">yield</span> <span class="n">o</span>
     <span class="k">else</span><span class="p">:</span>
@@ -147,25 +174,37 @@
                     <span class="k">elif</span> <span class="n">i1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="k">yield</span> <span class="n">i1</span></div>
 
-<div class="viewcode-block" id="join"><a class="viewcode-back" href="../progdoc.html#tools_ssg.join">[docs]</a><span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">break_long_words</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional.</span>
+
+<div class="viewcode-block" id="join">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.join">[docs]</a>
+<span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">break_long_words</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional.</span>
 <span class="sd">    if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with textwrap.fill(res, width, break_long_lines).&quot;&quot;&quot;</span>
     <span class="n">res</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span> <span class="ow">or</span> <span class="n">a</span>
     <span class="k">return</span> <span class="n">res</span> <span class="k">if</span> <span class="n">width</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">fill</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">break_long_words</span><span class="o">=</span><span class="n">break_long_words</span><span class="p">)</span></div>
-<div class="viewcode-block" id="joint"><a class="viewcode-back" href="../progdoc.html#tools_ssg.joint">[docs]</a><span class="k">def</span> <span class="nf">joint</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;join &quot;true&quot; items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="joint">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.joint">[docs]</a>
+<span class="k">def</span> <span class="nf">joint</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="n">l</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">a</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;join &quot;true&quot; items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional&quot;&quot;&quot;</span>
     <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
     <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span> <span class="k">if</span> <span class="n">i</span><span class="p">)</span> <span class="ow">or</span> <span class="n">a</span></div>
 
-<div class="viewcode-block" id="list2count"><a class="viewcode-back" href="../progdoc.html#tools_ssg.list2count">[docs]</a><span class="k">def</span> <span class="nf">list2count</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">incr</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;count values in a (short) list l incrementing the counter by optional incr.</span>
+
+<div class="viewcode-block" id="list2count">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.list2count">[docs]</a>
+<span class="k">def</span> <span class="nf">list2count</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">incr</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;count values in a (short) list l incrementing the counter by optional incr.</span>
 <span class="sd">    </span>
 <span class="sd">    :returns: a dictionary {item:count}&quot;&quot;&quot;</span>
     <span class="n">dico</span><span class="o">=</span><span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="p">,</span><span class="n">l</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">incr</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">dico</span></div>
 
-<div class="viewcode-block" id="strbit2int"><a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit2int">[docs]</a><span class="k">def</span> <span class="nf">strbit2int</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;translate a string of 0&#39;s and 1&#39;s interpreted as bits to an integer all characters different from 0,1 are silently ignored.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="strbit2int">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.strbit2int">[docs]</a>
+<span class="k">def</span> <span class="nf">strbit2int</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;translate a string of 0&#39;s and 1&#39;s interpreted as bits to an integer all characters different from 0,1 are silently ignored.&quot;&quot;&quot;</span>
     <span class="n">res</span><span class="o">=</span><span class="mi">0</span>
     <span class="n">movb</span><span class="o">=</span><span class="mi">1</span>
     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">s</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
@@ -176,8 +215,11 @@
         <span class="n">movb</span><span class="o">&lt;&lt;=</span><span class="mi">1</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="setcharbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.setcharbit">[docs]</a><span class="k">def</span> <span class="nf">setcharbit</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">ch</span><span class="p">,</span><span class="n">i</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;set character ch in a string s everywhere a corresponding bit of i is set&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="setcharbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.setcharbit">[docs]</a>
+<span class="k">def</span> <span class="nf">setcharbit</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">ch</span><span class="p">,</span><span class="n">i</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;set character ch in a string s everywhere a corresponding bit of i is set&quot;&quot;&quot;</span>
     <span class="n">res</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">ch</span> <span class="k">if</span> <span class="n">b</span> <span class="k">else</span> <span class="n">s</span><span class="p">[</span><span class="o">-</span><span class="n">b_no</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">b_no</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
     <span class="c1">#print &#39;in:&#39;, s, ch, strbit(i)</span>
     <span class="c1">#print &#39;r&#39;, res</span>
@@ -185,34 +227,55 @@
     <span class="c1">#print &#39;final&#39;, res</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="expandbit"><a class="viewcode-back" href="../progdoc.html#tools_ssg.expandbit">[docs]</a><span class="k">def</span> <span class="nf">expandbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">pos</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;copy bits set to 1 in i to the result position given in the list pos. length of pos must be greater or equal to bitlength of i&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="expandbit">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.expandbit">[docs]</a>
+<span class="k">def</span> <span class="nf">expandbit</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">pos</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;copy bits set to 1 in i to the result position given in the list pos. length of pos must be greater or equal to bitlength of i&quot;&quot;&quot;</span>
     <span class="c1">#print i, pos;##</span>
     <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">b</span><span class="o">&lt;&lt;</span><span class="n">pos</span><span class="p">[</span><span class="n">b_no</span><span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">b_no</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iternumbit</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="isstr"><a class="viewcode-back" href="../progdoc.html#tools_ssg.isstr">[docs]</a><span class="k">def</span> <span class="nf">isstr</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: True if the argument is a string&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="isstr">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.isstr">[docs]</a>
+<span class="k">def</span> <span class="nf">isstr</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: True if the argument is a string&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="trd"><a class="viewcode-back" href="../progdoc.html#tools_ssg.trd">[docs]</a><span class="k">def</span> <span class="nf">trd</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;translate items in an iterable l by a dictionary d, prefixing translated items by optional p and suffixing them by optional s. If an item is not found in the dictionnary alternative string a is used. If a==None, the item is left unchanged. No prefix or suffix are applied in both case.</span>
+
+<div class="viewcode-block" id="trd">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.trd">[docs]</a>
+<span class="k">def</span> <span class="nf">trd</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;translate items in an iterable l by a dictionary d, prefixing translated items by optional p and suffixing them by optional s. If an item is not found in the dictionnary alternative string a is used. If a==None, the item is left unchanged. No prefix or suffix are applied in both case.</span>
 
 <span class="sd">    :returns: iterator&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">p</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">+</span><span class="n">s</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">d</span> <span class="k">else</span> <span class="n">i</span> <span class="k">if</span> <span class="n">a</span><span class="o">==</span><span class="kc">None</span> <span class="k">else</span> <span class="n">a</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span></div>
-<div class="viewcode-block" id="icumo2iiso"><a class="viewcode-back" href="../progdoc.html#tools_ssg.icumo2iiso">[docs]</a><span class="k">def</span> <span class="nf">icumo2iiso</span><span class="p">(</span><span class="n">icumo</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: iterator on isotopomers composing a given icumo. size is carbon number&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="icumo2iiso">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.icumo2iiso">[docs]</a>
+<span class="k">def</span> <span class="nf">icumo2iiso</span><span class="p">(</span><span class="n">icumo</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: iterator on isotopomers composing a given icumo. size is carbon number&quot;&quot;&quot;</span>
     <span class="n">nzero</span><span class="o">=</span><span class="n">size</span><span class="o">-</span><span class="n">sumbit</span><span class="p">(</span><span class="n">icumo</span><span class="p">)</span>
     <span class="n">zpos</span><span class="o">=</span><span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="n">iternumbit</span><span class="p">(</span><span class="n">icumo</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">b</span><span class="p">]</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">expandbit</span><span class="p">(</span><span class="n">iz</span><span class="p">,</span><span class="n">zpos</span><span class="p">)</span><span class="o">+</span><span class="n">icumo</span> <span class="k">for</span> <span class="n">iz</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="n">nzero</span><span class="p">))</span></div>
-<div class="viewcode-block" id="reverse"><a class="viewcode-back" href="../progdoc.html#tools_ssg.reverse">[docs]</a><span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="n">it</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;reverse order of an iterable&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="reverse">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.reverse">[docs]</a>
+<span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="n">it</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;reverse order of an iterable&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">it</span><span class="p">),</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">yield</span> <span class="n">it</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
-<div class="viewcode-block" id="ssign"><a class="viewcode-back" href="../progdoc.html#tools_ssg.ssign">[docs]</a><span class="k">def</span> <span class="nf">ssign</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">sp</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">sm</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: a string of i sign: sp (i&gt;=0) or sm (i&lt;0). &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ssign">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.ssign">[docs]</a>
+<span class="k">def</span> <span class="nf">ssign</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">sp</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">sm</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:returns: a string of i sign: sp (i&gt;=0) or sm (i&lt;0). &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">sp</span> <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">sm</span></div>
-<div class="viewcode-block" id="arr2pbm"><a class="viewcode-back" href="../progdoc.html#tools_ssg.arr2pbm">[docs]</a><span class="k">def</span> <span class="nf">arr2pbm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write an image map of non-zero entries of matrix A to file pointer fp. Matrix A is an array&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="arr2pbm">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.arr2pbm">[docs]</a>
+<span class="k">def</span> <span class="nf">arr2pbm</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">fp</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write an image map of non-zero entries of matrix A to file pointer fp. Matrix A is an array&quot;&quot;&quot;</span>
     <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;P1</span><span class="se">\n</span><span class="si">%d</span><span class="s2"> </span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">A</span><span class="p">:</span>
         <span class="n">p</span><span class="o">=</span><span class="mi">0</span>
@@ -224,8 +287,11 @@
                 <span class="n">p</span><span class="o">=</span><span class="mi">0</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">p</span><span class="o">=</span><span class="mi">0</span></div>
-<div class="viewcode-block" id="cumsum"><a class="viewcode-back" href="../progdoc.html#tools_ssg.cumsum">[docs]</a><span class="k">def</span> <span class="nf">cumsum</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">tot</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;:Returns: an iterable of the length len(l)+1 with cumulated sum of items in l. First element in cumsum is equal to initial value of tot. Result depends on the meaning of &quot;+&quot; operator for l items and of tot type.</span>
+
+<div class="viewcode-block" id="cumsum">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.cumsum">[docs]</a>
+<span class="k">def</span> <span class="nf">cumsum</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">tot</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">   </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;:Returns: an iterable of the length len(l)+1 with cumulated sum of items in l. First element in cumsum is equal to initial value of tot. Result depends on the meaning of &quot;+&quot; operator for l items and of tot type.</span>
 <span class="sd">   </span>
 <span class="sd">.. doctest:</span>
 
@@ -239,8 +305,11 @@
        <span class="k">yield</span> <span class="n">tot</span>
        <span class="n">tot</span><span class="o">+=</span><span class="n">i</span>
    <span class="k">yield</span> <span class="n">tot</span></div>
-<div class="viewcode-block" id="wxlay2py"><a class="viewcode-back" href="../progdoc.html#tools_ssg.wxlay2py">[docs]</a><span class="k">def</span> <span class="nf">wxlay2py</span><span class="p">(</span><span class="n">kvt</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="wxlay2py">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.wxlay2py">[docs]</a>
+<span class="k">def</span> <span class="nf">wxlay2py</span><span class="p">(</span><span class="n">kvt</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">]):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    :returns: a string with python code generating wxWindow widget layout described in kvh tlist sturcture</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">res</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
@@ -286,12 +355,18 @@
             <span class="k">pass</span>
     <span class="k">return</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ulong"><a class="viewcode-back" href="../progdoc.html#tools_ssg.ulong">[docs]</a><span class="k">def</span> <span class="nf">ulong</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;ulong(i) -&gt; workarounded ulong&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ulong">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.ulong">[docs]</a>
+<span class="k">def</span> <span class="nf">ulong</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;ulong(i) -&gt; workarounded ulong&quot;&quot;&quot;</span>
     <span class="k">return</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">i</span><span class="o">^</span><span class="mh">0xffffffff</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="read_table"><a class="viewcode-back" href="../progdoc.html#tools_ssg.read_table">[docs]</a><span class="k">def</span> <span class="nf">read_table</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;read_table(f) -&gt; dict(mat, col_names) read a plain text file f in a numpy mat. If some columns are not numerical, they are replaced by np.nan. If header=True, number of column names in the first row after skip must be the same as the number of values in each following row.</span>
+
+<div class="viewcode-block" id="read_table">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.read_table">[docs]</a>
+<span class="k">def</span> <span class="nf">read_table</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;read_table(f) -&gt; dict(mat, col_names) read a plain text file f in a numpy mat. If some columns are not numerical, they are replaced by np.nan. If header=True, number of column names in the first row after skip must be the same as the number of values in each following row.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">open_here</span><span class="o">=</span><span class="kc">False</span>
     <span class="k">if</span> <span class="n">isstr</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
@@ -312,6 +387,7 @@
     <span class="k">if</span> <span class="n">open_here</span><span class="p">:</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;mat&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">,</span> <span class="s2">&quot;col_names&quot;</span><span class="p">:</span> <span class="n">col_names</span><span class="p">}</span></div>
+
 </pre></div>
 
             <div class="clearer"></div>
@@ -329,7 +405,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -349,8 +425,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

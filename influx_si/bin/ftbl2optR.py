@@ -748,9 +748,8 @@ cl=NULL
 if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
    if (np > 1L) {
       # prepare cluster
-      nodes=if (sensitive == "mc") np else 2
+      nodes=if (sensitive == "mc" && !parR) np else 2
 
-      # prepare cluster
       cl=makeCluster(nodes, cl_type) #)
       #cl=makeCluster(1L, cl_type, manual=TRUE, outfile="")
 #cat("make cluster=")
@@ -778,10 +777,6 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
          #source(file.path(dirr, "nlsic.R"))
          source(file.path(dirr, "opt_cumo_tools.R"))
          source(file.path(dirr, "opt_icumo_tools.R"))
-         #loadcmp(file.path(dirr, "tools_ssg.Rc"))
-         #loadcmp(file.path(dirr, "nlsic.Rc"))
-         #loadcmp(file.path(dirr, "opt_cumo_tools.Rc"))
-         #loadcmp(file.path(dirr, "opt_icumo_tools.Rc"))
          labargs$spa=sparse2spa(labargs$spa)
          if (case_i && (time_order == "2" || time_order == "1,2")) {
             labargs$labargs2$spa=labargs$spa
@@ -1283,6 +1278,7 @@ for (irun in seq_len(nseries)) {
             }
          } # end if zero crossing
       } # for method
+#browser()
       param=res$par
       names(param)=nm_par
       if (excl_outliers != F) {
@@ -1698,14 +1694,20 @@ for (irun in seq_len(nseries)) {
          assign(nm_it, jx_f[[nm_it]], envir=refsim)
       }
       # Monte-Carlo simulation in parallel way (if asked and possible)
-      if (np > 1L) {
-         spli=splitIndices(nmc, nodes);
-         clusterExport(cl, c("param", "refsim", "runsuf", "spli"))
-         #clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL) # to rebuild sparse matrices on cores ## now, they are build once, at the cluster init
-         cl_res=clusterEvalQ(cl, {mc_iter=TRUE; labargs$getx=FALSE; mc_res=lapply(spli[[idw]], mc_sim); rm(mc_iter); mc_res})
-         mc_res=vector(nmc, mode="list")
-         for (i in seq(nodes))
-            mc_res[spli[[i]]]=cl_res[[i]]
+      if (np > 1L && !parR) {
+         inmc=seq_len(nmc)
+         #spli=splitIndices(nmc, nodes);
+         spli=suppressWarnings(split(inmc, seq_len(np)))
+         ii=inmc
+         ii[unlist(spli)]=inmc # inverse the counting in spli
+         clusterExport(cl, c("param", "refsim", "runsuf", "cl_worker", "mc_sim")) #, "spli"))
+         ##clusterEvalQ(cl, labargs$spa[[1]]$a <- NULL) # to rebuild sparse matrices on cores ## now, they are build once, at the cluster init
+         cl_res=clusterEvalQ(cl, {mc_iter=TRUE; labargs$getx=FALSE;})
+         mc_res=parLapply(cl, spli, function(iv) lapply(iv, function(i) cl_worker(funth=mc_sim, argth=list(i))))
+         mc_res=Reduce(c, mc_res, NULL)[ii]
+         #mc_res=vector(nmc, mode="list")
+         #for (i in seq(nodes))
+         #   mc_res[spli[[i]]]=cl_res[[i]]
          #mc_res=parLapplyLB(cl, seq_len(nmc), function(imc) cl_worker(funth=mc_sim, argth=list(imc)))
       } else {
          mc_res=lapply(seq_len(nmc), function(imc) cl_worker(funth=mc_sim, argth=list(imc)))
@@ -2063,6 +2065,7 @@ for (irun in seq_len(nseries)) {
       }
    }
 }
+#browser()
 if (!is.null(cl)) {
    stopCluster(cl)
    labargs$cl=cl=NULL

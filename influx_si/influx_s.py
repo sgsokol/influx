@@ -12,11 +12,13 @@ from multiprocessing import cpu_count, Process, SimpleQueue as Queue
 #from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
 from pathlib import Path
+import signal
 
 import influx_si
 import txt2ftbl
 import ftbl2optR
 import C13_ftbl
+from tools_ssg import join as myjoin
 
 class ArgumentParser(argparse.ArgumentParser):
     def error(self, message):
@@ -103,7 +105,7 @@ def move_ftbl(dirres, fp, case_i):
     for f in prl_ftbl:
         move_ftbl(dtmp, fp.parent / (f+("" if f[-5:].lower()==".ftbl" else ".ftbl")), case_i)
 
-def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG, parser):
+def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG, parser, parR, path0, argv):
     r"""Launch R code generation and then its execution
 """
     #pdb.set_trace()
@@ -139,7 +141,7 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
         ferr=sys.stderr
     
     #pdb.set_trace()
-    flog.write(" ".join('"'+v+'"' for v in sys.argv)+"\n")
+    flog.write(" ".join('"'+v+'"' for v in [path0]+argv)+"\n")
 
     # code generation
     s="code gen: "+now_s()+"\n"
@@ -187,10 +189,10 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
             [item for kc in pyopta.intersection(list(ldict_opts.keys())) if dict_opts[kc] is not None for item in ("--"+kc, str(ldict_opts[kc]))] + \
             ["--ropts", '"' + "\n".join(k+"="+("'"+v+"'" \
             if isinstance(v, type("")) else ("TRUE" if v is True else ("FALSE" \
-            if v is False else ("c('"+"', '".join(str(vv) for vv in v)+"')" if type(v) == list else str(v))))) for k,v in ldict_opts.items() if k not in notropt) + '"'] + \
+            if v is False else ("c('"+"', '".join(str(vv) for vv in v)+"')" if type(v) == list else str(v))))) for k,v in ldict_opts.items() if k not in notropt) + ('\nparR=TRUE"' if parR else '"')] + \
             (["--case_i"] if case_i else []) + ["--dirres", str(dres)] + [str(ft)]
         r_generated=True
-        #pdb.set_trace()
+        #import pdb; pdb.set_trace()
         retcode=ftbl2optR.main(opt4py, wout=flog.write, werr=ferr.write)
         if retcode != 0:
             r_generated=False
@@ -476,6 +478,15 @@ Call influx_s.main(["-h"]) for a help message"""
     if do_exit:
         return(0)
 
+    np=dict_opts.get("np")
+    avaco=cpu_count()
+    if np and np > 0 and np < 1:
+        np=int(round(np*avaco))
+    elif np and np >= 1:
+        np=int(round(np))
+    else:
+        np=avaco
+    #print("np=", np)
     args=opts.ftbl
     # expand wildcard (for Windows OS)
     if len(args) > 0:
@@ -488,6 +499,7 @@ Call influx_s.main(["-h"]) for a help message"""
     prl_ftbl=dict()
     mtf_opts=[]
     ferr=sys.stderr
+    sys.tracebacklimit=dict_opts.get("tblimit", 0)
     #import pdb; pdb.set_trace()
     if ord_args:
         if case_i:
@@ -505,10 +517,9 @@ Call influx_s.main(["-h"]) for a help message"""
             for t in ord_args:
                 tmp_ftbl=[]
                 try:
-                    txt2ftbl.main(mtf_opts+list(t), tmp_ftbl, prl_ftbl)
+                    txt2ftbl.main(mtf_opts+list(t), tmp_ftbl, prl_ftbl, np)
                 except Exception as e:
                     #pdb.set_trace()
-                    sys.tracebacklimit=dict_opts.get("tblimit", 0)
                     ferr.write(("".join(traceback.format_exc())) + "\n")
                     if DEBUG:
                         import pdb #; pdb.set_trace()
@@ -534,6 +545,7 @@ Call influx_s.main(["-h"]) for a help message"""
                         pdb.post_mortem(tb)
                     return 1
             args += li_ftbl
+#    import pdb; pdb.set_trace()
     set_ftbl=set(li_ftbl)
         
     if len(args) < 1:
@@ -547,25 +559,16 @@ Call influx_s.main(["-h"]) for a help message"""
         dirres=""
     else:
         dirres=opts.out
-    #pdb.set_trace()
+    #import pdb; pdb.set_trace()
     #print((" ".join('"'+v+'"' for v in sys.argv)))
     #print("cpu=", cpu_count())
-    np=dict_opts.get("np")
-    avaco=cpu_count()
-    if np and np > 0 and np < 1:
-        np=int(round(np*avaco))
-    elif np and np >= 1:
-        np=int(round(np))
-    else:
-        np=avaco
-    #print("np=", np)
     tblimit=dict_opts.get("tblimit")
     q=Queue() # arguments for //-work
     qres=Queue() # results from //-work (R file names)
     qret=Queue() # returned code from workers
 
     parproc=[]
-    if not DEBUG:
+    if not DEBUG and min(np, len(args)) > 1:
         for i in range(min(np, len(args))):
             #t=Thread(target=qworker, args=(q, qret))
             t=Process(target=qworker, args=(q, qret, qres))
@@ -576,6 +579,7 @@ Call influx_s.main(["-h"]) for a help message"""
     nb_ftbl=len(args)
     ftpr=[] # proceeded ftbls
     (cmd_opts, cmd_args) = (opts, args)
+    parR=len(args) > 1
     for ft in args:
         if ft[-5:] != ".ftbl":
             ft=ft+".ftbl"
@@ -583,12 +587,14 @@ Call influx_s.main(["-h"]) for a help message"""
         f=ft[:-5]
         fshort="" if len(args) == 1 else Path(ft).stem+": "
 
-        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser}
+        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
         q.put(item)
     if not ftpr:
         return 1
+    
+    # launch workers
     #import pdb; pdb.set_trace()
-    if DEBUG:
+    if DEBUG or min(np, len(args)) == 1:
         qworker(q, qret, qres, DEBUG)
     else:
         for t in parproc:
@@ -617,6 +623,8 @@ Call influx_s.main(["-h"]) for a help message"""
         suppressPackageStartupMessages(library(parallel))
         dirx="%(dirx)s"
         dirres="%(dirres)s" # can be "default" or empty
+        vdoit=function(fl)
+           return(max(abs(sapply(fl, doit))))
         doit=function(fR) {
            f=substr(fR, 1L, nchar(fR)-2L)
            fshort=basename(f)
@@ -631,21 +639,15 @@ Call influx_s.main(["-h"]) for a help message"""
            now=Sys.time()
            
            cat("calcul  : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
-           if (dirres == "default") {
+           if (dirres == "default")
               close(flog)
-           }
            source(fR, echo=FALSE)
            now=Sys.time()
-           if (dirres == "default") {
-              flog=file(nm_flog, "a")
-           } else {
-              flog=base::stdout()
-           }
+           flog=if (dirres == "default") file(nm_flog, "a") else base::stdout()
            cat("end     : ", format(now, "%%Y-%%m-%%d %%H:%%M:%%S"), "\\n", sep="", file=flog)
            if (dirres == "default") {
-              if (file.info(nm_ferr)$size > 0L) {
-                  cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
-              }
+              if (file.info(nm_ferr)$size > 0L)
+                 cat("=>Check ", nm_ferr, "\\n", sep="", file=flog)
               close(flog)
            }
            return(retcode)
@@ -654,14 +656,14 @@ Call influx_s.main(["-h"]) for a help message"""
         nodes=%(np)d
         type="PSOCK"
         cl=makeCluster(nodes, type)
-        clusterExport(cl, "dirres")
+        clusterExport(cl, c("dirres", "doit"))
         flist=c(%(flist)s)
-        retcode=max(abs(parSapplyLB(cl, flist, doit)))
+        retcode=max(abs(parSapply(cl, suppressWarnings(split(flist, seq_len(nodes))), vdoit)))
         stopCluster(cl)
         q("no", status=retcode)
         """%{
             "np": min(np, len([fr for fr,noc in rfiles if not noc])),
-            "flist": ", ".join('"'+f.replace(os.path.sep, "/")+'"' for f,noc in rfiles if not noc),
+            "flist": myjoin(", ", ('"'+f.replace(os.path.sep, "/")+'"' for f,noc in rfiles if not noc), width=80),
             "dirx": os.path.join(dirinst, "R").replace(os.path.sep, "/"),
             "dirres": dirres
             })
@@ -671,7 +673,18 @@ Call influx_s.main(["-h"]) for a help message"""
             sys.stdout.write(s)
             rcmd="R --vanilla --slave"
             #import pdb; pdb.set_trace()
-            retcode=subp.run(rcmd.split(), stdin=open(fpar.name, "r")).returncode
+            sp=subp.Popen(rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
+            try:
+                out,err=sp.communicate()
+                err=err.decode()
+                if err:
+                    sys.stderr.write("***Warning: 'parallel.R' produced the following warnings:\n"+err+"\n")
+            except KeyboardInterrupt:
+                os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
+                err="Keyboard interupt"
+            retcode=sp.returncode
+            if retcode != 0:
+                sys.stderr.write("Error: parallel.R aborted with:\n"+err+"\n")
             # end up writing
             s="//end   : "+now_s()+"\n"
             sys.stdout.write(s)
@@ -717,7 +730,26 @@ Call influx_s.main(["-h"]) for a help message"""
             sys.stdout.write(s)
             if flog:
                 with flog.open("a") as flp: flp.write(s)
-            retcode=subp.run(rcmd.split(), stdin=open(rfiles[0][0])).returncode
+            sp=subp.Popen(rcmd.split(), stdin=open(rfiles[0][0], "r"), stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
+            try:
+                out,err=sp.communicate()
+                err=err.decode()
+                if err:
+                    if flog:
+                        with flog.open("a") as fc:
+                            fc.write("***Warning: '"+rfiles[0][0]+"' produced the following warnings:\n"+err+"\n")
+                    else:
+                        sys.stderr.write("***Warning: '"+rfiles[0][0]+"' produced the following warnings:\n"+err+"\n")
+            except KeyboardInterrupt:
+                os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
+                err="Keyboard interupt"
+            retcode=sp.returncode
+            if retcode != 0 and err:
+                    if fpe:
+                        with fpe.open("a") as fc:
+                            fc.write("Error: "+rfiles[0][0]+" aborted with:\n"+err+"\n")
+                    else:
+                        sys.stderr.write("Error: "+rfiles[0][0]+" aborted with:\n"+err+"\n")
         s="end     : "+now_s()+"\n"
         sys.stdout.write(s)
         if flog:
@@ -736,4 +768,8 @@ Call influx_s.main(["-h"]) for a help message"""
                 with flog.open("a") as flp: flp.write(s)
     return(retcode)
 if __name__ == "__main__":
+    #import cProfile
+    #print("influx_si is running with profiler")
+    #print(influx_si.__file__)
+    #sys.exit(cProfile.run("main()", "/home-local/sokol/tmp/influx_si.stats"))
     sys.exit(main())

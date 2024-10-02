@@ -353,6 +353,7 @@ TIMEIT=FALSE
 prof=FALSE
 time_order="1"
 wkvh=FALSE
+parR=FALSE
 
 # get runtime arguments
 %(ropts)s

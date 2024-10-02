@@ -1,18 +1,16 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ftbl2code &#8212; influx_si 7.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
+    <script src="../_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -73,8 +71,10 @@
 <span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
 
-<div class="viewcode-block" id="netan2Abcumo_spr"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a><span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="netan2Abcumo_spr">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transform cumomer linear sytems collection (from ftbl file)</span>
 <span class="sd">    to a R code calculating sparse matrix A and vector b</span>
 <span class="sd">    in A*x+b=0 for a given weight of fragment iw (index in resulting list)</span>
@@ -91,7 +91,7 @@
     
     <span class="n">nb_cumu</span><span class="o">=</span><span class="n">cumsum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">vcumol</span><span class="p">)</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd"># sparse matrix static parts</span>
 <span class="sd"># $varname fields:</span>
 <span class="sd">#  ind_fa - flux index in a_pre$vfwrv[ind_fa]</span>
@@ -218,8 +218,11 @@
         <span class="n">ba_xw</span><span class="o">+=</span><span class="n">ncumo</span>
         <span class="n">ncucumo</span><span class="o">+=</span><span class="n">ncumo</span></div>
 
-<div class="viewcode-block" id="netan2Rinit"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a><span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[],</span> <span class="n">dirres</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write R code for initialization of all variables before</span>
+
+<div class="viewcode-block" id="netan2Rinit">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[],</span> <span class="n">dirres</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write R code for initialization of all variables before</span>
 <span class="sd">cumomer system resolution by chi2 minimization.</span>
 <span class="sd">:param netan: a collection of parsed ftbl information</span>
 <span class="sd">:param f: R code output pointer</span>
@@ -354,7 +357,7 @@
 <span class="s2">    options(warn=1)</span>
 <span class="s2">options(digits.secs=2)</span>
 
-<span class="s2">case_i=</span><span class="si">%(case_i)s</span><span class="s2"></span>
+<span class="s2">case_i=</span><span class="si">%(case_i)s</span>
 
 <span class="s2">source(file.path(dirr, &quot;libs.R&quot;), echo=FALSE)</span>
 
@@ -393,9 +396,10 @@
 <span class="s2">prof=FALSE</span>
 <span class="s2">time_order=&quot;1&quot;</span>
 <span class="s2">wkvh=FALSE</span>
+<span class="s2">parR=FALSE</span>
 
 <span class="s2"># get runtime arguments</span>
-<span class="si">%(ropts)s</span><span class="s2"></span>
+<span class="si">%(ropts)s</span>
 
 <span class="s2"># synonymous</span>
 <span class="s2">myver=version</span>
@@ -531,7 +535,7 @@
             <span class="n">dctrl</span><span class="p">[</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">li</span><span class="p">[</span><span class="mi">1</span><span class="p">:])]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     <span class="c1">#print(dctrl)</span>
     <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,</span><span class="se">\n\t</span><span class="s2">&quot;</span>
-    <span class="n">tmp</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;list(</span><span class="si">{</span><span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="s1">&#39;`=list(&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">kk</span><span class="o">+</span><span class="s1">&#39;`=&#39;</span><span class="o">+</span><span class="n">vv</span> <span class="k">for</span> <span class="n">kk</span><span class="p">,</span><span class="n">vv</span> <span class="ow">in</span> <span class="n">dd</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;)&#39;</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span><span class="n">dd</span> <span class="ow">in</span> <span class="n">dctrl</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="si">}</span><span class="s2">)&quot;</span>
+    <span class="n">tmp</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;list(</span><span class="si">{</span><span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="s1">&#39;`=list(&#39;</span><span class="o">+</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;`&#39;</span><span class="o">+</span><span class="n">kk</span><span class="o">+</span><span class="s1">&#39;`=&#39;</span><span class="o">+</span><span class="n">vv</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">kk</span><span class="p">,</span><span class="n">vv</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">dd</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="n">dd</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">dctrl</span><span class="o">.</span><span class="n">items</span><span class="p">())</span><span class="si">}</span><span class="s2">)&quot;</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;control_ftbl=</span><span class="si">{</span><span class="n">tmp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
@@ -561,7 +565,7 @@
     <span class="n">emu_keys_all</span><span class="o">=</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;emu_input&quot;</span><span class="p">]]</span> <span class="k">if</span> <span class="n">emu</span> <span class="k">else</span> <span class="p">[]</span>
     <span class="c1">#import pdb; pdb.set_trace()</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">nb_exp=</span><span class="si">%(nb_exp)d</span><span class="s2"></span>
+<span class="s2">nb_exp=</span><span class="si">%(nb_exp)d</span>
 <span class="s2">nm_exp=c(</span><span class="si">%(nm_exp)s</span><span class="s2">)</span>
 <span class="s2">nm_list$nm_exp=nm_exp</span>
 <span class="s2"># input cumomer vectors, list of vectors for case_s and matrices (nb_inp x nb_time) for case_i</span>
@@ -642,34 +646,34 @@
 <span class="s2">nb_sys=list(</span>
 <span class="s2">   reactions=list(</span>
 <span class="s2">      reversible=</span><span class="si">%(rrev)s</span><span class="s2">,</span>
-<span class="s2">      non_reversible=</span><span class="si">%(rnonrev)s</span><span class="s2"></span>
+<span class="s2">      non_reversible=</span><span class="si">%(rnonrev)s</span>
 <span class="s2">   ),</span>
 <span class="s2">   fluxes=list(</span>
 <span class="s2">      free=</span><span class="si">%(ff)s</span><span class="s2">,</span>
 <span class="s2">      dependent=</span><span class="si">%(fd)s</span><span class="s2">,</span>
-<span class="s2">      constrained=</span><span class="si">%(fc)s</span><span class="s2"></span>
+<span class="s2">      constrained=</span><span class="si">%(fc)s</span>
 <span class="s2">   ),</span>
 <span class="s2">   metabolites=list(</span>
 <span class="s2">      input=</span><span class="si">%(minp)s</span><span class="s2">,</span>
 <span class="s2">      output=</span><span class="si">%(moutp)s</span><span class="s2">,</span>
-<span class="s2">      intra=</span><span class="si">%(mintra)s</span><span class="s2"></span>
+<span class="s2">      intra=</span><span class="si">%(mintra)s</span>
 <span class="s2">   ),</span>
 <span class="s2">   measurements=list(</span>
 <span class="s2">      flux=</span><span class="si">%(meas_f)s</span><span class="s2">,</span>
 <span class="s2">      mass=</span><span class="si">%(meas_m)s</span><span class="s2">,</span>
 <span class="s2">      peak=</span><span class="si">%(meas_p)s</span><span class="s2">,</span>
 <span class="s2">      label=</span><span class="si">%(meas_l)s</span><span class="s2">,</span>
-<span class="s2">      metab=</span><span class="si">%(meas_pool)s</span><span class="s2"></span>
+<span class="s2">      metab=</span><span class="si">%(meas_pool)s</span>
 <span class="s2">   ),</span>
 <span class="s2">   equations=list(</span>
 <span class="s2">      equalities=</span><span class="si">%(eqe)s</span><span class="s2">,</span>
-<span class="s2">      inequalities=</span><span class="si">%(eqi)s</span><span class="s2"></span>
+<span class="s2">      inequalities=</span><span class="si">%(eqi)s</span>
 <span class="s2">   ),</span>
 <span class="s2">   label_variables=list(</span>
 <span class="s2">      full=c(</span><span class="si">%(lncumo)s</span><span class="s2">),</span>
 <span class="s2">      reduced_cumomers=c(</span><span class="si">%(lnrcumo)s</span><span class="s2">)</span>
 <span class="s2">   ),</span>
-<span class="s2">   parallel_experiments=</span><span class="si">%(nb_exp)d</span><span class="s2"></span>
+<span class="s2">   parallel_experiments=</span><span class="si">%(nb_exp)d</span>
 <span class="s2">)</span>
 <span class="s2">if (sum(nb_sys$label_variables$full)==0) {</span>
 <span class="s2">   nb_sys$label_variables$full=NULL</span>
@@ -701,8 +705,11 @@
         <span class="p">})</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="netan2R_fl"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_fl">[docs]</a><span class="k">def</span> <span class="nf">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;netan2R_fl(netan, org, f)</span>
+
+<div class="viewcode-block" id="netan2R_fl">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_fl">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_fl(netan, org, f)</span>
 <span class="sd">    generate R code for flux and pool part</span>
 <span class="sd">    for more details cf. netan2Rinit()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -842,7 +849,7 @@
 <span class="s2">nm_list$poolall=nm_poolall</span>
 
 <span class="s2"># flux matrix</span>
-<span class="s2">nb_flr=</span><span class="si">%(nb_flr)d</span><span class="s2"></span>
+<span class="s2">nb_flr=</span><span class="si">%(nb_flr)d</span>
 <span class="s2">if (nb_fl) {</span>
 <span class="s2">   Afl=matrix(0, nrow=nb_flr, ncol=nb_fl)</span>
 <span class="s2">    &quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
@@ -1271,8 +1278,11 @@
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;fwrv2i&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">fwrv2i</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;tfallnx&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">tfallnx</span></div>
 
-<div class="viewcode-block" id="netan2R_meas"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_meas">[docs]</a><span class="k">def</span> <span class="nf">netan2R_meas</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;netan2R_meas(netan, org, f)</span>
+
+<div class="viewcode-block" id="netan2R_meas">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_meas">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_meas</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_meas(netan, org, f)</span>
 <span class="sd">    generate code for measure treatment</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># prepare python measures</span>
@@ -1336,7 +1346,7 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">o_sc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">]:</span>
                 <span class="k">continue</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">   # </span><span class="si">%(meas)s</span><span class="s2"></span>
+<span class="s2">   # </span><span class="si">%(meas)s</span>
 <span class="s2">   # initial values for scales are set later</span>
 <span class="s2">   param=c(param,</span><span class="si">%(sc)s</span><span class="s2">)</span>
 <span class="s2">   nm_par=c(nm_par,c(</span><span class="si">%(sc_names)s</span><span class="s2">))</span>
@@ -1365,7 +1375,7 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ir2isc</span><span class="p">[</span><span class="n">ili</span><span class="p">][</span><span class="n">meas</span><span class="p">]:</span>
                 <span class="k">continue</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">   # </span><span class="si">%(iexp)d</span><span class="s2">:</span><span class="si">%(meas)s</span><span class="s2"></span>
+<span class="s2">   # </span><span class="si">%(iexp)d</span><span class="s2">:</span><span class="si">%(meas)s</span>
 <span class="s2">   ir2isc[[</span><span class="si">%(iexp)d</span><span class="s2">]]=c(ir2isc[[</span><span class="si">%(iexp)d</span><span class="s2">]],c(</span><span class="si">%(ir2isc)s</span><span class="s2">))</span>
 <span class="s2">&quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">{</span>
         <span class="s2">&quot;iexp&quot;</span><span class="p">:</span> <span class="n">ili</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
@@ -1624,7 +1634,10 @@
         <span class="s2">&quot;imcumo2i&quot;</span><span class="p">:</span> <span class="n">imcumo2i</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="netan2R_rcumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2R_rcumo">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># prepare reduced python systems</span>
     <span class="c1">#rAb=C13_ftbl.rcumo_sys(netan, emu)</span>
     <span class="c1">#raise Exception(&quot;iso2emu&quot;)</span>
@@ -1667,7 +1680,7 @@
     <span class="c1"># write R constants and names</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2"># weight count</span>
-<span class="s2">nb_rw=</span><span class="si">%(nb_rw)d</span><span class="s2"></span>
+<span class="s2">nb_rw=</span><span class="si">%(nb_rw)d</span>
 <span class="s2"># cumomer count by weight</span>
 <span class="s2">nb_rcumos=c(</span><span class="si">%(nb_rc)s</span><span class="s2">)</span>
 <span class="s2">nbc_rcumos=c(0, cumsum(nb_rcumos))</span>
@@ -1697,8 +1710,11 @@
         <span class="s2">&quot;rAb&quot;</span><span class="p">:</span> <span class="n">rAb</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="netan2R_cumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_cumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;netan2R_cumo(netan, org, f)-&gt;dict</span>
+
+<div class="viewcode-block" id="netan2R_cumo">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_cumo">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_cumo(netan, org, f)-&gt;dict</span>
 <span class="sd">    generate data structures for full cumomer matrices</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># prepare cumo2i</span>
@@ -1717,7 +1733,7 @@
 <span class="s2">}</span>
 
 <span class="s2"># weight count</span>
-<span class="s2">nb_wf=</span><span class="si">%(nb_w)d</span><span class="s2"></span>
+<span class="s2">nb_wf=</span><span class="si">%(nb_w)d</span>
 
 <span class="s2"># cumomer count by weight</span>
 <span class="s2">nb_cumos=c(</span><span class="si">%(nb_c)s</span><span class="s2">)</span>
@@ -1739,8 +1755,11 @@
         <span class="s2">&quot;cumo2i&quot;</span><span class="p">:</span> <span class="n">cumo2i</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="netan2R_ineq"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_ineq">[docs]</a><span class="k">def</span> <span class="nf">netan2R_ineq</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;netan2R_ineq(netan, org, f)</span>
+
+<div class="viewcode-block" id="netan2R_ineq">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_ineq">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_ineq</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_ineq(netan, org, f)</span>
 <span class="sd">    generate inequality code</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># ex: netan[&quot;flux_inequal&quot;]</span>
@@ -1756,7 +1775,7 @@
 <span class="s2"># prepare mi matrix and li vector</span>
 <span class="s2"># such that mi*fallnx&gt;=li corresponds</span>
 <span class="s2"># to the inequalities given in ftbl file</span>
-<span class="s2">nb_ineq=</span><span class="si">%(nb_ineq)s</span><span class="s2"></span>
+<span class="s2">nb_ineq=</span><span class="si">%(nb_ineq)s</span>
 <span class="s2">mi=matrix(0., nrow=nb_ineq, ncol=nb_fallnx)</span>
 <span class="s2">li=numeric(nb_ineq)</span>
 <span class="s2">nm_i=c(c(</span><span class="si">%(nm_in)s</span><span class="s2">), c(</span><span class="si">%(nm_ix)s</span><span class="s2">))</span>
@@ -1982,7 +2001,7 @@
             <span class="n">st</span><span class="o">=</span><span class="n">st</span><span class="o">+</span><span class="s2">&quot;&quot;&quot;   &quot;</span><span class="si">%d</span><span class="s2">&quot;, &quot;</span><span class="si">%s</span><span class="s2">&quot;, &quot;</span><span class="si">%g</span><span class="s2">&quot;, &quot;</span><span class="si">%g</span><span class="s2">&quot;, &quot;</span><span class="si">%s</span><span class="s2">&quot;,</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
             <span class="n">rhs</span><span class="o">=</span><span class="mf">0.</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span><span class="si">%s</span><span class="s2"></span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span><span class="si">%s</span>
 <span class="s2">)</span>
 <span class="s2">if (length(uip_ind) &gt; 0) {</span>
 <span class="s2">   uip_ind=matrix(uip_ind, byrow=TRUE, ncol=5L)</span>
@@ -2085,7 +2104,7 @@
             <span class="n">st</span><span class="o">=</span><span class="n">st</span><span class="o">+</span><span class="s2">&quot;&quot;&quot;   &quot;</span><span class="si">%d</span><span class="s2">&quot;, &quot;</span><span class="si">%s</span><span class="s2">&quot;, &quot;</span><span class="si">%g</span><span class="s2">&quot;, &quot;</span><span class="si">%g</span><span class="s2">&quot;, &quot;</span><span class="si">%s</span><span class="s2">&quot;,</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
             <span class="n">rhs</span><span class="o">=</span><span class="mf">0.</span>
-    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span><span class="si">%s</span><span class="s2"></span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span><span class="si">%s</span>
 <span class="s2">)</span>
 <span class="s2">if (length(ep_ind) &gt; 0) {</span>
 <span class="s2">   ep_ind=matrix(ep_ind, byrow=TRUE, ncol=5L)</span>
@@ -2114,6 +2133,7 @@
 <span class="s2">ep=as.matrix(ep)</span>
 <span class="s2">names(cp)=rownames(ep)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span></div>
+
 </pre></div>
 
             <div class="clearer"></div>
@@ -2131,7 +2151,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2151,8 +2171,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>
