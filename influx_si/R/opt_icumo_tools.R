@@ -694,7 +694,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=1.e-7) { #sqrt(.Mach
          }
          if (any(ibad <- is.na(suppressWarnings(as.double(v))))) {
             ibad=which(ibad)[1L]
-            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a non numeric value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
+            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a non numeric value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
          }
          if (length(v) == 0L)
 			stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' has no data from R expression '", format(rcode[[1L]]), "'.", file=fcerr)
@@ -704,11 +704,11 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=1.e-7) { #sqrt(.Mach
          v[v > 1. & v <= 1.+tol]=1.
          if (any(ibad <- v < 0.)) {
             ibad=which(ibad)[1L]
-            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a negative value at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
+            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a negative value at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
          }
          if (any(ibad <- v > 1.)) {
             ibad=which(ibad)[1L]
-            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a value > 1 at t=", t[ibad], ": '", v[ibad], "'.", file=fcerr)
+            stop_mes("Input label '", met, "#", nm_iso, "' from '", fname, "' produced a value > 1 at t=", tp[ibad], ": '", v[ibad], "'.", file=fcerr)
          }
          v
       })
