@@ -124,7 +124,6 @@ def main(argv=sys.argv[1:], wout=sys.stdout.write, werr=sys.stderr.write):
     dirbin=os.path.join(os.path.dirname(influx_si.__file__), "bin")
     sys.path.append(dirbin)
 
-
     def usage():
         sys.stderr.write("usage: "+me+" [-h|--help] [--fullsys] [--emu] [--clownr] [--tblimit[=0]] [--ropts ROPTS] network_name[.ftbl]\n")
 
@@ -837,6 +836,9 @@ for (irun in seq_len(nseries)) {
    # set tolerance for inequality
    tol_ineq=if ("BFGS" %in% methods) 0. else 1.e-10
    nbad=sum(ineq <= -tol_ineq)
+   if (anyNA(param))
+      stop_mes("NA found in initial 'param' values:\n\t",
+      paste0(apply(cbind(nm_par, param), 1, paste0, collapse="\t"), collapse="\n\t"))
    if (nbad > 0) {
       if (TIMEIT) {
          cat(sprintf("put_ins : %s cpu=%g\n", format(Sys.time()), proc.time()[1]), "\n", sep="", file=fclog)
@@ -1016,6 +1018,9 @@ for (irun in seq_len(nseries)) {
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
    nbad=sum(abs(ineq)<=tol_ineq)
+   if (anyNA(param))
+      stop_mes("NA introduced in 'param' values during scaling factor estimation:\n\t",
+      paste0(apply(cbind(nm_par, param), 1, paste0, collapse="\t"), collapse="\n\t"))
    if (nbad > 0) {
       cat("The following ", nbad, " ineqalitie(s) are active at starting point", runsuf, ":\\n",
          paste(names(ineq[abs(ineq)<=tol_ineq]), collapse="\\n"), "\\n", sep="", file=fclog)

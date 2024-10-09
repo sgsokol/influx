@@ -1019,7 +1019,7 @@ if (ffguess) {
    nm_ff=c(nm_ffn, nm_ffx)
    p2bfl=p2bfl[, nm_ff, drop=FALSE]
    
-   # remake param vector
+   # re-init param vector
    if (!fdfit)
       param=c(runif(length(nm_ff)), if (nb_ff == 0) param else param[-seq_len(nb_ff)])
    names(param)[seq(along=nm_ff)]=nm_ff

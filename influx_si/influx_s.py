@@ -5,7 +5,7 @@
 #import pdb
 #print(("n=", __name__))
 
-import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat
+import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat, shutil
 import argparse
 #from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count, Process, SimpleQueue as Queue
@@ -441,7 +441,7 @@ Call influx_s.main(["-h"]) for a help message"""
     if dict_opts["install_rdep"]:
         do_exit=True
         if os.name == 'nt':
-            p=subp.Popen(["Rterm", "--ess", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr)
+            p=subp.Popen([shutil.which("Rterm"), "--ess", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr)
             p.stdin.write(("source('"+"/".join(dirinst.split(os.path.sep)+["R", "upd_deps.R"])+"')\n").encode())
             p.stdin.flush()
             import msvcrt
@@ -458,7 +458,7 @@ Call influx_s.main(["-h"]) for a help message"""
                     p.stdin.flush()
                 time.sleep(0.1)
         else:
-            p=subp.Popen(["R", "--interactive", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
+            p=subp.Popen([shutil.which("R"), "--interactive", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
             p.stdin.write(("source('"+os.path.join(dirinst, "R", "upd_deps.R")+"')\n").encode())
             p.stdin.flush()
             import select
@@ -654,12 +654,16 @@ Call influx_s.main(["-h"]) for a help message"""
         }
         # build dyn lib
         nodes=%(np)d
-        type="PSOCK"
-        cl=makeCluster(nodes, type)
-        clusterExport(cl, c("dirres", "doit"))
         flist=c(%(flist)s)
-        retcode=max(abs(parSapply(cl, suppressWarnings(split(flist, seq_len(nodes))), vdoit)))
-        stopCluster(cl)
+        if (nodes > 1L || nodes == 0L) {
+            type="PSOCK"
+            cl=makeCluster(nodes, type)
+            clusterExport(cl, c("dirres", "doit"))
+            retcode=max(abs(parSapply(cl, suppressWarnings(split(flist, seq_len(nodes))), vdoit)))
+            stopCluster(cl)
+        } else {
+            retcode=max(abs(sapply(flist, doit)))
+        }
         q("no", status=retcode)
         """%{
             "np": min(np, len([fr for fr,noc in rfiles if not noc])),
@@ -671,18 +675,19 @@ Call influx_s.main(["-h"]) for a help message"""
             # execute R code on cluster
             s="//calcul:  "+now_s()+"\n"
             sys.stdout.write(s)
-            rcmd="R --vanilla --slave"
+            rcmd="--vanilla --slave"
             #import pdb; pdb.set_trace()
-            sp=subp.Popen(rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
+            sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
             try:
                 out,err=sp.communicate()
                 err=err.decode()
                 if err:
                     sys.stderr.write("***Warning: 'parallel.R' produced the following warnings:\n"+err+"\n")
+                retcode=sp.returncode
             except KeyboardInterrupt:
                 os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
                 err="Keyboard interupt"
-            retcode=sp.returncode
+                retcode=1
             if retcode != 0:
                 sys.stderr.write("Error: parallel.R aborted with:\n"+err+"\n")
             # end up writing
@@ -722,7 +727,7 @@ Call influx_s.main(["-h"]) for a help message"""
         # execute only one R code
         if not retcode and rfiles and not dict_opts["nocalc"]:
             f=rfiles[0][0][:-2]
-            rcmd="R --vanilla --slave"
+            rcmd="--vanilla --slave"
             #rarg=f"source('{rfiles[0][0]}',echo=FALSE)"
             if flog:
                 with flog.open("a") as flp: flp.write("executing: "+rcmd+' < '+rfiles[0][0]+'"\n')
@@ -730,7 +735,7 @@ Call influx_s.main(["-h"]) for a help message"""
             sys.stdout.write(s)
             if flog:
                 with flog.open("a") as flp: flp.write(s)
-            sp=subp.Popen(rcmd.split(), stdin=open(rfiles[0][0], "r"), stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
+            sp=subp.Popen([shutil.which("R")] + rcmd.split(), stdin=open(rfiles[0][0], "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
             try:
                 out,err=sp.communicate()
                 err=err.decode()
@@ -740,10 +745,11 @@ Call influx_s.main(["-h"]) for a help message"""
                             fc.write("***Warning: '"+rfiles[0][0]+"' produced the following warnings:\n"+err+"\n")
                     else:
                         sys.stderr.write("***Warning: '"+rfiles[0][0]+"' produced the following warnings:\n"+err+"\n")
+                retcode=sp.returncode
             except KeyboardInterrupt:
                 os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
                 err="Keyboard interupt"
-            retcode=sp.returncode
+                retcode=1
             if retcode != 0 and err:
                     if fpe:
                         with fpe.open("a") as fc:

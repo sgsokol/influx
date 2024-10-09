@@ -1441,8 +1441,11 @@ is the argument value that will take precedence.
                 if li:
                     mtf[suf]=str(li[0])
                     nfound += 1
+            #print("nfound=", nfound)
             if nfound == 0:
                 werr("No MTF file found with prefix '%s'"%a)
+            if not "netw" in mtf:
+                werr("No .netw file found with prefix '%s'"%a)
     if "vmtf" in mtf and "ftbl" in mtf:
         werr("'ftbl' and 'vmtf' cannot be simultaneously present in '--mtf' option")
     if netw:
@@ -1455,7 +1458,8 @@ is the argument value that will take precedence.
         if mtf["netw"] == "-":
             mtf["netw"]=sys.stdin
         else:
-            mtf["netw"]=Path(mtf["netw"])
+            mtf["netw"]=Path(mtf["netw"])        
+        
     # what kind of output we have?
     if "ftbl" in mtf:
         p=Path(mtf["ftbl"])
@@ -1548,7 +1552,8 @@ is the argument value that will take precedence.
     if dftbl is not None:
         # add dftbl to all fields in vmtf
         vdf[vdf != ""]=[dftbl/v for v in vdf[vdf != ""].values.flatten() if v == v]
-    if (np == 1):
+    #print("len=", len(vdf))
+    if np == 1 or len(vdf) == 1:
         z=list()
         for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
             z.append(work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred))
