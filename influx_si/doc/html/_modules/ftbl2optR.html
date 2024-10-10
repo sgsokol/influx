@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ftbl2optR &#8212; influx_si 7.0 documentation</title>
+    <title>ftbl2optR &#8212; influx_si 7.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="../_static/documentation_options.js?v=a9520c2f"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2optR</a></li> 
       </ul>
@@ -163,7 +163,6 @@
     <span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
     <span class="n">dirbin</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">influx_si</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;bin&quot;</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirbin</span><span class="p">)</span>
-
 
     <span class="k">def</span> <span class="nf">usage</span><span class="p">():</span>
         <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;usage: &quot;</span><span class="o">+</span><span class="n">me</span><span class="o">+</span><span class="s2">&quot; [-h|--help] [--fullsys] [--emu] [--clownr] [--tblimit[=0]] [--ropts ROPTS] network_name[.ftbl]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -877,6 +876,9 @@
 <span class="s2">   # set tolerance for inequality</span>
 <span class="s2">   tol_ineq=if (&quot;BFGS&quot; </span><span class="si">%i</span><span class="s2">n% methods) 0. else 1.e-10</span>
 <span class="s2">   nbad=sum(ineq &lt;= -tol_ineq)</span>
+<span class="s2">   if (anyNA(param))</span>
+<span class="s2">      stop_mes(&quot;NA found in initial &#39;param&#39; values:\n\t&quot;,</span>
+<span class="s2">      paste0(apply(cbind(nm_par, param), 1, paste0, collapse=&quot;\t&quot;), collapse=&quot;\n\t&quot;))</span>
 <span class="s2">   if (nbad &gt; 0) {</span>
 <span class="s2">      if (TIMEIT) {</span>
 <span class="s2">         cat(sprintf(&quot;put_ins : </span><span class="si">%s</span><span class="s2"> cpu=</span><span class="si">%g</span><span class="s2">\n&quot;, format(Sys.time()), proc.time()[1]), &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
@@ -1056,6 +1058,9 @@
 <span class="s2">   ineq=as.numeric(ui</span><span class="si">%*%</span><span class="s2">param-ci)</span>
 <span class="s2">   names(ineq)=rownames(ui)</span>
 <span class="s2">   nbad=sum(abs(ineq)&lt;=tol_ineq)</span>
+<span class="s2">   if (anyNA(param))</span>
+<span class="s2">      stop_mes(&quot;NA introduced in &#39;param&#39; values during scaling factor estimation:</span><span class="se">\n\t</span><span class="s2">&quot;,</span>
+<span class="s2">      paste0(apply(cbind(nm_par, param), 1, paste0, collapse=&quot;</span><span class="se">\t</span><span class="s2">&quot;), collapse=&quot;</span><span class="se">\n\t</span><span class="s2">&quot;))</span>
 <span class="s2">   if (nbad &gt; 0) {</span>
 <span class="s2">      cat(&quot;The following &quot;, nbad, &quot; ineqalitie(s) are active at starting point&quot;, runsuf, &quot;:</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">         paste(names(ineq[abs(ineq)&lt;=tol_ineq]), collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
@@ -2193,7 +2198,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2optR</a></li> 
       </ul>

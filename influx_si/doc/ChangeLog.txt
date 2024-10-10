@@ -6,11 +6,13 @@ Change Log for influx_si
 ------------------------
 New features:
  - funlab(): accelerated calculation of labeling input varying in time
- - parallel.R now launches no more than `np` simultaneous jobs
  - if many .R files are executed in parallel, Monte-Carlo simulations are done sequentially
  - CTRL-C interrupts the main program but also all R subprocesses
  - unexpected but possible R warnings are now logged at the end of .log file or witten to stderr for parallel calculations
  - txt2ftbl can produce multiple output files in parallel.
+ - python 3.5+ is required
+ - file parallel.R is no more written on disk
+ - parallel R now launches no more than `np` simultaneous jobs
  
 Bug fix:
  - plot_ilab: fixed incomplete name list when only one metabolite is in list

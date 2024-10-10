@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Change Log for influx_si &#8212; influx_si 7.0 documentation</title>
+    <title>Change Log for influx_si &#8212; influx_si 7.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=514cf933" />
     
-    <script src="_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="_static/documentation_options.js?v=a9520c2f"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -34,7 +34,7 @@
         <li class="right" >
           <a href="intro.html" title="Introduction"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.1 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Change Log for influx_si</a></li> 
       </ul>
     </div>  
@@ -47,14 +47,17 @@
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Link to this heading">¶</a></h1>
 <section id="version-7-1-0">
-<h2>2024-10-01 version 7.1.0<a class="headerlink" href="#version-7-1-0" title="Link to this heading">¶</a></h2>
+<h2>2024-10-10 version 7.1.0<a class="headerlink" href="#version-7-1-0" title="Link to this heading">¶</a></h2>
 <dl class="simple">
 <dt>New features:</dt><dd><ul class="simple">
 <li><p>funlab(): accelerated calculation of labeling input varying in time</p></li>
-<li><p>parallel.R now launches no more than <cite>np</cite> simultaneous jobs</p></li>
-<li><p>if many .R files are executed in parallel way, Monte-Carlo simulations are done sequentially</p></li>
+<li><p>if many .R files are executed in parallel, Monte-Carlo simulations are done sequentially</p></li>
 <li><p>CTRL-C interrupts the main program but also all R subprocesses</p></li>
 <li><p>unexpected but possible R warnings are now logged at the end of .log file or witten to stderr for parallel calculations</p></li>
+<li><p>txt2ftbl can produce multiple output files in parallel.</p></li>
+<li><p>python 3.5+ is required</p></li>
+<li><p>file parallel.R is no more written on disk</p></li>
+<li><p>parallel R now launches no more than <cite>np</cite> simultaneous jobs</p></li>
 </ul>
 </dd>
 <dt>Bug fix:</dt><dd><ul class="simple">
@@ -65,7 +68,8 @@
 <li><p>linterp(): error message about time point being outside of knot range is made more explicit (reported by Younes Dellero, INRAE, France)</p></li>
 <li><p>fixed error message about dynamic labeling summing up to a value less than 1</p></li>
 <li><p>the first line in .log file now reports actual arguments of influx_si even if it is called as python module (seen in case of Rochelle Kouakou, INSA/TBI, France)</p></li>
-<li><p>a fatal error with R process in now logged to .err file</p></li>
+<li><p>a fatal error in R process in now logged to .err file</p></li>
+<li><p>fixed usage of Python Queue which could hang on big objects</p></li>
 </ul>
 </dd>
 </dl>
@@ -923,7 +927,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
-<li><a class="reference internal" href="#version-7-1-0">2024-10-01 version 7.1.0</a></li>
+<li><a class="reference internal" href="#version-7-1-0">2024-10-10 version 7.1.0</a></li>
 <li><a class="reference internal" href="#version-7-0-4">2024-05-17 version 7.0.4</a></li>
 <li><a class="reference internal" href="#version-7-0-3">2024-03-13 version 7.0.3</a></li>
 <li><a class="reference internal" href="#version-7-0-2">2024-02-29 version 7.0.2</a></li>
@@ -1024,7 +1028,7 @@ all fluxes are free or constrained;</p></li>
         <li class="right" >
           <a href="intro.html" title="Introduction"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.1 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Change Log for influx_si</a></li> 
       </ul>
     </div>
