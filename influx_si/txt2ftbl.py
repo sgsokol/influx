@@ -19,7 +19,7 @@ import argparse
 import datetime as dt
 from scipy import linalg
 from numpy import diag
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 vsadd=np.core.defchararray.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict
@@ -1262,7 +1262,7 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
         def_written.add(p)
     return (res_ftbl, prl_ftbl)
 
-def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None, np=None):
+def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
     """translate MTF file(s) to FTBL format
     :param argv: list of CLI options and their arguments
     :param res_ftbl: if not None, a list of produced FTBL files. In case of parallel experiments, only main FTBL are returned in this list
@@ -1381,6 +1381,12 @@ Created by 'txt2ftbl" at the first line of the file. By removing or
 editing this comment, user can protect a file from a silent 
 overwriting.
 """)
+        parser.add_argument("--np", type=float, help=
+"""When integer >= 1, it is a number of parallel subprocesses for 
+multiple FTBL outputs. When NP is a float number between 0 and 1, it 
+gives a fraction of available cores (rounded to closest integer) to be 
+used. Without this option or for NP=0, all available cores in a given 
+node are used.""")
         parser.add_argument("netw", default="", nargs="?", help="""
 If 'netw' file is not given in any option (neither --mtf nor --prefix), it 
 can be given as the only argument NETW, e.g.
@@ -1404,6 +1410,15 @@ is the argument value that will take precedence.
     force=opts.force
     netw=opts.netw
     case_i=opts.inst
+    np=opts.np
+    avaco=cpu_count()
+    if np and np > 0 and np < 1:
+        np=int(round(np*avaco))
+    elif np and np >= 1:
+        np=int(round(np))
+    else:
+        np=avaco
+
     for o,a in ord_args:
         if o == "mtf":
             # make dict {"miso": <file_path>, "netw": ...}

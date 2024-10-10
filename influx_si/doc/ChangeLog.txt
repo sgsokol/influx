@@ -2,7 +2,7 @@
 Change Log for influx_si
 ========================
 
-2024-10-01 version 7.1.0
+2024-10-10 version 7.1.0
 ------------------------
 New features:
  - funlab(): accelerated calculation of labeling input varying in time
@@ -10,6 +10,7 @@ New features:
  - if many .R files are executed in parallel, Monte-Carlo simulations are done sequentially
  - CTRL-C interrupts the main program but also all R subprocesses
  - unexpected but possible R warnings are now logged at the end of .log file or witten to stderr for parallel calculations
+ - txt2ftbl can produce multiple output files in parallel.
  
 Bug fix:
  - plot_ilab: fixed incomplete name list when only one metabolite is in list
@@ -20,6 +21,7 @@ Bug fix:
  - fixed error message about dynamic labeling summing up to a value less than 1
  - the first line in .log file now reports actual arguments of influx_si even if it is called as python module (seen in case of Rochelle Kouakou, INSA/TBI, France)
  - a fatal error in R process in now logged to .err file
+ - fixed usage of Python Queue which could hang on big objects
 
 2024-05-17 version 7.0.4
 ------------------------

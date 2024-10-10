@@ -53,16 +53,16 @@ class pvalAction(argparse.Action):
             setattr(namespace, self.dest, val)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
-def qworker(q, qret, qres, DEBUG=False):
+def qworker(q, qret, qres, wdict):
     while True:
         item=q.get()
         #print("item=", item)
         try:
-            retcode=launch_job(qres, **item)
+            retcode=launch_job(qres, **item, **wdict)
         except Exception as e:
             traceback.print_exc()
             sys.stderr.write("Error: launch_job: "+"%s\n"%str(e)+"\n")
-            if DEBUG:
+            if wdict["DEBUG"]:
                 sys.stderr.write(("".join(traceback.format_exc())) + "\n")
                 import pdb #; pdb.set_trace()
                 extype, value, tb = sys.exc_info()
@@ -517,7 +517,7 @@ Call influx_s.main(["-h"]) for a help message"""
             for t in ord_args:
                 tmp_ftbl=[]
                 try:
-                    txt2ftbl.main(mtf_opts+list(t), tmp_ftbl, prl_ftbl, np)
+                    txt2ftbl.main(mtf_opts+list(t)+("" if np is None else "--np "+str(np)), tmp_ftbl, prl_ftbl)
                 except Exception as e:
                     #pdb.set_trace()
                     ferr.write(("".join(traceback.format_exc())) + "\n")
@@ -568,10 +568,14 @@ Call influx_s.main(["-h"]) for a help message"""
     qret=Queue() # returned code from workers
 
     parproc=[]
+    (cmd_opts, cmd_args) = (opts, args)
+    nb_ftbl=len(args)
+    parR=len(args) > 1
+    # worker dict
+    wdict={"cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
     if not DEBUG and min(np, len(args)) > 1:
         for i in range(min(np, len(args))):
-            #t=Thread(target=qworker, args=(q, qret))
-            t=Process(target=qworker, args=(q, qret, qres))
+            t=Process(target=qworker, args=(q, qret, qres, wdict))
             t.daemon=True
             t.start()
             parproc.append(t)
@@ -587,7 +591,7 @@ Call influx_s.main(["-h"]) for a help message"""
         f=ft[:-5]
         fshort="" if len(args) == 1 else Path(ft).stem+": "
 
-        item={"ft": ft, "fshort": fshort, "cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
+        item={"ft": ft, "fshort": fshort}
         q.put(item)
     if not ftpr:
         return 1
@@ -595,7 +599,7 @@ Call influx_s.main(["-h"]) for a help message"""
     # launch workers
     #import pdb; pdb.set_trace()
     if DEBUG or min(np, len(args)) == 1:
-        qworker(q, qret, qres, DEBUG)
+        qworker(q, qret, qres, wdict)
     else:
         for t in parproc:
             t.join() # wait the end of //-jobs
@@ -677,7 +681,10 @@ Call influx_s.main(["-h"]) for a help message"""
             sys.stdout.write(s)
             rcmd="--vanilla --slave"
             #import pdb; pdb.set_trace()
-            sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
+            if os.name == "nt":
+                sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
+            else:
+                sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
             try:
                 out,err=sp.communicate()
                 err=err.decode()
@@ -685,7 +692,11 @@ Call influx_s.main(["-h"]) for a help message"""
                     sys.stderr.write("***Warning: 'parallel.R' produced the following warnings:\n"+err+"\n")
                 retcode=sp.returncode
             except KeyboardInterrupt:
-                os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
+                if os.name == "nt":
+                    sp.kill()
+                    #Popen("TASKKILL /F /PID {pid} /T".format(pid=sp.pid))
+                else:
+                    os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
                 err="Keyboard interupt"
                 retcode=1
             if retcode != 0:
@@ -776,6 +787,6 @@ Call influx_s.main(["-h"]) for a help message"""
 if __name__ == "__main__":
     #import cProfile
     #print("influx_si is running with profiler")
-    #print(influx_si.__file__)
+    #print("me=", influx_si.__file__)
     #sys.exit(cProfile.run("main()", "/home-local/sokol/tmp/influx_si.stats"))
     sys.exit(main())
