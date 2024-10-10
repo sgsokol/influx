@@ -19,6 +19,7 @@ setup(
    packages=['influx_si'],
    package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', f'../test_cases/test_report_{version}.txt', '../test_cases/cases_influx_si-v*.tab']},
    include_package_data=True,
+   python_requires='>3.5',
    install_requires=['scipy', 'python-libsbml', 'pandas', 'kvh'],
    scripts=[
       'influx_si/bin/ff2ftbl.py',

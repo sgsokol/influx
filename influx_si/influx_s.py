@@ -619,11 +619,11 @@ Call influx_s.main(["-h"]) for a help message"""
         return 1
     retcode=max(rcodes)
     if len(rfiles) > 1:
-        # write file parallel.R and launch it
+        # prepare R code for parallel calculations and launch it
         # //calcul on cluster
         if not retcode and not dict_opts["nocalc"]:
-            fpar=open("parallel.R", "w")
-            fpar.write("""
+            #fpar=open("parallel.R", "w")
+            spar="""
         suppressPackageStartupMessages(library(parallel))
         dirx="%(dirx)s"
         dirres="%(dirres)s" # can be "default" or empty
@@ -674,22 +674,24 @@ Call influx_s.main(["-h"]) for a help message"""
             "flist": myjoin(", ", ('"'+f.replace(os.path.sep, "/")+'"' for f,noc in rfiles if not noc), width=80),
             "dirx": os.path.join(dirinst, "R").replace(os.path.sep, "/"),
             "dirres": dirres
-            })
-            fpar.close()
+            }
+            #fpar.close()
             # execute R code on cluster
             s="//calcul:  "+now_s()+"\n"
             sys.stdout.write(s)
             rcmd="--vanilla --slave"
             #import pdb; pdb.set_trace()
             if os.name == "nt":
-                sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
+                sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=subp.PIPE, stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
             else:
-                sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=open(fpar.name, "r"), stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
+                sp=subp.Popen([shutil.which("R")]+rcmd.split(), stdin=subp.PIPE, stdout=subp.PIPE, stderr=subp.PIPE, preexec_fn=os.setsid)
             try:
+                sp.stdin.write(spar.encode())
+                sp.stdin.flush()
                 out,err=sp.communicate()
                 err=err.decode()
                 if err:
-                    sys.stderr.write("***Warning: 'parallel.R' produced the following warnings:\n"+err+"\n")
+                    sys.stderr.write("***Warning: parallel R produced the following warnings:\n"+err+"\n")
                 retcode=sp.returncode
             except KeyboardInterrupt:
                 if os.name == "nt":
@@ -700,7 +702,7 @@ Call influx_s.main(["-h"]) for a help message"""
                 err="Keyboard interupt"
                 retcode=1
             if retcode != 0:
-                sys.stderr.write("Error: parallel.R aborted with:\n"+err+"\n")
+                sys.stderr.write("Error: parallel R aborted with:\n"+err+"\n")
             # end up writing
             s="//end   : "+now_s()+"\n"
             sys.stdout.write(s)
