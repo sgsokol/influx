@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>txt2ftbl &#8212; influx_si 7.0 documentation</title>
+    <title>txt2ftbl &#8212; influx_si 7.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="../_static/documentation_options.js?v=a9520c2f"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">txt2ftbl</a></li> 
       </ul>
@@ -57,7 +57,7 @@
 <span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dt</span>
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">linalg</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">diag</span>
-<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span><span class="p">,</span> <span class="n">cpu_count</span>
 <span class="n">vsadd</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">defchararray</span><span class="o">.</span><span class="n">add</span> <span class="c1"># vector string add</span>
 <span class="kn">import</span> <span class="nn">influx_si</span>
 <span class="kn">from</span> <span class="nn">C13_ftbl</span> <span class="kn">import</span> <span class="n">formula2dict</span>
@@ -1368,7 +1368,7 @@
 
 <div class="viewcode-block" id="main">
 <a class="viewcode-back" href="../progdoc.html#txt2ftbl.main">[docs]</a>
-<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">res_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prl_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">np</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">res_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prl_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;translate MTF file(s) to FTBL format</span>
 <span class="sd">    :param argv: list of CLI options and their arguments</span>
 <span class="sd">    :param res_ftbl: if not None, a list of produced FTBL files. In case of parallel experiments, only main FTBL are returned in this list</span>
@@ -1487,6 +1487,12 @@
 <span class="sd">editing this comment, user can protect a file from a silent </span>
 <span class="sd">overwriting.</span>
 <span class="sd">&quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--np&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span>
+<span class="sd">&quot;&quot;&quot;When integer &gt;= 1, it is a number of parallel subprocesses for </span>
+<span class="sd">multiple FTBL outputs. When NP is a float number between 0 and 1, it </span>
+<span class="sd">gives a fraction of available cores (rounded to closest integer) to be </span>
+<span class="sd">used. Without this option or for NP=0, all available cores in a given </span>
+<span class="sd">node are used.&quot;&quot;&quot;</span><span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;netw&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">If &#39;netw&#39; file is not given in any option (neither --mtf nor --prefix), it </span>
 <span class="s2">can be given as the only argument NETW, e.g.</span>
@@ -1510,6 +1516,15 @@
     <span class="n">force</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">force</span>
     <span class="n">netw</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">netw</span>
     <span class="n">case_i</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">inst</span>
+    <span class="n">np</span><span class="o">=</span><span class="n">opts</span><span class="o">.</span><span class="n">np</span>
+    <span class="n">avaco</span><span class="o">=</span><span class="n">cpu_count</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">np</span> <span class="ow">and</span> <span class="n">np</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="o">*</span><span class="n">avaco</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">np</span> <span class="ow">and</span> <span class="n">np</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">=</span><span class="n">avaco</span>
+
     <span class="k">for</span> <span class="n">o</span><span class="p">,</span><span class="n">a</span> <span class="ow">in</span> <span class="n">ord_args</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">o</span> <span class="o">==</span> <span class="s2">&quot;mtf&quot;</span><span class="p">:</span>
             <span class="c1"># make dict {&quot;miso&quot;: &lt;file_path&gt;, &quot;netw&quot;: ...}</span>
@@ -1547,8 +1562,11 @@
                 <span class="k">if</span> <span class="n">li</span><span class="p">:</span>
                     <span class="n">mtf</span><span class="p">[</span><span class="n">suf</span><span class="p">]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                     <span class="n">nfound</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1">#print(&quot;nfound=&quot;, nfound)</span>
             <span class="k">if</span> <span class="n">nfound</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;No MTF file found with prefix &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="o">%</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="s2">&quot;netw&quot;</span> <span class="ow">in</span> <span class="n">mtf</span><span class="p">:</span>
+                <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;No .netw file found with prefix &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="o">%</span><span class="n">a</span><span class="p">)</span>
     <span class="k">if</span> <span class="s2">&quot;vmtf&quot;</span> <span class="ow">in</span> <span class="n">mtf</span> <span class="ow">and</span> <span class="s2">&quot;ftbl&quot;</span> <span class="ow">in</span> <span class="n">mtf</span><span class="p">:</span>
         <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;&#39;ftbl&#39; and &#39;vmtf&#39; cannot be simultaneously present in &#39;--mtf&#39; option&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">netw</span><span class="p">:</span>
@@ -1561,7 +1579,8 @@
         <span class="k">if</span> <span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;netw&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span>
             <span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;netw&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdin</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;netw&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;netw&quot;</span><span class="p">])</span>
+            <span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;netw&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;netw&quot;</span><span class="p">])</span>        
+        
     <span class="c1"># what kind of output we have?</span>
     <span class="k">if</span> <span class="s2">&quot;ftbl&quot;</span> <span class="ow">in</span> <span class="n">mtf</span><span class="p">:</span>
         <span class="n">p</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">mtf</span><span class="p">[</span><span class="s2">&quot;ftbl&quot;</span><span class="p">])</span>
@@ -1654,7 +1673,8 @@
     <span class="k">if</span> <span class="n">dftbl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># add dftbl to all fields in vmtf</span>
         <span class="n">vdf</span><span class="p">[</span><span class="n">vdf</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">]</span><span class="o">=</span><span class="p">[</span><span class="n">dftbl</span><span class="o">/</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vdf</span><span class="p">[</span><span class="n">vdf</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="n">v</span><span class="p">]</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">np</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="c1">#print(&quot;len=&quot;, len(vdf))</span>
+    <span class="k">if</span> <span class="n">np</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">vdf</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">z</span><span class="o">=</span><span class="nb">list</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">ftbl</span><span class="p">,</span><span class="n">ligr</span> <span class="ow">in</span> <span class="n">vdf</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;ftbl&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">work_compile</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">ligr</span><span class="p">,</span> <span class="n">vdf</span><span class="p">,</span> <span class="n">mtf</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">prl</span><span class="p">,</span> <span class="n">scre</span><span class="p">,</span> <span class="n">scred</span><span class="p">))</span>
@@ -1702,7 +1722,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">txt2ftbl</a></li> 
       </ul>

@@ -517,7 +517,7 @@ Call influx_s.main(["-h"]) for a help message"""
             for t in ord_args:
                 tmp_ftbl=[]
                 try:
-                    txt2ftbl.main(mtf_opts+list(t)+("" if np is None else "--np "+str(np)), tmp_ftbl, prl_ftbl)
+                    txt2ftbl.main(mtf_opts+list(t)+([] if np is None else ["--np", str(np)]), tmp_ftbl, prl_ftbl)
                 except Exception as e:
                     #pdb.set_trace()
                     ferr.write(("".join(traceback.format_exc())) + "\n")
