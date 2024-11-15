@@ -2,11 +2,15 @@
 Change Log for influx_si
 ========================
 
-2024-11-?? version 7.1.1
+2024-11-?? version 7.2.0
 ------------------------
 New features:
  - txt2ftbl: unnamed columns in .miso are supposed to be empty, if not, an error about wrong column number is signaled
- - txt2ftbl: empty extra columns are ignored (thus a comment in extra column is not breaking the read)
+ - txt2ftbl: empty extra columns are ignored (thus a comment started with a sharp sign '#' in extra column does not break the read)
+ - txt2ftbl: added sanity check on columns: Fragment, Value, SD, Time
+
+Bug fix:
+ - C13_ftbl: replaced eval() calls as unsafe by eval_expr()
 
 2024-10-10 version 7.1.0
 ------------------------

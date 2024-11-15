@@ -22,12 +22,12 @@ from numpy import diag
 from multiprocessing import Pool, cpu_count
 vsadd=np.core.defchararray.add # vector string add
 import influx_si
-from C13_ftbl import formula2dict
+from C13_ftbl import formula2dict, eval_expr
 from tools_ssg import valval
 
 #import pdb
 
-version="1.0"
+version=influx_si.__version__
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
 me="txt2ftbl"
 LOCAL_TIMEZONE=dt.datetime.now(dt.timezone.utc).astimezone().tzinfo
@@ -398,14 +398,35 @@ def parse_miso(fmiso, clen, case_i=False):
         fname=fmiso
     
     fname=os.path.basename(fname)
-    #pdb.set_trace()
+    #import pdb; pdb.set_trace()
     df=tsv2df(fmiso)
-    # validate .miso
-    # check that non emty entries in Time are valid numbers
-    ibad=np.where(pa.to_numeric(df.Time, errors="coerce").isna() & df.Time.str.len() > 0)[0]
-    if len(ibad):
-        werr("parse_miso: Column 'Time' must have numeric values or be emty, got '%s' instead, '%s': %s"%(df.iloc[ibad[0]].Time, fname, df.iloc[ibad[0]].iline))
     
+    # Sanity check of some columns in .miso
+    # column: Time (empty or numeric)
+    # check that non emty entries in Time are valid numbers
+    val=pa.to_numeric(df.Time, errors="coerce")
+    ibad=np.where(val.isna() & df.Time.str.len() > 0)[0]
+    if len(ibad):
+        werr("parse_miso: Column 'Time' must have a numeric value or be emty, got '%s' instead, in '%s': %s"%(df.iloc[ibad[0]].Time, fname, df.iloc[ibad[0]].iline))
+    # column: Value (empty, numeric or python expression giving a float)
+    # check that non emty entries in 'Value' are NA, valid numbers or python expression giving a float
+    #import pdb; pdb.set_trace()
+    val=pa.to_numeric(pa.Series(eval_expr(v) if v else "" for v in df.Value), errors="coerce")
+    ibad=np.where(val.isna() & (df.Value.str.len() > 0) & ~(df.Value.str.lower() == "na"))[0]
+    if len(ibad):
+        werr("parse_miso: Column 'Value' must be one of\n - numeric value\n - python expression evaluationg to float number\n - NA (as not available) or\n - be emty,\ngot '%s' instead, in '%s': %s"%(df.iloc[ibad[0]].Value, fname, df.iloc[ibad[0]].iline))
+    # column: SD (numeric or python expression giving a float)
+    # check that entries in 'SD' are valid numbers or python expressions giving a float
+    #import pdb; pdb.set_trace()
+    val=pa.to_numeric(pa.Series(eval_expr(v) for v in df.SD), errors="coerce")
+    ibad=np.where(val.isna())[0]
+    if len(ibad):
+        werr("parse_miso: Column 'SD' must be one of\n - numeric value\n - python expression evaluationg to float number\ngot '%s' instead, in '%s': %s"%(df.iloc[ibad[0]].SD, fname, df.iloc[ibad[0]].iline))
+    # column: Fragment (either '1,2,4-6' or empty)
+    ibad=np.where([not (len(v) == 0 or v.lower() == "mean" or all(it.isnumeric() or (len(it.split("-")) == 2 and all(subit.isnumeric() for subit in it.split("-"))) for it in v.split(","))) for v in df.Fragment])[0]
+    if len(ibad):
+        werr("parse_miso: Column 'Fragment' must be one of\n - list of integers or intervals '1,2,4-6,9'\n - be emty,\ngot '%s' instead, in '%s': %s"%(df.iloc[ibad[0]].Fragment, fname, df.iloc[ibad[0]].iline))
+    # column: Isospecie is checked in subgroups
     
     res={"ms": [], "lab": [], "peak": []} # 'mean' is transformed into lab
     if len(df) == 0:

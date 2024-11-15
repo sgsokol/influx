@@ -180,6 +180,44 @@ sys.path.append(dirx)
 #sys.tracebacklimit=0
 
 from tools_ssg import *
+
+import ast
+import operator as op
+# supported operators
+operators = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
+             ast.Div: op.truediv, ast.Pow: op.pow, ast.BitXor: op.xor,
+             ast.USub: op.neg, ast.UAdd: op.pos}
+
+def eval_expr(expr):
+    """
+    >>> eval_expr('2^6')
+    4
+    >>> eval_expr('2**6')
+    64
+    >>> eval_expr('1 + 2*3**(4^5) / (6 + -7)')
+    -5.0
+    """
+    try:
+        res=eval_(ast.parse(expr, mode='eval').body)
+    except:
+        res=None
+    return res
+def eval_(node):
+    match node:
+        case ast.Constant(value) if isinstance(value, int):
+            return value  # integer
+        case ast.Constant(value) if isinstance(value, float):
+            return value  # float
+        case ast.BinOp(left, op, right):
+            left=eval_(left)
+            right=eval_(right)
+            return None if (left is None or right is None) else operators[type(op)](left, right)
+        case ast.UnaryOp(op, operand):  # e.g., -1
+            operand=eval_(operand)
+            return None if operand is None else operators[type(op)](operand)
+        case _:
+            return None
+
 NaN=float("nan")
 NA=NaN
 tol=sys.float_info.epsilon*2**7
@@ -429,7 +467,7 @@ def ftbl_parse(f, wout=wout, werr=werr):
                 ftbl["pathway"][pathway]+=[dic["FLUX_NAME"]]
             if sec_name == "FLUXES" and subsec_name in ("NET", "XCH") and dic["FCD"] in ("F", "C"):
                 try:
-                    val=float(eval(dic["VALUE(F/C)"]))
+                    val=float(eval_expr(dic["VALUE(F/C)"]))
                 except:
                     raise Exception("In the field 'VALUE(F/C)', a float value expected (%s: %d)"%(ftbl["name"], irow))
             stock.append(dic)
@@ -589,7 +627,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
     # Isotopomer dynamics and other options
     for row in ftbl.get("OPTIONS",[]):
         try:
-            netan["opt"][row["OPT_NAME"]]=eval(row["OPT_VALUE"])
+            netan["opt"][row["OPT_NAME"]]=eval_expr(row["OPT_VALUE"])
         except:
             netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"]
     #pdb.set_trace()
@@ -597,7 +635,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         metab=row["META_NAME"]
         if metab in netan["met_pools"]:
             raise Exception("Metabolite '%s' is present more than once in the\nftbl secion METABOLITE_POOLS (second appearance on row %s)"%(metab, row["irow"]))
-        netan["met_pools"][metab]=eval(row["META_SIZE"])
+        netan["met_pools"][metab]=eval_expr(row["META_SIZE"])
 
     # check the presence of fields "NAME", "FCD" and maybe "VALUE(F/C)"
     for suf in ["NET", "XCH"]:
@@ -619,7 +657,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         raise Exception("Fluxe(s) '%s' are defined in the FLUX/XCH section but not in the NET one."%join(", ", xch_wo_net))
 
     # quick not reversible reactions for complete subs and prods accounting
-    revreac=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", dict()) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval(row["VALUE(F/C)"]) != 0.)))
+    revreac=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", dict()) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval_expr(row["VALUE(F/C)"]) != 0.)))
     # analyse networks
     netw=ftbl.get("long_reac")
     if not netw:
@@ -857,7 +895,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                 row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es).\nThe equality is ignored as meaningless (%s: %s).\n"%(ftbl["name"], row["irow"]))
             continue
         netan["flux_equal"]["net"].append((
-                eval(row["VALUE"]),
+                eval_expr(row["VALUE"]),
                 dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     # xch fluxes
@@ -872,7 +910,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                 row["VALUE"]+"="+row["FORMULA"]+"' involves only constrained flux(es).\nThe equality is ignored as meaningless (%s: %s).\n"%(ftbl["name"], row["irow"]))
             continue
         netan["flux_equal"]["xch"].append((
-                eval(row["VALUE"]),
+                eval_expr(row["VALUE"]),
                 dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
     netan["eqflux"]=oset(f for row in netan["flux_equal"]["net"] for f in [*row[1].keys()]) | oset(f for row in netan["flux_equal"]["xch"] for f in [*row[1].keys()])
@@ -892,7 +930,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         if nb_neg==0:
             raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(list(dicf.keys())), ftbl["name"], row["irow"]))
         netan["metab_equal"].append((
-                eval(row["VALUE"]),
+                eval_expr(row["VALUE"]),
                 dicf,
                 row["FORMULA"]+"="+row["VALUE"]+": "+str(row["irow"])))
 
@@ -984,11 +1022,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             # not reversibles are those reaction having xch flux=0 or
             # input/output fluxes
             try:
-                xval=float(eval(cond["VALUE(F/C)"]))
+                xval=float(eval_expr(cond["VALUE(F/C)"]))
             except:
                 xval=0.
             try:
-                nval=float(eval(ncond["VALUE(F/C)"]))
+                nval=float(eval_expr(ncond["VALUE(F/C)"]))
             except:
                 nval=0.
             try:
@@ -1037,11 +1075,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
             raise Exception("Mesured flux `%s` must be defined as either free or dependent (%s: %s)."%(row["FLUX_NAME"], ftbl["name"], row["irow"]))
         try:
-            val=eval(row["VALUE"])
+            val=eval_expr(row["VALUE"])
         except:
             val=NaN
         try:
-            sdev=float(eval(row["DEVIATION"]))
+            sdev=float(eval_expr(row["DEVIATION"]))
         except:
             raise Exception("DEVIATION must evaluate to a real number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
@@ -1066,11 +1104,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             werr("This measurement is ignored\n")
             continue
         try:
-            val=float(eval(row["VALUE"]))
+            val=float(eval_expr(row["VALUE"]))
         except:
             val=NaN
         try:
-            sdev=float(eval(row["DEVIATION"]))
+            sdev=float(eval_expr(row["DEVIATION"]))
         except:
             raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
@@ -1097,7 +1135,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                 " having a value "+str(netan["flux_constr"]["net"][fl])+". The inequality is ignored as meaningless ((%s: %s)).\n"%(ftbl["name"], row["irow"]))
             continue
         netan["flux_inequal"]["net"].append((
-                eval(row["VALUE"]),
+                eval_expr(row["VALUE"]),
                 row["COMP"],
                 dicf))
     # xch fluxes
@@ -1106,7 +1144,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (%s: %s)."%(row["COMP"], ftbl["name"], row["irow"]))
         netan["flux_inequal"]["xch"].append((
-                eval(row["VALUE"]),
+                eval_expr(row["VALUE"]),
                 row["COMP"],
                 formula2dict(row["FORMULA"])))
     for (afftype, ftype) in (("Net", "net"), ("Exchange", "xch")):
@@ -1131,7 +1169,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         if nb_neg==0:
             raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(list(dicf.keys())), ftbl["name"], row["irow"]))
         netan["metab_inequal"].append((
-                eval(row["VALUE"]),
+                eval_expr(row["VALUE"]),
                 row["COMP"],
                 dicf,
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+": "+str(row["irow"])))
@@ -2587,7 +2625,7 @@ def proc_label_input(ftbl, netan, case_i=False):
             res[metab][iiso]=NA
         else:
             try:
-                val=eval(row["VALUE"])
+                val=eval_expr(row["VALUE"])
             except:
                 val=row["VALUE"]
             if type(val) in (float, int):
@@ -2707,11 +2745,11 @@ In case of output, you can add a fictitious metabolite in your network immediatl
         if not row["DEVIATION"]:
             raise Exception("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         try:
-            val=float(eval(row["VALUE"]))
+            val=float(eval_expr(row["VALUE"]))
         except:
             val=NaN
         try:
-            sdev=float(eval(row["DEVIATION"]))
+            sdev=float(eval_expr(row["DEVIATION"]))
         except:
             raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
@@ -2781,11 +2819,11 @@ In case of output, you can add a fictitious metabolite in your network immediatl
             if not dev:
                 raise Exception("The field DEVIATION_%s is empty (%s: %s)"%(suff, ftbl["name"], row["irow"]))
             try:
-                val=float(eval(val))
+                val=float(eval_expr(val))
             except:
                 val=NaN
             try:
-                dev=float(eval(dev))
+                dev=float(eval_expr(dev))
             except:
                 continue
             # test validity
@@ -2894,11 +2932,11 @@ In case of output, you can add a fictitious metabolite following to '"""+metab+"
         if not row["DEVIATION"]:
             raise Exception("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         try:
-            val=float(eval(row["VALUE"]))
+            val=float(eval_expr(row["VALUE"]))
         except:
             val=NaN
         try:
-            sdev=float(eval(row["DEVIATION"]))
+            sdev=float(eval_expr(row["DEVIATION"]))
         except:
             raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
@@ -2925,7 +2963,7 @@ def proc_kinopt(ftbl, netan):
             d[row["OPT_NAME"]]=row["OPT_VALUE"]
         else:
             try:
-                d[row["OPT_NAME"]]=eval(row["OPT_VALUE"])
+                d[row["OPT_NAME"]]=eval_expr(row["OPT_VALUE"])
             except:
                 d[row["OPT_NAME"]]=row["OPT_VALUE"]
     for k in de:
