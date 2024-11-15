@@ -82,3 +82,16 @@ How to ...
  After that, you can filter or do whatever needed with obtained vectors and matrices.
 
 
+.. describe:: ... to avoid MUMPS error "-9" like:
+
+.. code-block::
+
+ lab_resid: rmumps: job=6, info[1]=-9, info[2]=1397
+
+You can increase a parameter passed to MUMPS which governs memory allocation. In `.opt` file of your MTF set, add the line:
+
+.. code-block::
+
+ optctrl:mumps:icntl_14	200
+
+where the number "200" means "increase allocated memory by 200%". If the error persists, increase this number to 300, 400, ... till the error diasappears.

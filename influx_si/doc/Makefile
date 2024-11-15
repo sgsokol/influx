@@ -38,6 +38,7 @@ clean:
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp -rpf _build/html .
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
@@ -99,6 +100,7 @@ latex:
 
 latexpdf:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+	cp -rpf _build/latex/influx_si.pdf .
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
@@ -133,4 +135,4 @@ ChangeLog.pdf: ChangeLog.txt
 	rst2latex ChangeLog.txt > ChangeLog.tex && pdflatex ChangeLog.tex;
 
 doc_influx: html latexpdf ChangeLog.pdf
-	cp -rpf _build/latex/influx_si.pdf _build/html .
+

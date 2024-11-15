@@ -98,7 +98,7 @@ def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"
         if skip_blank_lines and not row.strip():
             continue
         if not cnm:
-            cnm=[v.strip() for v in row.split(sep)]
+            cnm=[v.strip() for v in row.split(sep) if v.strip()]
             ncol=len(cnm)
             if append_iline:
                 if not any(v==append_iline for v in cnm):
@@ -108,9 +108,15 @@ def tsv2df(f, sep="\t", comment="#", skip_blank_lines=True, append_iline="iline"
             rows=np.empty((0, len(cnm)), dtype=object)
             continue
         # append rows
-        rli=[v.strip() for v in row.split(sep)]
+#        if ili == 175:
+#            import pdb; pdb.set_trace()
+        rli=[v.strip() for i,v in enumerate(row.split(sep))]
+        if len(rli) > ncol and all(len(v) == 0 for v in rli[ncol:]):
+            rli=rli[:ncol]
         if len(rli) != ncol:
-            werr("tsv2df: wrong column number %d, expected %d (%s: %d)"%(len(rli), ncol, f, ili+1))
+            df=pa.DataFrame([rli])
+            df.columns=list(range(1, len(rli)+1))
+            werr("tsv2df: wrong column number %d, expected %d (%s: %d)\n%s"%(len(rli), ncol, f, ili+1, df.to_string(index=False)))
         if append_iline:
             rli.append(ili+1)
         rows=np.vstack((rows, rli))
@@ -394,6 +400,13 @@ def parse_miso(fmiso, clen, case_i=False):
     fname=os.path.basename(fname)
     #pdb.set_trace()
     df=tsv2df(fmiso)
+    # validate .miso
+    # check that non emty entries in Time are valid numbers
+    ibad=np.where(pa.to_numeric(df.Time, errors="coerce").isna() & df.Time.str.len() > 0)[0]
+    if len(ibad):
+        werr("parse_miso: Column 'Time' must have numeric values or be emty, got '%s' instead, '%s': %s"%(df.iloc[ibad[0]].Time, fname, df.iloc[ibad[0]].iline))
+    
+    
     res={"ms": [], "lab": [], "peak": []} # 'mean' is transformed into lab
     if len(df) == 0:
         return (res, pa.DataFrame()) if case_i else res
@@ -412,7 +425,7 @@ def parse_miso(fmiso, clen, case_i=False):
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
     cgr=1
-    #pdb.set_trace()
+    #import pdb; pdb.set_trace()
     for kgr, ligr in df.groupby(["Specie", "Fragment", "Dataset"]).groups.items():
         # all Time values are supposed to be here => Dataset must be the same
         #   for all times for a given metab fragment
@@ -420,10 +433,10 @@ def parse_miso(fmiso, clen, case_i=False):
         met,frag,dset=kgr
         #if met == "M_accoa_c":
             #pdb.set_trace()
-        if not met:
-            werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         ist=int(df.loc[ligr[0], "iline"])
         iend=int(df.loc[ligr[-1], "iline"])
+        if not met:
+            werr("parse_miso: metabolite name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         mets=np.array([v.strip() for v in met.split("+")]) # met can be A+B+C, take just the first name
         ibad=np.array([v not in clen for v in mets])
         if ibad.any():
