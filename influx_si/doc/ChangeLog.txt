@@ -11,6 +11,7 @@ New features:
 
 Bug fix:
  - C13_ftbl: replaced eval() calls as unsafe by eval_expr()
+ - fixed concurent writing into .def files (reported by Rochelle Kouakou, INSA/TBI, France)
 
 2024-10-10 version 7.1.0
 ------------------------

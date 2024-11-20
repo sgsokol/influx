@@ -19,11 +19,17 @@ import argparse
 import datetime as dt
 from scipy import linalg
 from numpy import diag
-from multiprocessing import Pool, cpu_count
-vsadd=np.core.defchararray.add # vector string add
+from multiprocessing import Pool, cpu_count, Manager
+vsadd=np.strings.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict, eval_expr
 from tools_ssg import valval
+
+manager=Manager()
+lock=manager.Lock()
+rf=manager.list()
+pf=manager.dict()
+sdef=manager.dict()
 
 #import pdb
 
@@ -1161,9 +1167,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     return (dsec, dclen, dfdef) if not case_i else (dsec, dclen, dfdef, df_kin)
 #@background
 def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
-    def_written=set()
-    res_ftbl=list()
-    prl_ftbl=dict()
+    global rf, pf, sdef
     il=vdf.loc[ligr, "iline"].to_numpy() # strings
     # sanity check
     if len(ligr) > 1:
@@ -1276,25 +1280,26 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
     if case_i and type(ftbl) == type(Path()):
         from ftbl2labcin import main as renum
         renum([str(ftbl)])
-    if res_ftbl is not None:
-        res_ftbl.append(out.name)
-    if prl_ftbl is not None and prl_li:
-        prl_ftbl[out.name]=prl_li
+    with lock:
+        rf.append(out.name)
+        if prl_li:
+            pf[out.name]=prl_li
+    
     # output default mtf
     for k,df in dfdef.items():
         if len(df) == 0:
             continue
-        #pdb.set_trace()
+        #import pdb; pdb.set_trace()
         p=Path(mtf["netw"]).with_suffix("."+k+".def")
-        if p in def_written:
-            continue
-        with p.open("w", encoding="UTF-8") as fc:
-            fc.write(scred%dtstamp())
-            df.to_csv(fc, sep="\t", index=False)
-            if __name__ == "__main__":
-                print(str(p))
-        def_written.add(p)
-    return (res_ftbl, prl_ftbl)
+        with lock:
+            if p in sdef:
+                continue
+            with p.open("w", encoding="UTF-8") as fc:
+                fc.write(scred%dtstamp())
+                df.to_csv(fc, sep="\t", index=False)
+                if __name__ == "__main__":
+                    print(str(p))
+            sdef[p]=None
 
 def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
     """translate MTF file(s) to FTBL format
@@ -1603,18 +1608,15 @@ is the argument value that will take precedence.
         vdf[vdf != ""]=[dftbl/v for v in vdf[vdf != ""].values.flatten() if v == v]
     #print("len=", len(vdf))
     if np == 1 or len(vdf) == 1:
-        z=list()
         for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
-            z.append(work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred))
-        z=zip(*z)
+            work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred)
     else:
         with Pool(np) as p:
-            z=zip(*p.starmap(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()]))
-    rf, pf=z
-    if not res_ftbl is None:
-        res_ftbl += sum(rf, [])
-    if not prl_ftbl is None:
-        prl_ftbl.update((k,v) for d in pf for k,v in d.items())
+            p.starmap(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()])
+    if type(res_ftbl) is list:
+        res_ftbl += list(rf)
+    if type(prl_ftbl) is dict:
+        prl_ftbl.update(pf)
     return 0
 if __name__ == "__main__":
     sys.exit(main())
