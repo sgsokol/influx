@@ -25,14 +25,6 @@ import influx_si
 from C13_ftbl import formula2dict, eval_expr
 from tools_ssg import valval
 
-manager=Manager()
-lock=manager.Lock()
-rf=manager.list()
-pf=manager.dict()
-sdef=manager.dict()
-
-#import pdb
-
 version=influx_si.__version__
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
 me="txt2ftbl"
@@ -1166,8 +1158,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         dfdef[k]=df.sort_values(defsort[k])
     return (dsec, dclen, dfdef) if not case_i else (dsec, dclen, dfdef, df_kin)
 #@background
-def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
-    global rf, pf, sdef
+def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar):
     il=vdf.loc[ligr, "iline"].to_numpy() # strings
     # sanity check
     if len(ligr) > 1:
@@ -1280,10 +1271,10 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
     if case_i and type(ftbl) == type(Path()):
         from ftbl2labcin import main as renum
         renum([str(ftbl)])
-    with lock:
-        rf.append(out.name)
+    with mpvar["lock"]:
+        mpvar["rf"].append(out.name)
         if prl_li:
-            pf[out.name]=prl_li
+            mpvar["pf"][out.name]=prl_li
     
     # output default mtf
     for k,df in dfdef.items():
@@ -1291,15 +1282,15 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred):
             continue
         #import pdb; pdb.set_trace()
         p=Path(mtf["netw"]).with_suffix("."+k+".def")
-        with lock:
-            if p in sdef:
+        with mpvar["lock"]:
+            if p in mpvar["sdef"]:
                 continue
             with p.open("w", encoding="UTF-8") as fc:
                 fc.write(scred%dtstamp())
                 df.to_csv(fc, sep="\t", index=False)
                 if __name__ == "__main__":
                     print(str(p))
-            sdef[p]=None
+            mpvar["sdef"][p]=None
 
 def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
     """translate MTF file(s) to FTBL format
@@ -1438,6 +1429,7 @@ is the argument value that will take precedence.
     if len(argv) == 0:
         parser.print_usage(sys.stderr)
         return 1
+
     #print("opts=", vars(opts))
     #print("ord=", ord_args)
     # default values
@@ -1607,16 +1599,23 @@ is the argument value that will take precedence.
         # add dftbl to all fields in vmtf
         vdf[vdf != ""]=[dftbl/v for v in vdf[vdf != ""].values.flatten() if v == v]
     #print("len=", len(vdf))
+    # prepare multiproc framework
+    mpvar=dict()
+    manager=Manager()
+    mpvar["lock"]=manager.Lock()
+    mpvar["rf"]=manager.list()
+    mpvar["pf"]=manager.dict()
+    mpvar["sdef"]=manager.dict()
     if np == 1 or len(vdf) == 1:
         for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
-            work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred)
+            work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar)
     else:
         with Pool(np) as p:
-            p.starmap(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()])
+            p.starmap(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()])
     if type(res_ftbl) is list:
-        res_ftbl += list(rf)
+        res_ftbl += list(mpvar["rf"])
     if type(prl_ftbl) is dict:
-        prl_ftbl.update(pf)
+        prl_ftbl.update(mpvar["pf"])
     return 0
 if __name__ == "__main__":
     sys.exit(main())
