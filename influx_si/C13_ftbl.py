@@ -117,11 +117,12 @@ Restrictions:
 import numpy as np
 import re
 import copy
-import os
-import sys
+import os, sys
 import math
 from codecs import BOM_UTF8, BOM_UTF16_BE, BOM_UTF16_LE, BOM_UTF32_BE, BOM_UTF32_LE
-
+from asteval import Interpreter
+from functools import partial
+aeval=Interpreter(raise_errors=True, show_errors=False)
 #import pdb
 
 class oset(dict):
@@ -181,43 +182,6 @@ sys.path.append(dirx)
 
 from tools_ssg import *
 
-import ast
-import operator as op
-# supported operators
-operators = {ast.Add: op.add, ast.Sub: op.sub, ast.Mult: op.mul,
-             ast.Div: op.truediv, ast.Pow: op.pow, ast.BitXor: op.xor,
-             ast.USub: op.neg, ast.UAdd: op.pos}
-
-def eval_expr(expr):
-    """
-    >>> eval_expr('2^6')
-    4
-    >>> eval_expr('2**6')
-    64
-    >>> eval_expr('1 + 2*3**(4^5) / (6 + -7)')
-    -5.0
-    """
-    try:
-        res=eval_(ast.parse(expr, mode='eval').body)
-    except:
-        res=None
-    return res
-def eval_(node):
-    match node:
-        case ast.Constant(value) if isinstance(value, int):
-            return value  # integer
-        case ast.Constant(value) if isinstance(value, float):
-            return value  # float
-        case ast.BinOp(left, op, right):
-            left=eval_(left)
-            right=eval_(right)
-            return None if (left is None or right is None) else operators[type(op)](left, right)
-        case ast.UnaryOp(op, operand):  # e.g., -1
-            operand=eval_(operand)
-            return None if operand is None else operators[type(op)](operand)
-        case _:
-            return None
-
 NaN=float("nan")
 NA=NaN
 tol=sys.float_info.epsilon*2**7
@@ -258,6 +222,14 @@ req_prl=(
 )
 if "ffguess" not in locals():
     ffguess=False
+aeval.symtable=globals()
+def eval_expr(e, werr=werr):
+    try:
+        return aeval(e, raise_errors=True, show_errors=False)
+    except Exception as err:
+        if werr:
+            werr("In expression '"+str(e)+"' got the error:\n"+str(err)+"\n")
+        return None
 def ftbl_parse(f, wout=wout, werr=werr):
     """ftbl_parse(f) -> dict
     read and parse .ftbl file. The only input parameter f is a stream pointer
@@ -559,6 +531,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
      - in-out fluxes (flux_in, flux_out)
      - measured concentrations (metab_measured)
     """
+    global eval_expr
+    eval_expr=partial(eval_expr, werr=werr)
     # init named sets
     if type(netan)!=type(dict()):
         raise("netan argument must be a dictionary")
@@ -626,10 +600,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
 
     # Isotopomer dynamics and other options
     for row in ftbl.get("OPTIONS",[]):
-        try:
-            netan["opt"][row["OPT_NAME"]]=eval_expr(row["OPT_VALUE"])
-        except:
-            netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"]
+        val=eval_expr(row["OPT_VALUE"], werr=None)
+        netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"] if val is None else val
     #pdb.set_trace()
     for row in ftbl.get("METABOLITE_POOLS",[]):
         metab=row["META_NAME"]
@@ -1021,14 +993,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             #aff("ncond", ncond);##
             # not reversibles are those reaction having xch flux=0 or
             # input/output fluxes
-            try:
-                xval=float(eval_expr(cond["VALUE(F/C)"]))
-            except:
-                xval=0.
-            try:
-                nval=float(eval_expr(ncond["VALUE(F/C)"]))
-            except:
-                nval=0.
+            val=eval_expr(cond["VALUE(F/C)"])
+            xval=0. if val is None else float(val)
+            val=eval_expr(ncond["VALUE(F/C)"])
+            nval=0. if val is None else float(val)
             try:
                 if (cond and cond["FCD"] == "C") or (reac in netan["flux_inout"]):
                     if (reac in netan["flux_inout"]) or \
@@ -1074,21 +1042,18 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         if row["FLUX_NAME"] not in netan["flux_free"]["net"] and \
             row["FLUX_NAME"] not in netan["flux_dep"]["net"]:
             raise Exception("Mesured flux `%s` must be defined as either free or dependent (%s: %s)."%(row["FLUX_NAME"], ftbl["name"], row["irow"]))
-        try:
-            val=eval_expr(row["VALUE"])
-        except:
-            val=NaN
-        try:
-            sdev=float(eval_expr(row["DEVIATION"]))
-        except:
-            raise Exception("DEVIATION must evaluate to a real number (%s: %s)."%(ftbl["name"], row["irow"]))
+        val=eval_expr(row["VALUE"])
+        fval=NaN if val is None else float(val)
+        val=eval_expr(row["DEVIATION"])
+        sdev=None if val is None else float(val)
+        if sdev is None:
+            raise Exception("DEVIATION (%s) must evaluate to a real number (%s: %s)."%(row["DEVIATION"], ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
+            raise Exception("DEVIATION (%s) must be positive (%s: %s)."%(row["DEVIATION"], ftbl["name"], row["irow"]))
         
         netan["flux_measured"][row["FLUX_NAME"]]={\
-                "val": val, \
+                "val": fval, \
                 "dev": sdev}
-    
     # measured concentartions
     for row in ftbl.get("METAB_MEASUREMENTS",[]):
         metabl=row["META_NAME"].split("+")
@@ -1134,8 +1099,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+"' involves a constrained flux\n"+
                 " having a value "+str(netan["flux_constr"]["net"][fl])+". The inequality is ignored as meaningless ((%s: %s)).\n"%(ftbl["name"], row["irow"]))
             continue
+        val=eval_expr(row["VALUE"])
+        if val is None:
+            raise Exception("VALUE field in INEQUALITIES section must evaluate to a float number '%s' (%s: %s)."%(row["VALUE"], ftbl["name"], row["irow"]))
         netan["flux_inequal"]["net"].append((
-                eval_expr(row["VALUE"]),
+                float(val),
                 row["COMP"],
                 dicf))
     # xch fluxes
@@ -1143,8 +1111,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
         #print row;##
         if row["COMP"] not in (">=", "=>", "<=", "=<"):
             raise Exception("COMP field in INEQUALITIES section must be one of '>=', '=>', '<=', '=<' and not '%s' (%s: %s)."%(row["COMP"], ftbl["name"], row["irow"]))
+        val=eval_expr(row["VALUE"])
+        if val is None:
+            raise Exception("VALUE field in INEQUALITIES section must evaluate to a float number '%s' (%s: %s)."%(row["VALUE"], ftbl["name"], row["irow"]))
         netan["flux_inequal"]["xch"].append((
-                eval_expr(row["VALUE"]),
+                float(val),
                 row["COMP"],
                 formula2dict(row["FORMULA"])))
     for (afftype, ftype) in (("Net", "net"), ("Exchange", "xch")):
@@ -1168,8 +1139,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             nb_neg+=netan["met_pools"][m]<0
         if nb_neg==0:
             raise Exception("At least one of metabolites '%s' must be declared as variable (i.e. having negative value) in the section METABOLITE_POOLS (%s: %s)."%("', '".join(list(dicf.keys())), ftbl["name"], row["irow"]))
+        val=eval_expr(row["VALUE"])
+        if val is None:
+            raise Exception("VALUE content '%s' must evaluate to a float number, cf. the section METABOLITE_POOLS (%s: %s)."%(row["VALUE"], ftbl["name"], row["irow"]))
         netan["metab_inequal"].append((
-                eval_expr(row["VALUE"]),
+                float(val),
                 row["COMP"],
                 dicf,
                 row["VALUE"]+row["COMP"]+row["FORMULA"]+": "+str(row["irow"])))
@@ -2962,10 +2936,8 @@ def proc_kinopt(ftbl, netan):
         if row["OPT_NAME"][:7] == "funlab:":
             d[row["OPT_NAME"]]=row["OPT_VALUE"]
         else:
-            try:
-                d[row["OPT_NAME"]]=eval_expr(row["OPT_VALUE"])
-            except:
-                d[row["OPT_NAME"]]=row["OPT_VALUE"]
+            val=eval_expr(row["OPT_VALUE"], werr=None)
+            d[row["OPT_NAME"]]=row["OPT_VALUE"] if val is None else val
     for k in de:
         if k not in netan["opt"]:
             netan["opt"][k]=[]

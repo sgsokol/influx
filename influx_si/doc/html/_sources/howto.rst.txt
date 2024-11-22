@@ -94,4 +94,4 @@ You can increase a parameter passed to MUMPS which governs memory allocation. In
 
  optctrl:mumps:icntl_14	200
 
-where the number "200" means "increase allocated memory by 200%". If the error persists, increase this number to 300, 400, ... till error diasappears.
+where the number "200" means "increase allocated memory by 200%". If the error persists, increase this number to 300, 400, ... till the error diasappears.

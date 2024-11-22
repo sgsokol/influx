@@ -1,1 +1,1 @@
-
+exclude influx_si/*_kvh.* influx_si/R/*_kvh.*

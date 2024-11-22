@@ -192,7 +192,7 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
             if v is False else ("c('"+"', '".join(str(vv) for vv in v)+"')" if type(v) == list else str(v))))) for k,v in ldict_opts.items() if k not in notropt) + ('\nparR=TRUE"' if parR else '"')] + \
             (["--case_i"] if case_i else []) + ["--dirres", str(dres)] + [str(ft)]
         r_generated=True
-        #import pdb; pdb.set_trace()
+        #breakpoint()
         retcode=ftbl2optR.main(opt4py, wout=flog.write, werr=ferr.write)
         if retcode != 0:
             r_generated=False
@@ -211,6 +211,7 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
             if dirres:
                 flog.write(s)
             sys.stdout.write(fshort+s)
+            ferr.flush()
             if os.path.getsize(ferr.name) > 0:
                 s="=>Check "+ferr.name+"\n"
                 sys.stdout.write(s)
@@ -218,8 +219,10 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
                     flog.write(s)
             return(retcode)
     except Exception as e:
+        #breakpoint()
         sys.tracebacklimit=ldict_opts.get("tblimit", 0)
         ferr.write(("".join(traceback.format_exc())) + "\t(in "+ft.stem+")\n")
+        ferr.flush()
         qres.put((str(ft.with_suffix(".R")), False))
         if DEBUG:
             if ferr != sys.stderr:
@@ -441,7 +444,10 @@ Call influx_s.main(["-h"]) for a help message"""
     if dict_opts["install_rdep"]:
         do_exit=True
         if os.name == 'nt':
-            p=subp.Popen([shutil.which("Rterm"), "--ess", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr)
+            rexe=shutil.which("Rterm")
+            if rexe is None:
+                raise Exception("Cannot find Rterm executable")
+            p=subp.Popen([rexe, "--ess", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
             p.stdin.write(("source('"+"/".join(dirinst.split(os.path.sep)+["R", "upd_deps.R"])+"')\n").encode())
             p.stdin.flush()
             import msvcrt
@@ -458,7 +464,10 @@ Call influx_s.main(["-h"]) for a help message"""
                     p.stdin.flush()
                 time.sleep(0.1)
         else:
-            p=subp.Popen([shutil.which("R"), "--interactive", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
+            rexe=shutil.which("R")
+            if rexe is None:
+                raise Exception("Cannot find R executable")
+            p=subp.Popen([rexe, "--interactive", "--no-save", "--no-restore"], stdin=subp.PIPE, stdout=sys.stdout, stderr=sys.stderr, bufsize=1)
             p.stdin.write(("source('"+os.path.join(dirinst, "R", "upd_deps.R")+"')\n").encode())
             p.stdin.flush()
             import select

@@ -189,6 +189,8 @@ def main(argv=sys.argv[1:], wout=sys.stdout.write, werr=sys.stderr.write):
     ftbl2code.case_i=case_i
     C13_ftbl.clownr=clownr
     C13_ftbl.ffguess=ffguess
+    C13_ftbl.werr=werr
+    C13_ftbl.wout=wout
     
     #org="ex3"
     #org="PPP_exact"

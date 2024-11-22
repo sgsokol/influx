@@ -29,7 +29,7 @@ import pandas as pa
 
 import random # for debug only
 
-def eval_item(item, ith, icase, nm, fd):
+def eval_item(item, ith, icase, nm, fderr):
     """eval python code in item and return its results.
     In case of exception, return None
     """
@@ -38,7 +38,7 @@ def eval_item(item, ith, icase, nm, fd):
     except Exception as e:
         mes="%s\n\tin code: %s\n\tith=%d; icase=%d; test='%s'\n"%(str(e), item, ith, icase, nm)
         sys.stderr.write(mes)
-        fd.write(mes)
+        fderr.write(mes)
         res=None
     return res
 def plural_s(n):

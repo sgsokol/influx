@@ -1,10 +1,16 @@
 from setuptools import setup
 #from distutils.core import setup
+from pathlib import Path
 
 with open("README.rst", "r", encoding="utf-8") as f:
     long_description = f.read()
 with open("influx_si/influx_version.txt", "r") as f:
     version = f.read().rstrip()
+    
+testdir = Path(__file__).parent / 'influx_si' / 'test'
+tfiles = [str(p.relative_to(testdir)) for p in testdir.rglob('*')]
+rdir = Path(__file__).parent / 'influx_si' / 'R'
+rfiles = [str(p.relative_to(rdir)) for p in rdir.rglob('*')]
 
 setup(
    name='influx_si',
@@ -17,10 +23,10 @@ setup(
    author_email='sokol@insa-toulouse.fr',
    url="https://github.com/sgsokol/influx/",
    packages=['influx_si'],
-   package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*/*/*', f'../test_cases/test_report_{version}.txt', '../test_cases/cases_influx_si-v*.tab']},
+   package_data={'influx_si': ['licence_en.txt', 'influx_version.txt', 'R/*.R', 'test/*/*', 'test/ok/*/*/*/*']},
    include_package_data=True,
    python_requires='>3.5',
-   install_requires=['scipy', 'python-libsbml', 'pandas', 'kvh'],
+   install_requires=['scipy', 'python-libsbml', 'pandas', 'kvh', 'packaging', 'asteval'],
    scripts=[
       'influx_si/bin/ff2ftbl.py',
       'influx_si/bin/ftbl2code.py',

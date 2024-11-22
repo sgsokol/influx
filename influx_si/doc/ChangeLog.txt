@@ -2,16 +2,17 @@
 Change Log for influx_si
 ========================
 
-2024-11-?? version 7.2.0
+2024-11-22 version 7.2.0
 ------------------------
 New features:
+ - txt2ftbl: added sanity check on following columns in .miso: Fragment, Value, SD, Time
  - txt2ftbl: unnamed columns in .miso are supposed to be empty, if not, an error about wrong column number is signaled
- - txt2ftbl: empty extra columns are ignored (thus a comment started with a sharp sign '#' in extra column does not break the read)
- - txt2ftbl: added sanity check on columns: Fragment, Value, SD, Time
+ - txt2ftbl: empty extra columns in .miso are ignored (thus a comment started with a sharp sign '#' in extra column does not break the read)
 
 Bug fix:
- - C13_ftbl: replaced eval() calls as unsafe by eval_expr()
+ - C13_ftbl: replaced unsafe eval() calls by eval_expr()
  - fixed concurent writing into .def files (reported by Rochelle Kouakou, INSA/TBI, France)
+ - more explicit error message when R is not found for --install_rdep
 
 2024-10-10 version 7.1.0
 ------------------------
