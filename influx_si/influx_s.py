@@ -580,14 +580,6 @@ Call influx_s.main(["-h"]) for a help message"""
     (cmd_opts, cmd_args) = (opts, args)
     nb_ftbl=len(args)
     parR=len(args) > 1
-    # worker dict
-    wdict={"cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
-    if not DEBUG and min(np, len(args)) > 1:
-        for i in range(min(np, len(args))):
-            t=Process(target=qworker, args=(q, qret, qres, wdict))
-            t.daemon=True
-            t.start()
-            parproc.append(t)
 
     nb_ftbl=len(args)
     ftpr=[] # proceeded ftbls
@@ -606,6 +598,14 @@ Call influx_s.main(["-h"]) for a help message"""
         return 1
     
     # launch workers
+    # worker dict
+    wdict={"cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
+    if not DEBUG and min(np, len(args)) > 1:
+        for i in range(min(np, len(args))):
+            t=Process(target=qworker, args=(q, qret, qres, wdict))
+            t.daemon=True
+            t.start()
+            parproc.append(t)
     #import pdb; pdb.set_trace()
     if DEBUG or min(np, len(args)) == 1:
         qworker(q, qret, qres, wdict)
