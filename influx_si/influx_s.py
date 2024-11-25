@@ -8,7 +8,7 @@
 import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat, shutil
 import argparse
 #from threading import Thread # threaded parallel jobs
-from multiprocessing import cpu_count, Process, SimpleQueue as Queue
+from multiprocessing import cpu_count, Pool
 #from queue import Queue # threaded parallel jobs
 from glob import glob # wildcard expansion
 from pathlib import Path
@@ -53,26 +53,6 @@ class pvalAction(argparse.Action):
             setattr(namespace, self.dest, val)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
-def qworker(q, qret, qres, wdict):
-    while True:
-        item=q.get()
-        #print("item=", item)
-        try:
-            retcode=launch_job(qres, **item, **wdict)
-        except Exception as e:
-            traceback.print_exc()
-            sys.stderr.write("Error: launch_job: "+"%s\n"%str(e)+"\n")
-            if wdict["DEBUG"]:
-                sys.stderr.write(("".join(traceback.format_exc())) + "\n")
-                import pdb #; pdb.set_trace()
-                extype, value, tb = sys.exc_info()
-                traceback.print_exc()
-                pdb.post_mortem(tb)
-            retcode=1
-        qret.put(retcode)
-        if q.empty():
-            return
-        #q.task_done()
 def move2tmp(dirres, fp):
     "Move file fp to <dirres>/tmp dir"
     if fp:
@@ -105,7 +85,7 @@ def move_ftbl(dirres, fp, case_i):
     for f in prl_ftbl:
         move_ftbl(dtmp, fp.parent / (f+("" if f[-5:].lower()==".ftbl" else ".ftbl")), case_i)
 
-def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG, parser, parR, path0, argv):
+def launch_job(ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt, nb_ftbl, case_i, dirres, DEBUG, parser, parR, path0, argv):
     r"""Launch R code generation and then its execution
 """
     #pdb.set_trace()
@@ -159,7 +139,7 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
                 ferr.write("Error: FTBL file '%s' does not exist.\n"%ft)
                 flog.close()
                 ferr.close()
-            return(retcode);
+            return(retcode, ("", False));
         # parse commandArgs from the FTBL file
         #pdb.set_trace()
         inp=ft.open("rb").read()
@@ -200,11 +180,10 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
                 s="=>Check "+ferr.name+"\n"
                 sys.stdout.write(s)
                 flog.write(s)
-            qres.put((str(ft.with_suffix(".R")), False))
             # stop here because of error(s)
-            return(retcode)
+            return((retcode, (str(ft.with_suffix(".R")), False)))
         if r_generated:
-            qres.put((str(ft.with_suffix(".R")), ldict_opts.get("nocalc", False))) # one or many R files in // will be launched outside
+            res=(str(ft.with_suffix(".R")), ldict_opts.get("nocalc", False)) # one or many R files in // will be launched outside
         else:
             # we are done, end up all writings
             s="end     : "+now_s()+"\n"
@@ -217,13 +196,13 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
                 sys.stdout.write(s)
                 if dirres:
                     flog.write(s)
-            return(retcode)
+            res=("", False)
     except Exception as e:
         #breakpoint()
         sys.tracebacklimit=ldict_opts.get("tblimit", 0)
         ferr.write(("".join(traceback.format_exc())) + "\t(in "+ft.stem+")\n")
         ferr.flush()
-        qres.put((str(ft.with_suffix(".R")), False))
+        res=(str(ft.with_suffix(".R")), False)
         if DEBUG:
             if ferr != sys.stderr:
                 sys.stderr.write(("".join(traceback.format_exc())) + "\t(in "+ft.stem+")\n")
@@ -232,8 +211,8 @@ def launch_job(qres, ft, fshort, cmd_opts, dict_opts, pyopta, pyoptnota, notropt
             traceback.print_exc()
             pdb.post_mortem(tb)
         #pdb.set_trace()
-        return 1
-    return(retcode)
+        retcode=1
+    return((retcode, res))
 
 def identity(string):
     return string
@@ -572,59 +551,32 @@ Call influx_s.main(["-h"]) for a help message"""
     #print((" ".join('"'+v+'"' for v in sys.argv)))
     #print("cpu=", cpu_count())
     tblimit=dict_opts.get("tblimit")
-    q=Queue() # arguments for //-work
-    qres=Queue() # results from //-work (R file names)
-    qret=Queue() # returned code from workers
 
-    parproc=[]
     (cmd_opts, cmd_args) = (opts, args)
     nb_ftbl=len(args)
     parR=len(args) > 1
 
-    nb_ftbl=len(args)
     ftpr=[] # proceeded ftbls
-    (cmd_opts, cmd_args) = (opts, args)
-    parR=len(args) > 1
     for ft in args:
         if ft[-5:] != ".ftbl":
             ft=ft+".ftbl"
-        ftpr.append(ft)
-        f=ft[:-5]
         fshort="" if len(args) == 1 else Path(ft).stem+": "
-
-        item={"ft": ft, "fshort": fshort}
-        q.put(item)
+        ftpr.append({"ft": ft, "fshort": fshort})
     if not ftpr:
         return 1
     
     # launch workers
     # worker dict
     wdict={"cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
-    if not DEBUG and min(np, len(args)) > 1:
-        for i in range(min(np, len(args))):
-            t=Process(target=qworker, args=(q, qret, qres, wdict))
-            t.daemon=True
-            t.start()
-            parproc.append(t)
-    #import pdb; pdb.set_trace()
     if DEBUG or min(np, len(args)) == 1:
-        qworker(q, qret, qres, wdict)
+        rcodes, rfiles=zip(*[launch_job(**item, **wdict) for item in ftpr])
     else:
-        for t in parproc:
-            t.join() # wait the end of //-jobs
-
-    # get names of generated R files
-    rfiles=[]
-    while not qres.empty():
-        rfiles.append(qres.get())
-    # get returned codes
-    rcodes=[]
-    while not qret.empty():
-        rcodes.append(qret.get())
+        with Pool(np) as p:
+            rcodes, rfiles=zip(*p.starmap(launch_job, [(*item.values(), *wdict.values()) for item in ftpr]))
 
     if not rcodes:
         #import pdb; pdb.set_trace()
-        sys.stderr.write("No return code in qret\n")
+        sys.stderr.write("No return code after FTBL processing\n")
         return 1
     retcode=max(rcodes)
     if len(rfiles) > 1:
@@ -736,7 +688,7 @@ Call influx_s.main(["-h"]) for a help message"""
                 with flog.open("a") as flp: flp.write(s)
                 sys.stdout.write(s)
     else:
-        fp=Path(ftpr[0]).with_suffix(".R")
+        fp=Path(ftpr[0][0]).with_suffix(".R")
         if dirres == "default":
             flog=(fp.parent/(fp.stem+"_res")/(fp.stem+".log"))
             fpe=(fp.parent/(fp.stem+"_res")/(fp.stem+".err"))
@@ -785,8 +737,8 @@ Call influx_s.main(["-h"]) for a help message"""
         # move .R (and .ftbl if --prefix)
         move2tmp(dirres, fp)
         move2tmp(dirres, fp.with_suffix(".Rprof"))
-        if ftpr[0] in set_ftbl:
-            move_ftbl(dirres, ftpr[0], case_i)
+        if ftpr[0][0] in set_ftbl:
+            move_ftbl(dirres, ftpr[0][0], case_i)
 
         #pdb.set_trace()
         if fpe and fpe.stat().st_size > 0:
