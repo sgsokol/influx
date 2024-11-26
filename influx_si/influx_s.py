@@ -406,6 +406,7 @@ Call influx_s.main(["-h"]) for a help message"""
     #pdb.set_trace()
 
     do_exit=False
+    retcode=0
     if dict_opts["copy_doc"]:
         do_exit=True
         from distutils.dir_util import copy_tree
@@ -442,6 +443,7 @@ Call influx_s.main(["-h"]) for a help message"""
                     p.stdin.write(buf.encode())
                     p.stdin.flush()
                 time.sleep(0.1)
+            retcode=p.returncode
         else:
             rexe=shutil.which("R")
             if rexe is None:
@@ -463,8 +465,9 @@ Call influx_s.main(["-h"]) for a help message"""
                     #print("got buf='"+buf+"'")
                     p.stdin.write(buf.encode())
                     p.stdin.flush()
+            retcode=p.returncode
     if do_exit:
-        return(0)
+        return(retcode)
 
     np=dict_opts.get("np")
     avaco=cpu_count()
@@ -569,7 +572,19 @@ Call influx_s.main(["-h"]) for a help message"""
     # worker dict
     wdict={"cmd_opts": cmd_opts, "dict_opts": dict_opts, "pyopta": pyopta, "pyoptnota": pyoptnota, "notropt": notropt, "nb_ftbl": nb_ftbl, "case_i": case_i, "dirres": dirres, "DEBUG": DEBUG, "parser": parser, "parR": parR, "path0": __file__, "argv": argv}
     if DEBUG or min(np, len(args)) == 1:
-        rcodes, rfiles=zip(*[launch_job(**item, **wdict) for item in ftpr])
+        try:
+            rcodes, rfiles=zip(*[launch_job(**item, **wdict) for item in ftpr])
+        except:
+            #breakpoint()
+            if DEBUG:
+                sys.stderr.write("".join(traceback.format_exc()))
+                import pdb #; pdb.set_trace()
+                extype, value, tb = sys.exc_info()
+                traceback.print_exc()
+                pdb.post_mortem(tb)
+                return 1
+            raise
+
     else:
         with Pool(np) as p:
             rcodes, rfiles=zip(*p.starmap(launch_job, [(*item.values(), *wdict.values()) for item in ftpr]))
@@ -688,7 +703,7 @@ Call influx_s.main(["-h"]) for a help message"""
                 with flog.open("a") as flp: flp.write(s)
                 sys.stdout.write(s)
     else:
-        fp=Path(ftpr[0][0]).with_suffix(".R")
+        fp=Path(ftpr[0]["ft"]).with_suffix(".R")
         if dirres == "default":
             flog=(fp.parent/(fp.stem+"_res")/(fp.stem+".log"))
             fpe=(fp.parent/(fp.stem+"_res")/(fp.stem+".err"))
@@ -737,8 +752,8 @@ Call influx_s.main(["-h"]) for a help message"""
         # move .R (and .ftbl if --prefix)
         move2tmp(dirres, fp)
         move2tmp(dirres, fp.with_suffix(".Rprof"))
-        if ftpr[0][0] in set_ftbl:
-            move_ftbl(dirres, ftpr[0][0], case_i)
+        if ftpr[0]["ft"] in set_ftbl:
+            move_ftbl(dirres, ftpr[0]["ft"], case_i)
 
         #pdb.set_trace()
         if fpe and fpe.stat().st_size > 0:

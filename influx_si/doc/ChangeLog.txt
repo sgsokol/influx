@@ -1,6 +1,10 @@
 ========================
 Change Log for influx_si
 ========================
+2024-11-26 version 7.2.1
+------------------------
+Bug fix:
+ - windows: fixed stalling multiprocessing Queue(), it is replaced by Pool() (reported by Rochelle Kouakou, INSA/TBI, France)
 
 2024-11-22 version 7.2.0
 ------------------------

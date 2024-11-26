@@ -46,6 +46,15 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Link to this heading">¶</a></h1>
+<section id="version-7-2-1">
+<h2>2024-11-26 version 7.2.1<a class="headerlink" href="#version-7-2-1" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>windows: fixed stalling multiprocessing Queue(), it is replaced by Pool() (reported by Rochelle Kouakou, INSA/TBI, France)</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-2-0">
 <h2>2024-11-22 version 7.2.0<a class="headerlink" href="#version-7-2-0" title="Link to this heading">¶</a></h2>
 <dl class="simple">
@@ -58,6 +67,7 @@
 <dt>Bug fix:</dt><dd><ul class="simple">
 <li><p>C13_ftbl: replaced unsafe eval() calls by eval_expr()</p></li>
 <li><p>fixed concurent writing into .def files (reported by Rochelle Kouakou, INSA/TBI, France)</p></li>
+<li><p>more explicit error message when R is not found for –install_rdep</p></li>
 </ul>
 </dd>
 </dl>
@@ -943,6 +953,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-7-2-1">2024-11-26 version 7.2.1</a></li>
 <li><a class="reference internal" href="#version-7-2-0">2024-11-22 version 7.2.0</a></li>
 <li><a class="reference internal" href="#version-7-1-0">2024-10-10 version 7.1.0</a></li>
 <li><a class="reference internal" href="#version-7-0-4">2024-05-17 version 7.0.4</a></li>
