@@ -1220,7 +1220,9 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
       if (nb_c == 0) {
          next
       }
+#browser()
       ind_b=sp$ind_b
+      ind_b_emu=NULL
       nb_ind=nrow(ind_b)
       nprodx=ncol(ind_b)-2
       nm_c=nm_incu[c(ind_b[,2+seq_len(nprodx)])]
@@ -1233,7 +1235,7 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
          flen=vapply(strsplit(nm_c, ":"), function(v) if (length(v) > 1) sumbit(as.numeric(v[2])) else 0, 1)
          dim(flen)=dim(nm_c)
          wid=apply(flen, 1, paste0, collapse=",")
-         wdisp=list() # weight dispather helper
+         wdisp=list() # weight dispatcher helper
          for (ir in seq_len(nb_ind)) {
             v=flen[ir,]
             if (!is.null(wdisp[[wid[ir]]]))
@@ -1246,10 +1248,11 @@ spr2emu=function(spr, nm_incu, nm_inemu, nb) {
       for (iwe in seq_len(iwc)) {
          # iwe runs from m+0 to m+(iwc-1) to form all masses but last for
          # the current fragment length.
-         if (iwe == 1 || nprodx == 1) {
+         if (iwe == 1L || nprodx == 1L) {
             # For m+0 (iwe=1) vector b is the same in cumo and emu
-            ind_b_emu=cbind(iwe=1L, ind_b)
-            ind_b_emu[,3L+iprodx]=nme2iemu[paste(nm_c, iwe-1L, sep="+")]
+            tmp=cbind(iwe=iwe, ind_b)
+            tmp[,3L+iprodx]=nme2iemu[paste(nm_c, iwe-1L, sep="+")]
+            ind_b_emu=rbind(ind_b_emu, tmp)
          } else {
             for (ir in seq_len(nb_ind)) {
                addw=wdisp[[wid[ir]]][[iwe-1]]

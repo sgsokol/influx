@@ -1,6 +1,15 @@
 ========================
 Change Log for influx_si
 ========================
+2024-12-12 version 7.2.2
+------------------------
+New features:
+ - plot_ilab.R: added plot of input labeling if varying in time
+
+Bug fix:
+ - in --emu mode, for particular conditions, emu balance equations were not complete
+ - with rank deficient Jacobian, sometimes the error of fluxes was shown as 0 instead of big values.
+
 2024-11-26 version 7.2.1
 ------------------------
 Bug fix:

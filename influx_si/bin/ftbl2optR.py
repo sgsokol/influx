@@ -582,6 +582,7 @@ for (iexp in seq(nb_exp)) {
       if (time_order == "2" || time_order == "1,2")
          xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, envfunlab, emu, nm_exp[[iexp]], fcerr)
    }
+   rownames(xil[[iexp]])=if (emu) nm_xiemu else nm_xi
 }
 xi=xil
 
@@ -836,7 +837,7 @@ for (irun in seq_len(nseries)) {
    ineq=as.numeric(ui%*%param-ci)
    names(ineq)=rownames(ui)
    # set tolerance for inequality
-   tol_ineq=if ("BFGS" %in% methods) 0. else 1.e-10
+   tol_ineq=if ("BFGS" %in% methods) 0. else tol
    nbad=sum(ineq <= -tol_ineq)
    if (anyNA(param))
       stop_mes("NA found in initial 'param' values:\n\t",
@@ -1120,7 +1121,7 @@ for (irun in seq_len(nseries)) {
          }
          qrj=qr(jx_f$dr_dff, LAPACK=TRUE)
          d=diag(qrj$qr)
-         qrj$rank=sum(abs(d)>abs(d[1])*1.e-10)
+         qrj$rank=sum(abs(d)>abs(d[1])*tol)
          if (is.na(qrj$rank)) {
             cat("Rank of starting jacobian could not be estimated.", file=fcerr)
             retcode[irun]=1
@@ -1591,6 +1592,7 @@ for (irun in seq_len(nseries)) {
       # generalized inverse of non reduced jacobian
       if (length(jx_f$udr_dp) > 0L && wkvh) {
          svj=svd(jx_f$udr_dp)
+         svj$d=with(svj, ifelse(d >= d[1L]*tol, d, d[1L]*tol))
          invj=svj$v%*%(t(svj$u)/svj$d)
          dimnames(invj)=rev(dimnames(jx_f$udr_dp))
          obj2kvh(invj, "generalized inverse of jacobian dr_dp (without 1/sd_exp)", fkvh)
@@ -1883,15 +1885,15 @@ for (irun in seq_len(nseries)) {
          next
       }
    } # else use the last calculated jacobian
-
+browser()
    # covariance matrix of free fluxes
    if (length(jx_f$jacobian) > 0L && !all(is.na(param))) {
       svj=svd(jx_f$jacobian)
       if (svj$d[1] == 0.) {
          i=rep(TRUE, length(svj$d))
       } else {
-         i=svj$d/svj$d[1]<1.e-10
-         if (all(!i) && svj$d[1]<1.e-10) {
+         i=svj$d/svj$d[1]<tol
+         if (all(!i) && svj$d[1]<tol) {
             # we could not find very small d, take just the last
             i[length(i)]=TRUE
          }
@@ -1903,6 +1905,7 @@ for (irun in seq_len(nseries)) {
             paste(sort(nm_par[ibad]), collapse="\\n"), "\\nFor a more complete list, see SD column in '.tvar.sim' result file.", sep=""), "\\n", sep="", file=fclog)
       }
       # "square root" of covariance matrix (to preserve numerical positive definitness)
+      svj$d=with(svj, ifelse(d >= d[1L]*tol, d, d[1L]*tol))
       rtcov=(svj$u)%*%(t(svj$v)/svj$d)
       # standard deviations of free fluxes
       if (write_res) {

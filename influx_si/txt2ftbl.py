@@ -387,7 +387,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         werr("txt_parse: detected %d disconnected sub-networks in '%s':\n\t%s"%(len(mconn)-1, fname, "\n\t".join(str(i+1)+": "+", ".join(s) for i,s in enumerate(mconn[1:]))))
         #pdb.set_trace()
     return [res, resnotr, eqs, ineqs, fluxes, [m_left, m_right], sto, dclen]
-def parse_miso(fmiso, clen, case_i=False):
+def parse_miso(fmiso, clen, case_i=False, itnal_met=set()):
     "Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak"
     prow_def={"center": 0, "v0": "", "v-1": "", "v1": "", "v-11": "", "dev0": "", "dev-1": "", "dev1": "", "dev-11": ""} # for building peak-row
     if "name" in dir(fmiso):
@@ -444,12 +444,18 @@ def parse_miso(fmiso, clen, case_i=False):
     # split into kind of measurements: ms, peak, lab
     last_met=last_frag=last_dset=""
     cgr=1
-    #import pdb; pdb.set_trace()
+    #breakpoint()
+    ignored_metab=set()
     for kgr, ligr in df.groupby(["Specie", "Fragment", "Dataset"]).groups.items():
         # all Time values are supposed to be here => Dataset must be the same
         #   for all times for a given metab fragment
         #print("gr=", kgr, ligr)
-        met,frag,dset=kgr
+        met,frag,dset=kgr # met can be a+b+ c
+        tmp=set(map(str.strip, met.split("+")))
+        bad=tmp-itnal_met
+        if bad:
+            ignored_metab.update(bad)
+            continue
         #if met == "M_accoa_c":
             #pdb.set_trace()
         ist=int(df.loc[ligr[0], "iline"])
@@ -677,6 +683,9 @@ def parse_miso(fmiso, clen, case_i=False):
             else:
                 res["peak"] += [f"\t{met}\t{prow['center']}\t{prow['v0']}\t{prow['v-1']}\t{prow['v1']}\t{prow['v-11']}\t\t{prow['dev0']}\t{prow['dev-1']}\t{prow['dev1']}\t{prow['dev-11']}"+"   // %s: %d"%(fname, ist)]
 
+    if ignored_metab:
+        #breakpoint()
+        warn("parse_miso: the following metabolites are ignored as non internal to the network (%s):\n\t"%fname+"\n\t".join(sorted(ignored_metab)))
     if case_i:
         # reorder time moments in df_kin
         #pdb.set_trace()
@@ -860,7 +869,7 @@ def parse_mmet(f, smet=set()):
         res.append("\t%s\t%s\t%s   // %s: %s"%(met, df.loc[ligr[0], "Value"], df.loc[ligr[0], "SD"], fname, il[0]))
     return res
 
-def compile(mtf, cmd, case_i=False, clen=None):
+def compile(mtf, cmd, case_i=False, clen=None, itnal_met=set()):
     "Compile FTBL content from mtf names: netw, miso etc. Return a dict of ftbl lines"
     # dict of ftbl sections. Contains list of lines to be completed by compilation
     dsec={
@@ -980,7 +989,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
         m_inp=m_l-m_r
         m_out=m_r-m_l
         # internal metabolites
-        itnal_met=(m_l|m_r) - m_inp - m_out
+        itnal_met.update((m_l|m_r) - m_inp - m_out)
         # labeled metabolites
         lab_met=set(m for m,l in dclen.items() if l > 0)
         nm_met=sorted(itnal_met, key=plain_natural_key)
@@ -1061,7 +1070,6 @@ def compile(mtf, cmd, case_i=False, clen=None):
                     dfdef["linp"].loc[len(dfdef["linp"])]=["", "", m, ismr, 1.0]
     else:
         dclen={} if clen is None else clen
-        itnal_met=set()
         lab_met=set()
         sto={}
         fluxes=[]
@@ -1082,10 +1090,10 @@ def compile(mtf, cmd, case_i=False, clen=None):
     if "miso" in mtf and mtf["miso"]:
         pth=try_ext(mtf["miso"], ["miso", "tsv", "txt"])
         if case_i:
-            meas, df_kin=parse_miso(pth, dclen, case_i)
+            meas, df_kin=parse_miso(pth, dclen, case_i=case_i, itnal_met=itnal_met)
             #import pdb; pdb.set_trace()
         else:
-            meas=parse_miso(pth, dclen)
+            meas=parse_miso(pth, dclen, itnal_met=itnal_met)
         dsec["meas_peak"] += meas["peak"]
         dsec["meas_lab"] += meas["lab"]
         dsec["meas_ms"] += meas["ms"]
@@ -1156,7 +1164,7 @@ def compile(mtf, cmd, case_i=False, clen=None):
     # sort dfdef
     for k,df in dfdef.items():
         dfdef[k]=df.sort_values(defsort[k])
-    return (dsec, dclen, dfdef) if not case_i else (dsec, dclen, dfdef, df_kin)
+    return (dsec, dclen, dfdef, itnal_met) if not case_i else (dsec, dclen, dfdef, itnal_met, df_kin)
 #@background
 def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar):
     il=vdf.loc[ligr, "iline"].to_numpy() # strings
@@ -1190,7 +1198,7 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpv
         wd=Path(ftbl).resolve().parent
     if case_i:
         #import pdb; pdb.set_trace()
-        dsec,dclen,dfdef,df_kin=compile(rmtf, cmd, case_i)
+        dsec,dclen,dfdef,itnal_met_main,df_kin=compile(rmtf, cmd, case_i)
         p=Path(ftbl).resolve()
         p.parent.mkdir(parents=True, exist_ok=True)
         if p.is_file() and not force:
@@ -1212,7 +1220,7 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpv
         # prl
         prl_li=[]
         for d in prl:
-            dsec_prl,dclen,tmp,df_kin_prl=compile(d, cmd, case_i, clen=dclen)
+            dsec_prl,dclen,tmp,itnal_met,df_kin_prl=compile(d, cmd, case_i, clen=dclen, itnal_met=itnal_met_main)
             # output ftbl
             p=Path(d["ftbl"]).resolve()
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -1240,11 +1248,11 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpv
                     dsec["opt"][i]=v.replace("\tprl_exp\t", "\t//prl_exp\t")
             dsec["opt"].append("\tprl_exp\t"+"; ".join(prl_li))
     else:
-        dsec,dclen,dfdef=compile(rmtf, cmd)
+        dsec,dclen,dfdef,itnal_met_main=compile(rmtf, cmd)
         # prl
         prl_li=[]
         for d in prl:
-            dsec_prl,dclen,tmp=compile(d, cmd, clen=dclen)
+            dsec_prl,dclen,tmp,itnal_met=compile(d, cmd, clen=dclen,itnal_met=itnal_met_main)
             # output ftbl
             p=Path(d["ftbl"]).resolve()
             p.parent.mkdir(parents=True, exist_ok=True)

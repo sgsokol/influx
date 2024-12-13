@@ -184,6 +184,20 @@ if (write_res) {
             }
          }
       }
+      # plot input labeling if emu and varying in time
+      if (emu && case_i && any(apply(xi[[1L]], 1L, diff) != 0.)) {
+         plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
+         text(0.5, 0.05, lab="Input MS", cex=2)
+         nmmid=if (length(nm_xiemu) > 0L) unique(strsplitlim(nm_xiemu, "+", fixed=TRUE, mat=TRUE)[,1L]) else character(0L)
+         nmmid=strsplitlim(nmmid, ":", fixed=TRUE, mat=TRUE)[,1L]
+         nmp=natsort(nmmid)
+         for (met in nmp) {
+            i=grep(sprintf("^%s:", met), nm_xiemu, value=TRUE)
+            if (length(i) == 0L)
+               next
+            plot_mti(tifull[[iexp]], xi[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
+         }
+      }
       dev.off()
    }
 }

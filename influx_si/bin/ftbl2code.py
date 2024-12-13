@@ -354,6 +354,7 @@ prof=FALSE
 time_order="1"
 wkvh=FALSE
 parR=FALSE
+tol=1.e-10
 
 # get runtime arguments
 %(ropts)s
@@ -555,9 +556,8 @@ if (emu) {
    xiemu=list(%(xiemu)s)
    nm_xiemu=c(%(nm_xiemu)s)
    nm_list$xiemu=nm_xiemu
-   for (i in seq_along(xiemu)) {
-       names(xiemu[[i]])=nm_xiemu
-   }
+   for (i in seq_along(xiemu))
+        names(xiemu[[i]])=nm_xiemu
    nb_xiemu=length(nm_xiemu)
    nb_f$xiemu=nb_xiemu
    nb_f$xi=nb_xiemu
@@ -982,7 +982,7 @@ if (ffguess) {
    afd=as.matrix(cbind(Afl, -p2bfl))
    qafd=qr(afd, LAPACK=TRUE)
    d=abs(diag(qafd$qr))
-   rank=sum(d > d[1]*1.e-10)
+   rank=sum(d > d[1]*tol)
    qrow=qr(t(afd))
    rankr=qrow$rank
    if (rank != rankr)
@@ -1063,7 +1063,7 @@ if (TIMEIT) {
 
 qrAfl=qr(Afl, LAPACK=TRUE)
 d=abs(diag(qrAfl$qr))
-qrAfl$rank=sum(d > d[1]*1.e-10)
+qrAfl$rank=sum(d > d[1]*tol)
 rank=qrAfl$rank
 aful=as.matrix(cbind(Afl, -p2bfl, -c2bfl))
 qrow=qr(t(aful))
@@ -1074,7 +1074,7 @@ if (nrow(Afl) > rankr) {
    # find list of independent metabs for dependent ones
    idep=qrow$pivot[(rankr+1):nrow(Afl)]
    dcoef=qr.solve(t(aful[-idep,,drop=FALSE]), t(aful[idep,,drop=FALSE]))
-   lidep=apply(dcoef, 2, function(v) names(which(abs(v) >= 1.e-10)), simplify=FALSE)
+   lidep=apply(dcoef, 2, function(v) names(which(abs(v) >= tol)), simplify=FALSE)
    prop=sprintf("***Warning: Among %d equations (rows), %d are redundant.\\nThe dependencies are:\\n\\t", nrow(Afl), nrow(Afl)-rankr)
    prop=paste0(prop, paste0(lapply(names(lidep), function(nm) paste0(nm, ": ", paste0(lidep[[nm]], collapse=", "))), collapse="\\n\\t"), "\\nThe redundant balances for species '", paste0(names(lidep), collapse="', '"), "' will be ignored.\\n")
    #browser()
@@ -1083,7 +1083,7 @@ if (nrow(Afl) > rankr) {
    rankr=nrow(Afl)
    qrAfl=qr(Afl, LAPACK=TRUE)
    d=abs(diag(qrAfl$qr))
-   qrAfl$rank=sum(d > d[1]*1.e-10)
+   qrAfl$rank=sum(d > d[1]*tol)
    rank=qrAfl$rank
    p2bfl=p2bfl[-idep,,drop=FALSE]
    c2bfl=c2bfl[-idep,,drop=FALSE]
@@ -1124,7 +1124,7 @@ if (nrow(Afl) != rank || nrow(Afl) != ncol(Afl)) {
          aextended=aful
          qae=qr(aextended, LAPACK=TRUE)
          d=abs(diag(qae$qr))
-         ranke=sum(d > d[1L]*1.e-10)
+         ranke=sum(d > d[1L]*tol)
          if (ranke == nrow(Afl)) {
             prop=paste("Proposal to declare dependent flux(es) is:\\n",
             join("\\n", colnames(aextended)[qae$pivot[1L:ranke]]), "\\n",
@@ -1157,7 +1157,7 @@ if (qrAfl$rank != nb_fl) {
    colnames(A)=c(colnames(Afl), nm_ff, nm_fc)
    qa=qr(A, LAPACK=TRUE)
    d=diag(qa$qr)
-   qa$rank=sum(abs(d)>=abs(d[1]*1.e-10))
+   qa$rank=sum(abs(d)>=abs(d[1]*tol))
    
    mes=paste("Error: Dependent flux matrix is singular.\\n",
       "Change your partition on free/dependent/constrained fluxes in the '%(n_ftbl)s' file.\\n",
@@ -1982,9 +1982,9 @@ if (ncol(ui)) {
    zi=rep(TRUE, nrow(ui))
 }
 
-if (!all(ci[zi]<=1.e-10)) {
+if (!all(ci[zi]<=tol)) {
    cat("The following constant inequalities are not satisfied:\\n", file=fclog)
-   cat(nm_i[zi][ci[zi]>1.e-10], sep="\\n", file=fclog)
+   cat(nm_i[zi][ci[zi]>tol], sep="\\n", file=fclog)
    cat("They are simply ignored.\\n", file=fclog)
    #stop_mes("", file=fcerr)
 }
