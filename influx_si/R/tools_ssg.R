@@ -718,7 +718,7 @@ qr_ceq=function(a, b, ceq=NULL, deq=NULL) {
 }
 int2bit=function(i, len=31, onech="1", zch="0") {
    # return a string with a bit mask of an integer i
-   paste0(int2bitv(i, len, onech, zch), collapse="")
+   mapply(function(i_, l_, o_, z_) paste0(int2bitv(i_, l_, o_, z_), collapse=""), i, len, onech, zch)
 }
 int2bitv=function(i, len=31, one="1", zero="0") {
    # return a vector where each bit in the integer i is replaced by one or zero values.

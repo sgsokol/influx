@@ -1,17 +1,19 @@
+
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="./">
+<html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Installation &#8212; influx_si 7.2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=514cf933" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css" />
     
-    <script src="_static/documentation_options.js?v=9eaa8645"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
-    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -44,14 +46,14 @@
           <div class="body" role="main">
             
   <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
 <p>The software was developed on Linux
 but can be used both on Linux (or other UNIX, MacOS included) and Windows platforms.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The code examples here after are given for Unix shell environment.
 On Windows, in PowerShell or DOS environment the syntax is often similar and in cygwin or Ubuntu environment (Unix tools on Windows) the syntax is identical to the Unix’s one.</p>
-</div>
+</aside>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In command examples to run, we use script names with extension <cite>.py</cite>. However, starting from version 5.0.3, this extension can be omitted as all <a class="reference external" href="https://www.python.org/">Python</a> scripts are doubled with executable files without ‘.py’. For example, commands:</p>
@@ -63,9 +65,9 @@ On Windows, in PowerShell or DOS environment the syntax is often similar and in 
 </pre></div>
 </div>
 <p>are now equivalent. Even if it works on all platforms, it can be particularly useful for Windows, where supplementary effort can be required to associate <code class="docutils literal notranslate"><span class="pre">.py</span></code> file with Python interpreter. Using executable programs (i.e. without <code class="docutils literal notranslate"><span class="pre">.py</span></code> extension) makes this extra configuration step no more mandatory.</p>
-</div>
+</aside>
 <section id="installation-with-conda">
-<h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Link to this heading">¶</a></h2>
+<h2>Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code><a class="headerlink" href="#installation-with-conda" title="Permalink to this headline">¶</a></h2>
 <p>If you have Anaconda or Miniconda installed on your system, installation of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> resumes to:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>conda<span class="w"> </span>install<span class="w"> </span>influx_si<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>-c<span class="w"> </span>bioconda
 </pre></div>
@@ -73,7 +75,7 @@ On Windows, in PowerShell or DOS environment the syntax is often similar and in 
 <p>It installs <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> itself as well as all needed dependencies both in Python and in R.</p>
 </section>
 <section id="installation-with-pip">
-<h2>Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Link to this heading">¶</a></h2>
+<h2>Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installation-with-pip" title="Permalink to this headline">¶</a></h2>
 <p>If you don’t have any version of <code class="docutils literal notranslate"><span class="pre">conda</span></code> (neither <code class="docutils literal notranslate"><span class="pre">miniconda</span></code> nor <code class="docutils literal notranslate"><span class="pre">Anaconda</span></code>) but do have a Python and R installed on your system, you can install <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> with the following procedure.</p>
 <p>You need a python tool called <code class="docutils literal notranslate"><span class="pre">pip</span></code> which manages pure python packages. If it is not present on your system, you’ll have to install it <a class="reference external" href="https://pip.pypa.io/en/stable/installing/">first</a> to continue with this method. If you have multiple Python versions installed on your system (e.g. Python2 and Python3) you’ll have to use <code class="docutils literal notranslate"><span class="pre">pip3</span></code> to install the software in the Python3 universe.</p>
 <p>The first step will install only Python part of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code>:</p>
@@ -92,7 +94,7 @@ On Windows, in PowerShell or DOS environment the syntax is often similar and in 
 <p>If this procedure fails, you’ll have to solve the underlying problem identified from its error messages and rerun the command again.</p>
 </section>
 <section id="r-dependencies">
-<h2><a class="reference external" href="https://www.r-project.org/">R</a> dependencies<a class="headerlink" href="#r-dependencies" title="Link to this heading">¶</a></h2>
+<h2><a class="reference external" href="https://www.r-project.org/">R</a> dependencies<a class="headerlink" href="#r-dependencies" title="Permalink to this headline">¶</a></h2>
 <p>As of influx_si version 5.0, user has not to install R dependencies manually from an R session. So they are listed here just for information.</p>
 <ul class="simple">
 <li><p>R-3.4.0 or higher (cf <a class="reference external" href="http://www.r-project.org/">http://www.r-project.org/</a> or your system packaging solution) + the following packages.</p>
@@ -109,10 +111,10 @@ On Windows, in PowerShell or DOS environment the syntax is often similar and in 
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>As of this writing (September 17, 2014), an R package <code class="docutils literal notranslate"><span class="pre">nnls</span></code> distributed in precompiled form on Windows platform, can produce wrong results if a 32 bits version is used on Windows 64 bits. To avoid this, use 64 bit version of R on Windows 64 bits or recompile it by hand. To be sure to use 64 bits version of R, check that the <code class="docutils literal notranslate"><span class="pre">Path</span></code> system variable has the R path ending by <code class="docutils literal notranslate"><span class="pre">\bin\x64</span></code> and not just by <code class="docutils literal notranslate"><span class="pre">\bin</span></code>.</p>
-</div>
+</aside>
 </section>
 <section id="python-dependencies">
-<h2><a class="reference external" href="https://www.python.org/">Python</a> dependencies<a class="headerlink" href="#python-dependencies" title="Link to this heading">¶</a></h2>
+<h2><a class="reference external" href="https://www.python.org/">Python</a> dependencies<a class="headerlink" href="#python-dependencies" title="Permalink to this headline">¶</a></h2>
 <p>As of influx_si version 5.0, user has not to install Python dependencies manually. So they are listed here just for information.</p>
 <ul class="simple">
 <li><p>python 3.6 (or higher) and modules</p>
@@ -123,7 +125,7 @@ On Windows, in PowerShell or DOS environment the syntax is often similar and in 
 </li>
 </ul>
 <section id="test-of-installation">
-<h3>Test of installation<a class="headerlink" href="#test-of-installation" title="Link to this heading">¶</a></h3>
+<h3>Test of installation<a class="headerlink" href="#test-of-installation" title="Permalink to this headline">¶</a></h3>
 <p>Open a shell window and get to your working directory.
 Copy the distributed test directory to the current directory by running</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>influx_s.py<span class="w"> </span>--copy_test
@@ -180,7 +182,7 @@ end     : 2022-05-25 14:51:02
 <p>Calculation results are written in <code class="docutils literal notranslate"><span class="pre">e_coli_i_res</span></code> directory and they can be compared with the sames files in the <code class="docutils literal notranslate"><span class="pre">../ok/mtf/e_coli_i_re</span></code> sub-directory. You can also visually check a generated graphic file <code class="docutils literal notranslate"><span class="pre">e_coli_i_res/e_coli_i.pdf</span></code> to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.</p>
 </section>
 <section id="installation-of-documentation">
-<h3>Installation of documentation<a class="headerlink" href="#installation-of-documentation" title="Link to this heading">¶</a></h3>
+<h3>Installation of documentation<a class="headerlink" href="#installation-of-documentation" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">influx_si</span></code> is distributed with its documentation. To get it locally accessible from your personal disk space, you can run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>influx_s.py<span class="w"> </span>--copy_doc
 </pre></div>
@@ -208,9 +210,8 @@ end     : 2022-05-25 14:51:02
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <div>
-    <h3><a href="index.html">Table of Contents</a></h3>
-    <ul>
+  <h3><a href="index.html">Table of Contents</a></h3>
+  <ul>
 <li><a class="reference internal" href="#">Installation</a><ul>
 <li><a class="reference internal" href="#installation-with-conda">Installation with <code class="docutils literal notranslate"><span class="pre">conda</span></code></a></li>
 <li><a class="reference internal" href="#installation-with-pip">Installation with <code class="docutils literal notranslate"><span class="pre">pip</span></code></a></li>
@@ -224,17 +225,12 @@ end     : 2022-05-25 14:51:02
 </li>
 </ul>
 
-  </div>
-  <div>
-    <h4>Previous topic</h4>
-    <p class="topless"><a href="changelog.html"
-                          title="previous chapter">Change Log for influx_si</a></p>
-  </div>
-  <div>
-    <h4>Next topic</h4>
-    <p class="topless"><a href="quick.html"
-                          title="next chapter">Quick Start</a></p>
-  </div>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="changelog.html"
+                        title="previous chapter">Change Log for influx_si</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="quick.html"
+                        title="next chapter">Quick Start</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -251,7 +247,7 @@ end     : 2022-05-25 14:51:02
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -276,8 +272,8 @@ end     : 2022-05-25 14:51:02
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

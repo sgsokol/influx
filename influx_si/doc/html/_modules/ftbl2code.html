@@ -1,16 +1,18 @@
+
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="../">
+<html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ftbl2code &#8212; influx_si 7.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
+    <title>ftbl2code &#8212; influx_si 7.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
     
-    <script src="../_static/documentation_options.js?v=a9520c2f"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -24,7 +26,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>
@@ -71,9 +73,7 @@
 <span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
 
-<div class="viewcode-block" id="netan2Abcumo_spr">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2Abcumo_spr"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a><span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transform cumomer linear sytems collection (from ftbl file)</span>
 <span class="sd">    to a R code calculating sparse matrix A and vector b</span>
@@ -218,10 +218,7 @@
         <span class="n">ba_xw</span><span class="o">+=</span><span class="n">ncumo</span>
         <span class="n">ncucumo</span><span class="o">+=</span><span class="n">ncumo</span></div>
 
-
-<div class="viewcode-block" id="netan2Rinit">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[],</span> <span class="n">dirres</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2Rinit"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a><span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[],</span> <span class="n">dirres</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write R code for initialization of all variables before</span>
 <span class="sd">cumomer system resolution by chi2 minimization.</span>
 <span class="sd">:param netan: a collection of parsed ftbl information</span>
@@ -397,6 +394,7 @@
 <span class="s2">time_order=&quot;1&quot;</span>
 <span class="s2">wkvh=FALSE</span>
 <span class="s2">parR=FALSE</span>
+<span class="s2">tol=1.e-10</span>
 
 <span class="s2"># get runtime arguments</span>
 <span class="si">%(ropts)s</span>
@@ -598,9 +596,8 @@
 <span class="s2">   xiemu=list(</span><span class="si">%(xiemu)s</span><span class="s2">)</span>
 <span class="s2">   nm_xiemu=c(</span><span class="si">%(nm_xiemu)s</span><span class="s2">)</span>
 <span class="s2">   nm_list$xiemu=nm_xiemu</span>
-<span class="s2">   for (i in seq_along(xiemu)) {</span>
-<span class="s2">       names(xiemu[[i]])=nm_xiemu</span>
-<span class="s2">   }</span>
+<span class="s2">   for (i in seq_along(xiemu))</span>
+<span class="s2">        names(xiemu[[i]])=nm_xiemu</span>
 <span class="s2">   nb_xiemu=length(nm_xiemu)</span>
 <span class="s2">   nb_f$xiemu=nb_xiemu</span>
 <span class="s2">   nb_f$xi=nb_xiemu</span>
@@ -705,10 +702,7 @@
         <span class="p">})</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-
-<div class="viewcode-block" id="netan2R_fl">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_fl">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2R_fl"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_fl">[docs]</a><span class="k">def</span> <span class="nf">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_fl(netan, org, f)</span>
 <span class="sd">    generate R code for flux and pool part</span>
 <span class="sd">    for more details cf. netan2Rinit()</span>
@@ -1028,7 +1022,7 @@
 <span class="s2">   afd=as.matrix(cbind(Afl, -p2bfl))</span>
 <span class="s2">   qafd=qr(afd, LAPACK=TRUE)</span>
 <span class="s2">   d=abs(diag(qafd$qr))</span>
-<span class="s2">   rank=sum(d &gt; d[1]*1.e-10)</span>
+<span class="s2">   rank=sum(d &gt; d[1]*tol)</span>
 <span class="s2">   qrow=qr(t(afd))</span>
 <span class="s2">   rankr=qrow$rank</span>
 <span class="s2">   if (rank != rankr)</span>
@@ -1109,7 +1103,7 @@
 
 <span class="s2">qrAfl=qr(Afl, LAPACK=TRUE)</span>
 <span class="s2">d=abs(diag(qrAfl$qr))</span>
-<span class="s2">qrAfl$rank=sum(d &gt; d[1]*1.e-10)</span>
+<span class="s2">qrAfl$rank=sum(d &gt; d[1]*tol)</span>
 <span class="s2">rank=qrAfl$rank</span>
 <span class="s2">aful=as.matrix(cbind(Afl, -p2bfl, -c2bfl))</span>
 <span class="s2">qrow=qr(t(aful))</span>
@@ -1120,7 +1114,7 @@
 <span class="s2">   # find list of independent metabs for dependent ones</span>
 <span class="s2">   idep=qrow$pivot[(rankr+1):nrow(Afl)]</span>
 <span class="s2">   dcoef=qr.solve(t(aful[-idep,,drop=FALSE]), t(aful[idep,,drop=FALSE]))</span>
-<span class="s2">   lidep=apply(dcoef, 2, function(v) names(which(abs(v) &gt;= 1.e-10)), simplify=FALSE)</span>
+<span class="s2">   lidep=apply(dcoef, 2, function(v) names(which(abs(v) &gt;= tol)), simplify=FALSE)</span>
 <span class="s2">   prop=sprintf(&quot;***Warning: Among </span><span class="si">%d</span><span class="s2"> equations (rows), </span><span class="si">%d</span><span class="s2"> are redundant.</span><span class="se">\\</span><span class="s2">nThe dependencies are:</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">t&quot;, nrow(Afl), nrow(Afl)-rankr)</span>
 <span class="s2">   prop=paste0(prop, paste0(lapply(names(lidep), function(nm) paste0(nm, &quot;: &quot;, paste0(lidep[[nm]], collapse=&quot;, &quot;))), collapse=&quot;</span><span class="se">\\</span><span class="s2">n</span><span class="se">\\</span><span class="s2">t&quot;), &quot;</span><span class="se">\\</span><span class="s2">nThe redundant balances for species &#39;&quot;, paste0(names(lidep), collapse=&quot;&#39;, &#39;&quot;), &quot;&#39; will be ignored.</span><span class="se">\\</span><span class="s2">n&quot;)</span>
 <span class="s2">   #browser()</span>
@@ -1129,7 +1123,7 @@
 <span class="s2">   rankr=nrow(Afl)</span>
 <span class="s2">   qrAfl=qr(Afl, LAPACK=TRUE)</span>
 <span class="s2">   d=abs(diag(qrAfl$qr))</span>
-<span class="s2">   qrAfl$rank=sum(d &gt; d[1]*1.e-10)</span>
+<span class="s2">   qrAfl$rank=sum(d &gt; d[1]*tol)</span>
 <span class="s2">   rank=qrAfl$rank</span>
 <span class="s2">   p2bfl=p2bfl[-idep,,drop=FALSE]</span>
 <span class="s2">   c2bfl=c2bfl[-idep,,drop=FALSE]</span>
@@ -1170,7 +1164,7 @@
 <span class="s2">         aextended=aful</span>
 <span class="s2">         qae=qr(aextended, LAPACK=TRUE)</span>
 <span class="s2">         d=abs(diag(qae$qr))</span>
-<span class="s2">         ranke=sum(d &gt; d[1L]*1.e-10)</span>
+<span class="s2">         ranke=sum(d &gt; d[1L]*tol)</span>
 <span class="s2">         if (ranke == nrow(Afl)) {</span>
 <span class="s2">            prop=paste(&quot;Proposal to declare dependent flux(es) is:</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">            join(&quot;</span><span class="se">\\</span><span class="s2">n&quot;, colnames(aextended)[qae$pivot[1L:ranke]]), &quot;</span><span class="se">\\</span><span class="s2">n&quot;,</span>
@@ -1203,7 +1197,7 @@
 <span class="s2">   colnames(A)=c(colnames(Afl), nm_ff, nm_fc)</span>
 <span class="s2">   qa=qr(A, LAPACK=TRUE)</span>
 <span class="s2">   d=diag(qa$qr)</span>
-<span class="s2">   qa$rank=sum(abs(d)&gt;=abs(d[1]*1.e-10))</span>
+<span class="s2">   qa$rank=sum(abs(d)&gt;=abs(d[1]*tol))</span>
 <span class="s2">   </span>
 <span class="s2">   mes=paste(&quot;Error: Dependent flux matrix is singular.</span><span class="se">\\</span><span class="s2">n&quot;,</span>
 <span class="s2">      &quot;Change your partition on free/dependent/constrained fluxes in the &#39;</span><span class="si">%(n_ftbl)s</span><span class="s2">&#39; file.</span><span class="se">\\</span><span class="s2">n&quot;,</span>
@@ -1278,10 +1272,7 @@
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;fwrv2i&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">fwrv2i</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;tfallnx&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">tfallnx</span></div>
 
-
-<div class="viewcode-block" id="netan2R_meas">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_meas">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2R_meas</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2R_meas"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_meas">[docs]</a><span class="k">def</span> <span class="nf">netan2R_meas</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_meas(netan, org, f)</span>
 <span class="sd">    generate code for measure treatment</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1634,10 +1625,7 @@
         <span class="s2">&quot;imcumo2i&quot;</span><span class="p">:</span> <span class="n">imcumo2i</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-
-<div class="viewcode-block" id="netan2R_rcumo">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2R_rcumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># prepare reduced python systems</span>
     <span class="c1">#rAb=C13_ftbl.rcumo_sys(netan, emu)</span>
     <span class="c1">#raise Exception(&quot;iso2emu&quot;)</span>
@@ -1710,10 +1698,7 @@
         <span class="s2">&quot;rAb&quot;</span><span class="p">:</span> <span class="n">rAb</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-
-<div class="viewcode-block" id="netan2R_cumo">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_cumo">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2R_cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2R_cumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_cumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_cumo(netan, org, f)-&gt;dict</span>
 <span class="sd">    generate data structures for full cumomer matrices</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1755,10 +1740,7 @@
         <span class="s2">&quot;cumo2i&quot;</span><span class="p">:</span> <span class="n">cumo2i</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-
-<div class="viewcode-block" id="netan2R_ineq">
-<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_ineq">[docs]</a>
-<span class="k">def</span> <span class="nf">netan2R_ineq</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2R_ineq"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_ineq">[docs]</a><span class="k">def</span> <span class="nf">netan2R_ineq</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_ineq(netan, org, f)</span>
 <span class="sd">    generate inequality code</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2040,9 +2022,9 @@
 <span class="s2">   zi=rep(TRUE, nrow(ui))</span>
 <span class="s2">}</span>
 
-<span class="s2">if (!all(ci[zi]&lt;=1.e-10)) {</span>
+<span class="s2">if (!all(ci[zi]&lt;=tol)) {</span>
 <span class="s2">   cat(&quot;The following constant inequalities are not satisfied:</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog)</span>
-<span class="s2">   cat(nm_i[zi][ci[zi]&gt;1.e-10], sep=&quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog)</span>
+<span class="s2">   cat(nm_i[zi][ci[zi]&gt;tol], sep=&quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog)</span>
 <span class="s2">   cat(&quot;They are simply ignored.</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog)</span>
 <span class="s2">   #stop_mes(&quot;&quot;, file=fcerr)</span>
 <span class="s2">}</span>
@@ -2133,7 +2115,6 @@
 <span class="s2">ep=as.matrix(ep)</span>
 <span class="s2">names(cp)=rownames(ep)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span></div>
-
 </pre></div>
 
             <div class="clearer"></div>
@@ -2151,7 +2132,7 @@
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2165,14 +2146,14 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.1 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

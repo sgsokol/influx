@@ -1,16 +1,18 @@
+
 <!DOCTYPE html>
 
-<html lang="en" data-content_root="../">
+<html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ftbl2optR &#8212; influx_si 7.2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
     
-    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -157,9 +159,7 @@
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
 <span class="kn">import</span> <span class="nn">ftbl2code</span>
 
-<div class="viewcode-block" id="main">
-<a class="viewcode-back" href="../progdoc.html#ftbl2optR.main">[docs]</a>
-<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">wout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">):</span>
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../progdoc.html#ftbl2optR.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">wout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">):</span>
     <span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
     <span class="n">dirbin</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">influx_si</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;bin&quot;</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirbin</span><span class="p">)</span>
@@ -622,6 +622,7 @@
 <span class="s2">      if (time_order == &quot;2&quot; || time_order == &quot;1,2&quot;)</span>
 <span class="s2">         xi2[[iexp]]=funlab(tifull2[[iexp]], nm_inp, fli, envfunlab, emu, nm_exp[[iexp]], fcerr)</span>
 <span class="s2">   }</span>
+<span class="s2">   rownames(xil[[iexp]])=if (emu) nm_xiemu else nm_xi</span>
 <span class="s2">}</span>
 <span class="s2">xi=xil</span>
 
@@ -876,7 +877,7 @@
 <span class="s2">   ineq=as.numeric(ui</span><span class="si">%*%</span><span class="s2">param-ci)</span>
 <span class="s2">   names(ineq)=rownames(ui)</span>
 <span class="s2">   # set tolerance for inequality</span>
-<span class="s2">   tol_ineq=if (&quot;BFGS&quot; </span><span class="si">%i</span><span class="s2">n% methods) 0. else 1.e-10</span>
+<span class="s2">   tol_ineq=if (&quot;BFGS&quot; </span><span class="si">%i</span><span class="s2">n% methods) 0. else tol</span>
 <span class="s2">   nbad=sum(ineq &lt;= -tol_ineq)</span>
 <span class="s2">   if (anyNA(param))</span>
 <span class="s2">      stop_mes(&quot;NA found in initial &#39;param&#39; values:\n\t&quot;,</span>
@@ -1160,7 +1161,7 @@
 <span class="s2">         }</span>
 <span class="s2">         qrj=qr(jx_f$dr_dff, LAPACK=TRUE)</span>
 <span class="s2">         d=diag(qrj$qr)</span>
-<span class="s2">         qrj$rank=sum(abs(d)&gt;abs(d[1])*1.e-10)</span>
+<span class="s2">         qrj$rank=sum(abs(d)&gt;abs(d[1])*tol)</span>
 <span class="s2">         if (is.na(qrj$rank)) {</span>
 <span class="s2">            cat(&quot;Rank of starting jacobian could not be estimated.&quot;, file=fcerr)</span>
 <span class="s2">            retcode[irun]=1</span>
@@ -1631,6 +1632,7 @@
 <span class="s2">      # generalized inverse of non reduced jacobian</span>
 <span class="s2">      if (length(jx_f$udr_dp) &gt; 0L &amp;&amp; wkvh) {</span>
 <span class="s2">         svj=svd(jx_f$udr_dp)</span>
+<span class="s2">         svj$d=with(svj, ifelse(d &gt;= d[1L]*tol, d, d[1L]*tol))</span>
 <span class="s2">         invj=svj$v</span><span class="si">%*%</span><span class="s2">(t(svj$u)/svj$d)</span>
 <span class="s2">         dimnames(invj)=rev(dimnames(jx_f$udr_dp))</span>
 <span class="s2">         obj2kvh(invj, &quot;generalized inverse of jacobian dr_dp (without 1/sd_exp)&quot;, fkvh)</span>
@@ -1923,15 +1925,15 @@
 <span class="s2">         next</span>
 <span class="s2">      }</span>
 <span class="s2">   } # else use the last calculated jacobian</span>
-
+<span class="s2">#browser()</span>
 <span class="s2">   # covariance matrix of free fluxes</span>
 <span class="s2">   if (length(jx_f$jacobian) &gt; 0L &amp;&amp; !all(is.na(param))) {</span>
 <span class="s2">      svj=svd(jx_f$jacobian)</span>
 <span class="s2">      if (svj$d[1] == 0.) {</span>
 <span class="s2">         i=rep(TRUE, length(svj$d))</span>
 <span class="s2">      } else {</span>
-<span class="s2">         i=svj$d/svj$d[1]&lt;1.e-10</span>
-<span class="s2">         if (all(!i) &amp;&amp; svj$d[1]&lt;1.e-10) {</span>
+<span class="s2">         i=svj$d/svj$d[1]&lt;tol</span>
+<span class="s2">         if (all(!i) &amp;&amp; svj$d[1]&lt;tol) {</span>
 <span class="s2">            # we could not find very small d, take just the last</span>
 <span class="s2">            i[length(i)]=TRUE</span>
 <span class="s2">         }</span>
@@ -1943,6 +1945,7 @@
 <span class="s2">            paste(sort(nm_par[ibad]), collapse=&quot;</span><span class="se">\\</span><span class="s2">n&quot;), &quot;</span><span class="se">\\</span><span class="s2">nFor a more complete list, see SD column in &#39;.tvar.sim&#39; result file.&quot;, sep=&quot;&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">      }</span>
 <span class="s2">      # &quot;square root&quot; of covariance matrix (to preserve numerical positive definitness)</span>
+<span class="s2">      svj$d=with(svj, ifelse(d &gt;= d[1L]*tol, d, d[1L]*tol))</span>
 <span class="s2">      rtcov=(svj$u)</span><span class="si">%*%</span><span class="s2">(t(svj$v)/svj$d)</span>
 <span class="s2">      # standard deviations of free fluxes</span>
 <span class="s2">      if (write_res) {</span>
@@ -2166,7 +2169,6 @@
         <span class="k">pass</span>
     <span class="k">return</span> <span class="mi">0</span></div>
 
-
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span> <span class="ow">or</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;influx_si.cli&quot;</span><span class="p">:</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
@@ -2186,7 +2188,7 @@
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2206,8 +2208,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
     </div>
   </body>
 </html>

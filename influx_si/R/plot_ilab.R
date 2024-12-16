@@ -106,7 +106,7 @@ if (write_res) {
       # get unique measured MS fragment names
       nm_selm=natsort(grep("^m:", if (is.null(rownames(me))) rownames(usmf) else rownames(me), v=TRUE))
       pdf(sprintf("%s/%s.pdf", dirres, nm_exp[iexp]))
-      #browser()
+#browser()
       if (length(nm_selm) > 0L) {
          plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
          text(0.5, 0.05, lab="MS measurements", cex=2)
@@ -189,14 +189,19 @@ if (write_res) {
          plot(0:1, c(0, 0.1), type="n", axes=FALSE, xlab="", ylab="")
          text(0.5, 0.05, lab="Input MS", cex=2)
          nmmid=if (length(nm_xiemu) > 0L) unique(strsplitlim(nm_xiemu, "+", fixed=TRUE, mat=TRUE)[,1L]) else character(0L)
-         nmmid=strsplitlim(nmmid, ":", fixed=TRUE, mat=TRUE)[,1L]
-         nmp=natsort(nmmid)
-         for (met in nmp) {
-            i=grep(sprintf("^%s:", met), nm_xiemu, value=TRUE)
-            if (length(i) == 0L)
-               next
-            plot_mti(tifull[[iexp]], xi[[iexp]][i,,drop=FALSE], NULL, main=met, ylim=0:1)
-         }
+         nmmid=strsplitlim(nmmid, ":", fixed=TRUE, mat=TRUE)
+         o=natorder(nmmid[,1L])
+         frag=nmmid[o,2L]
+         nmmid=nmmid[o,1L]
+         # full frag replce by "" and partial frags replace by "11001"
+         frag_01=int2bit(as.integer(frag), clen[nmmid])
+         labfrag=ifelse(frag_01 == sapply(clen[nmmid], function(n) paste0(rep.int("1", n), collapse="")), "", paste0("#", frag_01))
+#browser()         
+         i_lapply(nmmid, function(imet, met) {
+            i=grep(sprintf("^%s:%s\\+", met, frag[imet]), nm_xiemu, value=TRUE)
+            if (length(i) != 0L)
+               plot_mti(tifull[[iexp]], xi[[iexp]][i,,drop=FALSE], NULL, main=paste0(met, labfrag[imet], collapse=""), ylim=0:1)
+         })
       }
       dev.off()
    }

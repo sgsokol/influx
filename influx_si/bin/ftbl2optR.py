@@ -1885,7 +1885,7 @@ for (irun in seq_len(nseries)) {
          next
       }
    } # else use the last calculated jacobian
-browser()
+#browser()
    # covariance matrix of free fluxes
    if (length(jx_f$jacobian) > 0L && !all(is.na(param))) {
       svj=svd(jx_f$jacobian)
