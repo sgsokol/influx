@@ -2082,11 +2082,22 @@ if (!is.null(cl)) {
 }
 
 if (write_res) {
+#browser()
    pres=rbind(cost=costres, pres)
    fco=file(file.path(dirres, "tmp", sprintf("%s.pres.csv", baseshort)), open="w")
    cat("row_col\t", file=fco)
-   write.table(file=fco, pres, row.n=T, quot=F, sep="\\t")
+   write.table(file=fco, pres, row.names=TRUE, quote=FALSE, sep="\\t")
    close(fco)
+   # make simlinks to the lowest cost results
+   if (length(costres) > 1L) {
+      nmbest=colnames(pres)[which.min(costres)]
+      for (f in c(list.files(path=dirres, pattern=sprintf("\\\\.%s\\\\..*\\\\.sim$", nmbest), full.names=TRUE),
+            list.files(path=dirres, pattern=sprintf("\\\\.%s\\\\.stat$", nmbest), full.names=TRUE),
+            list.files(path=file.path(dirres, "tmp"), pattern=sprintf("\\\\.%s\\\\.attrs$", nmbest), full.names=TRUE))) {
+         flink=sub(sprintf(".%s", nmbest), "", f, fixed=TRUE)
+         file.copy(to=flink, from=f, overwrite = TRUE, copy.date = TRUE)
+      }
+   }
 }
 if (TIMEIT) {
    cat("rend    : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)

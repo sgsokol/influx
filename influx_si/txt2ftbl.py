@@ -20,10 +20,15 @@ import datetime as dt
 from scipy import linalg
 from numpy import diag
 from multiprocessing import Pool, cpu_count, Manager
-vsadd=np.strings.add # vector string add
 import influx_si
 from C13_ftbl import formula2dict, eval_expr
-from tools_ssg import valval
+from tools_ssg import valval, parse_version
+
+if parse_version(np.__version__) < (2,):
+    vsadd=np.char.add
+else:
+    vsadd=np.strings.add # vector string add
+
 
 version=influx_si.__version__
 #me=os.path.basename(sys.argv[0] or "txt2ftbl")
