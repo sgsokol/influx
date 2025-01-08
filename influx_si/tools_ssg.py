@@ -3,6 +3,7 @@ import operator
 import string
 import numpy as np
 from math import *
+#print(sys.path)
 from kvh.kvh import *
 from textwrap import fill
 letters=string.ascii_lowercase
@@ -272,3 +273,11 @@ def read_table(fp, sep=None, skip=0, header=False):
     if open_here:
         fp.close()
     return {"mat": data, "col_names": col_names}
+def int_str(s):
+    try:
+        res=int(s)
+    except:
+        res=s
+    return res
+def parse_version(version):
+    return tuple(map(int_str, version.split('.')))
