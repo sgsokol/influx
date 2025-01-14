@@ -1,8 +1,11 @@
 ========================
 Change Log for influx_si
 ========================
-2025-01-08 version 7.2.3
+2025-01-09 version 7.2.3
 ------------------------
+New features:
+ - when option `--iseries` or `--fseries` is used, the run giving the lowest `cost` is considered as the main result
+
 Bug fix:
  - admitted numpy versions are both v2 and v1
 

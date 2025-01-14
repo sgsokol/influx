@@ -727,7 +727,7 @@ Call influx_s.main(["-h"]) for a help message"""
             sp=subp.Popen([shutil.which("R")] + rcmd.split(), stdin=open(rfiles[0][0], "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
             try:
                 out,err=sp.communicate()
-                err=err.decode()
+                err=err.decode(errors="ignore")
                 if err:
                     if flog:
                         with flog.open("a") as fc:
