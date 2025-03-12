@@ -1,6 +1,11 @@
 ========================
 Change Log for influx_si
 ========================
+2025-03-12 version 7.2.4
+------------------------
+Bug fix:
+ - fixed ignoring interruption with Ctrl+C during preparation of .R files (reported by Rochelle Kouakou, TBI, France)
+
 2025-01-09 version 7.2.3
 ------------------------
 New features:

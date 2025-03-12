@@ -46,10 +46,10 @@ class pvalAction(argparse.Action):
             # some value is given in arg
             try:
                 val=float(values)
-            except:
+            except ValueError:
                 raise Exception("--excl_outliers expects a float number, instead got '%s'"%str(values))
             if val <= 0. or val >= 1.:
-                raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
+                raise ValueError("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
             setattr(namespace, self.dest, val)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
@@ -390,7 +390,7 @@ Call influx_s.main(["-h"]) for a help message"""
         parser.print_usage(sys.stderr)
         return 1
     # parse command line
-    #pdb.set_trace()
+    #breakpoint()
     opts = parser.parse_args(argv)
     dict_opts=vars(opts)
     DEBUG=dict_opts["DEBUG"]
@@ -524,6 +524,7 @@ Call influx_s.main(["-h"]) for a help message"""
             mtf_opts += [v for t in ord_args for v in t]
             #print("mtf_opts=", mtf_opts)
             try:
+                #breakpoint()
                 txt2ftbl.main(mtf_opts, li_ftbl, prl_ftbl)
             except Exception as e:
                     #pdb.set_trace()

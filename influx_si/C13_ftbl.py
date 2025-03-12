@@ -122,8 +122,8 @@ import math
 from codecs import BOM_UTF8, BOM_UTF16_BE, BOM_UTF16_LE, BOM_UTF32_BE, BOM_UTF32_LE
 from asteval import Interpreter
 from functools import partial
-aeval=Interpreter(raise_errors=True, show_errors=False)
-#import pdb
+import io
+aeval=Interpreter(err_writer=io.TextIOWrapper(io.BytesIO()))
 
 class oset(dict):
     def __init__(*args, **kwds):
@@ -178,7 +178,6 @@ except NameError: wout = sys.stdout.write
 me=os.path.realpath(sys.argv[0])
 dirx=os.path.dirname(me)
 sys.path.append(dirx)
-#sys.tracebacklimit=0
 
 from tools_ssg import *
 
@@ -224,12 +223,12 @@ if "ffguess" not in locals():
     ffguess=False
 aeval.symtable=globals()
 def eval_expr(e, werr=werr):
-    try:
-        return aeval(e, raise_errors=True, show_errors=False)
-    except Exception as err:
+    res=aeval(e)
+    if len(aeval.error) > 0:
         if werr:
-            werr("In expression '"+str(e)+"' got the error:\n"+str(err)+"\n")
+            werr("In expression '"+str(e)+"' got errors:\n"+"\n".join(str(err.get_error()) for err in aeval.error)+"\n")
         return None
+    return res
 def ftbl_parse(f, wout=wout, werr=werr):
     """ftbl_parse(f) -> dict
     read and parse .ftbl file. The only input parameter f is a stream pointer
@@ -428,7 +427,7 @@ def ftbl_parse(f, wout=wout, werr=werr):
                         try:
                             fval=float(val)
                             dic[col_names[i]]=val
-                        except:
+                        except ValueError:
                             dic[col_names[i]]=oldval
                 except IndexError:
                     pass
@@ -440,8 +439,8 @@ def ftbl_parse(f, wout=wout, werr=werr):
             if sec_name == "FLUXES" and subsec_name in ("NET", "XCH") and dic["FCD"] in ("F", "C"):
                 try:
                     val=float(eval_expr(dic["VALUE(F/C)"]))
-                except:
-                    raise Exception("In the field 'VALUE(F/C)', a float value expected (%s: %d)"%(ftbl["name"], irow))
+                except (TypeError, ValueError):
+                    raise ValueError("In the field 'VALUE(F/C)', a float value expected (%s: %d)"%(ftbl["name"], irow))
             stock.append(dic)
             data_count+=1
             #print "sec, subsec=", sec_name, subsec_name, data_count, dic;##
@@ -533,9 +532,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
     """
     global eval_expr
     eval_expr=partial(eval_expr, werr=werr)
+    #breakpoint()
     # init named sets
     if type(netan)!=type(dict()):
-        raise("netan argument must be a dictionary")
+        raise TypeError("netan argument must be a dictionary")
     if not netan:
         netan.update({
             "input":oset(),
@@ -600,6 +600,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
 
     # Isotopomer dynamics and other options
     for row in ftbl.get("OPTIONS",[]):
+        #breakpoint()
         val=eval_expr(row["OPT_VALUE"], werr=None)
         netan["opt"][row["OPT_NAME"]]=row["OPT_VALUE"] if val is None else val
     #pdb.set_trace()
@@ -613,11 +614,11 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
     for suf in ["NET", "XCH"]:
         for row in ftbl.get("FLUXES", dict()).get(suf, dict()):
             if not "NAME" in row:
-                raise Exception("No required field NAME in section FLUX/%s (%s: %s)"%(suf, ftbl["name"], row["irow"]))
+                raise NameError("No required field NAME in section FLUX/%s (%s: %s)"%(suf, ftbl["name"], row["irow"]))
             if not "FCD" in row:
-                raise Exception("No requied field FCD in section FLUX/%s (%s: %s)"%(suf, ftbl["name"], row["irow"]))
+                raise NameError("No requied field FCD in section FLUX/%s (%s: %s)"%(suf, ftbl["name"], row["irow"]))
             if (row["FCD"]=="F" or row["FCD"]=="C") and not "VALUE(F/C)" in row:
-                raise Exception("For flux '%s' in section FLUX/%s, the field 'VALUE(F/C)' is requiered but is absent (%s: %s)"%(row["NAME"], suf, ftbl["name"], row["irow"]))
+                raise NameError("For flux '%s' in section FLUX/%s, the field 'VALUE(F/C)' is requiered but is absent (%s: %s)"%(row["NAME"], suf, ftbl["name"], row["irow"]))
     # quick consistency check between net and xch fluxes
     fnet=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("NET", dict()))
     fxch=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", dict()))
@@ -738,7 +739,7 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             terms=su.split("+")
             try:
                 di[lr[i]]=mecoparse(terms)
-            except:
+            except ValueError:
                 werr("Error occured in '%s': %s\n"%(ftbl["name"], row["irow"]))
                 raise
         netan["sto_r_m"][reac]=di
@@ -958,16 +959,16 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             # constrained by definition
             #print "r,c,n=", reac, len(cond), len(ncond);##
             if len(cond) > 1:
-                raise Exception("FluxDef", "Reaction `%s` is over defined in exchange fluxes."%reac)
+                raise ValueError("FluxDef", "Reaction `%s` is over defined in exchange fluxes."%reac)
             if len(cond) == 0 and not (reac in (netan["flux_in"] | netan["flux_out"])):
                 werr("in+out fluxes="+str(netan["flux_inout"])+"\n");##
-                raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in exchange fluxes."%reac)
+                raise ValueError("FluxDef", "Reaction `%s` is not defined D/F/C in exchange fluxes."%reac)
             if cond:
                 cond=cond[0]
             if len(ncond) > 1:
-                raise Exception("FluxDef", "Reaction `%s` is over defined in net fluxes."%reac)
+                raise ValueError("FluxDef", "Reaction `%s` is over defined in net fluxes."%reac)
             if len(ncond) == 0 and not (reac in (netan["flux_inout"])):
-                raise Exception("FluxDef", "Reaction `%s` is not defined D/F/C in net fluxes."%reac)
+                raise ValueError("FluxDef", "Reaction `%s` is not defined D/F/C in net fluxes."%reac)
             if (len(ncond) == 0 and
                 (reac in netan["flux_inout"] and
                 not reac in netan["flux_growth"]["net"] and
@@ -1006,12 +1007,12 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                     else:
                         # not null constrained xch
                         if xval < 0. or xval > 1.:
-                            raise Exception("FluxVal", "Constrained exchange flux`%s` must have value in [0; 1] interval.\nInstead, a value %f is given"%(reac, xval))
+                            raise ValueError("FluxVal", "Constrained exchange flux`%s` must have value in [0; 1] interval.\nInstead, a value %f is given"%(reac, xval))
                         netan["flux_constr"]["xch"][reac]=xval
                 elif (cond and cond["FCD"] == "F"):
                     # free xch
                     if xval < 0. or xval > 1.:
-                        raise Exception("FluxVal", "Free exchange flux '%s' must have starting value in [0; 1] interval.\nInstead, a value %f is given"%(reac, xval))
+                        raise ValueError("FluxVal", "Free exchange flux '%s' must have starting value in [0; 1] interval.\nInstead, a value %f is given"%(reac, xval))
                     netan["flux_free"]["xch"][reac]=xval
                 elif (cond and cond["FCD"] == "D"):
                     # dependent xch
@@ -1025,10 +1026,10 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                 elif (ncond and ncond["FCD"] == "D"):
                     # dependent net
                     netan["flux_dep"]["net"][reac]=nval
-            except:
+            except ValueError:
                 werr("Error occured on the row %s or %s of ftbl file %s:\n"%(ncond["irow"], cond["irow"], ftbl["name"]))
                 raise
-    except Exception as inst:
+    except ValueError as inst:
         #werr(join(" ", sys.exc_info())+"\n")
         #werr(": ".join(inst)+"\n")
         werr("\n"+format(inst)+"\n")
@@ -1070,14 +1071,14 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
             continue
         try:
             val=float(eval_expr(row["VALUE"]))
-        except:
+        except ValueError:
             val=NaN
         try:
             sdev=float(eval_expr(row["DEVIATION"]))
-        except:
-            raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
+        except ValueError:
+            raise ValueError("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
+            raise ValueError("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
         netan["metab_measured"][row["META_NAME"]]={\
                 "val": val, \
                 "dev": sdev}
@@ -1889,12 +1890,12 @@ def mecoparse(terms, pmeco=re.compile(r'\s*((?P<coef>\d+\.?\d*|^)\s*\*\s*)?(?P<m
     for term in terms:
         m=pmeco.match(term)
         if not m:
-            raise Exception("Wrong format for term '%s'"%term)
+            raise ValueError("Wrong format for term '%s'"%term)
         coef=m.group("coef")
         coef=1. if coef==None or not len(coef) else float(coef)
         metab=m.group("metab")
         if not metab:
-            raise Exception("Metabolite cannot be empty in term '%s'"%term)
+            raise ValueError("Metabolite cannot be empty in term '%s'"%term)
         res.append((metab, coef))
     if single:
         res=res.pop()
@@ -2256,7 +2257,7 @@ def lowtri(A):
             for i in [*A[k].keys()]:
                 try:
                     unsrt.remove(i)
-                except:
+                except ValueError:
                     pass
     return srt
 def topo_order(A, tA):
@@ -2598,9 +2599,8 @@ def proc_label_input(ftbl, netan, case_i=False):
             resf[metab][iiso]=row["VALUE"]
             res[metab][iiso]=NA
         else:
-            try:
-                val=eval_expr(row["VALUE"])
-            except:
+            val=eval_expr(row["VALUE"])
+            if val is None:
                 val=row["VALUE"]
             if type(val) in (float, int):
                 if val < 0. and val >= -tol:
@@ -2608,7 +2608,7 @@ def proc_label_input(ftbl, netan, case_i=False):
                 if val > 1. and val <= 1.+tol:
                     val=1.
                 if val < 0 or val > 1:
-                    raise Exception("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
+                    raise ValueError("Input isotopomer `%s` has a value (%g) out of range [0; 1] (%s: %s)"%(row.get("META_NAME", "")+row.get("ISOTOPOMER", ""), val, ftbl["name"], row["irow"]))
             res[metab][iiso]=val
     # check that all isoforms sum up to 1 for all inputs for influx_s
     if not case_i:
@@ -2712,22 +2712,22 @@ In case of output, you can add a fictitious metabolite in your network immediatl
                 bcumos="x"*netan["Clen"][metabl[0]]
                 bcumos[i-1]="1"
                 bcumos=[bcumos]
-            except:
+            except ValueError:
                 raise Exception("Expected integer CUM_GROUP in LABEL_MEASUREMENTS on row "+row["irow"])
         if not row["VALUE"]:
-            raise Exception("The field VALUE is empty (%s: %s)"%(ftbl["name"], row["irow"]))
+            raise ValueError("The field VALUE is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         if not row["DEVIATION"]:
-            raise Exception("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
+            raise ValueError("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         try:
             val=float(eval_expr(row["VALUE"]))
-        except:
+        except ValueError:
             val=NaN
         try:
             sdev=float(eval_expr(row["DEVIATION"]))
-        except:
-            raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
+        except ValueError:
+            raise ValueError("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
+            raise ValueError("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
         res[metabs][group].append({
                 "val":val,
                 "dev":sdev,
@@ -2794,11 +2794,11 @@ In case of output, you can add a fictitious metabolite in your network immediatl
                 raise Exception("The field DEVIATION_%s is empty (%s: %s)"%(suff, ftbl["name"], row["irow"]))
             try:
                 val=float(eval_expr(val))
-            except:
+            except ValueError:
                 val=NaN
             try:
                 dev=float(eval_expr(dev))
-            except:
+            except ValueError:
                 continue
             # test validity
             if not dev:
@@ -2887,12 +2887,12 @@ In case of output, you can add a fictitious metabolite following to '"""+metab+"
                         try:
                             for i in range(int(start),int(end)+1):
                                 if i > clen0:
-                                    raise Exception("End of interval '"+item+"' is higher than metabolite '"+metab0+"' length "+str(clen0)+" (%s: %d)"%(ftbl["name"], irow))
+                                    raise ValueError("End of interval '"+item+"' is higher than metabolite '"+metab0+"' length "+str(clen0)+" (%s: %d)"%(ftbl["name"], irow))
                                 mask|=1<<(clen0-i)
-                        except:
-                            raise Exception("Badly formed fragment interval '"+item+"' (%s: %d)"%(ftbl["name"], irow))
-                    except:
-                        raise Exception("Badly formed fragment interval '"+item+"' (%s: %d)"%(ftbl["name"], irow))
+                        except ValueError:
+                            raise ValueError("Badly formed fragment interval '"+item+"' (%s: %d)"%(ftbl["name"], irow))
+                    except ValueError:
+                        raise ValueError("Badly formed fragment interval '"+item+"' (%s: %d)"%(ftbl["name"], irow))
         m_id=":".join(["m", metabs, frag, str(irow)])
         weight=int(row["WEIGHT"])
         if sumbit(mask) < weight:
@@ -2907,14 +2907,14 @@ In case of output, you can add a fictitious metabolite following to '"""+metab+"
             raise Exception("The field DEVIATION is empty (%s: %s)"%(ftbl["name"], row["irow"]))
         try:
             val=float(eval_expr(row["VALUE"]))
-        except:
+        except ValueError:
             val=NaN
         try:
             sdev=float(eval_expr(row["DEVIATION"]))
-        except:
-            raise Exception("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
+        except ValueError:
+            raise ValueError("DEVIATION must evaluate to a real positive number (%s: %s)."%(ftbl["name"], row["irow"]))
         if sdev <= 0.:
-            raise Exception("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
+            raise ValueError("DEVIATION must be positive (%s: %s)."%(ftbl["name"], row["irow"]))
         res[m_id][mask][weight]={
                 "val":val,
                 "dev":sdev,
