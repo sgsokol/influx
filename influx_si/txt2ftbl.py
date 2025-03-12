@@ -11,6 +11,7 @@ License: Gnu Public License (GPL) v2 http://www.gnu.org/licenses/gpl.html
 import re
 import os
 import sys
+from time import sleep
 from pathlib import Path
 import pandas as pa
 import numpy as np
@@ -1283,6 +1284,7 @@ def work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpv
     out.close()
     if case_i and type(ftbl) == type(Path()):
         from ftbl2labcin import main as renum
+        #breakpoint()
         renum([str(ftbl)])
     with mpvar["lock"]:
         mpvar["rf"].append(out.name)
@@ -1621,10 +1623,17 @@ is the argument value that will take precedence.
     mpvar["sdef"]=manager.dict()
     if np == 1 or len(vdf) == 1:
         for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items():
+            #breakpoint()
             work_compile(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar)
     else:
         with Pool(np) as p:
-            p.starmap(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()])
+            # starmap_async makes it interruptable
+            resa=p.starmap_async(work_compile, [(ftbl, ligr, vdf, mtf, force, case_i, cmd, prl, scre, scred, mpvar) for ftbl,ligr in vdf.groupby(["ftbl"]).groups.items()])
+            p.close()
+            while (not resa.ready()):
+                sleep(0.1)
+            p.join()
+            # no results here, all in files
     if type(res_ftbl) is list:
         res_ftbl += list(mpvar["rf"])
     if type(prl_ftbl) is dict:

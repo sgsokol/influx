@@ -108,11 +108,13 @@ If everything was correctly installed, you should see in your shell window an ou
 
 .. code-block:: text
 
- code gen: 2022-05-25 12:10:53
- calcul  : 2022-05-25 12:10:53
- end     : 2022-05-25 12:10:55
+  v7.2.4
+  code gen: 2025-03-18 14:47:07
+  calcul  : 2025-03-18 14:47:07
+  end     : 2025-03-18 14:47:10
 
-The meaning of this output is quit simple. First, an R code is generated from input MTF files (cf. :ref:`MTF format <mtf>` for more details) then it is executed till it ends. Time moments at which these three events occur are reported.
+
+The meaning of this output is quit simple. First, the `influx_si` version is shown then an R code is generated from input MTF files (cf. :ref:`MTF format <mtf>` for more details) afterward it is executed till it ends. Time moments at which these three events occur are reported.
 
 The calculation result will be written in directory ``e_coli_res``.
 It should be almost identical to the same directory in ``ok/mtf`` subdirectory.
@@ -134,10 +136,12 @@ In this case, the output looks sightly different than in one by one run:
 
 .. code-block:: text
 
-  e_coli_growth: code gen: 2022-05-25 14:44:56
-  e_coli: code gen: 2022-05-25 14:44:56
-  //calcul: 2022-05-25 14:44:57
-  //end   : 2022-05-25 14:44:58
+  v7.2.4
+  e_coli: code gen: 2025-03-18 14:50:25
+  e_coli_growth: code gen: 2025-03-18 14:50:25
+  //calcul:  2025-03-18 14:50:25
+  //end   : 2025-03-18 14:50:27
+
  
 The time moments for code generation is preceded by a short version of file names. The symbol ``//`` means parallel proceeding. Parallel calculations are launched after all files are proceeded for the code generation.
 
@@ -154,23 +158,19 @@ Normal output looks like
 
 .. code-block:: text
 
-  code gen: 2022-05-25 14:50:51
-  calcul  : 2022-05-25 14:50:52
-  end     : 2022-05-25 14:51:02
+  v7.2.4
+  code gen: 2025-03-18 14:51:26
+  calcul  : 2025-03-18 14:51:26
+  end     : 2025-03-18 14:51:36
+
 
 Calculation results are written in ``e_coli_i_res`` directory and they can be compared with the sames files in the ``../ok/mtf/e_coli_i_re`` sub-directory. You can also visually check a generated graphic file ``e_coli_i_res/e_coli_i.pdf`` to see if all simulated label kinetics based on estimated fluxes and metabolite concentrations are close to experimental data.
 
-*****************************
-Installation of documentation
-*****************************
+*************
+Documentation
+*************
 
-``influx_si`` is distributed with its documentation. To get it locally accessible from your personal disk space, you can run: ::
-
- $ influx_s.py --copy_doc
-
-It will create a subdirectory ``doc`` in the current directory. This subdirectory contains ``influx_si.pdf``, all-in-one documentation file but also an ``html`` subdirectory with the documentation viewable in your preferred browser.
-
-The documentation is also available `on-line <https://influx-si.readthedocs.io/>`_.
+The documentation of ``influx_si`` is available `on-line <https://influx-si.readthedocs.io/>`_.
 
 For a quick reminder of available options, launch ::
 

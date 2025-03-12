@@ -102,7 +102,7 @@ def valval(o, keepNone=True):
                         elif i2 is not None:
                             yield i2
                             
-                except:
+                except TypeError:
                     if keepNone:
                         yield i1
                     elif i1 is not None:
@@ -276,7 +276,7 @@ def read_table(fp, sep=None, skip=0, header=False):
 def int_str(s):
     try:
         res=int(s)
-    except:
+    except ValueError:
         res=s
     return res
 def parse_version(version):

@@ -468,8 +468,8 @@ lab_resid=cumo_resid
 lab_sim=param2fl_x
 jx_f=new.env()
     """%{
-        "dirw": escape(str(fp.parent.resolve()), '\\"'),
-        "dirres": escape(str(Path(dirres).resolve()) if dirres else "", '\\"'),
+        "dirw": escape(str(fp.parent), '\\"'),
+        "dirres": escape(str(Path(dirres)) if dirres else "", '\\"'),
         "dirr": escape(dirr, '\\"'),
         "case_i": "TRUE" if case_i else "FALSE",
         "vernum": influx_si.__version__,

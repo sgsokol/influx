@@ -1,18 +1,16 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>txt2ftbl &#8212; influx_si 7.2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
+    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -51,6 +49,7 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pa</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -60,10 +59,15 @@
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">linalg</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">diag</span>
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span><span class="p">,</span> <span class="n">cpu_count</span><span class="p">,</span> <span class="n">Manager</span>
-<span class="n">vsadd</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">add</span> <span class="c1"># vector string add</span>
 <span class="kn">import</span> <span class="nn">influx_si</span>
 <span class="kn">from</span> <span class="nn">C13_ftbl</span> <span class="kn">import</span> <span class="n">formula2dict</span><span class="p">,</span> <span class="n">eval_expr</span>
-<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="n">valval</span>
+<span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="n">valval</span><span class="p">,</span> <span class="n">parse_version</span>
+
+<span class="k">if</span> <span class="n">parse_version</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2</span><span class="p">,):</span>
+    <span class="n">vsadd</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">add</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">vsadd</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">add</span> <span class="c1"># vector string add</span>
+
 
 <span class="n">version</span><span class="o">=</span><span class="n">influx_si</span><span class="o">.</span><span class="n">__version__</span>
 <span class="c1">#me=os.path.basename(sys.argv[0] or &quot;txt2ftbl&quot;)</span>
@@ -71,29 +75,52 @@
 <span class="n">LOCAL_TIMEZONE</span><span class="o">=</span><span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">astimezone</span><span class="p">()</span><span class="o">.</span><span class="n">tzinfo</span>
 <span class="n">invcomp</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;&gt;=&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;=&gt;&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;=&quot;</span><span class="p">:</span> <span class="s2">&quot;&gt;=&quot;</span><span class="p">,</span> <span class="s2">&quot;=&lt;&quot;</span><span class="p">:</span> <span class="s2">&quot;&gt;=&quot;</span><span class="p">}</span>
 
-<div class="viewcode-block" id="natural_sort_key"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.natural_sort_key">[docs]</a><span class="k">def</span> <span class="nf">natural_sort_key</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">_re</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)&#39;</span><span class="p">)):</span>
+<div class="viewcode-block" id="natural_sort_key">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.natural_sort_key">[docs]</a>
+<span class="k">def</span> <span class="nf">natural_sort_key</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">_re</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)&#39;</span><span class="p">)):</span>
     <span class="c1"># last 2 fields are inverted for sorting</span>
     <span class="n">res</span><span class="o">=</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">s</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">li</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="n">li</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span><span class="o">+</span><span class="n">li</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])]</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="plain_natural_key"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.plain_natural_key">[docs]</a><span class="k">def</span> <span class="nf">plain_natural_key</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">_re</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)&#39;</span><span class="p">)):</span>
+
+<div class="viewcode-block" id="plain_natural_key">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.plain_natural_key">[docs]</a>
+<span class="k">def</span> <span class="nf">plain_natural_key</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">_re</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)&#39;</span><span class="p">)):</span>
     <span class="k">return</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">t</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">li</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">s</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">li</span><span class="p">)]</span></div>
-<div class="viewcode-block" id="dtstamp"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.dtstamp">[docs]</a><span class="k">def</span> <span class="nf">dtstamp</span><span class="p">():</span>
+
+<div class="viewcode-block" id="dtstamp">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.dtstamp">[docs]</a>
+<span class="k">def</span> <span class="nf">dtstamp</span><span class="p">():</span>
     <span class="s2">&quot;formatted date-time stamp&quot;</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">LOCAL_TIMEZONE</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S %Z %z&#39;</span><span class="p">))</span></div>
-<div class="viewcode-block" id="werr"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.werr">[docs]</a><span class="k">def</span> <span class="nf">werr</span><span class="p">(</span><span class="n">mes</span><span class="p">):</span>
+
+<div class="viewcode-block" id="werr">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.werr">[docs]</a>
+<span class="k">def</span> <span class="nf">werr</span><span class="p">(</span><span class="n">mes</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">me</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">mes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
-<div class="viewcode-block" id="warn"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.warn">[docs]</a><span class="k">def</span> <span class="nf">warn</span><span class="p">(</span><span class="n">mes</span><span class="p">):</span>
+
+<div class="viewcode-block" id="warn">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.warn">[docs]</a>
+<span class="k">def</span> <span class="nf">warn</span><span class="p">(</span><span class="n">mes</span><span class="p">):</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning! </span><span class="si">{</span><span class="n">me</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">mes</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
-<div class="viewcode-block" id="usage"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.usage">[docs]</a><span class="k">def</span> <span class="nf">usage</span><span class="p">():</span>
+
+<div class="viewcode-block" id="usage">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.usage">[docs]</a>
+<span class="k">def</span> <span class="nf">usage</span><span class="p">():</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="vm">__doc__</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
-<div class="viewcode-block" id="itvl2li"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.itvl2li">[docs]</a><span class="k">def</span> <span class="nf">itvl2li</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+
+<div class="viewcode-block" id="itvl2li">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.itvl2li">[docs]</a>
+<span class="k">def</span> <span class="nf">itvl2li</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
     <span class="s2">&quot;convert interval like &#39;2-5&#39;  to [&#39;2&#39;, &#39;3&#39;, &#39;4&#39;, &#39;5&#39;]&quot;</span>
     <span class="n">li</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">li</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]))]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">li</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span></div>
-<div class="viewcode-block" id="dsec2out"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.dsec2out">[docs]</a><span class="k">def</span> <span class="nf">dsec2out</span><span class="p">(</span><span class="n">dsec</span><span class="p">,</span> <span class="n">fout</span><span class="p">):</span>
+
+<div class="viewcode-block" id="dsec2out">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.dsec2out">[docs]</a>
+<span class="k">def</span> <span class="nf">dsec2out</span><span class="p">(</span><span class="n">dsec</span><span class="p">,</span> <span class="n">fout</span><span class="p">):</span>
     <span class="s2">&quot;write lines from section dictionary &#39;dsec&#39; to &#39;fout&#39;&quot;</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">li</span> <span class="ow">in</span> <span class="n">dsec</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">li</span><span class="p">:</span>
@@ -101,7 +128,10 @@
                 <span class="n">dsec2out</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">fout</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">item</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
-<div class="viewcode-block" id="dfconcat"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.dfconcat">[docs]</a><span class="k">def</span> <span class="nf">dfconcat</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">df2</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+
+<div class="viewcode-block" id="dfconcat">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.dfconcat">[docs]</a>
+<span class="k">def</span> <span class="nf">dfconcat</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">df2</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
     <span class="s2">&quot;concat 2 dataframes if not empty&quot;</span>
     <span class="k">if</span> <span class="n">df1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">df2</span>
@@ -111,7 +141,10 @@
         <span class="k">return</span> <span class="n">df2</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">df1</span></div>
-<div class="viewcode-block" id="tsv2df"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.tsv2df">[docs]</a><span class="k">def</span> <span class="nf">tsv2df</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="n">skip_blank_lines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">append_iline</span><span class="o">=</span><span class="s2">&quot;iline&quot;</span><span class="p">,</span> <span class="n">encodings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1250&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1252&quot;</span><span class="p">]):</span>
+
+<div class="viewcode-block" id="tsv2df">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.tsv2df">[docs]</a>
+<span class="k">def</span> <span class="nf">tsv2df</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="n">skip_blank_lines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">append_iline</span><span class="o">=</span><span class="s2">&quot;iline&quot;</span><span class="p">,</span> <span class="n">encodings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1250&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1252&quot;</span><span class="p">]):</span>
     <span class="s2">&quot;Read file &#39;f&#39; as TSV and return a DataFrame. Separator is &#39;sep&#39;, comment char is &#39;comment&#39;, blank lines are skept, header is in the first row, file line numbers are stored in a column &#39;line_nb&#39; if there is no a column with this name&quot;</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="n">Path</span><span class="p">()):</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">e</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">encodings</span><span class="p">):</span>
@@ -162,7 +195,10 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">cnm</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cnm</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">=</span><span class="n">cnm</span>
     <span class="k">return</span> <span class="n">df</span></div>
-<div class="viewcode-block" id="try_ext"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.try_ext">[docs]</a><span class="k">def</span> <span class="nf">try_ext</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">li</span><span class="p">):</span>
+
+<div class="viewcode-block" id="try_ext">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.try_ext">[docs]</a>
+<span class="k">def</span> <span class="nf">try_ext</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">li</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;See if file &#39;f&#39; exists, if not try with extensions from &#39;li&#39;.</span>
 <span class="sd">    The first found is returned as Path() otherwise an exception is raised.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">Path</span><span class="p">()),</span> <span class="nb">str</span><span class="p">):</span>
@@ -183,11 +219,17 @@
             <span class="k">return</span> <span class="n">pth</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;try_ext: unknown type of &#39;f&#39;. Expecting &#39;str&#39; or &#39;Path&#39;.&quot;</span><span class="p">)</span></div>
+
     
-<div class="viewcode-block" id="revineq"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.revineq">[docs]</a><span class="k">def</span> <span class="nf">revineq</span><span class="p">(</span><span class="n">ine</span><span class="p">):</span>
+<div class="viewcode-block" id="revineq">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.revineq">[docs]</a>
+<span class="k">def</span> <span class="nf">revineq</span><span class="p">(</span><span class="n">ine</span><span class="p">):</span>
     <span class="n">rev</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span> <span class="s2">&quot;&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;=&quot;</span><span class="p">:</span> <span class="s2">&quot;=&quot;</span><span class="p">}</span>
     <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rev</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ine</span><span class="p">)</span></div>
-<div class="viewcode-block" id="txt_parse"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.txt_parse">[docs]</a><span class="k">def</span> <span class="nf">txt_parse</span><span class="p">(</span><span class="n">ftxt</span><span class="p">,</span> <span class="n">re_metab</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(?:(?P&lt;coef&gt;[\d\.]*)\s*\*\s*)?(?:(?P&lt;metab&gt;[^() \t\r]+)\s*)(?:\(\s*(?P&lt;carb&gt;[^()]*)\s*\))?\s*&quot;</span><span class="p">),</span>
+
+<div class="viewcode-block" id="txt_parse">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.txt_parse">[docs]</a>
+<span class="k">def</span> <span class="nf">txt_parse</span><span class="p">(</span><span class="n">ftxt</span><span class="p">,</span> <span class="n">re_metab</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(?:(?P&lt;coef&gt;[\d\.]*)\s*\*\s*)?(?:(?P&lt;metab&gt;[^() \t\r]+)\s*)(?:\(\s*(?P&lt;carb&gt;[^()]*)\s*\))?\s*&quot;</span><span class="p">),</span>
         <span class="n">re_labpat</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[./*\d\s]*(?P&lt;labpat&gt;[a-zA-Z]*)\s*$&quot;</span><span class="p">),</span> <span class="n">encodings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1250&quot;</span><span class="p">,</span> <span class="s2">&quot;windows-1252&quot;</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse txt file from fname which is in format:</span>
 <span class="sd">### Glycolysis and OPP pathway</span>
@@ -427,7 +469,10 @@
         <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;txt_parse: detected </span><span class="si">%d</span><span class="s2"> disconnected sub-networks in &#39;</span><span class="si">%s</span><span class="s2">&#39;:</span><span class="se">\n\t</span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mconn</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;: &quot;</span><span class="o">+</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mconn</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))))</span>
         <span class="c1">#pdb.set_trace()</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">res</span><span class="p">,</span> <span class="n">resnotr</span><span class="p">,</span> <span class="n">eqs</span><span class="p">,</span> <span class="n">ineqs</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="p">[</span><span class="n">m_left</span><span class="p">,</span> <span class="n">m_right</span><span class="p">],</span> <span class="n">sto</span><span class="p">,</span> <span class="n">dclen</span><span class="p">]</span></div>
-<div class="viewcode-block" id="parse_miso"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_miso">[docs]</a><span class="k">def</span> <span class="nf">parse_miso</span><span class="p">(</span><span class="n">fmiso</span><span class="p">,</span> <span class="n">clen</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">itnal_met</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+
+<div class="viewcode-block" id="parse_miso">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_miso">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_miso</span><span class="p">(</span><span class="n">fmiso</span><span class="p">,</span> <span class="n">clen</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">itnal_met</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
     <span class="s2">&quot;Parse isotopic measurements TSV file. Return dict with keys: ms, lab, peak&quot;</span>
     <span class="n">prow_def</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;v0&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;v-1&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;v1&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;v-11&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dev0&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dev-1&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dev1&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;dev-11&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">}</span> <span class="c1"># for building peak-row</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">fmiso</span><span class="p">):</span>
@@ -732,7 +777,10 @@
         <span class="n">cols</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">df_kin</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="n">df_kin</span><span class="o">=</span><span class="n">df_kin</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">df_kin</span><span class="p">)</span> <span class="k">if</span> <span class="n">case_i</span> <span class="k">else</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="parse_linp"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_linp">[docs]</a><span class="k">def</span> <span class="nf">parse_linp</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">clen</span><span class="o">=</span><span class="p">{}):</span>
+
+<div class="viewcode-block" id="parse_linp">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_linp">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_linp</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">clen</span><span class="o">=</span><span class="p">{}):</span>
     <span class="s2">&quot;Parse label input TSV file. Return a list of lines to add to ftbl&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -765,7 +813,10 @@
         <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="s2">#</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s2">   // </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Isotopomer&quot;</span><span class="p">],</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Value&quot;</span><span class="p">],</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="n">res</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="se">\t\t</span><span class="s2">#</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s2">   // </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s2">&quot;Isotopomer&quot;</span><span class="p">],</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s2">&quot;Value&quot;</span><span class="p">],</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ligr</span><span class="p">))]</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="parse_mflux"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_mflux">[docs]</a><span class="k">def</span> <span class="nf">parse_mflux</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dfl</span><span class="o">=</span><span class="p">{}):</span>
+
+<div class="viewcode-block" id="parse_mflux">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_mflux">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_mflux</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dfl</span><span class="o">=</span><span class="p">{}):</span>
     <span class="s2">&quot;Parse flux measurements TSV file. Return a list of lines to add to ftbl&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -787,7 +838,10 @@
             <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;parse_mflux: flux &#39;</span><span class="si">%s</span><span class="s2">&#39; was not seen in metabolic network, &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s2">   // </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Value&quot;</span><span class="p">],</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;SD&quot;</span><span class="p">],</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="parse_opt"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_opt">[docs]</a><span class="k">def</span> <span class="nf">parse_opt</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+
+<div class="viewcode-block" id="parse_opt">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_opt">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_opt</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
     <span class="s2">&quot;Parse options TSV file. Return a list of lines to add to ftbl&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -802,7 +856,10 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">res</span><span class="o">=</span><span class="nb">list</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">res</span></div>
-<div class="viewcode-block" id="parse_tvar"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_tvar">[docs]</a><span class="k">def</span> <span class="nf">parse_tvar</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dfl</span><span class="o">=</span><span class="p">{},</span> <span class="n">lablen</span><span class="o">=</span><span class="p">{}):</span>
+
+<div class="viewcode-block" id="parse_tvar">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_tvar">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_tvar</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dfl</span><span class="o">=</span><span class="p">{},</span> <span class="n">lablen</span><span class="o">=</span><span class="p">{}):</span>
     <span class="s2">&quot;Parse variable type TSV file. Return a tuple of 2 dict fl and mets with lines to add to ftbl&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -850,7 +907,10 @@
             <span class="n">fl</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span><span class="o">=</span><span class="n">fl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kind</span><span class="p">,</span> <span class="p">[])</span>
             <span class="n">fl</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s2">   // </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">ty</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">fl</span><span class="p">,</span> <span class="n">mets</span><span class="p">)</span></div>
-<div class="viewcode-block" id="parse_cnstr"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_cnstr">[docs]</a><span class="k">def</span> <span class="nf">parse_cnstr</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+
+<div class="viewcode-block" id="parse_cnstr">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_cnstr">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_cnstr</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
     <span class="s2">&quot;Parse constraint TSV file. Return a tuple of 2 dicts (eq, ineq) with lines to add to ftbl&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -884,7 +944,10 @@
             <span class="n">ineq</span><span class="p">[</span><span class="n">kind</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s2">   // </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">frml</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
     <span class="c1">#pdb.set_trace()</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="n">ineq</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span></div>
-<div class="viewcode-block" id="parse_mmet"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_mmet">[docs]</a><span class="k">def</span> <span class="nf">parse_mmet</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">smet</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+
+<div class="viewcode-block" id="parse_mmet">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.parse_mmet">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_mmet</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">smet</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
     <span class="s2">&quot;Parse metabolite concentration measurements TSV file. Return a list of lines to add to ftbl&quot;</span>
     <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">f</span><span class="o">.</span><span class="n">name</span>
@@ -909,7 +972,10 @@
         <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="si">%s</span><span class="s2">   // </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">met</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;Value&quot;</span><span class="p">],</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;SD&quot;</span><span class="p">],</span> <span class="n">fname</span><span class="p">,</span> <span class="n">il</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="compile"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.compile">[docs]</a><span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="n">mtf</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clen</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">itnal_met</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+
+<div class="viewcode-block" id="compile">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.compile">[docs]</a>
+<span class="k">def</span> <span class="nf">compile</span><span class="p">(</span><span class="n">mtf</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">case_i</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">clen</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">itnal_met</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
     <span class="s2">&quot;Compile FTBL content from mtf names: netw, miso etc. Return a dict of ftbl lines&quot;</span>
     <span class="c1"># dict of ftbl sections. Contains list of lines to be completed by compilation</span>
     <span class="n">dsec</span><span class="o">=</span><span class="p">{</span>
@@ -1205,8 +1271,11 @@
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">df</span> <span class="ow">in</span> <span class="n">dfdef</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">dfdef</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">defsort</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">dsec</span><span class="p">,</span> <span class="n">dclen</span><span class="p">,</span> <span class="n">dfdef</span><span class="p">,</span> <span class="n">itnal_met</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">case_i</span> <span class="k">else</span> <span class="p">(</span><span class="n">dsec</span><span class="p">,</span> <span class="n">dclen</span><span class="p">,</span> <span class="n">dfdef</span><span class="p">,</span> <span class="n">itnal_met</span><span class="p">,</span> <span class="n">df_kin</span><span class="p">)</span></div>
+
 <span class="c1">#@background</span>
-<div class="viewcode-block" id="work_compile"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.work_compile">[docs]</a><span class="k">def</span> <span class="nf">work_compile</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">ligr</span><span class="p">,</span> <span class="n">vdf</span><span class="p">,</span> <span class="n">mtf</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">prl</span><span class="p">,</span> <span class="n">scre</span><span class="p">,</span> <span class="n">scred</span><span class="p">,</span> <span class="n">mpvar</span><span class="p">):</span>
+<div class="viewcode-block" id="work_compile">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.work_compile">[docs]</a>
+<span class="k">def</span> <span class="nf">work_compile</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">ligr</span><span class="p">,</span> <span class="n">vdf</span><span class="p">,</span> <span class="n">mtf</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">prl</span><span class="p">,</span> <span class="n">scre</span><span class="p">,</span> <span class="n">scred</span><span class="p">,</span> <span class="n">mpvar</span><span class="p">):</span>
     <span class="n">il</span><span class="o">=</span><span class="n">vdf</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ligr</span><span class="p">,</span> <span class="s2">&quot;iline&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="c1"># strings</span>
     <span class="c1"># sanity check</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ligr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -1318,6 +1387,7 @@
     <span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">case_i</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">ftbl</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="n">Path</span><span class="p">()):</span>
         <span class="kn">from</span> <span class="nn">ftbl2labcin</span> <span class="kn">import</span> <span class="n">main</span> <span class="k">as</span> <span class="n">renum</span>
+        <span class="c1">#breakpoint()</span>
         <span class="n">renum</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">ftbl</span><span class="p">)])</span>
     <span class="k">with</span> <span class="n">mpvar</span><span class="p">[</span><span class="s2">&quot;lock&quot;</span><span class="p">]:</span>
         <span class="n">mpvar</span><span class="p">[</span><span class="s2">&quot;rf&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -1340,7 +1410,10 @@
                     <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
             <span class="n">mpvar</span><span class="p">[</span><span class="s2">&quot;sdef&quot;</span><span class="p">][</span><span class="n">p</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span></div>
 
-<div class="viewcode-block" id="main"><a class="viewcode-back" href="../progdoc.html#txt2ftbl.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">res_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prl_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../progdoc.html#txt2ftbl.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">res_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prl_ftbl</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;translate MTF file(s) to FTBL format</span>
 <span class="sd">    :param argv: list of CLI options and their arguments</span>
 <span class="sd">    :param res_ftbl: if not None, a list of produced FTBL files. In case of parallel experiments, only main FTBL are returned in this list</span>
@@ -1656,15 +1729,23 @@
     <span class="n">mpvar</span><span class="p">[</span><span class="s2">&quot;sdef&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">manager</span><span class="o">.</span><span class="n">dict</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">np</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">vdf</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">ftbl</span><span class="p">,</span><span class="n">ligr</span> <span class="ow">in</span> <span class="n">vdf</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;ftbl&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1">#breakpoint()</span>
             <span class="n">work_compile</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">ligr</span><span class="p">,</span> <span class="n">vdf</span><span class="p">,</span> <span class="n">mtf</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">prl</span><span class="p">,</span> <span class="n">scre</span><span class="p">,</span> <span class="n">scred</span><span class="p">,</span> <span class="n">mpvar</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">np</span><span class="p">)</span> <span class="k">as</span> <span class="n">p</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="n">work_compile</span><span class="p">,</span> <span class="p">[(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">ligr</span><span class="p">,</span> <span class="n">vdf</span><span class="p">,</span> <span class="n">mtf</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">prl</span><span class="p">,</span> <span class="n">scre</span><span class="p">,</span> <span class="n">scred</span><span class="p">,</span> <span class="n">mpvar</span><span class="p">)</span> <span class="k">for</span> <span class="n">ftbl</span><span class="p">,</span><span class="n">ligr</span> <span class="ow">in</span> <span class="n">vdf</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;ftbl&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+            <span class="c1"># starmap_async makes it interruptable</span>
+            <span class="n">resa</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">starmap_async</span><span class="p">(</span><span class="n">work_compile</span><span class="p">,</span> <span class="p">[(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">ligr</span><span class="p">,</span> <span class="n">vdf</span><span class="p">,</span> <span class="n">mtf</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">prl</span><span class="p">,</span> <span class="n">scre</span><span class="p">,</span> <span class="n">scred</span><span class="p">,</span> <span class="n">mpvar</span><span class="p">)</span> <span class="k">for</span> <span class="n">ftbl</span><span class="p">,</span><span class="n">ligr</span> <span class="ow">in</span> <span class="n">vdf</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;ftbl&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">while</span> <span class="p">(</span><span class="ow">not</span> <span class="n">resa</span><span class="o">.</span><span class="n">ready</span><span class="p">()):</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="c1"># no results here, all in files</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">res_ftbl</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
         <span class="n">res_ftbl</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">mpvar</span><span class="p">[</span><span class="s2">&quot;rf&quot;</span><span class="p">])</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">prl_ftbl</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
         <span class="n">prl_ftbl</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">mpvar</span><span class="p">[</span><span class="s2">&quot;pf&quot;</span><span class="p">])</span>
     <span class="k">return</span> <span class="mi">0</span></div>
+
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
@@ -1684,7 +1765,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1704,8 +1785,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

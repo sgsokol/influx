@@ -5,7 +5,8 @@
 #import pdb
 #print(("n=", __name__))
 
-import sys, os, datetime as dt, subprocess as subp, re, time, traceback, stat, shutil
+import sys, os, datetime as dt, subprocess as subp, re, traceback, stat, shutil
+from time import sleep
 import argparse
 #from threading import Thread # threaded parallel jobs
 from multiprocessing import cpu_count, Pool
@@ -15,6 +16,7 @@ from pathlib import Path
 import signal
 
 import influx_si
+#print(influx_si.__file__)
 import txt2ftbl
 import ftbl2optR
 import C13_ftbl
@@ -46,10 +48,10 @@ class pvalAction(argparse.Action):
             # some value is given in arg
             try:
                 val=float(values)
-            except:
+            except ValueError:
                 raise Exception("--excl_outliers expects a float number, instead got '%s'"%str(values))
             if val <= 0. or val >= 1.:
-                raise Exception("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
+                raise ValueError("--excl_outliers expects a float number in ]0, 1[ interval, instead got '%s'"%str(values))
             setattr(namespace, self.dest, val)
 def now_s():
     return(dt.datetime.strftime(dt.datetime.now(), "%Y-%m-%d %H:%M:%S"))
@@ -359,9 +361,6 @@ Call influx_s.main(["-h"]) for a help message"""
             help="write results to '_res.kvh' file")
         # install helper actions
         parser.add_argument(
-        "--copy_doc", action="store_true",
-            help="copy documentation directory in the current directory and exit. If ./doc exists, its content is silently overwritten.")
-        parser.add_argument(
         "--copy_test", action="store_true",
             help="copy test directory in the current directory and exit. If ./test exists, its content is silently overwritten.")
         parser.add_argument(
@@ -390,7 +389,7 @@ Call influx_s.main(["-h"]) for a help message"""
         parser.print_usage(sys.stderr)
         return 1
     # parse command line
-    #pdb.set_trace()
+    #breakpoint()
     opts = parser.parse_args(argv)
     dict_opts=vars(opts)
     DEBUG=dict_opts["DEBUG"]
@@ -407,13 +406,6 @@ Call influx_s.main(["-h"]) for a help message"""
 
     do_exit=False
     retcode=0
-    if dict_opts["copy_doc"]:
-        do_exit=True
-        from distutils.dir_util import copy_tree
-        dsrc=os.path.join(dirinst, "doc")
-        ddst=os.path.realpath(os.path.join(".", "doc"))
-        print("Copy '%(dsrc)s' to '%(ddst)s'"%{"dsrc": dsrc, "ddst": ddst})
-        copy_tree(dsrc, ddst, verbose=1)
     if dict_opts["copy_test"]:
         do_exit=True
         from distutils.dir_util import copy_tree
@@ -442,7 +434,7 @@ Call influx_s.main(["-h"]) for a help message"""
                     #print("got on stdin buf='"+buf+"'")
                     p.stdin.write(buf.encode())
                     p.stdin.flush()
-                time.sleep(0.1)
+                sleep(0.1)
             retcode=p.returncode
         else:
             rexe=shutil.which("R")
@@ -524,6 +516,7 @@ Call influx_s.main(["-h"]) for a help message"""
             mtf_opts += [v for t in ord_args for v in t]
             #print("mtf_opts=", mtf_opts)
             try:
+                #breakpoint()
                 txt2ftbl.main(mtf_opts, li_ftbl, prl_ftbl)
             except Exception as e:
                     #pdb.set_trace()
@@ -559,6 +552,7 @@ Call influx_s.main(["-h"]) for a help message"""
     nb_ftbl=len(args)
     parR=len(args) > 1
 
+    print("v"+influx_si.__version__)
     ftpr=[] # proceeded ftbls
     for ft in args:
         if ft[-5:] != ".ftbl":
@@ -587,7 +581,13 @@ Call influx_s.main(["-h"]) for a help message"""
 
     else:
         with Pool(np) as p:
-            rcodes, rfiles=zip(*p.starmap(launch_job, [(*item.values(), *wdict.values()) for item in ftpr]))
+            resa=p.starmap_async(launch_job, [(*item.values(), *wdict.values()) for item in ftpr])
+            p.close()
+            while (not resa.ready()):
+                sleep(0.1)
+            p.join()
+            res=resa.get()
+            rcodes, rfiles=zip(*res)
 
     if not rcodes:
         #import pdb; pdb.set_trace()
@@ -736,15 +736,18 @@ Call influx_s.main(["-h"]) for a help message"""
                         sys.stderr.write("***Warning: '"+rfiles[0][0]+"' produced the following warnings:\n"+err+"\n")
                 retcode=sp.returncode
             except KeyboardInterrupt:
-                os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
+                if os.name == "nt":
+                    sp.kill()
+                else:
+                    os.killpg(os.getpgid(sp.pid), signal.SIGTERM)
                 err="Keyboard interupt"
                 retcode=1
             if retcode != 0 and err:
-                    if fpe:
-                        with fpe.open("a") as fc:
-                            fc.write("Error: "+rfiles[0][0]+" aborted with:\n"+err+"\n")
-                    else:
-                        sys.stderr.write("Error: "+rfiles[0][0]+" aborted with:\n"+err+"\n")
+                if fpe:
+                    with fpe.open("a") as fc:
+                        fc.write("Error: "+rfiles[0][0]+" aborted with:\n"+err+"\n")
+                else:
+                    sys.stderr.write("Error: "+rfiles[0][0]+" aborted with:\n"+err+"\n")
         s="end     : "+now_s()+"\n"
         sys.stdout.write(s)
         if flog:

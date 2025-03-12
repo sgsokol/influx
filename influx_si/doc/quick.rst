@@ -16,19 +16,19 @@ A basic work-flow with ``influx_si`` is composed of the following steps:
 
 2. Set your current directory to the directory of ``mynetwork.*`` and run ::
 
-   $ influx_s.py --prefix mynetwork
+   $ influx_s --prefix mynetwork
 
   or ::
 
-   $ influx_i.py --prefix mynetwork
+   $ influx_i --prefix mynetwork
 
-  depending on stationary or instationary labeling context. We suppose here that directory of ``influx_si`` binaries is in the PATH variable.
+  depending on stationary or instationary labeling context. We suppose here that influx_si was installed with `miniconda <https://www.anaconda.com/docs/getting-started/miniconda/main>`_ or alike and that the directory of ``influx_si`` binaries is in the PATH variable.
 
   An ``influx_si`` run will produce result files in ``mynetwok_res`` directory. The detailed description of these files can be found in the next section. However, general idea is that simulated measurements are written in the files similar to MTF format with ``.sim`` (as "simulated") suffix appended, e.g. ``mynetwork.miso.sim``.
     
   .. note:: It can be helpful to do some "dry runs" by executing ::
 
-   $ influx_s.py --noopt --pref mynetwork
+   $ influx_s --noopt --pref mynetwork
    
    before collecting actual measurement data to see if intended measurements will be sufficient to well define all fluxes, or at least the fluxes of interest. It is possible to do so because the measurement values in the .miso file have no impact on flux SD calculation when ``--noopt`` option is used. So it can be used any values, even NA at this moment. On the contrary, ``SD`` values set in .miso file, must be realistic. It is generally not a problem as they express measurements errors and are more or less known for a given measurement method.
    

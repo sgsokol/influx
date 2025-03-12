@@ -1,18 +1,16 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ftbl2code &#8212; influx_si 7.2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
+    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -73,7 +71,9 @@
 <span class="kn">from</span> <span class="nn">tools_ssg</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
 
-<div class="viewcode-block" id="netan2Abcumo_spr"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a><span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
+<div class="viewcode-block" id="netan2Abcumo_spr">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Abcumo_spr">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2Abcumo_spr</span><span class="p">(</span><span class="n">varname</span><span class="p">,</span> <span class="n">Al</span><span class="p">,</span> <span class="n">bl</span><span class="p">,</span> <span class="n">vcumol</span><span class="p">,</span> <span class="n">minput</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fwrv2i</span><span class="p">,</span> <span class="n">incu2i_b1</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transform cumomer linear sytems collection (from ftbl file)</span>
 <span class="sd">    to a R code calculating sparse matrix A and vector b</span>
@@ -218,7 +218,10 @@
         <span class="n">ba_xw</span><span class="o">+=</span><span class="n">ncumo</span>
         <span class="n">ncucumo</span><span class="o">+=</span><span class="n">ncumo</span></div>
 
-<div class="viewcode-block" id="netan2Rinit"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a><span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[],</span> <span class="n">dirres</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2Rinit">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2Rinit">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2Rinit</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ropts</span><span class="o">=</span><span class="p">[],</span> <span class="n">dirres</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Write R code for initialization of all variables before</span>
 <span class="sd">cumomer system resolution by chi2 minimization.</span>
 <span class="sd">:param netan: a collection of parsed ftbl information</span>
@@ -508,8 +511,8 @@
 <span class="s2">lab_sim=param2fl_x</span>
 <span class="s2">jx_f=new.env()</span>
 <span class="s2">    &quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
-        <span class="s2">&quot;dirw&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fp</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">resolve</span><span class="p">()),</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
-        <span class="s2">&quot;dirres&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">dirres</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span> <span class="k">if</span> <span class="n">dirres</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
+        <span class="s2">&quot;dirw&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fp</span><span class="o">.</span><span class="n">parent</span><span class="p">),</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
+        <span class="s2">&quot;dirres&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">dirres</span><span class="p">))</span> <span class="k">if</span> <span class="n">dirres</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
         <span class="s2">&quot;dirr&quot;</span><span class="p">:</span> <span class="n">escape</span><span class="p">(</span><span class="n">dirr</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">),</span>
         <span class="s2">&quot;case_i&quot;</span><span class="p">:</span> <span class="s2">&quot;TRUE&quot;</span> <span class="k">if</span> <span class="n">case_i</span> <span class="k">else</span> <span class="s2">&quot;FALSE&quot;</span><span class="p">,</span>
         <span class="s2">&quot;vernum&quot;</span><span class="p">:</span> <span class="n">influx_si</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span>
@@ -702,7 +705,10 @@
         <span class="p">})</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="netan2R_fl"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_fl">[docs]</a><span class="k">def</span> <span class="nf">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2R_fl">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_fl">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_fl(netan, org, f)</span>
 <span class="sd">    generate R code for flux and pool part</span>
 <span class="sd">    for more details cf. netan2Rinit()</span>
@@ -1272,7 +1278,10 @@
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;fwrv2i&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">fwrv2i</span>
     <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;tfallnx&quot;</span><span class="p">]</span><span class="o">=</span><span class="n">tfallnx</span></div>
 
-<div class="viewcode-block" id="netan2R_meas"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_meas">[docs]</a><span class="k">def</span> <span class="nf">netan2R_meas</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2R_meas">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_meas">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_meas</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_meas(netan, org, f)</span>
 <span class="sd">    generate code for measure treatment</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1625,7 +1634,10 @@
         <span class="s2">&quot;imcumo2i&quot;</span><span class="p">:</span> <span class="n">imcumo2i</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="netan2R_rcumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2R_rcumo">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_rcumo">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># prepare reduced python systems</span>
     <span class="c1">#rAb=C13_ftbl.rcumo_sys(netan, emu)</span>
     <span class="c1">#raise Exception(&quot;iso2emu&quot;)</span>
@@ -1698,7 +1710,10 @@
         <span class="s2">&quot;rAb&quot;</span><span class="p">:</span> <span class="n">rAb</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="netan2R_cumo"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_cumo">[docs]</a><span class="k">def</span> <span class="nf">netan2R_cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2R_cumo">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_cumo">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_cumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_cumo(netan, org, f)-&gt;dict</span>
 <span class="sd">    generate data structures for full cumomer matrices</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1740,7 +1755,10 @@
         <span class="s2">&quot;cumo2i&quot;</span><span class="p">:</span> <span class="n">cumo2i</span><span class="p">,</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="netan2R_ineq"><a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_ineq">[docs]</a><span class="k">def</span> <span class="nf">netan2R_ineq</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+
+<div class="viewcode-block" id="netan2R_ineq">
+<a class="viewcode-back" href="../progdoc.html#ftbl2code.netan2R_ineq">[docs]</a>
+<span class="k">def</span> <span class="nf">netan2R_ineq</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;netan2R_ineq(netan, org, f)</span>
 <span class="sd">    generate inequality code</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -2115,6 +2133,7 @@
 <span class="s2">ep=as.matrix(ep)</span>
 <span class="s2">names(cp)=rownames(ep)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span></div>
+
 </pre></div>
 
             <div class="clearer"></div>
@@ -2132,7 +2151,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2152,8 +2171,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

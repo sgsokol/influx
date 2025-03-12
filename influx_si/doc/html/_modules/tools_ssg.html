@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tools_ssg &#8212; influx_si 7.0 documentation</title>
+    <title>tools_ssg &#8212; influx_si 7.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=0d2a8836"></script>
+    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">tools_ssg</a></li> 
       </ul>
@@ -41,6 +41,7 @@
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="c1">#print(sys.path)</span>
 <span class="kn">from</span> <span class="nn">kvh.kvh</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">fill</span>
 <span class="n">letters</span><span class="o">=</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span>
@@ -168,7 +169,7 @@
                         <span class="k">elif</span> <span class="n">i2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="k">yield</span> <span class="n">i2</span>
                             
-                <span class="k">except</span><span class="p">:</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">keepNone</span><span class="p">:</span>
                         <span class="k">yield</span> <span class="n">i1</span>
                     <span class="k">elif</span> <span class="n">i1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -388,6 +389,20 @@
         <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;mat&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">,</span> <span class="s2">&quot;col_names&quot;</span><span class="p">:</span> <span class="n">col_names</span><span class="p">}</span></div>
 
+<div class="viewcode-block" id="int_str">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.int_str">[docs]</a>
+<span class="k">def</span> <span class="nf">int_str</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">res</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">res</span><span class="o">=</span><span class="n">s</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="parse_version">
+<a class="viewcode-back" href="../progdoc.html#tools_ssg.parse_version">[docs]</a>
+<span class="k">def</span> <span class="nf">parse_version</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">int_str</span><span class="p">,</span> <span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)))</span></div>
+
 </pre></div>
 
             <div class="clearer"></div>
@@ -419,7 +434,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">tools_ssg</a></li> 
       </ul>

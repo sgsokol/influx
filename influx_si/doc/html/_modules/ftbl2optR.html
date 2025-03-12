@@ -1,18 +1,16 @@
-
 <!DOCTYPE html>
 
-<html>
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ftbl2optR &#8212; influx_si 7.2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
+    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" /> 
@@ -159,7 +157,9 @@
 <span class="kn">import</span> <span class="nn">C13_ftbl</span>
 <span class="kn">import</span> <span class="nn">ftbl2code</span>
 
-<div class="viewcode-block" id="main"><a class="viewcode-back" href="../progdoc.html#ftbl2optR.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">wout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">):</span>
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../progdoc.html#ftbl2optR.main">[docs]</a>
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">wout</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">):</span>
     <span class="n">me</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
     <span class="n">dirbin</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">influx_si</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;bin&quot;</span><span class="p">)</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dirbin</span><span class="p">)</span>
@@ -2122,11 +2122,22 @@
 <span class="s2">}</span>
 
 <span class="s2">if (write_res) {</span>
+<span class="s2">#browser()</span>
 <span class="s2">   pres=rbind(cost=costres, pres)</span>
 <span class="s2">   fco=file(file.path(dirres, &quot;tmp&quot;, sprintf(&quot;</span><span class="si">%s</span><span class="s2">.pres.csv&quot;, baseshort)), open=&quot;w&quot;)</span>
 <span class="s2">   cat(&quot;row_col</span><span class="se">\t</span><span class="s2">&quot;, file=fco)</span>
-<span class="s2">   write.table(file=fco, pres, row.n=T, quot=F, sep=&quot;</span><span class="se">\\</span><span class="s2">t&quot;)</span>
+<span class="s2">   write.table(file=fco, pres, row.names=TRUE, quote=FALSE, sep=&quot;</span><span class="se">\\</span><span class="s2">t&quot;)</span>
 <span class="s2">   close(fco)</span>
+<span class="s2">   # make simlinks to the lowest cost results</span>
+<span class="s2">   if (length(costres) &gt; 1L) {</span>
+<span class="s2">      nmbest=colnames(pres)[which.min(costres)]</span>
+<span class="s2">      for (f in c(list.files(path=dirres, pattern=sprintf(&quot;</span><span class="se">\\\\</span><span class="s2">.</span><span class="si">%s</span><span class="se">\\\\</span><span class="s2">..*</span><span class="se">\\\\</span><span class="s2">.sim$&quot;, nmbest), full.names=TRUE),</span>
+<span class="s2">            list.files(path=dirres, pattern=sprintf(&quot;</span><span class="se">\\\\</span><span class="s2">.</span><span class="si">%s</span><span class="se">\\\\</span><span class="s2">.stat$&quot;, nmbest), full.names=TRUE),</span>
+<span class="s2">            list.files(path=file.path(dirres, &quot;tmp&quot;), pattern=sprintf(&quot;</span><span class="se">\\\\</span><span class="s2">.</span><span class="si">%s</span><span class="se">\\\\</span><span class="s2">.attrs$&quot;, nmbest), full.names=TRUE))) {</span>
+<span class="s2">         flink=sub(sprintf(&quot;.</span><span class="si">%s</span><span class="s2">&quot;, nmbest), &quot;&quot;, f, fixed=TRUE)</span>
+<span class="s2">         file.copy(to=flink, from=f, overwrite = TRUE, copy.date = TRUE)</span>
+<span class="s2">      }</span>
+<span class="s2">   }</span>
 <span class="s2">}</span>
 <span class="s2">if (TIMEIT) {</span>
 <span class="s2">   cat(&quot;rend    : &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
@@ -2169,6 +2180,7 @@
         <span class="k">pass</span>
     <span class="k">return</span> <span class="mi">0</span></div>
 
+
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span> <span class="ow">or</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;influx_si.cli&quot;</span><span class="p">:</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
@@ -2188,7 +2200,7 @@
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -2208,8 +2220,8 @@
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    &#169; Copyright 2012-2024, INRAE/INSA/CNRS.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

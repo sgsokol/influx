@@ -1,6 +1,17 @@
 ========================
 Change Log for influx_si
 ========================
+
+2025-03-18 version 7.2.4
+------------------------
+New features:
+ - now the version of influx_si is printed as the first line of its output
+
+Bug fix:
+ - the doc is no more distributed with influx_si package so --copy_doc is removed
+ - fixed ignoring interruption with Ctrl+C during preparation of .ftbl and .R files (reported by Rochelle Kouakou, TBI, France)
+ - `dirres` and `dirw` passed to R are now relative paths (on windows, absolute path of network disks is not always recognized well)
+
 2025-01-09 version 7.2.3
 ------------------------
 New features:

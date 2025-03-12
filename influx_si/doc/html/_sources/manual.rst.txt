@@ -594,8 +594,6 @@ Here after, the available options with their full names are enumerated and detai
 	--eprl EPRL           option passed to txt2ftbl. See help there.
 	--force FORCE         option passed to txt2ftbl. See help there.
 	-o OUT, --out OUT     output directory. Default: basename of input file without suffix + '_res'. If empty, no output directory is created. In this case log and error messages are directed to standard output/error channels. Non empty OUT can be used when only one input file or MTF set is given.
-	--copy_doc         copy documentation directory in the current directory and
-                     exit. If ./doc exists, its content is silently overwritten.
 	--copy_test        copy test directory in the current directory and exit. If
                      ./test exists, its content is silently owerriten.
 	--install_rdep     install R dependencies and exit.
