@@ -152,7 +152,8 @@ if (write_res) {
                mask[eval(parse(text=paste0("c(", sub("~", ":", fr, fixed=TRUE), ")")))]="1"
                mainlab=sprintf("%s #%s", met, paste0(mask, collapse=""))
             }
-            plot_ms(sim[isim], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
+            if (!all(is.na(sim[isim])))
+               plot_ms(sim[isim], me[i], 2*measurements$dev$labeled[[iexp]][i], main=mainlab)
          }
       }
       # plot MS of non measured metabs
@@ -179,11 +180,13 @@ if (write_res) {
                   i=grep(sprintf("^%s:%s\\+", met, f), nm_sim, v=TRUE)
                   fi=as.integer(f)
                   mainlab=if (fi == 2**clen[met]-1) met else sprintf("%s #%s", met, int2bit(fi, clen[met]))
-                  plot_ms(mid[i, iexp], NULL, NULL, main=mainlab)
+                  if (!all(is.na(mid[i, iexp])))
+                     plot_ms(mid[i, iexp], NULL, NULL, main=mainlab)
                }
             } else {
                i=grep(sprintf("^%s\\+[0-9]+$", met), nm_sim, v=TRUE)
-               plot_ms(mid[i, iexp], NULL, NULL, main=met)
+               if (!all(is.na(mid[i, iexp])))
+                  plot_ms(mid[i, iexp], NULL, NULL, main=met)
             }
          }
       }

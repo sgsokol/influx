@@ -2006,24 +2006,25 @@ if (nb_sc_tot) {
 # remove redundant inequalities
 #browser()
 nb_i=nrow(ui)
-ired=c()
-if (nb_i > 1L) {
-   for (i in 1L:(nb_i-1L)) {
-      nmref=nm_i[i]
-      for (j in setdiff((i+1L):nb_i, ired)) {
-         if (all(ui[j,]==ui[i,]) && ci[i]==ci[j]) {
-            # redundancy
-            cat("inequality '", nm_i[j], "' redundant with '", nmref, "' is removed.\n", sep="", file=fclog)
-            ired=c(ired, j)
-         }
-      }
+nc_i=ncol(ui)
+
+if (nb_i > 0) {
+   dui=dist(ui)/sqrt(nc_i)
+   ieq=which(dui <= tol*100) # where rows are equals
+   i1=seq_len(nb_i-1L) # auxiliary indexes
+   # row,col indexes in distance matrix
+   i=unlist(rev(lapply(i1, function(ii) (nb_i-ii)+seq_len(ii))))[ieq]
+   j=rep(i1, rev(i1))[ieq]
+   # from i,j pair, remove having lesser ci
+   ired=c(i[ci[i] <= ci[j]], j[ci[j] <= ci[i]])
+   #browser()
+   if (length(ired)) {
+      cat("Following ", length(ired), " inequalities are redundant and removed:\n\t", paste0(nm_i[ired], collapse="\n\t"), "\n", sep="", file=fclog)
+      # remove all ired inequalities
+      ui=ui[-ired,,drop=FALSE]
+      ci=ci[-ired]
+      nm_i=nm_i[-ired]
    }
-}
-if (!is.null(ired)) {
-   # remove all ired inequalities
-   ui=ui[-ired,,drop=FALSE]
-   ci=ci[-ired]
-   nm_i=nm_i[-ired]
 }
 
 # metabolite equalities

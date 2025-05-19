@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Change Log for influx_si &#8212; influx_si 7.2 documentation</title>
+    <title>Change Log for influx_si &#8212; influx_si 7.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=514cf933" />
     
-    <script src="_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="_static/documentation_options.js?v=3ad2025c"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -34,7 +34,7 @@
         <li class="right" >
           <a href="intro.html" title="Introduction"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.3 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Change Log for influx_si</a></li> 
       </ul>
     </div>  
@@ -46,6 +46,28 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Link to this heading">¶</a></h1>
+<section id="version-7-3-0">
+<h2>2025-05-19 version 7.3.0<a class="headerlink" href="#version-7-3-0" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>New features:</dt><dd><ul class="simple">
+<li><p>added –dryrun option which just parses the command line</p></li>
+<li><p>added influx_si.get_parser() to check options in tierce software</p></li>
+<li><p>minimal required version of nlsic package is 1.1</p></li>
+<li><p>rcond parameter for nlsic is brought to 1.e7 (old value 1.e10). Accordingly, some networks can require <cite>–ln</cite> option while before it was not the case</p></li>
+<li><p>put_inside() is also used with rcond=1.e7 now</p></li>
+<li><p>influx_i: flabcin is serached also in <a href="#id1"><span class="problematic" id="id2">`</span></a>_res/tmp`dir if not found in the due place</p></li>
+<li><p>accelerated elimination of redundant inequalities</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>confidence intervals for Monte-Carlo statistics are calculated even if no –wkvh option is activated</p></li>
+<li><p>error message about infeasible inequalities at zero-crossing inversion is requalified into warning</p></li>
+<li><p>ftbl2metxml: fixed metabolite names starting with a number producing invalid sbml ids (reported by Loic Le Gregam, TBI, France)</p></li>
+<li><p>plot_smeas.R: fixed error when all labeled forma are NA</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-2-4">
 <h2>2025-03-18 version 7.2.4<a class="headerlink" href="#version-7-2-4" title="Link to this heading">¶</a></h2>
 <dl class="simple">
@@ -85,7 +107,7 @@
 <li><p>in –emu mode, for particular conditions, emu balance equations were not complete</p></li>
 </ul>
 <blockquote>
-<div><p><a href="#id1"><span class="problematic" id="id2">**</span></a><a href="#id3"><span class="problematic" id="id4">*</span></a>WARNING: we strongly advise to re-run your analysys made with <cite>–emu</cite> flag, to see if you were impacted by this bug or not.</p>
+<div><p><a href="#id3"><span class="problematic" id="id4">**</span></a><a href="#id5"><span class="problematic" id="id6">*</span></a>WARNING: we strongly advise to re-run your analysys made with <cite>–emu</cite> flag, to see if you were impacted by this bug or not.</p>
 </div></blockquote>
 <ul class="simple">
 <li><p>with rank deficient Jacobian, sometimes the error of fluxes was shown as 0 instead of big values.</p></li>
@@ -1000,6 +1022,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-7-3-0">2025-05-19 version 7.3.0</a></li>
 <li><a class="reference internal" href="#version-7-2-4">2025-03-18 version 7.2.4</a></li>
 <li><a class="reference internal" href="#version-7-2-3">2025-01-09 version 7.2.3</a></li>
 <li><a class="reference internal" href="#version-7-2-2">2024-12-16 version 7.2.2</a></li>
@@ -1106,7 +1129,7 @@ all fluxes are free or constrained;</p></li>
         <li class="right" >
           <a href="intro.html" title="Introduction"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.3 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Change Log for influx_si</a></li> 
       </ul>
     </div>

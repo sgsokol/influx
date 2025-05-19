@@ -224,11 +224,15 @@ me = os.path.basename(__file__)
 parser = ArgumentParser(prog=me, description=__doc__)
 ord_args = []
 
+def get_parser():
+    global parser;
+    return parser;
+
 def main(argv=sys.argv[1:]):
     """example: influx_s.main(["--prefix", "path/to/mtf"])
 Call influx_s.main(["-h"]) for a help message"""
     #print(("argv=", argv))
-    global me, ord_args
+    global me, ord_args, parser
     ord_args=[]
     # my own name
     # my install dir
@@ -382,6 +386,9 @@ Call influx_s.main(["-h"]) for a help message"""
         "--case_i", action="store_true",
             help=argparse.SUPPRESS)
         parser.add_argument(
+        "--dryrun", action="store_true",
+            help="Just parse the arguments. No operation on file is made.")
+        parser.add_argument(
         "ftbl",
             help="FTBL file name to process", nargs="*")
 
@@ -404,6 +411,10 @@ Call influx_s.main(["-h"]) for a help message"""
            help="Time order for ODE solving (1 (default), 2 or 1,2). Order 2 is more precise but more time consuming. The value '1,2' makes to start solving the ODE with the first order scheme then continues with the order 2.")
     #pdb.set_trace()
 
+    if dict_opts["dryrun"]:
+        print("dryrun is called");
+        parser.print_usage();
+        return 0;
     do_exit=False
     retcode=0
     if dict_opts["copy_test"]:

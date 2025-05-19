@@ -940,22 +940,22 @@ fx2jr=function(fwrv, spAbr, nb, incu) {
    return(list(j_rhsw=j_rhsw, b_x=b_x))
 }
 
-put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3) {
+put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3, rcond=1.e7) {
    # put param inside of feasible domain delimited by u%*%param >= ci
    nm_par=names(param)
    mes=""
    ineq=as.numeric(ui%*%param)-ci
-   if (all(ineq>tol_in)) {
+   if (all(ineq>-tol_in)) {
       # nothing to do, already inside and well inside
       return(param)
    }
-   dp=ldp(as.matrix(ui), -ineq)
+   dp=ldp(as.matrix(ui), -ineq, rcond)
    if (!is.null(dp)) {
       # get new active inequalities
       ineqd=as.numeric(ui%*%(param+dp))-ci
       # check that we are not too far outside
       if (any(ineqd < -tol_out)) {
-         param=NA
+         param[]=NA
          attr(param, "mes")="Inequality system is ill-conditioned. Failed to solve."
          attr(param, "err")=1
          return(param)
@@ -968,7 +968,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
       na=sum(iact)
       # find closest vector to c(1,1,...) making the direction increasing
       tma=tcrossprod(ma)
-      bet=ldp(tma, tol_desc - apply(tma, 1, sum))
+      suppressWarnings(bet <- ldp(tma, tol_desc - apply(tma, 1, sum), rcond))
       if (is.null(bet)) {
          param=param+dp
          attr(param, "mes")="Infeasible constraints for inside direction."
@@ -983,7 +983,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
       alpha=0.5*min(tol_desc, alpha)
       dpn=dp+alpha*vn
       # check that new dp is still inside
-      if (any(ui%*%(param+dpn)-ci < 0.)) {
+      if (any(ui%*%(param+dpn)-ci < -tol_in)) {
          attr(param, "err")=0 # just a warning
          attr(param, "mes")="Failed to put free parameters strictly inside of the feasible domain. They are left on the border."
          dpn=dp
@@ -1000,7 +1000,7 @@ put_inside=function(param, ui, ci, tol_in=1.e-10, tol_out=1.e-7, tol_desc=1.e-3)
       # move starting point slightly inside of feasible domain
       param=param+as.numeric(dpn)
    } else {
-      param=NA
+      param[]=NA
       mes="Infeasible inequalities."
       if (!is.null(rownames(ui))) {
          mes=join("\n", c(mes, rownames(ui)))
@@ -1313,7 +1313,8 @@ opt_wrapper=function(param, method, measurements, jx_f, labargs, trace=1) {
    } else if (method == "nlsic") {
       control=list(trace=trace, btfrac=0.25, btdesc=0.1, maxit=50, errx=1.e-5,
          ci=list(report=FALSE), history=FALSE, adaptbt=TRUE, sln=sln,
-         maxstep=max(10.*sqrt(norm2(param)), 1.)
+         maxstep=max(10.*sqrt(norm2(param)), 1.),
+         rcond=1.e7
       )
       control[names(control_ftbl$default)]=control_ftbl$default
       control[names(control_ftbl$nlsic)]=control_ftbl$nlsic

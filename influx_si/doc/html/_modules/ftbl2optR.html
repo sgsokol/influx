@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ftbl2optR &#8212; influx_si 7.2 documentation</title>
+    <title>ftbl2optR &#8212; influx_si 7.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/documentation_options.js?v=3ad2025c"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2optR</a></li> 
       </ul>
@@ -252,7 +252,8 @@
 
     <span class="n">netan</span><span class="o">=</span><span class="nb">dict</span><span class="p">();</span>
     <span class="n">C13_ftbl</span><span class="o">.</span><span class="n">ftbl_netan</span><span class="p">(</span><span class="n">ftbl</span><span class="p">,</span> <span class="n">netan</span><span class="p">,</span> <span class="n">emu</span><span class="p">,</span> <span class="n">fullsys</span><span class="p">,</span> <span class="n">case_i</span><span class="p">,</span> <span class="n">wout</span><span class="o">=</span><span class="n">wout</span><span class="p">,</span> <span class="n">werr</span><span class="o">=</span><span class="n">werr</span><span class="p">)</span>
-
+    <span class="n">wout</span><span class="o">.</span><span class="vm">__self__</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">werr</span><span class="o">.</span><span class="vm">__self__</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
     <span class="c1"># prepare rcumo system</span>
     <span class="n">rAb</span><span class="o">=</span><span class="n">C13_ftbl</span><span class="o">.</span><span class="n">rcumo_sys</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">emu</span><span class="p">)</span>
 
@@ -418,6 +419,12 @@
 <span class="s2">         flabcin[iexp]=file.path(flabcin[iexp])</span>
 <span class="s2">      else</span>
 <span class="s2">         flabcin[iexp]=file.path(dirw, flabcin[iexp])</span>
+<span class="s2">      if (!file.exists(flabcin[iexp])) {</span>
+<span class="s2">         # last resort, see in _res/tmp</span>
+<span class="s2">         ftmp=file.path(dirw, paste0(nm_exp[[iexp]],&quot;_res&quot;), &quot;tmp&quot;, basename(flabcin[iexp]))</span>
+<span class="s2">         if (file.exists(ftmp))</span>
+<span class="s2">            flabcin[iexp]=ftmp</span>
+<span class="s2">      }</span>
 <span class="s2">      measvecti[[iexp]]=try(as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep=&quot;</span><span class="se">\t</span><span class="s2">&quot;, check=FALSE, comment=&quot;#&quot;, strip.white=TRUE)), silent=TRUE)</span>
 <span class="s2">      if (inherits(measvecti[[iexp]], &quot;try-error&quot;)) {</span>
 <span class="s2">         # try with comment &#39;//&#39;</span>
@@ -890,14 +897,16 @@
 <span class="s2">      i=ineq[ineq&lt;= -tol_ineq]</span>
 <span class="s2">      cat(paste(names(i), i, sep=&quot;\t&quot;, collapse=&quot;\n&quot;), &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">      # put them inside</span>
+<span class="s2">#browser()</span>
 <span class="s2">      if (write_res) {</span>
-<span class="s2">         capture.output(pinside &lt;- put_inside(param, ui, ci), file=fclog)</span>
+<span class="s2">         capture.output(pinside &lt;- put_inside(param, ui, ci, rcond=1e7), file=fclog)</span>
 <span class="s2">      } else {</span>
-<span class="s2">         pinside &lt;- put_inside(param, ui, ci)</span>
+<span class="s2">         pinside &lt;- put_inside(param, ui, ci, rcond=1e7)</span>
 <span class="s2">      }</span>
-<span class="s2">      if (any(is.na(pinside))) {</span>
+<span class="s2">      if (anyNA(pinside)) {</span>
 <span class="s2">         if (!is.null(attr(pinside, &quot;err&quot;)) &amp;&amp; attr(pinside, &quot;err&quot;)!=0) {</span>
 <span class="s2">            # fatal error occured</span>
+<span class="s2">            cat(&quot;Infeasible inequalities at starting point.\n&quot;, file=fcerr)</span>
 <span class="s2">            cat(&quot;put_inside&quot;, runsuf, &quot;: &quot;, attr(pinside, &quot;mes&quot;), &quot;\n&quot;,</span>
 <span class="s2">               file=fcerr, sep=&quot;&quot;)</span>
 <span class="s2">            #close(fkvh)</span>
@@ -1208,7 +1217,7 @@
 <span class="s2">         } else if (!is.null(res$mes) &amp;&amp; nchar(res$mes)) {</span>
 <span class="s2">            cat(&quot;***Warning: in first optimization pass in run &quot;, runsuf, &quot;: &quot;, res$mes, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">         }</span>
-<span class="s2">         if (any(is.na(res$par))) {</span>
+<span class="s2">         if (anyNA(res$par)) {</span>
 <span class="s2">#browser()</span>
 <span class="s2">            res$retres$jx_f=NULL # to avoid writing of huge data</span>
 <span class="s2">            if (write_res &amp;&amp; wkvh) {</span>
@@ -1252,17 +1261,17 @@
 <span class="s2">               # enforce new inequalities</span>
 <span class="s2">               reopt=TRUE</span>
 <span class="s2">               if (write_res) {</span>
-<span class="s2">                  capture.output(pinside &lt;- put_inside(res$par, ui, ci), file=fclog)</span>
+<span class="s2">                  capture.output(pinside &lt;- put_inside(res$par, ui, ci, rcond=1e7), file=fclog)</span>
 <span class="s2">               } else {</span>
-<span class="s2">                  pinside &lt;- put_inside(res$par, ui, ci)</span>
+<span class="s2">                  pinside &lt;- put_inside(res$par, ui, ci, rcond=1.e7)</span>
 <span class="s2">               }</span>
-<span class="s2">               if (any(is.na(pinside))) {</span>
+<span class="s2">               if (anyNA(pinside)) {</span>
 <span class="s2">                  if (!is.null(attr(pinside, &quot;err&quot;)) &amp;&amp; attr(pinside, &quot;err&quot;)!=0) {</span>
-<span class="s2">                     # fatal error occured, don&#39;t reoptimize</span>
-<span class="s2">                     cat(paste(&quot;put_inside&quot;, runsuf, &quot;: &quot;, attr(pinside, &quot;mes&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, collapse=&quot;&quot;), file=fcerr)</span>
+<span class="s2">                     # fatal (for zc) error occured, don&#39;t reoptimize</span>
+<span class="s2">                     cat(&quot;***Warning. Infeasible inequalities after zerocross inversion.</span><span class="se">\n</span><span class="s2">&quot;, file=fclog)</span>
 <span class="s2">                     reopt=FALSE</span>
 <span class="s2">                  }</span>
-<span class="s2">               } else if (!is.null(attr(pinside, &quot;err&quot;)) &amp;&amp; attr(pinside, &quot;err&quot;)==0){</span>
+<span class="s2">               } else if (!is.null(attr(pinside, &quot;err&quot;)) &amp;&amp; attr(pinside, &quot;err&quot;)==0) {</span>
 <span class="s2">                  # non fatal problem</span>
 <span class="s2">                  cat(paste(&quot;***Warning: put_inside&quot;, runsuf, &quot;: &quot;, attr(pinside, &quot;mes&quot;), &quot;</span><span class="se">\\</span><span class="s2">n&quot;, collapse=&quot;&quot;), file=fclog)</span>
 <span class="s2">               }</span>
@@ -1828,6 +1837,11 @@
 <span class="s2">      # median</span>
 <span class="s2">      parmed=apply(free_mc, 1, median)</span>
 
+<span class="s2">      # confidence intervals</span>
+<span class="s2">      ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))</span>
+<span class="s2">      ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))</span>
+<span class="s2">      colnames(ci_mc)=c(&quot;CI 2.5%&quot;, &quot;CI 97.5%&quot;, &quot;CI length&quot;)</span>
+
 <span class="s2">      # cost section in kvh</span>
 <span class="s2">      if (write_res &amp;&amp; wkvh) {</span>
 <span class="s2">         cat(&quot;</span><span class="se">\\</span><span class="s2">tcost</span><span class="se">\\</span><span class="s2">n&quot;, file=fkvh)</span>
@@ -1848,10 +1862,6 @@
 <span class="s2">         obj2kvh(covmc, &quot;covariance&quot;, fkvh, indent)</span>
 <span class="s2">         # sd</span>
 <span class="s2">         sdmc=sqrt(diag(covmc))</span>
-<span class="s2">         # confidence intervals</span>
-<span class="s2">         ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))</span>
-<span class="s2">         ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))</span>
-<span class="s2">         colnames(ci_mc)=c(&quot;CI 2.5%&quot;, &quot;CI 97.5%&quot;, &quot;CI length&quot;)</span>
 <span class="s2">         mout=cbind(mout, mean=parmean, median=parmed, sd=sdmc,</span>
 <span class="s2">            &quot;rsd (%)&quot;=sdmc*100/abs(parmean), ci_mc)</span>
 <span class="s2">         obj2kvh(mout, &quot;free parameters&quot;, fkvh, indent)</span>
@@ -2149,11 +2159,13 @@
 <span class="s2">for (post in postlist) {</span>
 <span class="s2">   fpostR=file.path(dirw, post)</span>
 <span class="s2">   if (file.exists(fpostR) &amp;&amp; !isTRUE(file.info(fpostR)$isdir)) {</span>
+<span class="s2">#cat(&quot;post in dirw=&quot;, fpostR, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog)</span>
 <span class="s2">      source(fpostR)</span>
 <span class="s2">   } else {</span>
 <span class="s2">      # not found in &#39;dirw&#39;, try &#39;dirr&#39;</span>
 <span class="s2">      fpostR=file.path(dirr, post)</span>
 <span class="s2">      if (file.exists(fpostR) &amp;&amp; !isTRUE(file.info(fpostR)$isdir)) {</span>
+<span class="s2">#cat(&quot;post in dirr=&quot;, fpostR, &quot;</span><span class="se">\\</span><span class="s2">n&quot;, file=fclog)</span>
 <span class="s2">         source(fpostR)</span>
 <span class="s2">      } else {</span>
 <span class="s2">         cat(sprintf(&quot;***Warning: posttreatment R file &#39;</span><span class="si">%%</span><span class="s2">s&#39; does not exist in working directory neither in influx_si one. Ignored.</span><span class="se">\\</span><span class="s2">n&quot;, post), file=fclog)</span>
@@ -2214,7 +2226,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2optR</a></li> 
       </ul>

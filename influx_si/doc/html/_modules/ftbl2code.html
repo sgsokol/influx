@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ftbl2code &#8212; influx_si 7.2 documentation</title>
+    <title>ftbl2code &#8212; influx_si 7.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/documentation_options.js?v=3ad2025c"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>
@@ -2064,24 +2064,25 @@
 <span class="s2"># remove redundant inequalities</span>
 <span class="s2">#browser()</span>
 <span class="s2">nb_i=nrow(ui)</span>
-<span class="s2">ired=c()</span>
-<span class="s2">if (nb_i &gt; 1L) {</span>
-<span class="s2">   for (i in 1L:(nb_i-1L)) {</span>
-<span class="s2">      nmref=nm_i[i]</span>
-<span class="s2">      for (j in setdiff((i+1L):nb_i, ired)) {</span>
-<span class="s2">         if (all(ui[j,]==ui[i,]) &amp;&amp; ci[i]==ci[j]) {</span>
-<span class="s2">            # redundancy</span>
-<span class="s2">            cat(&quot;inequality &#39;&quot;, nm_i[j], &quot;&#39; redundant with &#39;&quot;, nmref, &quot;&#39; is removed.</span><span class="se">\n</span><span class="s2">&quot;, sep=&quot;&quot;, file=fclog)</span>
-<span class="s2">            ired=c(ired, j)</span>
-<span class="s2">         }</span>
-<span class="s2">      }</span>
+<span class="s2">nc_i=ncol(ui)</span>
+
+<span class="s2">if (nb_i &gt; 0) {</span>
+<span class="s2">   dui=dist(ui)/sqrt(nc_i)</span>
+<span class="s2">   ieq=which(dui &lt;= tol*100) # where rows are equals</span>
+<span class="s2">   i1=seq_len(nb_i-1L) # auxiliary indexes</span>
+<span class="s2">   # row,col indexes in distance matrix</span>
+<span class="s2">   i=unlist(rev(lapply(i1, function(ii) (nb_i-ii)+seq_len(ii))))[ieq]</span>
+<span class="s2">   j=rep(i1, rev(i1))[ieq]</span>
+<span class="s2">   # from i,j pair, remove having lesser ci</span>
+<span class="s2">   ired=c(i[ci[i] &lt;= ci[j]], j[ci[j] &lt;= ci[i]])</span>
+<span class="s2">   #browser()</span>
+<span class="s2">   if (length(ired)) {</span>
+<span class="s2">      cat(&quot;Following &quot;, length(ired), &quot; inequalities are redundant and removed:</span><span class="se">\n\t</span><span class="s2">&quot;, paste0(nm_i[ired], collapse=&quot;</span><span class="se">\n\t</span><span class="s2">&quot;), &quot;</span><span class="se">\n</span><span class="s2">&quot;, sep=&quot;&quot;, file=fclog)</span>
+<span class="s2">      # remove all ired inequalities</span>
+<span class="s2">      ui=ui[-ired,,drop=FALSE]</span>
+<span class="s2">      ci=ci[-ired]</span>
+<span class="s2">      nm_i=nm_i[-ired]</span>
 <span class="s2">   }</span>
-<span class="s2">}</span>
-<span class="s2">if (!is.null(ired)) {</span>
-<span class="s2">   # remove all ired inequalities</span>
-<span class="s2">   ui=ui[-ired,,drop=FALSE]</span>
-<span class="s2">   ci=ci[-ired]</span>
-<span class="s2">   nm_i=nm_i[-ired]</span>
 <span class="s2">}</span>
 
 <span class="s2"># metabolite equalities</span>
@@ -2165,7 +2166,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>

@@ -1,0 +1,39 @@
+// Created by 'txt2ftbl --prefix mtf/e_coli_growth'
+// Date: 2023-06-30 10:33:54 CEST +0200
+// influx_si version: 6.1.0.12
+// If edited by hand, remove these comments.
+Id	Comment	Name	Kind	Type	Value
+		AKG	METAB	C	0.1
+		AcCoA	METAB	C	0.1
+		CO2	METAB	C	0.1
+		E2	METAB	C	0.1
+		E3	METAB	C	0.1
+		Ery4P	METAB	C	0.1
+		GA3P	METAB	C	0.1
+		Glc	METAB	C	0.1
+		OAA	METAB	C	0.1
+		Pyr	METAB	C	0.1
+		Sed7P	METAB	C	0.1
+		CO2upt	XCH	C	0.0
+		Glucupt	XCH	C	0.0
+		Glucupt_1	XCH	C	0.0
+		Glucupt_U	XCH	C	0.0
+		akgdh	XCH	C	0.0
+		bs_DHAP	XCH	C	0.0
+		bs_accoa	XCH	C	0.0
+		bs_akg	XCH	C	0.0
+		bs_e4p	XCH	C	0.0
+		bs_fru6P	XCH	C	0.0
+		bs_glc6P	XCH	C	0.0
+		bs_oaa	XCH	C	0.0
+		bs_pep	XCH	C	0.0
+		bs_pga	XCH	C	0.0
+		bs_pyr	XCH	C	0.0
+		bs_rib5P	XCH	C	0.0
+		citsynth	XCH	C	0.0
+		edd	XCH	C	0.0
+		gnd	XCH	C	0.0
+		idh	XCH	C	0.0
+		out_Ac	XCH	C	0.0
+		out_co2	XCH	C	0.0
+		zwf	XCH	C	0.0

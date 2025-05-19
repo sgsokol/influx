@@ -2,6 +2,23 @@
 Change Log for influx_si
 ========================
 
+2025-05-19 version 7.3.0
+------------------------
+New features:
+ - added --dryrun option which just parses the command line
+ - added influx_si.get_parser() to check options in tierce software
+ - minimal required version of nlsic package is 1.1
+ - rcond parameter for nlsic is brought to 1.e7 (old value 1.e10). Accordingly, some networks can require `--ln` option while before it was not the case
+ - put_inside() is also used with rcond=1.e7 now
+ - influx_i: flabcin is serached also in `_res/tmp`dir if not found in the due place
+ - accelerated elimination of redundant inequalities
+
+Bug fix:
+ - confidence intervals for Monte-Carlo statistics are calculated even if no --wkvh option is activated
+ - error message about infeasible inequalities at zero-crossing inversion is requalified into warning
+ - ftbl2metxml: fixed metabolite names starting with a number producing invalid sbml ids (reported by Loic Le Gregam, TBI, France)
+ - plot_smeas.R: fixed error when all labeled forma are NA
+
 2025-03-18 version 7.2.4
 ------------------------
 New features:

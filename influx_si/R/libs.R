@@ -1,4 +1,5 @@
 suppressPackageStartupMessages(library(nlsic)); # for non negative least square
+stopifnot(packageVersion("nlsic") >= "1.1.0")
 #suppressPackageStartupMessages(library(Matrix, warn=F, verbose=F)); # for sparse matrices
 #options(Matrix.quiet=TRUE)
 suppressPackageStartupMessages(library(slam)); # for quick sparse matrices

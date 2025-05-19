@@ -1066,8 +1066,8 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
                 raise Exception("Mesured metabolite `%s` is not declared in METABOLITE_POOLS section (%s: %s)."%(m, ftbl["name"], row["irow"]))
             found_neg=found_neg or netan["met_pools"][m] < 0.
         if not found_neg:
-            werr("Warning: metabolite measurements on `%s` does not have a free metabolite (i.e. being negative in the METABOLITE_POOLS ((%s: %s)).\n"%(row["META_NAME"], ftbl["name"], row["irow"]))
-            werr("This measurement is ignored\n")
+            wout("Warning: ftbl_netan: metabolite measurements on `%s` does not have a free metabolite (i.e. being negative in the METABOLITE_POOLS ((%s: %s)).\n"%(row["META_NAME"], ftbl["name"], row["irow"]))
+            wout("This measurement is ignored\n")
             continue
         try:
             val=float(eval_expr(row["VALUE"]))

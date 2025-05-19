@@ -212,7 +212,8 @@ def main(argv=sys.argv[1:], wout=sys.stdout.write, werr=sys.stderr.write):
 
     netan=dict();
     C13_ftbl.ftbl_netan(ftbl, netan, emu, fullsys, case_i, wout=wout, werr=werr)
-
+    wout.__self__.flush()
+    werr.__self__.flush()
     # prepare rcumo system
     rAb=C13_ftbl.rcumo_sys(netan, emu)
 
@@ -378,6 +379,12 @@ for (iexp in seq_len(nb_exp)) {
          flabcin[iexp]=file.path(flabcin[iexp])
       else
          flabcin[iexp]=file.path(dirw, flabcin[iexp])
+      if (!file.exists(flabcin[iexp])) {
+         # last resort, see in _res/tmp
+         ftmp=file.path(dirw, paste0(nm_exp[[iexp]],"_res"), "tmp", basename(flabcin[iexp]))
+         if (file.exists(ftmp))
+            flabcin[iexp]=ftmp
+      }
       measvecti[[iexp]]=try(as.matrix(read.table(flabcin[iexp], header=TRUE, row.names=1, sep="\t", check=FALSE, comment="#", strip.white=TRUE)), silent=TRUE)
       if (inherits(measvecti[[iexp]], "try-error")) {
          # try with comment '//'
@@ -850,14 +857,16 @@ for (irun in seq_len(nseries)) {
       i=ineq[ineq<= -tol_ineq]
       cat(paste(names(i), i, sep="\t", collapse="\n"), "\n", sep="", file=fclog)
       # put them inside
+#browser()
       if (write_res) {
-         capture.output(pinside <- put_inside(param, ui, ci), file=fclog)
+         capture.output(pinside <- put_inside(param, ui, ci, rcond=1e7), file=fclog)
       } else {
-         pinside <- put_inside(param, ui, ci)
+         pinside <- put_inside(param, ui, ci, rcond=1e7)
       }
-      if (any(is.na(pinside))) {
+      if (anyNA(pinside)) {
          if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
             # fatal error occured
+            cat("Infeasible inequalities at starting point.\n", file=fcerr)
             cat("put_inside", runsuf, ": ", attr(pinside, "mes"), "\n",
                file=fcerr, sep="")
             #close(fkvh)
@@ -1168,7 +1177,7 @@ for (irun in seq_len(nseries)) {
          } else if (!is.null(res$mes) && nchar(res$mes)) {
             cat("***Warning: in first optimization pass in run ", runsuf, ": ", res$mes, "\\n", sep="", file=fclog)
          }
-         if (any(is.na(res$par))) {
+         if (anyNA(res$par)) {
 #browser()
             res$retres$jx_f=NULL # to avoid writing of huge data
             if (write_res && wkvh) {
@@ -1212,17 +1221,17 @@ for (irun in seq_len(nseries)) {
                # enforce new inequalities
                reopt=TRUE
                if (write_res) {
-                  capture.output(pinside <- put_inside(res$par, ui, ci), file=fclog)
+                  capture.output(pinside <- put_inside(res$par, ui, ci, rcond=1e7), file=fclog)
                } else {
-                  pinside <- put_inside(res$par, ui, ci)
+                  pinside <- put_inside(res$par, ui, ci, rcond=1.e7)
                }
-               if (any(is.na(pinside))) {
+               if (anyNA(pinside)) {
                   if (!is.null(attr(pinside, "err")) && attr(pinside, "err")!=0) {
-                     # fatal error occured, don't reoptimize
-                     cat(paste("put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fcerr)
+                     # fatal (for zc) error occured, don't reoptimize
+                     cat("***Warning. Infeasible inequalities after zerocross inversion.\n", file=fclog)
                      reopt=FALSE
                   }
-               } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0){
+               } else if (!is.null(attr(pinside, "err")) && attr(pinside, "err")==0) {
                   # non fatal problem
                   cat(paste("***Warning: put_inside", runsuf, ": ", attr(pinside, "mes"), "\\n", collapse=""), file=fclog)
                }
@@ -1788,6 +1797,11 @@ for (irun in seq_len(nseries)) {
       # median
       parmed=apply(free_mc, 1, median)
 
+      # confidence intervals
+      ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
+      ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
+      colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
+
       # cost section in kvh
       if (write_res && wkvh) {
          cat("\\tcost\\n", file=fkvh)
@@ -1808,10 +1822,6 @@ for (irun in seq_len(nseries)) {
          obj2kvh(covmc, "covariance", fkvh, indent)
          # sd
          sdmc=sqrt(diag(covmc))
-         # confidence intervals
-         ci_mc=t(apply(free_mc, 1, quantile, probs=c(0.025, 0.975)))
-         ci_mc=cbind(ci_mc, t(diff(t(ci_mc))))
-         colnames(ci_mc)=c("CI 2.5%", "CI 97.5%", "CI length")
          mout=cbind(mout, mean=parmean, median=parmed, sd=sdmc,
             "rsd (%)"=sdmc*100/abs(parmean), ci_mc)
          obj2kvh(mout, "free parameters", fkvh, indent)
@@ -2109,11 +2119,13 @@ postlist=strsplit("%(postlist)s", " *; *")[[1]]
 for (post in postlist) {
    fpostR=file.path(dirw, post)
    if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
+#cat("post in dirw=", fpostR, "\\n", file=fclog)
       source(fpostR)
    } else {
       # not found in 'dirw', try 'dirr'
       fpostR=file.path(dirr, post)
       if (file.exists(fpostR) && !isTRUE(file.info(fpostR)$isdir)) {
+#cat("post in dirr=", fpostR, "\\n", file=fclog)
          source(fpostR)
       } else {
          cat(sprintf("***Warning: posttreatment R file '%%s' does not exist in working directory neither in influx_si one. Ignored.\\n", post), file=fclog)

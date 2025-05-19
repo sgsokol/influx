@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>C13_ftbl &#8212; influx_si 7.2 documentation</title>
+    <title>C13_ftbl &#8212; influx_si 7.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/documentation_options.js?v=3ad2025c"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">C13_ftbl</a></li> 
       </ul>
@@ -1133,8 +1133,8 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Mesured metabolite `</span><span class="si">%s</span><span class="s2">` is not declared in METABOLITE_POOLS section (</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">).&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
             <span class="n">found_neg</span><span class="o">=</span><span class="n">found_neg</span> <span class="ow">or</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;met_pools&quot;</span><span class="p">][</span><span class="n">m</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">found_neg</span><span class="p">:</span>
-            <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;Warning: metabolite measurements on `</span><span class="si">%s</span><span class="s2">` does not have a free metabolite (i.e. being negative in the METABOLITE_POOLS ((</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)).</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;META_NAME&quot;</span><span class="p">],</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
-            <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;This measurement is ignored</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;Warning: ftbl_netan: metabolite measurements on `</span><span class="si">%s</span><span class="s2">` does not have a free metabolite (i.e. being negative in the METABOLITE_POOLS ((</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)).</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">%</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;META_NAME&quot;</span><span class="p">],</span> <span class="n">ftbl</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;irow&quot;</span><span class="p">]))</span>
+            <span class="n">wout</span><span class="p">(</span><span class="s2">&quot;This measurement is ignored</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">continue</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">val</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;VALUE&quot;</span><span class="p">]))</span>
@@ -3175,7 +3175,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">C13_ftbl</a></li> 
       </ul>
