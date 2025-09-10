@@ -62,7 +62,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
         'm': '255,255,255',    # metabolite colour
         'i': '80,255,80',      # input colour (uptake)
         'o': '255,80,80',      # output colour (escape)
-        'd': '255,120,60',      # dead-end colour
+        'd': '255,120,60',     # dead-end colour
         'r': '127,127,127'     # reaction colour
     }
     et={
@@ -71,7 +71,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
     }
     es={
         'nr': 'NONE',        # not reversible source
-        'r': 'CIRCLE',      # reversible source
+        'r': 'CIRCLE',       # reversible source
     }
     # edge colours
     ec={
@@ -164,7 +164,7 @@ if __name__ == "__main__" or __name__ == "influx_si.cli":
         else:
             raise
         #sys.exit(1)
-    # transform metabs,reac in nodes (dict of promerties) and reac in edges (dict too)
+    # transform metabs,reac in nodes (dict of properties) and reac in edges (dict too)
     mlen=len(netan["metabs"])
     # graph dimensions
     gr_h=gr_w=math.sqrt(mlen)*(n_h+n_w+e_l)/3.

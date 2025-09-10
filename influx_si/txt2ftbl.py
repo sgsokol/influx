@@ -246,7 +246,7 @@ list == reaction items: input, output: lists of tuples (metab, carb, coeff)
         li=l.split("#", 1)
         if len(li)==2:
             l=li[0].strip()
-        li=l.split(":", 1)
+        li=re.split(r"[\t:]", l, 1)
         if len(li)==2:
             nm_reac=li[0].strip()
             reac=li[1].strip()
@@ -1327,7 +1327,7 @@ def main(argv=sys.argv[1:], res_ftbl=None, prl_ftbl=None):
  netw: a text file with stoichiometric reactions and label transitions (one per line)
     Comments starts with '#' but those starting with '###' introduce 
     pathways which are numbered as well as reactions in them. Reaction 
-    name can precede the reaction itself and is separated by ":" If no 
+    name can precede the reaction itself and is separated by column ":" or tabulation "\t" If no 
     explicit name is given, reactions in FTBL file will be named 
     according a pattern 'rX.Y' where X is pathway number and Y is 
     reaction number in the pathway. But it is highly recommended to 

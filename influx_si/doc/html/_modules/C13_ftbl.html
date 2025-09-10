@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>C13_ftbl &#8212; influx_si 7.3 documentation</title>
+    <title>C13_ftbl &#8212; influx_si 7.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=3ad2025c"></script>
+    <script src="../_static/documentation_options.js?v=f15b9291"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">C13_ftbl</a></li> 
       </ul>
@@ -699,9 +699,9 @@
     <span class="c1"># quick not reversible reactions for complete subs and prods accounting</span>
     <span class="n">revreac</span><span class="o">=</span><span class="n">oset</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;NAME&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ftbl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;FLUXES&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;XCH&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;FCD&quot;</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;F&quot;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;FCD&quot;</span><span class="p">]</span><span class="o">==</span><span class="s2">&quot;C&quot;</span> <span class="ow">and</span> <span class="p">(</span><span class="n">eval_expr</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;VALUE(F/C)&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">)))</span>
     <span class="c1"># analyse networks</span>
-    <span class="n">netw</span><span class="o">=</span><span class="n">ftbl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;long_reac&quot;</span><span class="p">)</span>
+    <span class="n">netw</span><span class="o">=</span><span class="n">ftbl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;long_reac&quot;</span><span class="p">,</span> <span class="p">{})</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">netw</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No long_reac section in the ftbl parameter&quot;</span><span class="p">)</span>
+        <span class="n">werr</span><span class="p">(</span><span class="s2">&quot;Warning: ftbl_netan: No long_reac section in the ftbl parameter</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">row_to_del</span><span class="o">=</span><span class="p">[]</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">reac</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span> <span class="ow">in</span> <span class="n">netw</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="c1">#print &quot;reac=&quot;+reac;#</span>
@@ -3175,7 +3175,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">C13_ftbl</a></li> 
       </ul>

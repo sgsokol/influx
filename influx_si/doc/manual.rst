@@ -841,11 +841,11 @@ To be able to launch custom calculations on these variables, the user has to do 
 To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:
 
 dirw
-	is a working directory (where the original FTBL file is)
+	is a working directory (where the original MTF files are)
 dirx
 	is an executable directory (where influx_s.py is)
 baseshort
-	is a short name of the input FTBL file (without the suffix ``.ftbl`` neither the directory part of the path)
+	is a short name of the input MTF files (without the suffix ``.netw`` neither the directory part of the path)
 param
 	is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and specie concentrations (if any)
 labargs
@@ -1126,7 +1126,7 @@ If it happens for relatively small increments, then the results of convergence a
 Additional tools
 ~~~~~~~~~~~~~~~~
 
-Tools described in this section are not strictly necessary for running ``influx_si`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
+Tools described in this section are not strictly necessary for running ``influx_si`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in MTF preparation and usage.
 
 Most of the utilities produce an output written on standard output or in a file whose name is derived from the input file name. This latter situation is signaled with a phrase "The output redirection is optional" and in the usage examples the output redirection is taken in square brackets ``[> output.txt]`` which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.
 
@@ -1457,8 +1457,13 @@ ftbl2metxml: prepare MetExplore_ visualization
 
 Convert a MTF sets (or FTBL files) to an xml files suitable for visualization on MetExplore_ site. If a result kvh file ``mynetwork_res.kvh`` is present, it will be parsed to extract flux values corresponding to the last ``influx_si`` run and put them in ``mynetwok_net.txt``, ``mynetwork_fwd.txt`` and ``mynetwork_rev.txt``. As their names indicate, they will contain net, forward and revers flux values respectively.
 
+ftbl2html: prepare network visualization
+----------------------------------------
+
+Convert a MTF sets (or FTBL files) to an html file containing a `mermaid <https://mermaid.js.org/>`__ diagram of the network. The generated HTML page is suitable for visualization in a browser. The diagram can then be saved as an SVG image.
+
 IsoDesign: optimizing input label
 ---------------------------------
 
-One of the means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` solving this problem was developed by Pierre Millard. It is not part of ``influx_si`` distribution and can be downloaded at http://metatoul.insa-toulouse.fr/metasys/software/isodes/. In a nutshell, it works by scanning all possible input label compositions with a defined step, running ``influx_si`` on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).
+One of the means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` v2.0.3 solving this problem was developed by Rochelle Kouakou & co. It is not part of ``influx_si`` distribution but somewhat connected to. It can be installed from https://pypi.org/project/isodesign/. In a nutshell, it works by scanning many possible input label compositions, running ``influx_si`` on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).
 

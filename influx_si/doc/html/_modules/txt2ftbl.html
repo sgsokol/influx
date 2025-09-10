@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>txt2ftbl &#8212; influx_si 7.2 documentation</title>
+    <title>txt2ftbl &#8212; influx_si 7.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=9eaa8645"></script>
+    <script src="../_static/documentation_options.js?v=f15b9291"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">txt2ftbl</a></li> 
       </ul>
@@ -322,7 +322,7 @@
         <span class="n">li</span><span class="o">=</span><span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">li</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
             <span class="n">l</span><span class="o">=</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-        <span class="n">li</span><span class="o">=</span><span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">li</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[\t:]&quot;</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">li</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
             <span class="n">nm_reac</span><span class="o">=</span><span class="n">li</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
             <span class="n">reac</span><span class="o">=</span><span class="n">li</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -1433,7 +1433,7 @@
 <span class="sd"> netw: a text file with stoichiometric reactions and label transitions (one per line)</span>
 <span class="sd">    Comments starts with &#39;#&#39; but those starting with &#39;###&#39; introduce </span>
 <span class="sd">    pathways which are numbered as well as reactions in them. Reaction </span>
-<span class="sd">    name can precede the reaction itself and is separated by &quot;:&quot; If no </span>
+<span class="sd">    name can precede the reaction itself and is separated by column &quot;:&quot; or tabulation &quot;\t&quot; If no </span>
 <span class="sd">    explicit name is given, reactions in FTBL file will be named </span>
 <span class="sd">    according a pattern &#39;rX.Y&#39; where X is pathway number and Y is </span>
 <span class="sd">    reaction number in the pathway. But it is highly recommended to </span>
@@ -1779,7 +1779,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">txt2ftbl</a></li> 
       </ul>

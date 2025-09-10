@@ -42,7 +42,7 @@ def check(value, message):
      return
 def valid_id(s):
     "Replace invalid chars in s by '_' and add '_' if s starts with a number"
-    return re.sub("^([0-9])?", r"_\1", re.sub(r"[^a-zA-Z0-9_.:-]", "_", str(s)))
+    return re.sub("^([0-9])", r"_\1", re.sub(r"[^a-zA-Z0-9_.:-]", "_", str(s)))
     
 def main(argv=sys.argv[1:]):
     sys.tracebacklimit=None

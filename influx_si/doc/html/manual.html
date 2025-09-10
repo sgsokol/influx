@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User’s manual &#8212; influx_si 7.3 documentation</title>
+    <title>User’s manual &#8212; influx_si 7.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=514cf933" />
     
-    <script src="_static/documentation_options.js?v=3ad2025c"></script>
+    <script src="_static/documentation_options.js?v=f15b9291"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -34,7 +34,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.4 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User’s manual</a></li> 
       </ul>
     </div>  
@@ -1475,9 +1475,13 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
 <h3>ftbl2metxml: prepare <a class="reference external" href="https://metexplore.toulouse.inra.fr/">MetExplore</a> visualization<a class="headerlink" href="#ftbl2metxml-prepare-metexplore-visualization" title="Link to this heading">¶</a></h3>
 <p>Convert a MTF sets (or FTBL files) to an xml files suitable for visualization on <a class="reference external" href="https://metexplore.toulouse.inra.fr/">MetExplore</a> site. If a result kvh file <code class="docutils literal notranslate"><span class="pre">mynetwork_res.kvh</span></code> is present, it will be parsed to extract flux values corresponding to the last <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> run and put them in <code class="docutils literal notranslate"><span class="pre">mynetwok_net.txt</span></code>, <code class="docutils literal notranslate"><span class="pre">mynetwork_fwd.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">mynetwork_rev.txt</span></code>. As their names indicate, they will contain net, forward and revers flux values respectively.</p>
 </section>
+<section id="ftbl2html-prepare-network-visualization">
+<h3>ftbl2html: prepare network visualization<a class="headerlink" href="#ftbl2html-prepare-network-visualization" title="Link to this heading">¶</a></h3>
+<p>Convert a MTF sets (or FTBL files) to an html file containing a <a class="reference external" href="https://mermaid.js.org/">mermaid</a> diagram of the network. The generated HTML page is suitable for visualization in a browser. The diagram can then be saved as an SVG image.</p>
+</section>
 <section id="isodesign-optimizing-input-label">
 <h3>IsoDesign: optimizing input label<a class="headerlink" href="#isodesign-optimizing-input-label" title="Link to this heading">¶</a></h3>
-<p>One of the means to increase a flux resolution can be an optimization of input label composition. A utility <code class="docutils literal notranslate"><span class="pre">IsoDesing</span></code> solving this problem was developed by Pierre Millard. It is not part of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> distribution and can be downloaded at <a class="reference external" href="http://metatoul.insa-toulouse.fr/metasys/software/isodes/">http://metatoul.insa-toulouse.fr/metasys/software/isodes/</a>. In a nutshell, it works by scanning all possible input label compositions with a defined step, running <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).</p>
+<p>One of the means to increase a flux resolution can be an optimization of input label composition. A utility <code class="docutils literal notranslate"><span class="pre">IsoDesing</span></code> v2.0.3 solving this problem was developed by Rochelle Kouakou &amp; co. It is not part of <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> distribution but somewhat connected to. It can be installed from <a class="reference external" href="https://pypi.org/project/isodesign/">https://pypi.org/project/isodesign/</a>. In a nutshell, it works by scanning many possible input label compositions, running <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).</p>
 </section>
 </section>
 </section>
@@ -1552,6 +1556,7 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
 <li><a class="reference internal" href="#ffres2ftbl-import-free-fluxes">ffres2ftbl: import free fluxes</a></li>
 <li><a class="reference internal" href="#ftbl2kvh-check-mtf-ftbl-parsing">ftbl2kvh: check MTF/FTBL parsing</a></li>
 <li><a class="reference internal" href="#ftbl2metxml-prepare-metexplore-visualization">ftbl2metxml: prepare MetExplore visualization</a></li>
+<li><a class="reference internal" href="#ftbl2html-prepare-network-visualization">ftbl2html: prepare network visualization</a></li>
 <li><a class="reference internal" href="#isodesign-optimizing-input-label">IsoDesign: optimizing input label</a></li>
 </ul>
 </li>
@@ -1606,7 +1611,7 @@ The resulting <code class="docutils literal notranslate"><span class="pre">mynet
         <li class="right" >
           <a href="quick.html" title="Quick Start"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">influx_si 7.4 documentation</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User’s manual</a></li> 
       </ul>
     </div>

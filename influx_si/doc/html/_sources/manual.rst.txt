@@ -1457,8 +1457,13 @@ ftbl2metxml: prepare MetExplore_ visualization
 
 Convert a MTF sets (or FTBL files) to an xml files suitable for visualization on MetExplore_ site. If a result kvh file ``mynetwork_res.kvh`` is present, it will be parsed to extract flux values corresponding to the last ``influx_si`` run and put them in ``mynetwok_net.txt``, ``mynetwork_fwd.txt`` and ``mynetwork_rev.txt``. As their names indicate, they will contain net, forward and revers flux values respectively.
 
+ftbl2html: prepare network visualization
+----------------------------------------
+
+Convert a MTF sets (or FTBL files) to an html file containing a `mermaid <https://mermaid.js.org/>`__ diagram of the network. The generated HTML page is suitable for visualization in a browser. The diagram can then be saved as an SVG image.
+
 IsoDesign: optimizing input label
 ---------------------------------
 
-One of the means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` solving this problem was developed by Pierre Millard. It is not part of ``influx_si`` distribution and can be downloaded at http://metatoul.insa-toulouse.fr/metasys/software/isodes/. In a nutshell, it works by scanning all possible input label compositions with a defined step, running ``influx_si`` on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).
+One of the means to increase a flux resolution can be an optimization of input label composition. A utility ``IsoDesing`` v2.0.3 solving this problem was developed by Rochelle Kouakou & co. It is not part of ``influx_si`` distribution but somewhat connected to. It can be installed from https://pypi.org/project/isodesign/. In a nutshell, it works by scanning many possible input label compositions, running ``influx_si`` on each of them. Then, it collects the SD information on all fluxes for all label compositions and finally selects an input label composition optimal in some sens (according to a criterion chosen by a user).
 

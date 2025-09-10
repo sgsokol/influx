@@ -632,9 +632,9 @@ def ftbl_netan(ftbl, netan, emu_framework=False, fullsys=False, case_i=False, wo
     # quick not reversible reactions for complete subs and prods accounting
     revreac=oset(row["NAME"] for row in ftbl.get("FLUXES", dict()).get("XCH", dict()) if row["FCD"]=="F" or (row["FCD"]=="C" and (eval_expr(row["VALUE(F/C)"]) != 0.)))
     # analyse networks
-    netw=ftbl.get("long_reac")
+    netw=ftbl.get("long_reac", {})
     if not netw:
-        raise Exception("No long_reac section in the ftbl parameter")
+        werr("Warning: ftbl_netan: No long_reac section in the ftbl parameter\n")
     row_to_del=[]
     for (reac, row) in netw.items():
         #print "reac="+reac;#

@@ -38,9 +38,8 @@ plot_mti=function(ti, x, m=NULL, ...) {
          points(tim[inna], m[i,inna], col=i, cex=0.5, t="b", lwd=0.5, ...)
          if (nrow(m) == nb_curve && !is.null(x)) {
             # draw filled polygons between simulation and data
-            tmax=max(tim[inna])
-            iti=which(ti <= tmax)
-            polygon(c(ti[iti],rev(tim[inna])), c(x[i,iti], rev(m[i,inna])), col=rgb(red=t(col2rgb(i)), alpha=31, max=255), bord=FALSE, ...)
+            iti=which(ti >= min(tim[inna]) & ti <= max(tim[inna]))
+            polygon(c(ti[iti],rev(tim[inna])), c(x[i,iti], rev(m[i,inna])), col=rgb(red=t(col2rgb(i)), alpha=60, max=255), bord=FALSE, ...)
          }
       }
    }
@@ -86,7 +85,7 @@ plot_lti=function(ti, x, m=NULL, ...) {
             # draw filled polygons between simulation and data
             tmax=max(tim[inna])
             iti=which(ti <= tmax)
-            polygon(c(ti[iti],rev(tim[inna])), c(x[i,iti], rev(m[i,inna])), col=rgb(red=t(col2rgb(i)), alpha=31, max=255), bord=FALSE, ...)
+            polygon(c(ti[iti],rev(tim[inna])), c(x[i,iti], rev(m[i,inna])), col=rgb(red=t(col2rgb(i)), alpha=60, max=255), bord=FALSE, ...)
          }
       }
    }
