@@ -2,6 +2,11 @@
 Change Log for influx_si
 ========================
 
+2025-09-17 version 7.4.1
+------------------------
+Bug fix:
+ - ftbl2html: fixed syntax error on mervaid v11.11
+
 2025-09-10 version 7.4.0
 ------------------------
 New features:

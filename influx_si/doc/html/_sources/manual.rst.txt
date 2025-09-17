@@ -841,11 +841,11 @@ To be able to launch custom calculations on these variables, the user has to do 
 To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:
 
 dirw
-	is a working directory (where the original FTBL file is)
+	is a working directory (where the original MTF files are)
 dirx
 	is an executable directory (where influx_s.py is)
 baseshort
-	is a short name of the input FTBL file (without the suffix ``.ftbl`` neither the directory part of the path)
+	is a short name of the input MTF files (without the suffix ``.netw`` neither the directory part of the path)
 param
 	is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and specie concentrations (if any)
 labargs
@@ -1126,7 +1126,7 @@ If it happens for relatively small increments, then the results of convergence a
 Additional tools
 ~~~~~~~~~~~~~~~~
 
-Tools described in this section are not strictly necessary for running ``influx_si`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.
+Tools described in this section are not strictly necessary for running ``influx_si`` and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in MTF preparation and usage.
 
 Most of the utilities produce an output written on standard output or in a file whose name is derived from the input file name. This latter situation is signaled with a phrase "The output redirection is optional" and in the usage examples the output redirection is taken in square brackets ``[> output.txt]`` which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.
 

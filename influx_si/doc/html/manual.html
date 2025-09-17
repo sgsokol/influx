@@ -883,11 +883,11 @@ After execution of <code class="docutils literal notranslate"><span class="pre">
 To be able to launch custom calculations on these variables, the user has to do some preliminary actions. An example of such actions can be found in a file <code class="docutils literal notranslate"><span class="pre">preamble.R</span></code> which can be adapted for user’s case.</p>
 <p>To write his own scripts for post treatments or explore the calculated values in an interactive session, a user have to know some basics about existent variables where all the calculation results and auxiliary information are stored. Here are few of them:</p>
 <dl>
-<dt>dirw</dt><dd><p>is a working directory (where the original FTBL file is)</p>
+<dt>dirw</dt><dd><p>is a working directory (where the original MTF files are)</p>
 </dd>
 <dt>dirx</dt><dd><p>is an executable directory (where influx_s.py is)</p>
 </dd>
-<dt>baseshort</dt><dd><p>is a short name of the input FTBL file (without the suffix <code class="docutils literal notranslate"><span class="pre">.ftbl</span></code> neither the directory part of the path)</p>
+<dt>baseshort</dt><dd><p>is a short name of the input MTF files (without the suffix <code class="docutils literal notranslate"><span class="pre">.netw</span></code> neither the directory part of the path)</p>
 </dd>
 <dt>param</dt><dd><p>is the vector of the estimated parameters composed of free fluxes, scaling parameters (if any) and specie concentrations (if any)</p>
 </dd>
@@ -1161,7 +1161,7 @@ If it happens for relatively small increments, then the results of convergence a
 </section>
 <section id="additional-tools">
 <h2>Additional tools<a class="headerlink" href="#additional-tools" title="Link to this heading">¶</a></h2>
-<p>Tools described in this section are not strictly necessary for running <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in FTBL preparation and usage.</p>
+<p>Tools described in this section are not strictly necessary for running <code class="docutils literal notranslate"><span class="pre">influx_si</span></code> and calculating the fluxes. But in some cases, they can facilitate the task of tracking and solving potential problems in MTF preparation and usage.</p>
 <p>Most of the utilities produce an output written on standard output or in a file whose name is derived from the input file name. This latter situation is signaled with a phrase “The output redirection is optional” and in the usage examples the output redirection is taken in square brackets <code class="docutils literal notranslate"><span class="pre">[&gt;</span> <span class="pre">output.txt]</span></code> which obviously should be omitted if an actual redirection is required. Such behavior is particularly useful for drag-and-drop usage.</p>
 <section id="ftbl2mtf-conversion-of-ftbl-to-mtf-format">
 <h3>ftbl2mtf: conversion of FTBL to MTF format<a class="headerlink" href="#ftbl2mtf-conversion-of-ftbl-to-mtf-format" title="Link to this heading">¶</a></h3>

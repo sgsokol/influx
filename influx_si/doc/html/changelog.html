@@ -46,11 +46,26 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Link to this heading">¶</a></h1>
+<section id="version-7-4-1">
+<h2>2025-09-17 version 7.4.1<a class="headerlink" href="#version-7-4-1" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>ftbl2html: fixed syntax error on mervaid v11.11</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-4-0">
 <h2>2025-09-10 version 7.4.0<a class="headerlink" href="#version-7-4-0" title="Link to this heading">¶</a></h2>
 <dl class="simple">
 <dt>New features:</dt><dd><ul class="simple">
 <li><p>added <cite>ftbl2html</cite> which produce an html file using mermaid to render a network diagram</p></li>
+<li><p>in addition to colon “:”, .netw file can now have &lt;tab&gt; as separator of reaction name from reaction core</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>plot_ilab.R: shadowed regions are made more visible (alpha channel was too low);</p></li>
+<li><p>plot_ilab.R: fixed limits in time of shadowed regions</p></li>
 </ul>
 </dd>
 </dl>
@@ -1031,6 +1046,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-7-4-1">2025-09-17 version 7.4.1</a></li>
 <li><a class="reference internal" href="#version-7-4-0">2025-09-10 version 7.4.0</a></li>
 <li><a class="reference internal" href="#version-7-3-0">2025-05-19 version 7.3.0</a></li>
 <li><a class="reference internal" href="#version-7-2-4">2025-03-18 version 7.2.4</a></li>

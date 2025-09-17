@@ -192,7 +192,7 @@ def main(argv=sys.argv[1:]):
                "label_t": htmllab(m),
                "class_s": "reac",
                "class_t": "metab"+("_i" if m in netan["input"] else "_o" if m in netan["output"] else "_d" if m in netan["deadend"] else ""),
-               "link": "==>" if rnr == "r" else "--",
+               "link": "==>" if rnr == "r" else "---",
                "link_text": "",
                "id_s": rid,
                "id_t": metab2id[m],
