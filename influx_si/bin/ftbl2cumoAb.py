@@ -368,7 +368,7 @@ for (w,A) in enumerate(Ab["A"]):
         if term:
             f.write(" - ("+term+")")
             if d_avail:
-                numstr += " - (%(term)s"%{
+                numstr += " - (%(term)s)"%{
                     "term": join("+",("%(c)s*(%(f)s)" % ({
                       "c": c_cumo,
                       "f": sum(fwrv[v] for v in A[r_cumo][c_cumo]),

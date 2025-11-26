@@ -2,6 +2,11 @@
 Change Log for influx_si
 ========================
 
+2025-11-?? version 7.4.1.90
+------------------------
+Bug fix:
+ - ftbl2cumoAb: fixed format of cumomer system with numerical values
+
 2025-09-17 version 7.4.1
 ------------------------
 Bug fix:
