@@ -1,6 +1,6 @@
 # CRAN packages required for influx_si
 options(error=function(e) q("no"))
-preq=c("nnls", "rmumps", "arrApply", "slam", "limSolve", "multbxxc", "kvh", "nlsic", "bitops")
+preq=c("nnls", "rmumps", "arrApply", "slam", "limSolve", "multbxxc", "kvh", "nlsic", "bitops", "glue")
 # check what is already installed
 iinst=sapply(preq, requireNamespace, quietly = TRUE)
 repos=getOption("repos")

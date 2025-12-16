@@ -178,6 +178,13 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    # 2014-07-09 sokol
 #if (fullsys)
 #browser()
+   # double=function(n) {
+   #    if (n > 7.e5) {
+   #       lapply(sys.calls(), function(it) cat(format(it), "\n", file=fclog))
+   #    }
+   #    cat(!"double={n}", "\n", file=fclog)
+   #    base::double(n)
+   # }
    # from labargs to local vars
    for (item in ls(labargs))
       assign(item, get(item, env=labargs))
@@ -271,9 +278,9 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    }
    ntico_max=max(sapply(seq_len(nb_exp), function(iexp) nb_tifu[[iexp]]-1L))
    nb_row_max=max(sapply(seq_len(nb_w), function(iw) {emuw=ifelse(emu && !fullsys, iw, 1L); spa[[iw]]$nb_c*emuw}))
-   xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico_max)
+   #xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico_max)
    #sfpw=double(nb_row_max*ntico_max*nb_poolf)
-   xpfw=double(nb_row_max*(nb_ff+nb_poolf)*ntico_max)
+   #xpfw=double(nb_row_max*(nb_ff+nb_poolf)*ntico_max)
    #xpf1=double(nb_row_max*(nb_ff+nb_poolf))
    for (iexp in seq_len(nb_exp)) {
       if (nb_ti[iexp] < 2) {
@@ -310,7 +317,10 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
 #browser()
       if (cjac) {
          #cat("param2fl_usm_eul2: recalculate jacobian\n")
-         xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
+         if (is.null(labargs$xpf)) {
+            labargs$xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
+         }
+         xpf=labargs$xpf
          redim(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
          #resize(xpf, c(nbc_x[nb_w+1L], nb_ff+nb_poolf, ntico))
          if (length(ijpwef[[iexp]])) {
@@ -425,7 +435,12 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
             # rhs for all time points on this weight
             # parts before b_x%*%...
             #Rprof(file="fx2jr.Rprof", append=TRUE)
-            xpfw=double(nb_row*(nb_ff+nb_poolf)*ntico)
+            if (is.null(labargs$xpfw) || is.null(labargs$xpfw[[iw]])) {
+               if (is.null(labargs$xpfw))
+                  labargs$xpfw=vector("list", nb_w)
+               labargs$xpfw[[iw]]=double(nb_row*(nb_ff+nb_poolf)*ntico)
+            }
+            xpfw=labargs$xpfw[[iw]]
             redim(xpfw, c(nb_row, nb_ff+nb_poolf, ntico))
             #resize(xpfw, c(nb_c*emuw, nb_ff+nb_poolf, ntico))
             bop(xpfw, 1, "=", 0.)
