@@ -20,3 +20,10 @@ source(file.path(dirr, "tools_ssg.R"), echo=FALSE)
 source(file.path(dirr, "psoptim_ic.R"), echo=FALSE)
 if (case_i)
     source(file.path(dirr, "funlab.R"), echo=FALSE)
+# double=function(n) {
+#    if (n > 1.e3) {
+#       lapply(sys.calls(), function(it) cat(format(it), "\n", file=fclog))
+#    }
+#    cat(!"double={n}", "\n", file=fclog)
+#    base::double(n)
+# }

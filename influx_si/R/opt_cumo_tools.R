@@ -188,12 +188,15 @@ param2fl_x=function(param, cjac=TRUE, labargs, fullsys=FALSE) {
    x=jx_f$x
    usimlab=jx_f$usimlab
 #browser()
-   if (is.null(labargs$incu) || length(labargs$incu) != 1+nb_xi+nbc_x[nb_w+1L]) {
+   if (is.null(labargs$incu) || length(labargs$incu[[1L]]) != 1+nb_xi+nbc_x[nb_w+1L]) {
       labargs$incu=incu=lapply(seq_len(nb_exp), function(iexp) c(1, xi[[iexp]], double(nbc_x[nb_w+1L])))
       # unreduced residuals derivated by scale params
       labargs$dur_dsc=dur_dsc=lapply(seq_len(nb_exp), function(iexp) matrix(0., nrow=nb_meas[[iexp]], ncol=nb_sc_tot))
       labargs$dux_dp=dux_dp=lapply(seq_len(nb_exp), function(iexp) matrix(0., nb_meas[[iexp]], nb_ff+nb_sc_tot+nb_poolf))
    }
+   incu=labargs$incu
+   dur_dsc=labargs$dur_dsc
+   dux_dp=labargs$dux_dp
    Ali=lapply(seq_len(nb_w), function(iw) fwrv2Abr(lf$fwrv, spa[[iw]], NULL, NULL, getb=FALSE, emu=emu && !fullsys)$A)
    if (cjac) {
       # derivation of fwrv fluxes by free parameters: free fluxes+concentrations
@@ -687,8 +690,11 @@ cumo_jacob=function(param, labargs) {
    nb_exp=labargs$nb_exp
    nblr=sapply(jx_f$dux_dp, nrow) # labeled residual lengths
    nblr_tot=sum(nblr)
-   tmp=double(nblr_tot*length(param))
-   redim(tmp, c(nblr_tot, length(param)))
+   if (is.null(labargs$jtmp)) {
+      labargs$jtmp=double(nblr_tot*length(param))
+      redim(labargs$jtmp, c(nblr_tot, length(param)))
+   }
+   tmp=labargs$jtmp
    base=0
    for (iexp in seq_len(nb_exp)) {
       tmp[base+seq_len(nblr[iexp]),]=jx_f$dux_dp[[iexp]]

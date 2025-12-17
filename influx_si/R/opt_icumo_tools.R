@@ -178,13 +178,6 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
    # 2014-07-09 sokol
 #if (fullsys)
 #browser()
-   # double=function(n) {
-   #    if (n > 7.e5) {
-   #       lapply(sys.calls(), function(it) cat(format(it), "\n", file=fclog))
-   #    }
-   #    cat(!"double={n}", "\n", file=fclog)
-   #    base::double(n)
-   # }
    # from labargs to local vars
    for (item in ls(labargs))
       assign(item, get(item, env=labargs))
