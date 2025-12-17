@@ -696,9 +696,11 @@ crv_ff[,1L]=(nb_fwrv/2)+crv_ff[,1L]
 crv_fg[,1L]=(nb_fwrv/2)+crv_fg[,1L]
 
 # store it in nb_f
-nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
-   crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
-nb_f=as.environment(nb_f)
+#nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,
+#   crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))
+#if (interactive()) browser()
+lapply(c("cfw_fl", "crv_fl", "cfw_ff", "crv_ff", "cfw_fg", "crv_fg"), function(nm) assign(nm, get(nm), envir=nb_f))
+#nb_f=as.environment(nb_f)
 
 nbc_x=c(0, cumsum(nb_x))
 nb_f$nbc_x=nbc_x
@@ -715,7 +717,7 @@ if (nb_poolf > 0L) {
 }
 dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
-#browser()
+#if (interactive()) browser()
 # prepare argument list for passing to label simulating functions
 nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf", "fclog", "fcerr")
 """)
@@ -725,7 +727,8 @@ nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp"
 if (TIMEIT) {
    cat("labargs : ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
-tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
+#Rprof("~/tmp/labargs.Rprof")
+tmp <- lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))
 #for (nm in nm_labargs) {
 #   labargs[[nm]]=get(nm)
 #}
@@ -812,6 +815,7 @@ if ((case_i && (time_order %in% c("1,2", "2"))) || sensitive == "mc") {
       labargs$cl=NULL
    }
 }
+#Rprof(NULL)
 for (irun in seq_len(nseries)) {
    if (TIMEIT) {
       cat(sprintf("run %4d: %s cpu=%g\n", irun, format(Sys.time()), proc.time()[1]), "\n", sep="", file=fclog)

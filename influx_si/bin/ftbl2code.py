@@ -514,7 +514,7 @@ if (prof)
    Rprof(file.path(dirw, sprintf("%s.Rprof", baseshort)))
 
 nm_list=list()
-nb_f=list()
+nb_f=new.env() #list()
 """)
     netan2R_fl(netan, org, f)
     d=netan2R_rcumo(netan, org, f, emu)
@@ -896,13 +896,19 @@ nm_dfn=c(nm_fln, nm_ffn)
 names(nm_dfn)=substring(nm_dfn, 5)
 
 # all flux cardinals
-nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
-   nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,
-   nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,
-   nb_fallnx=nb_fallnx, nb_fwrv=nb_fwrv,
-   nb_fgr=nb_fgr,
-   include_growth_flux=%(inc_gr_f)s,
-   mu=%(mu)s))
+include_growth_flux=%(inc_gr_f)s
+mu=%(mu)s
+#nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,
+#   nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,
+#   nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,
+#   nb_fallnx=nb_fallnx, nb_fwrv=nb_fwrv,
+#   nb_fgr=nb_fgr,
+#   include_growth_flux=include_growth_flux,
+#   mu=mu))
+if (interactive()) browser()
+lapply(c("nb_fln", "nb_flx", "nb_fl", "nb_ffn", "nb_ffx", "nb_ff",
+   "nb_fcn", "nb_fcx", "nb_fc", "nb_fallnx", "nb_fwrv",
+   "nb_fgr", "include_growth_flux", "mu"), function(nm) assign(nm, get(nm), envir=nb_f))
     """%{
         "nm_rows": join(", ", netan["vrowAfl"], '"', '"', width=120),
         "nb_ffn": nb_ffn,
@@ -1046,9 +1052,7 @@ nb_flx=length(nm_flx)
 nb_fl=nb_fln+nb_flx
 nm_par=names(param)
 
-for (item in c("nb_fln", "nb_flx", "nb_fl", "nb_ffn", "nb_ffx", "nb_ff")) {
-   nb_f[item]=get(item)
-}
+lapply(c("nb_fln", "nb_flx", "nb_fl", "nb_ffn", "nb_ffx", "nb_ff"), function(nm) assign(nm, get(nm), envir=nb_f))
 # translation from n-x to fw-rv
 sh_fwrv=substring(nm_fwrv[1:(nb_fwrv/2)], 5)
 sh_nx=substring(nm_fallnx, 2)
