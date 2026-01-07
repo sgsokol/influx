@@ -310,7 +310,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
 #browser()
       if (cjac) {
          #cat("param2fl_usm_eul2: recalculate jacobian\n")
-         if (is.null(labargs$xpf)) {
+         if (is.null(labargs$xpf) || length(labargs$xpf) != nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico) {
             labargs$xpf=double(nbc_x[nb_w+1L]*(nb_ff+nb_poolf)*ntico)
          }
          xpf=labargs$xpf
