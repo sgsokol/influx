@@ -905,7 +905,7 @@ mu=%(mu)s
 #   nb_fgr=nb_fgr,
 #   include_growth_flux=include_growth_flux,
 #   mu=mu))
-if (interactive()) browser()
+#if (interactive()) browser()
 lapply(c("nb_fln", "nb_flx", "nb_fl", "nb_ffn", "nb_ffx", "nb_ff",
    "nb_fcn", "nb_fcx", "nb_fc", "nb_fallnx", "nb_fwrv",
    "nb_fgr", "include_growth_flux", "mu"), function(nm) assign(nm, get(nm), envir=nb_f))
@@ -1416,6 +1416,7 @@ ipooled[[%(ili)d]]=list(ishort=pmatch(nm_meas[[%(ili)d]], nm_measmat[[%(ili)d]])
     "dev": join(", ", (sd for sd in valval(measures[o][ili]["dev"]
         for o in o_meas)), width=120),
     })
+    #breakpoint()
     f.write("""
 nm_meas_tot=unlist(nm_meas)
 nb_meas=unlist(nb_meas)

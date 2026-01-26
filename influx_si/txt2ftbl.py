@@ -490,7 +490,7 @@ def parse_miso(fmiso, clen, case_i=False, itnal_met=set()):
         #    werr("parse_miso: a group %s of length 1 is not valid, '%s': %d"%(kgr, fname, ligr[0]+2))
         flen=len(ifr)
         if flen > mlen:
-            werr("parse_miso: in group %s, fragment length %d is greater than metabolite length %d in '%s'"%(kgr, flen, mlen, fname))
+            werr("parse_miso: in group %s, fragment length %d is greater than metabolite length %d from network, in '%s':%d-%d"%(kgr, flen, mlen, fname, ist, iend))
         if not dset:
             werr("parse_miso: dataset name is missing in '%s':%d\n%s"%(fname, ist, "\t".join(df.loc[ligr[0], :])))
         #if ligr[-1]-ligr[0]+1 != len(ligr): # data should be allowed in any order
@@ -551,6 +551,11 @@ def parse_miso(fmiso, clen, case_i=False, itnal_met=set()):
                 #pdb.set_trace()
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for sp,spi in dsp.items():
+                        # check for time unicity
+                        ut,it,ct=np.unique(df.loc[spi, "Time"], return_index=True, return_counts=True)
+                        if len(ut) != len(df.loc[spi, "Time"]):
+                            irep=np.where(ct > 1)[0]
+                            werr("parse_miso: duplicated time points for '%s' '%s' '%s' in '%s': %s"%(met, frag, sp, fname, ", ".join(sorted(df.loc[spi[it[irep]], "iline"]))))
                         df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"m:{met}:{ffrag}:{sp[1:]}:{df.loc[spi[0],'iline']}"]))
             else:
                 #if met == "Phe":

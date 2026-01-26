@@ -5,7 +5,7 @@ import numpy as np
 from math import *
 #print(sys.path)
 from kvh.kvh import *
-from textwrap import fill
+#from textwrap import fill
 letters=string.ascii_lowercase
 
 def aff(name, obj, ident=0, f=sys.stdout):
@@ -108,11 +108,29 @@ def valval(o, keepNone=True):
                     elif i1 is not None:
                             yield i1
 
+def fill(ch, li, width: int = 70):
+    r"""fill a list of strings li into a single string with using a separator ch and given width. Long words are not broken so lines may be longer than width. The lines can be longer also if ch is added to a line that is already at width limit."""
+    res=""
+    curlen=0
+    for i,s in enumerate(li):
+        if i > 0 and curlen+len(s)+len(ch) > width:
+            if res:
+                res+=ch + '\n'
+            res += s
+            curlen=len(s)
+        else:
+            if i > 0:
+                res += ch
+                curlen += len(ch)
+            res += s
+            curlen += len(s)
+    return res
 def join(c, l, p='', s='', a='', width: int = 0, break_long_words: bool = False):
     r"""join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional.
-    if width is integer > 0, then textwrap.fill() is used to wrap the result with textwrap.fill(res, width, break_long_lines)."""
-    res=c.join(p+str(i)+s for i in l) or a
-    return res if width <= 0 else fill(res, width=width, break_long_words=break_long_words)
+    if width is integer > 0, then fill() is used to wrap the result
+    to keep inside width when possible."""
+    li=[p+str(i)+s for i in l] or [a]
+    return c.join(li) if width <= 0 else fill(c, li, width=width)
 def joint(c,l,p='',s='',a=''):
     r"""join "true" items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional"""
     i=0

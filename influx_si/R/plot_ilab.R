@@ -112,7 +112,7 @@ if (write_res) {
          nmf=strsplitlim(nm_selm, ":", fixed=TRUE, mat=TRUE)
          # detect metabs with incomplete mid, e.g. only M+0
          fraglen=strsplitlim(nmf[,3L], ",", fixed=TRUE, mat=TRUE)
-         mets=strsplitlim(nmf[,2L], "+", fixed=TRUE, mat=TRUE)
+         mets=trimws(strsplitlim(nmf[,2L], "+", fixed=TRUE, mat=TRUE))
          incompls=split(seq_len(NROW(nmf)), list(nmf[,2L], nmf[,3L]))
          incompl=sapply(incompls, function(i) {
             if (length(i) == 0L) return(FALSE)
@@ -132,7 +132,7 @@ if (write_res) {
             mf=strsplit(metf, ":", fixed=TRUE)[[1L]]
             met=mf[1L]
             fr=mf[2L]
-            metlen=clen[strsplit(met, "+", fixed=TRUE)[[1L]][1L]]
+            metlen=clen[trimws(strsplit(met, "+", fixed=TRUE)[[1L]][1L])]
             mainlab=if (is.na(fr) || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen))
                met else
                sprintf("%s:%s", met, fr)
@@ -173,7 +173,7 @@ if (write_res) {
                mf=strsplit(metf, ":", fixed=TRUE)[[1L]]
                met=mf[2L]
                fr=mf[3L]
-               metlen=clen[strsplit(met, "+", fixed=TRUE)[[1]][1]]
+               metlen=clen[trimws(strsplit(met, "+", fixed=TRUE)[[1]][1])]
                if (is.na(fr) || fr == paste(seq_len(metlen), collapse=",") || fr == sprintf("1~%d", metlen)) {
                   mainlab=met
                } else {

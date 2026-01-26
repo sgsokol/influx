@@ -731,7 +731,7 @@ funlab=function(tp, nm_inp, li, env, emu, fname, fcerr, tol=1.e-7) { #sqrt(.Mach
 #browser()
          stop_mes("Input labeled metabolite '", met, "' from '", fname, "' sums up to a value greater than 1 at t=", tp[ibad], "; sum-1=", su[ibad]-1., ".", file=fcerr)
       }
-      if (!"0" %in% names(m)) {
+      if (! ("0" %in% names(m))) {
          # "the rest is unlabeled"
          lit[[met]][["0"]]=1.-su
       } else if (length(m) == 2L**clen[met]-1L) {

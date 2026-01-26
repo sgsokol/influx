@@ -1467,7 +1467,7 @@ for (irun in seq_len(nseries)) {
                         # get indexes per fragment
                         i=which(startsWith(nmx, nm))
                         mets=strsplit(nm, ":", fixed=TRUE)[[1L]][2L]
-                        met1=strsplit(mets, "+", fixed=TRUE)[[1L]][1L]
+                        met1=trimws(strsplit(mets, "+", fixed=TRUE)[[1L]][1L])
                         if (length(i) < clen[met1]+1)
                            return(NULL)
                         s=colSums(x[i,,drop=FALSE])
