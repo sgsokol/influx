@@ -102,14 +102,14 @@ ff=dict((row[0], round(float(row[1]), nround)) for row in ff[1:])
 with ftbl.open("r") as f:
     lftbl=f.readlines()
 # detect flux definition section in ftbl
-ifl=[i for (i,l) in enumerate(lftbl) if re.match("^FLUXES\w*(//.*)*", l)][0]
-inet=ifl+[i for (i,l) in enumerate(lftbl[ifl:]) if re.match("\tNET\w*(//.*)*", l)][0]
-ixch=inet+[i for (i,l) in enumerate(lftbl[inet:]) if re.match("\tXCH\w*(//.*)*", l)][0]
-iend=ixch+[i for (i,l) in enumerate(lftbl[ixch:]) if re.match("[^ \t\r\n/]+", l)][0]
+ifl=[i for (i,l) in enumerate(lftbl) if re.match(r"^FLUXES\w*(//.*)*", l)][0]
+inet=ifl+[i for (i,l) in enumerate(lftbl[ifl:]) if re.match(r"\tNET\w*(//.*)*", l)][0]
+ixch=inet+[i for (i,l) in enumerate(lftbl[inet:]) if re.match(r"\tXCH\w*(//.*)*", l)][0]
+iend=ixch+[i for (i,l) in enumerate(lftbl[ixch:]) if re.match(r"[^ \t\r\n/]+", l)][0]
 #print(ifl,inet,ixch)
 
 # detect metabolite definition section in ftbl
-ipool=[i for (i,l) in enumerate(lftbl) if re.match("^METABOLITE_POOLS\w*(//.*)*", l)]
+ipool=[i for (i,l) in enumerate(lftbl) if re.match(r"^METABOLITE_POOLS\w*(//.*)*", l)]
 ipool=ipool[0] if ipool else None
 
 # get metab_scale if any

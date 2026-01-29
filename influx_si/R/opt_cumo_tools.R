@@ -1317,7 +1317,7 @@ opt_wrapper=function(param, method, measurements, jx_f, labargs, trace=1) {
          method="SANN", outer.iterations=100, outer.eps=1e-08,
          labargs)
    } else if (method == "nlsic") {
-      control=list(trace=trace, btfrac=0.25, btdesc=0.1, maxit=50, errx=1.e-5,
+      control=list(trace=trace, btfrac=0.8, btdesc=0.1, maxit=50, errx=1.e-5,
          ci=list(report=FALSE), history=FALSE, adaptbt=TRUE, sln=sln,
          maxstep=max(10.*sqrt(norm2(param)), 1.),
          rcond=1.e7
@@ -1527,7 +1527,7 @@ sparse2spa=function(spa) {
       l$a=Rmumps$new(i, j, rep(pi, length(iu0)), nb_c)
 #cat("sparse2spa: nb_c=", nb_c, "\n")
       if (!is.null(control_ftbl$mumps)) {
-#browser()
+#if (interactive()) browser()
          lapply(grep("^icntl_", names(control_ftbl$mumps), v=TRUE), function(nm) {
             i=suppressWarnings(as.integer(strsplit(nm, "_")[[1L]][2]))
             v=suppressWarnings(as.integer(control_ftbl$mumps[[nm]]))

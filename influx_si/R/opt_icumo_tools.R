@@ -255,11 +255,19 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
          vmw=rep(vmw, emuw)
          redim(vmw, c(nb_c, emuw))
          ali_w[[iw]]=lapply(dtru, function(dtu) {
+#if (interactive()) browser()
             dti=1./as.double(dtu)
             a=Alit[[iw]]
             #a$v[spa[[iw]]$iadiag]=vmw[,1L]*dti+a$v[spa[[iw]]$iadiag]
             asp=Rmumps$new(a) # just a place-holder
-            asp$set_icntl(3, 7) # 2=amf, 3=scotch, 4=pord, 5=metis
+            asp$set_icntl(0, 7) # at first position: 0=AMD (current value), 2=amf, 3=scotch, 4=pord, 5=metis
+            n_lapply(labargs$control_ftbl$mumps, function(nm, it) {
+               if (startsWith(nm, "icntl_")) {
+                  i=suppressWarnings(as.integer(strsplit(nm, "_")[[1L]][2L]))
+                  v=suppressWarnings(as.integer(it))
+                  asp$set_icntl(v, i)
+               }
+            })
             #asp$set_icntl(400, 14) # increase by 400% working space
             #if (packageVersion("rmumps") >= "5.1.1-1")
             #   asp$set_keep(40, 1) # undocumented feature of mumps (cf. their mail on mumps-user group from 12/04/2017)
@@ -428,7 +436,7 @@ param2fl_usm_eul2=function(param, cjac, labargs, fullsys=FALSE) {
             # rhs for all time points on this weight
             # parts before b_x%*%...
             #Rprof(file="fx2jr.Rprof", append=TRUE)
-            if (is.null(labargs$xpfw) || is.null(labargs$xpfw[[iw]])) {
+            if (is.null(labargs$xpfw) || is.null(labargs$xpfw[[iw]]) || length(labargs$xpfw[[iw]]) != nb_row*(nb_ff+nb_poolf)*ntico) {
                if (is.null(labargs$xpfw))
                   labargs$xpfw=vector("list", nb_w)
                labargs$xpfw[[iw]]=double(nb_row*(nb_ff+nb_poolf)*ntico)

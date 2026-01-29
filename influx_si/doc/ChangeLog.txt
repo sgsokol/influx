@@ -2,13 +2,22 @@
 Change Log for influx_si
 ========================
 
-2026-01-?? version 7.4.1.91
+2026-01-29 version 7.4.2
 ------------------------
+New features:
+ - added mat2file.R for storing cumomer matrices to tmp/\*.mtx files
+ - influx_i: default mumps ordering is now AMD instead of SCOTCH
+ - nlsic: new CRAN version 1.2.0 is out with support of jacobian reuse
+ 
 Bug fix:
  - ftbl2cumoAb: fixed format of cumomer system with numerical values
  - python join(): fixed wrapping of long lines that could break inside a quoted expression
- - txt2ftbl: made more clear an error message about repeated measurments for a given tme point (reported by Sophie Colombié, INRAE BFP, France)
- - plot_ilab.R: fixed composed measurements with spaces 'A + B'
+ - txt2ftbl: made more clear an error message about repeated measurments for a given time point (reported by Sophie Colombié, INRAE BFP, France)
+ - plot_ilab.R: fixed names of composed measurements with spaces 'A + B'
+ - fixed a bug preventing a read of .ikin file from tmp/ directory for parallel experiments
+ - influx_i: fixed non propagation of optctrl:mumps:inctl_N options
+ - ff2ftbl: fixed python3.12 warning about unknown regexp syntax
+ - fixed tentative to write MC stats to .kvh file when no sufficient MC samples were obtained
 
 2025-09-17 version 7.4.1
 ------------------------

@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ftbl2optR &#8212; influx_si 7.3 documentation</title>
+    <title>ftbl2optR &#8212; influx_si 7.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=3ad2025c"></script>
+    <script src="../_static/documentation_options.js?v=f15b9291"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2optR</a></li> 
       </ul>
@@ -420,8 +420,8 @@
 <span class="s2">      else</span>
 <span class="s2">         flabcin[iexp]=file.path(dirw, flabcin[iexp])</span>
 <span class="s2">      if (!file.exists(flabcin[iexp])) {</span>
-<span class="s2">         # last resort, see in _res/tmp</span>
-<span class="s2">         ftmp=file.path(dirw, paste0(nm_exp[[iexp]],&quot;_res&quot;), &quot;tmp&quot;, basename(flabcin[iexp]))</span>
+<span class="s2">         # last resort, see in _res/tmp of the main file</span>
+<span class="s2">         ftmp=file.path(dirw, paste0(nm_exp[[1L]],&quot;_res&quot;), &quot;tmp&quot;, basename(flabcin[iexp]))</span>
 <span class="s2">         if (file.exists(ftmp))</span>
 <span class="s2">            flabcin[iexp]=ftmp</span>
 <span class="s2">      }</span>
@@ -736,9 +736,11 @@
 <span class="s2">crv_fg[,1L]=(nb_fwrv/2)+crv_fg[,1L]</span>
 
 <span class="s2"># store it in nb_f</span>
-<span class="s2">nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,</span>
-<span class="s2">   crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))</span>
-<span class="s2">nb_f=as.environment(nb_f)</span>
+<span class="s2">#nb_f=append(nb_f, list(cfw_fl=cfw_fl, crv_fl=crv_fl, cfw_ff=cfw_ff,</span>
+<span class="s2">#   crv_ff=crv_ff, cfw_fg=cfw_fg, crv_fg=crv_fg))</span>
+<span class="s2">#if (interactive()) browser()</span>
+<span class="s2">lapply(c(&quot;cfw_fl&quot;, &quot;crv_fl&quot;, &quot;cfw_ff&quot;, &quot;crv_ff&quot;, &quot;cfw_fg&quot;, &quot;crv_fg&quot;), function(nm) assign(nm, get(nm), envir=nb_f))</span>
+<span class="s2">#nb_f=as.environment(nb_f)</span>
 
 <span class="s2">nbc_x=c(0, cumsum(nb_x))</span>
 <span class="s2">nb_f$nbc_x=nbc_x</span>
@@ -755,9 +757,9 @@
 <span class="s2">}</span>
 <span class="s2">dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)</span>
 
-<span class="s2">#browser()</span>
+<span class="s2">#if (interactive()) browser()</span>
 <span class="s2"># prepare argument list for passing to label simulating functions</span>
-<span class="s2">nm_labargs=c(&quot;jx_f&quot;, &quot;nb_f&quot;, &quot;nm_list&quot;, &quot;nb_x&quot;, &quot;invAfl&quot;, &quot;p2bfl&quot;, &quot;g2bfl&quot;, &quot;bp&quot;, &quot;fc&quot;, &quot;xi&quot;, &quot;spa&quot;, &quot;spaf&quot;, &quot;emu&quot;, &quot;pool&quot;, &quot;measurements&quot;, &quot;ipooled&quot;, &quot;ir2isc&quot;,  &quot;nb_w&quot;, &quot;nb_rw&quot;, &quot;nbc_x&quot;, &quot;measmat&quot;, &quot;memaone&quot;, &quot;dufm_dp&quot;, &quot;dupm_dp&quot;, &quot;pwe&quot;, &quot;ipwe&quot;, &quot;ip2ipwe&quot;, &quot;pool_factor&quot;, &quot;ijpwef&quot;, &quot;ipf_in_ppw&quot;, &quot;meas2sum&quot;, &quot;dp_ones&quot;, &quot;clen&quot;, &quot;dirr&quot;, &quot;dirw&quot;, &quot;dirres&quot;, &quot;baseshort&quot;, &quot;case_i&quot;, &quot;nb_exp&quot;, &quot;noscale&quot;, &quot;dpw_dpf&quot;, &quot;fclog&quot;, &quot;fcerr&quot;)</span>
+<span class="s2">nm_labargs=c(&quot;jx_f&quot;, &quot;nb_f&quot;, &quot;nm_list&quot;, &quot;nb_x&quot;, &quot;invAfl&quot;, &quot;p2bfl&quot;, &quot;g2bfl&quot;, &quot;bp&quot;, &quot;fc&quot;, &quot;xi&quot;, &quot;spa&quot;, &quot;spaf&quot;, &quot;emu&quot;, &quot;pool&quot;, &quot;measurements&quot;, &quot;ipooled&quot;, &quot;ir2isc&quot;,  &quot;nb_w&quot;, &quot;nb_rw&quot;, &quot;nbc_x&quot;, &quot;measmat&quot;, &quot;memaone&quot;, &quot;dufm_dp&quot;, &quot;dupm_dp&quot;, &quot;pwe&quot;, &quot;ipwe&quot;, &quot;ip2ipwe&quot;, &quot;pool_factor&quot;, &quot;ijpwef&quot;, &quot;ipf_in_ppw&quot;, &quot;meas2sum&quot;, &quot;dp_ones&quot;, &quot;clen&quot;, &quot;dirr&quot;, &quot;dirw&quot;, &quot;dirres&quot;, &quot;baseshort&quot;, &quot;case_i&quot;, &quot;nb_exp&quot;, &quot;noscale&quot;, &quot;dpw_dpf&quot;, &quot;fclog&quot;, &quot;fcerr&quot;, &quot;control_ftbl&quot;)</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">case_i</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nm_labargs=c(nm_labargs, &quot;ti&quot;, &quot;tifull&quot;, &quot;tifull2&quot;, &quot;x0&quot;, &quot;time_order&quot;)&#39;</span><span class="p">)</span>
@@ -765,7 +767,8 @@
 <span class="s2">if (TIMEIT) {</span>
 <span class="s2">   cat(&quot;labargs : &quot;, format(Sys.time()), &quot; cpu=&quot;, proc.time()[1], &quot;</span><span class="se">\\</span><span class="s2">n&quot;, sep=&quot;&quot;, file=fclog)</span>
 <span class="s2">}</span>
-<span class="s2">tmp=lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))</span>
+<span class="s2">#Rprof(&quot;~/tmp/labargs.Rprof&quot;)</span>
+<span class="s2">tmp &lt;- lapply(nm_labargs, function(nm) assign(nm, get(nm), labargs))</span>
 <span class="s2">#for (nm in nm_labargs) {</span>
 <span class="s2">#   labargs[[nm]]=get(nm)</span>
 <span class="s2">#}</span>
@@ -852,6 +855,7 @@
 <span class="s2">      labargs$cl=NULL</span>
 <span class="s2">   }</span>
 <span class="s2">}</span>
+<span class="s2">#Rprof(NULL)</span>
 <span class="s2">for (irun in seq_len(nseries)) {</span>
 <span class="s2">   if (TIMEIT) {</span>
 <span class="s2">      cat(sprintf(&quot;run </span><span class="si">%4d</span><span class="s2">: </span><span class="si">%s</span><span class="s2"> cpu=</span><span class="si">%g</span><span class="s2">\n&quot;, irun, format(Sys.time()), proc.time()[1]), &quot;\n&quot;, sep=&quot;&quot;, file=fclog)</span>
@@ -1503,7 +1507,7 @@
 <span class="s2">                        # get indexes per fragment</span>
 <span class="s2">                        i=which(startsWith(nmx, nm))</span>
 <span class="s2">                        mets=strsplit(nm, &quot;:&quot;, fixed=TRUE)[[1L]][2L]</span>
-<span class="s2">                        met1=strsplit(mets, &quot;+&quot;, fixed=TRUE)[[1L]][1L]</span>
+<span class="s2">                        met1=trimws(strsplit(mets, &quot;+&quot;, fixed=TRUE)[[1L]][1L])</span>
 <span class="s2">                        if (length(i) &lt; clen[met1]+1)</span>
 <span class="s2">                           return(NULL)</span>
 <span class="s2">                        s=colSums(x[i,,drop=FALSE])</span>
@@ -1986,7 +1990,7 @@
 <span class="s2">#browser()</span>
 <span class="s2">         rnm=grep(&quot;_gr$&quot;, nm_fallnx, invert=TRUE, value=TRUE)</span>
 <span class="s2">         cnm=c(&quot;Id&quot;, &quot;Comment&quot;, &quot;Name&quot;, &quot;Kind&quot;, &quot;Type&quot;, &quot;Value&quot;, &quot;SD&quot;, &quot;Struct_identif&quot;)</span>
-<span class="s2">         if (sensitive == &quot;mc&quot;) {</span>
+<span class="s2">         if (sensitive == &quot;mc&quot; &amp;&amp; nmc_real &gt; 1L) {</span>
 <span class="s2">            cnm=c(cnm, &quot;Low_mc&quot;, &quot;Up_mc&quot;)</span>
 <span class="s2">         }</span>
 <span class="s2">         nx2suf=c(n=&quot;NET&quot;, x=&quot;XCH&quot;)</span>
@@ -2001,7 +2005,7 @@
 <span class="s2">         vsd=sdfl[rnm]</span>
 <span class="s2">         vsd[is.na(vsd)]=0.</span>
 <span class="s2">         df=cbind(&quot;&quot;, &quot;&quot;, mnm[, 3L], nx2suf[mnm[, 2L]], fd2cap[mnm[, 1L]], vfl, vsd, ifelse(vsd &gt; 10000, &quot;no&quot;, &quot;yes&quot;))</span>
-<span class="s2">         if (sensitive == &quot;mc&quot;) {</span>
+<span class="s2">         if (sensitive == &quot;mc&quot; &amp;&amp; nmc_real &gt; 1L) {</span>
 <span class="s2">            df=cbind(df, cinx_mc[rnm, 1L:2L])</span>
 <span class="s2">         }</span>
 
@@ -2057,7 +2061,7 @@
 <span class="s2">            vsd=sdpf[rnm]</span>
 <span class="s2">            vsd[is.na(vsd)]=0.</span>
 <span class="s2">            dfp=cbind(&quot;&quot;, &quot;&quot;, mnm[, 2L], &quot;METAB&quot;, pfc2cap[mnm[,1L]], poolall[rnm], vsd, ifelse(vsd &gt;= 10000., &quot;no&quot;, &quot;yes&quot;))</span>
-<span class="s2">            if (sensitive == &quot;mc&quot;) {</span>
+<span class="s2">            if (sensitive == &quot;mc&quot; &amp;&amp; nmc_real &gt; 1L) {</span>
 <span class="s2">               mci=ci_mc[nm_poolf, 1L:2L]</span>
 <span class="s2">               mci=rbind(mci, cbind(poolall[nm_poolc], poolall[nm_poolc]))</span>
 <span class="s2">               dfp=cbind(dfp, mci[rnm,])</span>
@@ -2226,7 +2230,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2optR</a></li> 
       </ul>

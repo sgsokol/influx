@@ -1661,7 +1661,3 @@ dbind=function(...) {
    dimnames(res)=list(nmr, nmc)
    res
 }
-# make !"str={str}" work as glue::glue("str={str}")
-`!`=function(x) UseMethod("!")
-`!.default`=base::`!`
-`!.character`=glue::glue

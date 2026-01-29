@@ -1023,6 +1023,12 @@ License: Gnu Public License (GPL) v3 <a class="reference external" href="http://
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="tools_ssg.fill">
+<span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">fill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">li</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">70</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#fill"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.fill" title="Link to this definition">¶</a></dt>
+<dd><p>fill a list of strings li into a single string with using a separator ch and given width. Long words are not broken so lines may be longer than width. The lines can be longer also if ch is added to a line that is already at width limit.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tools_ssg.icumo2iiso">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">icumo2iiso</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">icumo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#icumo2iiso"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.icumo2iiso" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -1063,7 +1069,8 @@ License: Gnu Public License (GPL) v3 <a class="reference external" href="http://
 <dt class="sig sig-object py" id="tools_ssg.join">
 <span class="sig-prename descclassname"><span class="pre">tools_ssg.</span></span><span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">break_long_words</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tools_ssg.html#join"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tools_ssg.join" title="Link to this definition">¶</a></dt>
 <dd><p>join the items of the list (or iterator) l separated by c. Each item is prefixed with p and suffixed with s. If the join result is empty for any reason, an alternative a is returned. p, s and a are optional.
-if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with textwrap.fill(res, width, break_long_lines).</p>
+if width is integer &gt; 0, then fill() is used to wrap the result
+to keep inside width when possible.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1334,6 +1341,7 @@ if width is integer &gt; 0, then textwrap.fill() is used to wrap the result with
 <li><a class="reference internal" href="#tools_ssg.asort"><code class="docutils literal notranslate"><span class="pre">asort()</span></code></a></li>
 <li><a class="reference internal" href="#tools_ssg.cumsum"><code class="docutils literal notranslate"><span class="pre">cumsum()</span></code></a></li>
 <li><a class="reference internal" href="#tools_ssg.expandbit"><code class="docutils literal notranslate"><span class="pre">expandbit()</span></code></a></li>
+<li><a class="reference internal" href="#tools_ssg.fill"><code class="docutils literal notranslate"><span class="pre">fill()</span></code></a></li>
 <li><a class="reference internal" href="#tools_ssg.icumo2iiso"><code class="docutils literal notranslate"><span class="pre">icumo2iiso()</span></code></a></li>
 <li><a class="reference internal" href="#tools_ssg.int_str"><code class="docutils literal notranslate"><span class="pre">int_str()</span></code></a></li>
 <li><a class="reference internal" href="#tools_ssg.isstr"><code class="docutils literal notranslate"><span class="pre">isstr()</span></code></a></li>

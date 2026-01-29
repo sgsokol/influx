@@ -46,11 +46,33 @@
             
   <section id="change-log-for-influx-si">
 <span id="changelog"></span><h1>Change Log for influx_si<a class="headerlink" href="#change-log-for-influx-si" title="Link to this heading">¶</a></h1>
+<section id="version-7-4-2">
+<h2>2026-01-29 version 7.4.2<a class="headerlink" href="#version-7-4-2" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>New features:</dt><dd><ul class="simple">
+<li><p>added mat2file.R for storing cumomer matrices to tmp/*.mtx files</p></li>
+<li><p>influx_i: default mumps ordering is now AMD instead of SCOTCH</p></li>
+<li><p>nlsic: new CRAN version 1.2.0 is out with support of jacobian reuse</p></li>
+</ul>
+</dd>
+<dt>Bug fix:</dt><dd><ul class="simple">
+<li><p>ftbl2cumoAb: fixed format of cumomer system with numerical values</p></li>
+<li><p>python join(): fixed wrapping of long lines that could break inside a quoted expression</p></li>
+<li><p>txt2ftbl: made more clear an error message about repeated measurments for a given time point (reported by Sophie Colombié, INRAE BFP, France)</p></li>
+<li><p>plot_ilab.R: fixed names of composed measurements with spaces ‘A + B’</p></li>
+<li><p>fixed a bug preventing a read of .ikin file from tmp/ directory for parallel experiments</p></li>
+<li><p>influx_i: fixed non propagation of optctrl:mumps:inctl_N options</p></li>
+<li><p>ff2ftbl: fixed python3.12 warning about unknown regexp syntax</p></li>
+<li><p>fixed tentative to write MC stats to .kvh file when no sufficient MC samples were obtained</p></li>
+</ul>
+</dd>
+</dl>
+</section>
 <section id="version-7-4-1">
 <h2>2025-09-17 version 7.4.1<a class="headerlink" href="#version-7-4-1" title="Link to this heading">¶</a></h2>
 <dl class="simple">
 <dt>Bug fix:</dt><dd><ul class="simple">
-<li><p>ftbl2html: fixed syntax error on mervaid v11.11</p></li>
+<li><p>ftbl2html: fixed syntax error on mermaid v11.11</p></li>
 </ul>
 </dd>
 </dl>
@@ -1046,6 +1068,7 @@ all fluxes are free or constrained;</p></li>
     <h3><a href="index.html">Table of Contents</a></h3>
     <ul>
 <li><a class="reference internal" href="#">Change Log for influx_si</a><ul>
+<li><a class="reference internal" href="#version-7-4-2">2026-01-29 version 7.4.2</a></li>
 <li><a class="reference internal" href="#version-7-4-1">2025-09-17 version 7.4.1</a></li>
 <li><a class="reference internal" href="#version-7-4-0">2025-09-10 version 7.4.0</a></li>
 <li><a class="reference internal" href="#version-7-3-0">2025-05-19 version 7.3.0</a></li>

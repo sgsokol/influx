@@ -714,6 +714,7 @@ Call influx_s.main(["-h"]) for a help message"""
                 with flog.open("a") as flp: flp.write(s)
                 sys.stdout.write(s)
     else:
+        # we have only one .R file
         fp=Path(ftpr[0]["ft"]).with_suffix(".R")
         if dirres == "default":
             flog=(fp.parent/(fp.stem+"_res")/(fp.stem+".log"))
@@ -724,7 +725,7 @@ Call influx_s.main(["-h"]) for a help message"""
         else:
             flog=(Path(dirres)/(fp.stem+".log"))
             fpe=(Path(dirres)/(fp.stem+".err"))
-        # execute only one R code
+        # execute R code
         if not retcode and rfiles and not dict_opts["nocalc"]:
             f=rfiles[0][0][:-2]
             rcmd="--vanilla --slave"
@@ -736,6 +737,7 @@ Call influx_s.main(["-h"]) for a help message"""
             if flog:
                 with flog.open("a") as flp: flp.write(s)
             sp=subp.Popen([shutil.which("R")] + rcmd.split(), stdin=open(rfiles[0][0], "r"), stdout=subp.PIPE, stderr=subp.PIPE, start_new_session=True)
+            #breakpoint()
             try:
                 out,err=sp.communicate()
                 err=err.decode(errors="ignore")

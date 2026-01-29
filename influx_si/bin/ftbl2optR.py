@@ -380,8 +380,8 @@ for (iexp in seq_len(nb_exp)) {
       else
          flabcin[iexp]=file.path(dirw, flabcin[iexp])
       if (!file.exists(flabcin[iexp])) {
-         # last resort, see in _res/tmp
-         ftmp=file.path(dirw, paste0(nm_exp[[iexp]],"_res"), "tmp", basename(flabcin[iexp]))
+         # last resort, see in _res/tmp of the main file
+         ftmp=file.path(dirw, paste0(nm_exp[[1L]],"_res"), "tmp", basename(flabcin[iexp]))
          if (file.exists(ftmp))
             flabcin[iexp]=ftmp
       }
@@ -719,7 +719,7 @@ dimnames(dupm_dp)=list(rownames(measurements$mat$pool), nm_par)
 
 #if (interactive()) browser()
 # prepare argument list for passing to label simulating functions
-nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf", "fclog", "fcerr")
+nm_labargs=c("jx_f", "nb_f", "nm_list", "nb_x", "invAfl", "p2bfl", "g2bfl", "bp", "fc", "xi", "spa", "spaf", "emu", "pool", "measurements", "ipooled", "ir2isc",  "nb_w", "nb_rw", "nbc_x", "measmat", "memaone", "dufm_dp", "dupm_dp", "pwe", "ipwe", "ip2ipwe", "pool_factor", "ijpwef", "ipf_in_ppw", "meas2sum", "dp_ones", "clen", "dirr", "dirw", "dirres", "baseshort", "case_i", "nb_exp", "noscale", "dpw_dpf", "fclog", "fcerr", "control_ftbl")
 """)
     if case_i:
         f.write('nm_labargs=c(nm_labargs, "ti", "tifull", "tifull2", "x0", "time_order")')
@@ -1950,7 +1950,7 @@ for (irun in seq_len(nseries)) {
 #browser()
          rnm=grep("_gr$", nm_fallnx, invert=TRUE, value=TRUE)
          cnm=c("Id", "Comment", "Name", "Kind", "Type", "Value", "SD", "Struct_identif")
-         if (sensitive == "mc") {
+         if (sensitive == "mc" && nmc_real > 1L) {
             cnm=c(cnm, "Low_mc", "Up_mc")
          }
          nx2suf=c(n="NET", x="XCH")
@@ -1965,7 +1965,7 @@ for (irun in seq_len(nseries)) {
          vsd=sdfl[rnm]
          vsd[is.na(vsd)]=0.
          df=cbind("", "", mnm[, 3L], nx2suf[mnm[, 2L]], fd2cap[mnm[, 1L]], vfl, vsd, ifelse(vsd > 10000, "no", "yes"))
-         if (sensitive == "mc") {
+         if (sensitive == "mc" && nmc_real > 1L) {
             df=cbind(df, cinx_mc[rnm, 1L:2L])
          }
 
@@ -2021,7 +2021,7 @@ for (irun in seq_len(nseries)) {
             vsd=sdpf[rnm]
             vsd[is.na(vsd)]=0.
             dfp=cbind("", "", mnm[, 2L], "METAB", pfc2cap[mnm[,1L]], poolall[rnm], vsd, ifelse(vsd >= 10000., "no", "yes"))
-            if (sensitive == "mc") {
+            if (sensitive == "mc" && nmc_real > 1L) {
                mci=ci_mc[nm_poolf, 1L:2L]
                mci=rbind(mci, cbind(poolall[nm_poolc], poolall[nm_poolc]))
                dfp=cbind(dfp, mci[rnm,])

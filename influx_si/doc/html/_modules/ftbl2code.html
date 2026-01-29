@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ftbl2code &#8212; influx_si 7.3 documentation</title>
+    <title>ftbl2code &#8212; influx_si 7.4 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=514cf933" />
     
-    <script src="../_static/documentation_options.js?v=3ad2025c"></script>
+    <script src="../_static/documentation_options.js?v=f15b9291"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -24,7 +24,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>
@@ -557,7 +557,7 @@
 <span class="s2">   Rprof(file.path(dirw, sprintf(&quot;</span><span class="si">%s</span><span class="s2">.Rprof&quot;, baseshort)))</span>
 
 <span class="s2">nm_list=list()</span>
-<span class="s2">nb_f=list()</span>
+<span class="s2">nb_f=new.env() #list()</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
     <span class="n">netan2R_fl</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
     <span class="n">d</span><span class="o">=</span><span class="n">netan2R_rcumo</span><span class="p">(</span><span class="n">netan</span><span class="p">,</span> <span class="n">org</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">emu</span><span class="p">)</span>
@@ -942,13 +942,19 @@
 <span class="sd">names(nm_dfn)=substring(nm_dfn, 5)</span>
 
 <span class="sd"># all flux cardinals</span>
-<span class="sd">nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,</span>
-<span class="sd">   nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,</span>
-<span class="sd">   nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,</span>
-<span class="sd">   nb_fallnx=nb_fallnx, nb_fwrv=nb_fwrv,</span>
-<span class="sd">   nb_fgr=nb_fgr,</span>
-<span class="sd">   include_growth_flux=%(inc_gr_f)s,</span>
-<span class="sd">   mu=%(mu)s))</span>
+<span class="sd">include_growth_flux=%(inc_gr_f)s</span>
+<span class="sd">mu=%(mu)s</span>
+<span class="sd">#nb_f=append(nb_f, list(nb_fln=nb_fln, nb_flx=nb_flx, nb_fl=nb_fl,</span>
+<span class="sd">#   nb_ffn=nb_ffn, nb_ffx=nb_ffx, nb_ff=nb_ff,</span>
+<span class="sd">#   nb_fcn=nb_fcn, nb_fcx=nb_fcx, nb_fc=nb_fc,</span>
+<span class="sd">#   nb_fallnx=nb_fallnx, nb_fwrv=nb_fwrv,</span>
+<span class="sd">#   nb_fgr=nb_fgr,</span>
+<span class="sd">#   include_growth_flux=include_growth_flux,</span>
+<span class="sd">#   mu=mu))</span>
+<span class="sd">#if (interactive()) browser()</span>
+<span class="sd">lapply(c(&quot;nb_fln&quot;, &quot;nb_flx&quot;, &quot;nb_fl&quot;, &quot;nb_ffn&quot;, &quot;nb_ffx&quot;, &quot;nb_ff&quot;,</span>
+<span class="sd">   &quot;nb_fcn&quot;, &quot;nb_fcx&quot;, &quot;nb_fc&quot;, &quot;nb_fallnx&quot;, &quot;nb_fwrv&quot;,</span>
+<span class="sd">   &quot;nb_fgr&quot;, &quot;include_growth_flux&quot;, &quot;mu&quot;), function(nm) assign(nm, get(nm), envir=nb_f))</span>
 <span class="sd">    &quot;&quot;&quot;</span><span class="o">%</span><span class="p">{</span>
         <span class="s2">&quot;nm_rows&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">netan</span><span class="p">[</span><span class="s2">&quot;vrowAfl&quot;</span><span class="p">],</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
         <span class="s2">&quot;nb_ffn&quot;</span><span class="p">:</span> <span class="n">nb_ffn</span><span class="p">,</span>
@@ -1092,9 +1098,7 @@
 <span class="s2">nb_fl=nb_fln+nb_flx</span>
 <span class="s2">nm_par=names(param)</span>
 
-<span class="s2">for (item in c(&quot;nb_fln&quot;, &quot;nb_flx&quot;, &quot;nb_fl&quot;, &quot;nb_ffn&quot;, &quot;nb_ffx&quot;, &quot;nb_ff&quot;)) {</span>
-<span class="s2">   nb_f[item]=get(item)</span>
-<span class="s2">}</span>
+<span class="s2">lapply(c(&quot;nb_fln&quot;, &quot;nb_flx&quot;, &quot;nb_fl&quot;, &quot;nb_ffn&quot;, &quot;nb_ffx&quot;, &quot;nb_ff&quot;), function(nm) assign(nm, get(nm), envir=nb_f))</span>
 <span class="s2"># translation from n-x to fw-rv</span>
 <span class="s2">sh_fwrv=substring(nm_fwrv[1:(nb_fwrv/2)], 5)</span>
 <span class="s2">sh_nx=substring(nm_fallnx, 2)</span>
@@ -1461,6 +1465,7 @@
     <span class="s2">&quot;dev&quot;</span><span class="p">:</span> <span class="n">join</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">sd</span> <span class="k">for</span> <span class="n">sd</span> <span class="ow">in</span> <span class="n">valval</span><span class="p">(</span><span class="n">measures</span><span class="p">[</span><span class="n">o</span><span class="p">][</span><span class="n">ili</span><span class="p">][</span><span class="s2">&quot;dev&quot;</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">o_meas</span><span class="p">)),</span> <span class="n">width</span><span class="o">=</span><span class="mi">120</span><span class="p">),</span>
     <span class="p">})</span>
+    <span class="c1">#breakpoint()</span>
     <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">nm_meas_tot=unlist(nm_meas)</span>
 <span class="s2">nb_meas=unlist(nb_meas)</span>
@@ -2166,7 +2171,7 @@
         <li class="right" >
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.3 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">influx_si 7.4 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ftbl2code</a></li> 
       </ul>

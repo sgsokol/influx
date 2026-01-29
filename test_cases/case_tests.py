@@ -85,6 +85,7 @@ def do_case(ith, icase, line):
         # make tests
         #print cmd
         fd_out.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
+        fd_out.write("---run: %s\n"%cmd)
         fd_err.write("---%s, %d:%s\n"%(asctime(), icase, nm_t))
         fd_out.flush()
         fd_err.flush()
