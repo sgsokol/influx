@@ -632,7 +632,7 @@ def parse_miso(fmiso, clen, case_i=False, itnal_met=set()):
                 if not dfgr[dfgr["Time"] != ""].empty:
                     for i,(sp,spi) in enumerate(dsp.items()):
                         #pdb.set_trace()
-                        df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join('#'+v for v in labs[0])}:{df.loc[spi[0],'iline']}"]))
+                        df_kin=dfconcat(df_kin, pa.DataFrame(df.loc[spi, "Value"].to_numpy().reshape(1, -1), columns=df.loc[spi, "Time"], index=[f"l:{met}:{'+'.join(v for v in labs[i])}:{df.loc[spi[0],'iline']}"]))
             else:
                 if met != last_met or frag != last_frag:
                     last_met=met

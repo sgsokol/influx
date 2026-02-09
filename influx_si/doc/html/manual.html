@@ -749,7 +749,7 @@ optctrl:nlsic:errx      1.e-3
 </dd>
 <dt>btstart=1.</dt><dd><p>backtracking starting coefficient</p>
 </dd>
-<dt>btfrac=0.25</dt><dd><p>backtracking fraction parameter. It corresponds to the alpha parameter in the paper on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code></p>
+<dt>btfrac=0.8</dt><dd><p>backtracking fraction parameter. It corresponds to the alpha parameter in the paper on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code></p>
 </dd>
 <dt>btdesc=0.1</dt><dd><p>backtracking descending parameter. It corresponds to the beta parameter in the paper on <code class="docutils literal notranslate"><span class="pre">influx_s</span></code></p>
 </dd>
@@ -757,7 +757,7 @@ optctrl:nlsic:errx      1.e-3
 </dd>
 <dt>trace=1</dt><dd><p>report (=1) or not (=0) minimal convergence information</p>
 </dd>
-<dt>rcond=1.e10</dt><dd><p>condition number over which a matrix is considered as rank deficient</p>
+<dt>rcond=1.e7</dt><dd><p>condition number over which a matrix is considered as rank deficient</p>
 </dd>
 <dt>ci=list(p=0.95, report=F)</dt><dd><p>confidence interval reporting. This option is own to <code class="docutils literal notranslate"><span class="pre">nlsic()</span></code> function. It has no impact on the reporting of linear stats information in the result kvh file after the post-optimization treatment. This latter is always done.</p>
 </dd>
@@ -766,6 +766,10 @@ optctrl:nlsic:errx      1.e-3
 <dt>adaptbt=TRUE</dt><dd><p>use (default) or not an adaptive backtracking algorithm.</p>
 </dd>
 <dt>monotone=FALSE</dt><dd><p>should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.</p>
+</dd>
+<dt>reuse_jac=TRUE</dt><dd><p>should or not the Jacobian matrix be reused. If TRUE, then the Jacobian matrix can be reused for few (cf. max_reuse) following iterations. This option is useful if the Jacobian matrix is very large and the computation is time consuming. If FALSE, then the Jacobian matrix is recomputed for each non linear iteration.</p>
+</dd>
+<dt>max_reuse=5</dt><dd><p>maximal number of Jacobian reuses</p>
 </dd>
 </dl>
 </div></blockquote>

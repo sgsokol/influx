@@ -687,7 +687,7 @@ All possible options and their default values for NLSIC algorithm follow:
 	 btstart=1.
 		backtracking starting coefficient
 
-	 btfrac=0.25
+	 btfrac=0.8
 		backtracking fraction parameter. It corresponds to the alpha parameter in the paper on ``influx_s``
 
 	 btdesc=0.1
@@ -699,7 +699,7 @@ All possible options and their default values for NLSIC algorithm follow:
 	 trace=1
 		report (=1) or not (=0) minimal convergence information
 
-	 rcond=1.e10
+	 rcond=1.e7
 		condition number over which a matrix is considered as rank deficient
 
 	 ci=list(p=0.95, report=F)
@@ -713,6 +713,10 @@ All possible options and their default values for NLSIC algorithm follow:
 		
 	 monotone=FALSE
 		should or not the cost decrease be monotone. If TRUE, then at first non decrease of the cost, the iterations are stopped with a warning message.
+	 reuse_jac=TRUE
+		should or not the Jacobian matrix be reused. If TRUE, then the Jacobian matrix can be reused for few (cf. max_reuse) following iterations. This option is useful if the Jacobian matrix is very large and the computation is time consuming. If FALSE, then the Jacobian matrix is recomputed for each non linear iteration.
+	 max_reuse=5
+		maximal number of Jacobian reuses
 
 PSO parameters
 ..............

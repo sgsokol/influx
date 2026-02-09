@@ -2,6 +2,13 @@
 Change Log for influx_si
 ========================
 
+2026-02-09 version 7.4.3
+------------------------
+Bug fix:
+ - ftbl2labcin: more robust matching between .ikin and .ftbl rows (seen in case submitted by Sophie Colombié, INRAE BFP, France)
+ - txt2ftbl: fixed label id transcription in .ikin for label NMR measurements (idem)
+ - plot_ilab.R: fixed plotting of repeated measurements
+
 2026-01-29 version 7.4.2
 ------------------------
 New features:
