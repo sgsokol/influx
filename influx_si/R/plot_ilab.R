@@ -93,6 +93,9 @@ plot_lti=function(ti, x, m=NULL, ...) {
 }
 #browser()
 if (write_res) {
+   if (!case_i) {
+      stop_mes("plot_ilab.R is supposed to be used in instationary labeling only. Try plot_smeas.R instead.", file=fcerr)
+   }
    for (iexp in seq_len(nb_exp)) {
       usmf=jx_f$usmf[[iexp]] # unscaled simulated measurements
       me=measurements$vec$kin[[iexp]] # measured dynamic labeling data

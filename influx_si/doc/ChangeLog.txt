@@ -2,6 +2,11 @@
 Change Log for influx_si
 ========================
 
+2026-02-11 version 7.4.4
+------------------------
+Bug fix:
+ - plot_ilab.R and plot_smeas.R: added explicit error messages if one is used in place of the other (reported by Jean-Charles Portais, University of Toulouse / INSERM, France)
+
 2026-02-09 version 7.4.3
 ------------------------
 Bug fix:

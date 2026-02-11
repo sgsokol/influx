@@ -115,10 +115,13 @@ co=c(
 "#df926c",
 "#a84f5b"
 )
-if (is.null(.GlobalEnv$jx_f) || is.null(jx_f$simlab)) {
-   stop_mes("plot_smeas.R: simulated data are not available. Plotting skipped", file=fcerr)
-}
 if (write_res) {
+   if (case_i) {
+      stop_mes("plot_smeas.R is supposed to be used in stationary labeling only. Try plot_ilab.R instead.", file=fcerr)
+   }
+   if (is.null(.GlobalEnv$jx_f) || is.null(jx_f$simlab)) {
+      stop_mes("plot_smeas.R: simulated data are not available. Plotting skipped", file=fcerr)
+   }
    for (iexp in seq_len(nb_exp)) {
       sim=jx_f$simlab[[iexp]]
       me=measurements$vec$labeled[[iexp]] # measured stationary ms data
