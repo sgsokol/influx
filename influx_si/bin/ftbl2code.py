@@ -125,22 +125,22 @@ if (TIMEIT) {
    cat("weight %(w)2d: ", format(Sys.time()), " cpu=", proc.time()[1], "\\n", sep="", file=fclog)
 }
 w=%(w)d
-nb_c=%(nbc)d
-ba_x=%(ba_x)d; # base of cumomer indexes in incu vector
+nb_c=%(nbc)dL
+ba_x=%(ba_x)dL; # base of cumomer indexes in incu vector
 l=new.env()
 l$w=w
 l$nb_c=nb_c
 l$nb_fwrv=nb_fwrv
-l$nb_cl=%(ncucumo)d # number of lighter cumomers
-maxprod=%(maxprod)d
+l$nb_cl=%(ncucumo)dL # number of lighter cumomers
+maxprod=%(maxprod)dL
 if (nb_c > 0) {
    # matrix a
-   ind_a=matrix(as.integer(c(%(ind_a)s)), ncol=3, byrow=TRUE)
+   ind_a=matrix(c(%(ind_a)s), ncol=3, byrow=TRUE)
    colnames(ind_a)=c("indf", "ir0", "ic0")
    l$ind_a=ind_a
    
    # vector b
-   ind_b=matrix(as.integer(c(%(ind_b)s)), ncol=2+%(maxprod)d, byrow=TRUE)
+   ind_b=matrix(c(%(ind_b)s), ncol=2+%(maxprod)d, byrow=TRUE)
    colnames(ind_b)=c("indf", "irow", paste("indx", seq_len(%(maxprod)d), sep=""))
    l$ind_b=ind_b
    
@@ -150,7 +150,7 @@ if (nb_c > 0) {
    for (ix in imaxprod) {
       i=ind_b[,2+ix]>ba_x # exclude from differentiation plain input entries
       tmp=ind_b[i,,drop=FALSE]
-      ind_bx=rbind(ind_bx, tmp[,c(1,2,ix+2,2+imaxprod[-ix])]) # move diff var to ic1 place
+      ind_bx=rbind(ind_bx, tmp[,c(1L,2L,ix+2L,2L+imaxprod[-ix])]) # move diff var to ic1 place
    }
    if (length(ind_bx)) {
       colnames(ind_bx)=c("indf", "irow", "ic1", sprintf("indx%%d", seq_len(maxprod-1)))
@@ -169,8 +169,8 @@ if (nb_c > 0) {
    "ind_a": join(", ", valval((ifl, ir, ic)
       for (ir, lt) in enumerate(l_ia)
       for (ic, lf) in lt
-      for ifl in lf), width=120),
-   "ind_b": join(", ", valval((ifl, ir+1, ", ".join(str(i) for i in ii))
+      for ifl in lf), s="L", width=120),
+   "ind_b": join(", ", valval((str(ifl)+"L", str(ir+1)+"L", ", ".join(str(i)+"L" for i in ii))
        for (ir, lt) in enumerate(l_ib)
        for (ifl, ii) in lt
    ), width=120),
