@@ -1564,7 +1564,7 @@ for (irun in seq_len(nseries)) {
       #browser()
       if (nb_fmn) {
          if (addnoise)
-            simul[["measured fluxes"]]=jx_f$simfmn+rnorm(length(jx_f$simfm))*measurements$dev$flux
+            simul[["measured fluxes"]]=jx_f$simfmn+rnorm(length(jx_f$simfmn))*measurements$dev$flux
          else
             simul[["measured fluxes"]]=jx_f$simfmn
          # measured fluxes --> .mflux
